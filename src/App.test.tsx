@@ -12,11 +12,13 @@ describe("App", () => {
     expect(screen.getByText("v1.0 | Offline Network")).toBeInTheDocument();
   });
 
-  it("disables Team Lobby and Settings as coming soon", () => {
+  it("enables Team Lobby and keeps Settings as coming soon", async () => {
+    const user = userEvent.setup();
     render(<App />);
-    expect(screen.getByRole("button", { name: /team lobby/i })).toBeDisabled();
     expect(screen.getByRole("button", { name: /settings/i })).toBeDisabled();
-    expect(screen.getAllByText(/coming soon/i)).toHaveLength(2);
+    expect(screen.getAllByText(/coming soon/i)).toHaveLength(1);
+    await user.click(screen.getByRole("button", { name: /team lobby/i }));
+    expect(screen.getByRole("heading", { name: "TEAM LOBBY" })).toBeInTheDocument();
   });
 
   it("Solo Quest opens the overworld", async () => {

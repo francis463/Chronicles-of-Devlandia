@@ -12,7 +12,15 @@ function ComingSoon({ label }: { label: string }) {
   );
 }
 
-export function MainMenu({ onSoloQuest, onExit }: { onSoloQuest: () => void; onExit: () => void }) {
+export function MainMenu({
+  onSoloQuest,
+  onTeamLobby,
+  onExit,
+}: {
+  onSoloQuest: () => void;
+  onTeamLobby: () => void;
+  onExit: () => void;
+}) {
   return (
     <Panel className="mx-auto flex w-full max-w-5xl flex-col items-center px-4 pt-10 pb-4 sm:px-6">
       <h1 className="text-center text-lg font-bold tracking-widest text-[var(--text)] sm:text-xl">
@@ -26,7 +34,9 @@ export function MainMenu({ onSoloQuest, onExit }: { onSoloQuest: () => void; onE
         <Button className="w-full" onClick={onSoloQuest}>
           Solo Quest
         </Button>
-        <ComingSoon label="Team Lobby" />
+        <Button className="w-full" onClick={onTeamLobby}>
+          Team Lobby
+        </Button>
         <ComingSoon label="Settings" />
         <Button variant="danger" className="w-full" onClick={onExit}>
           Exit Game

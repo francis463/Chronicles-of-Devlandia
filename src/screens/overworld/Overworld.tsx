@@ -2,6 +2,7 @@ import { useReducer } from "react";
 import { poiInRange } from "../../game/geometry";
 import { gameReducer, initialState, isDowned, isModalOpen, revealedPois } from "../../game/reducer";
 import type { GameState } from "../../game/types";
+import type { TeamSession } from "../../hooks/useTeamSession";
 import { useGameTimers } from "../../hooks/useGameTimers";
 import { useKeyboardControls } from "../../hooks/useKeyboardControls";
 import { Panel } from "../../ui/Panel";
@@ -15,7 +16,15 @@ import { MiniMap } from "./MiniMap";
 import { TopHud } from "./TopHud";
 import { TouchControls } from "./TouchControls";
 
-export function Overworld({ onMenu, initial }: { onMenu: () => void; initial?: Partial<GameState> }) {
+export function Overworld({
+  onMenu,
+  initial,
+}: {
+  onMenu: () => void;
+  initial?: Partial<GameState>;
+  /** Team mode (wired up in the overworld team-mode task). */
+  team?: TeamSession;
+}) {
   const [state, dispatch] = useReducer(gameReducer, { ...initialState, ...initial });
   useGameTimers(state, dispatch);
   useKeyboardControls(state, dispatch);
