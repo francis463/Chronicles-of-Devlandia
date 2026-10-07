@@ -33,6 +33,8 @@ The touch controls only appear on touch screens; keyboard players never see them
 - **At 0 HP** you're downed. Click `[ Respawn ]` to return to base camp.
 - The clock advances 5 in-game minutes every 2 seconds and cycles through day, dusk and night.
 
+The map is drawn in pixel art on a canvas: snowy peaks, the frozen river, the meadow and the dense forest, with your hooded explorer and your AI drone. In team games your teammates are explorers in their own colours. Bushes, rocks and trees mark the edge of the walkable area. Pixels stay sharp at any screen size; on some laptop scaling settings (such as Windows at 125 %) the map is drawn a little smaller to keep them sharp. If your device is set to reduce motion, characters step instead of gliding and the blinking lights, pulses and glints stay still.
+
 ## Team Lobby (2–4 players)
 
 From the main menu choose **TEAM LOBBY**, type a nickname and pick a connection:
@@ -63,6 +65,7 @@ If the server can't be reached, Online shows "Can't reach the team server…" an
 src/game/      pure game rules: constants, geometry, clock, puzzle, cipher, logic, team, reducer
 src/hooks/     keyboard controls, game timers, team session
 src/net/       team transports: Supabase (Online), BroadcastChannel (Same computer), in-memory (tests)
+src/render/    the pixel-art map: world geometry, sprites, terrain, motion, scene description and painting
 src/screens/   MainMenu, TeamLobby, Farewell, TerminalModal (gate), CipherModal (scroll), LogicModal (tower), overworld/*
 src/ui/        Panel, Button, Meter, TerminalDialog primitives
 ```
