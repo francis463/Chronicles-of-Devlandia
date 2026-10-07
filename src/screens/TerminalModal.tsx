@@ -57,7 +57,7 @@ export function TerminalModal({
           <button
             type="button"
             onClick={onClose}
-            className="cursor-pointer rounded px-2 py-1 text-sm font-bold tracking-widest hover:bg-[var(--accent-border)] focus-visible:outline-2 focus-visible:outline-[var(--bg)]"
+            className="cursor-pointer rounded px-2 py-1 text-sm font-bold tracking-widest whitespace-nowrap hover:bg-[var(--accent-border)] focus-visible:outline-2 focus-visible:outline-[var(--bg)]"
           >
             [X] CLOSE
           </button>

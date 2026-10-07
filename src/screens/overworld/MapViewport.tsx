@@ -65,7 +65,7 @@ export function MapViewport({
         </Button>
       </div>
 
-      <div className="absolute top-[18%] left-[82%] z-20 -translate-x-1/2 -translate-y-1/2">
+      <div className="absolute top-[18%] left-[82%] z-20 -translate-x-[85%] -translate-y-1/2 md:-translate-x-1/2">
         <Button variant="ghost" className="px-2 py-1 whitespace-nowrap text-[var(--accent)]" onClick={() => onInteract("chest")}>
           {hasLoot ? "[X] Empty Cache" : "[X] Supply Cache"}
         </Button>
