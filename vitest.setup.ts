@@ -8,3 +8,8 @@ import { afterEach, vi } from "vitest";
 Object.assign(globalThis, { jest: { advanceTimersByTime: (ms: number) => vi.advanceTimersByTime(ms) } });
 
 afterEach(() => cleanup());
+
+// jsdom has no 2D canvas; without this it logs "Not implemented: getContext" for every canvas.
+// Assigned rather than spied on, so restoreAllMocks can't undo it. Tests that need a context
+// assign their own fake and put this back.
+HTMLCanvasElement.prototype.getContext = (() => null) as never;
