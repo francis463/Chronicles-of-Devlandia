@@ -1,9 +1,11 @@
+import { useLayoutEffect, useRef, useState } from "react";
 import { phaseOf } from "../../game/clock";
 import { INSPECT_COPY, POIS } from "../../game/constants";
 import { poiInRange } from "../../game/geometry";
 import type { PoiId, Point } from "../../game/types";
 import { Button } from "../../ui/Button";
 import { Panel } from "../../ui/Panel";
+import { labelLayout, type LabelPlacement, type LabelSide, type MapSize } from "./labelLayout";
 
 const PHASE_TINT = {
   Night: "rgba(20,20,28,0.25)",
@@ -18,15 +20,22 @@ const at = (p: Point) => ({ left: `${p.x}%`, top: `${p.y}%` });
 const CACHE_POSITION = { left: "min(82%, calc(100% - 92px))", top: "18%" };
 const PROMPT_HALF_WIDTH = 104;
 
-/** Past this x the label sits left of the dot so it isn't clipped at the map's right edge. */
-const LABEL_FLIP_X = 70;
+const LABEL_SIDE_CLASS: Record<LabelSide, string> = {
+  right: "top-1/2 left-full ml-2 -translate-y-1/2",
+  left: "top-1/2 right-full mr-2 -translate-y-1/2",
+  above: "bottom-full left-1/2 mb-2",
+  below: "top-full left-1/2 mt-2",
+};
 
 // A zero-size anchor at the game coordinate: the dot is centred on it and the
-// label hangs beside the dot, so the dot is drawn exactly where the game thinks it is.
+// label hangs beside the dot on the side labelLayout picked, so the dot is drawn
+// exactly where the game thinks it is and the two labels never cover each other.
+// Markers are decoration, so they let clicks through to the map buttons beneath.
 function Marker({
   testId,
   at: point,
   label,
+  placement,
   dotClass,
   labelClass,
   layerClass,
@@ -34,22 +43,40 @@ function Marker({
   testId: string;
   at: Point;
   label: string;
+  placement: LabelPlacement;
   dotClass: string;
   labelClass: string;
   layerClass: string;
 }) {
-  const side = point.x > LABEL_FLIP_X ? "right-full mr-2" : "left-full ml-2";
+  const vertical = placement.side === "above" || placement.side === "below";
   return (
-    <div data-testid={testId} className={`absolute transition-all ${layerClass}`} style={at(point)}>
+    <div data-testid={testId} className={`pointer-events-none absolute transition-all ${layerClass}`} style={at(point)}>
       <span className={`absolute top-0 left-0 block -translate-x-1/2 -translate-y-1/2 rounded-full ${dotClass}`}>
         <span
-          className={`absolute top-1/2 ${side} -translate-y-1/2 text-[10px] uppercase tracking-widest whitespace-nowrap ${labelClass}`}
+          className={`absolute ${LABEL_SIDE_CLASS[placement.side]} text-[10px] uppercase tracking-widest whitespace-nowrap ${labelClass}`}
+          style={vertical ? { transform: `translateX(calc(-50% + ${placement.shift}px))` } : undefined}
         >
           {label}
         </span>
       </span>
     </div>
   );
+}
+
+/** Tracks the map's rendered size; falls back to a typical size where ResizeObserver is missing. */
+function useMapSize() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState<MapSize>({ width: 600, height: 360 });
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const update = () => setSize({ width: el.clientWidth, height: el.clientHeight });
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  return [ref, size] as const;
 }
 
 export function MapViewport({
@@ -75,6 +102,8 @@ export function MapViewport({
   onCloseInspection: () => void;
   onRespawn: () => void;
 }) {
+  const [mapRef, mapSize] = useMapSize();
+  const labels = labelLayout(player, drone, mapSize);
   const inRange = downed ? null : poiInRange(player);
   const inspectedPoi = POIS.find((poi) => poi.id === inspected);
   const copy = inspected ? INSPECT_COPY[inspected] : null;
@@ -83,7 +112,7 @@ export function MapViewport({
     : (hasLoot && copy.looted) || (gateUnlocked && copy.bridged) || copy.default;
 
   return (
-    <div className="relative min-h-[360px] flex-1 overflow-hidden bg-[var(--panel)]">
+    <div ref={mapRef} className="relative min-h-[360px] flex-1 overflow-hidden bg-[var(--panel)]">
       <span className="absolute top-4 left-1/3 -translate-x-1/2 rounded border border-dashed border-[var(--panel-border)] px-2 py-1 text-[10px] uppercase tracking-widest whitespace-nowrap text-[var(--text-muted)]">
         (Snowy Peaks Biome)
       </span>
@@ -126,6 +155,7 @@ export function MapViewport({
         testId="drone"
         at={drone}
         label="[AI Drone]"
+        placement={labels.drone}
         dotClass="h-3 w-3 bg-[var(--primary-border)]"
         labelClass="text-[var(--primary-border)]"
         layerClass="z-20 duration-300"
@@ -134,6 +164,7 @@ export function MapViewport({
         testId="player"
         at={player}
         label="[Player]"
+        placement={labels.player}
         dotClass="h-5 w-5 bg-[var(--success)] ring-2 ring-[var(--success-border)]"
         labelClass="text-[var(--text)]"
         layerClass="z-30 duration-150"
