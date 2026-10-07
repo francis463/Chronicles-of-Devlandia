@@ -41,7 +41,11 @@ export function TerminalDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[rgba(15,23,42,0.7)] p-4">
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-[rgba(15,23,42,0.7)] p-4"
+      // A click on the dim backdrop would otherwise move focus to the page behind the dialog.
+      onMouseDown={(event) => event.target === event.currentTarget && event.preventDefault()}
+    >
       <div
         ref={dialogRef}
         role="dialog"

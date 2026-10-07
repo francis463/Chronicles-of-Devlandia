@@ -315,3 +315,15 @@ describe("gameReducer: signal tower logic lock", () => {
     expect(isModalOpen({ ...s0, logicOpen: true })).toBe(true);
   });
 });
+
+describe("gameReducer: only one terminal at a time", () => {
+  it("does not open a second terminal while one is open", () => {
+    const gateOpen = { ...s0, hasLoot: true, terminalOpen: true };
+    expect(gameReducer(gateOpen, { type: "openCipher" })).toBe(gateOpen);
+    expect(gameReducer(gateOpen, { type: "interact", poi: "tower" })).toBe(gateOpen);
+    const cipherOpen = { ...s0, hasLoot: true, cipherOpen: true };
+    expect(gameReducer(cipherOpen, { type: "interact", poi: "gate" })).toBe(cipherOpen);
+    const logicOpen = { ...s0, logicOpen: true };
+    expect(gameReducer(logicOpen, { type: "interact", poi: "gate" })).toBe(logicOpen);
+  });
+});

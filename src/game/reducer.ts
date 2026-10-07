@@ -106,7 +106,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         },
       };
     case "interact": {
-      if (isDowned(state)) return state;
+      if (isDowned(state) || isModalOpen(state)) return state;
       if (action.poi === "artifact") {
         if (!state.clueDecoded || state.artifactFound) return state;
         return pushLog({ ...state, artifactFound: true, inspected: "artifact" }, LOG.artifactFound);
@@ -144,7 +144,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case "revealHint":
       return { ...state, hintRevealed: true };
     case "openCipher":
-      if (!state.hasLoot || state.clueDecoded || isDowned(state)) return state;
+      if (!state.hasLoot || state.clueDecoded || isDowned(state) || isModalOpen(state)) return state;
       return { ...state, cipherOpen: true };
     case "closeCipher":
       return { ...state, cipherOpen: false, cipherError: null };

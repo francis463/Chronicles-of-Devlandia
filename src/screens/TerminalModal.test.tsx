@@ -84,4 +84,15 @@ describe("TerminalModal", () => {
     await user.tab({ shift: true });
     expect(lastButton).toHaveFocus();
   });
+
+  it("clicking the dim backdrop does not move focus out of the dialog", async () => {
+    const user = userEvent.setup();
+    renderModal();
+    const input = screen.getByRole("textbox", { name: "display value" });
+    const backdrop = screen.getByRole("dialog").parentElement!;
+    await user.click(backdrop);
+    expect(input).toHaveFocus();
+    await user.tab({ shift: true });
+    expect(screen.getByRole("dialog")).toContainElement(document.activeElement as HTMLElement);
+  });
 });

@@ -328,3 +328,13 @@ describe("Overworld signal tower", () => {
     expect(screen.getByRole("dialog", { name: "< SIGNAL TOWER: LOGIC LOCK >" })).toBeInTheDocument();
   });
 });
+
+describe("Overworld inspection card placement", () => {
+  it("moves the card to the top when the inspected point is in the lower half, so it never covers it", () => {
+    const { unmount } = render(<Overworld onMenu={() => {}} initial={{ hasLoot: true, clueDecoded: true, artifactFound: true, inspected: "artifact" }} />);
+    expect(screen.getByRole("region", { name: "POI Inspection" }).className).toContain("top-3");
+    unmount();
+    render(<Overworld onMenu={() => {}} initial={{ hasLoot: true, inspected: "chest" }} />);
+    expect(screen.getByRole("region", { name: "POI Inspection" }).className).toContain("bottom-3");
+  });
+});

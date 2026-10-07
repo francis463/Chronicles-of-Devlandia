@@ -33,7 +33,7 @@ export function CipherModal({
         className="overflow-x-auto rounded-md border-2 border-[var(--panel-border)] bg-[var(--editor-bg)] p-4 font-mono text-[13px] leading-7 whitespace-pre text-[var(--code)]"
       >
         <div>1 | // ROT13: every letter is shifted 13 places</div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span>{`2 | rot13("${SCROLL_CIPHERTEXT}")  →`}</span>
           <input
             aria-label="decoded text"
@@ -43,7 +43,7 @@ export function CipherModal({
             spellCheck={false}
             autoComplete="off"
             autoCapitalize="characters"
-            className="w-40 rounded border border-dashed border-[var(--accent)] bg-transparent px-2 font-mono text-[var(--accent)] uppercase outline-none placeholder:text-[var(--text-muted)] placeholder:normal-case focus:border-solid"
+            className="w-40 max-w-full rounded border border-dashed border-[var(--accent)] bg-transparent px-2 font-mono text-[var(--accent)] uppercase outline-none placeholder:text-[var(--text-muted)] placeholder:normal-case focus:border-solid"
           />
         </div>
       </form>

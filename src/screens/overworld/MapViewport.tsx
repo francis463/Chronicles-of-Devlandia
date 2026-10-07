@@ -228,7 +228,10 @@ export function MapViewport({
       )}
 
       {inspectedPoi && inspectCopy && (
-        <section aria-label="POI Inspection" className="absolute bottom-3 left-3 z-40 w-60 max-w-[calc(100%-1.5rem)]">
+        <section
+          aria-label="POI Inspection"
+          className={`absolute left-3 z-40 w-60 max-w-[calc(100%-1.5rem)] ${inspectedPoi.y > 50 ? "top-3" : "bottom-3"}`}
+        >
           <Panel label="POI Inspection" className="p-3 shadow-lg">
             <div className="flex flex-col gap-2">
               <span className="text-[10px] font-bold uppercase tracking-widest">{inspectedPoi.label}</span>
