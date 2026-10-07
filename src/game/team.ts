@@ -38,8 +38,10 @@ export const TEAM_MAX = 4;
 export const TEAM_COLORS = ["#22c55e", "#e2e8f0", "#f472b6", "#a78bfa"];
 export const ROOM_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ";
 export const NO_ROOM_TIMEOUT_MS = 3000;
-export const POS_INTERVAL_MS = 125;
-export const PRESENCE_THROTTLE_MS = 1000;
+/** A join that hasn't settled by now fails as unreachable, so the lobby never stays on "Connecting…". */
+export const JOIN_TIMEOUT_MS = 12_000;
+// 4 positions a second keeps one walking team of 4 well under the free plan's 100 messages a second.
+export const POS_INTERVAL_MS = 250;
 const MAX_START_SKEW_MS = 86_400_000;
 
 const FLAG_KEYS: FlagKey[] = ["questComplete", "hasLoot", "clueDecoded", "artifactFound", "gateUnlocked", "towerPowered"];

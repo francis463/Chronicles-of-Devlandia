@@ -6,8 +6,8 @@ import {
   newlySet,
   NO_FLAGS,
   NO_ROOM_TIMEOUT_MS,
+  JOIN_TIMEOUT_MS,
   POS_INTERVAL_MS,
-  PRESENCE_THROTTLE_MS,
   rankPlayers,
   TEAM_MAX,
   teamStartedAt,
@@ -108,8 +108,8 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
   const lastFlags = useRef(new Map<string, { name: string; flags: TeamFlags }>());
   const knownNames = useRef<Map<string, string> | null>(null);
   const seenOthers = useRef(false);
-  const timers = useRef<{ noRoom?: ReturnType<typeof setTimeout>; pos?: ReturnType<typeof setTimeout>; presence?: ReturnType<typeof setTimeout> }>({});
-  const lastSent = useRef({ pos: 0, presence: 0 });
+  const timers = useRef<{ noRoom?: ReturnType<typeof setTimeout>; join?: ReturnType<typeof setTimeout>; pos?: ReturnType<typeof setTimeout> }>({});
+  const lastPosSent = useRef(0);
 
   const teardown = useCallback(() => {
     offs.current.forEach((off) => off());
@@ -148,6 +148,14 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
     transport.current?.updatePresence(me.current);
   }, []);
 
+  /** Sends our current position now (to players who just appeared, or after we reconnect). */
+  const sendPos = useCallback(() => {
+    const t = transport.current;
+    if (!t || !me.current) return;
+    lastPosSent.current = now();
+    t.send({ type: "pos", id: me.current.id, x: me.current.x, y: me.current.y });
+  }, [now]);
+
   const connect = useCallback(
     (req: Request) => {
       void teardown()?.leave();
@@ -158,7 +166,15 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
       me.current = { id: myId, name: req.name, joinedAt: now(), startedAt: null, flags: NO_FLAGS, x: PLAYER_START.x, y: PLAYER_START.y };
       dispatch({ type: "connect", room: req.room, myId });
 
-      offs.current.push(t.onStatus((status) => dispatch({ type: "status", status })));
+      let lastStatus: TeamStatus | null = null;
+      offs.current.push(
+        t.onStatus((status) => {
+          // Positions sent while we were away were lost: tell everyone where we are now.
+          if (status === "online" && lastStatus === "reconnecting") sendPos();
+          lastStatus = status;
+          dispatch({ type: "status", status });
+        }),
+      );
 
       offs.current.push(
         t.onMessage((msg: TeamMessage) => {
@@ -189,6 +205,9 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
             const joined = [...names].filter(([id]) => !knownNames.current!.has(id)).map(([, n]) => n);
             const left = [...knownNames.current].filter(([id]) => !names.has(id)).map(([, n]) => n);
             if (joined.length || left.length) rosterCbs.current.forEach((cb) => cb(joined, left));
+            // Presence doesn't carry live positions (Supabase limits presence updates), so newcomers
+            // learn where we are from one position message.
+            if (joined.length) sendPos();
           }
           // The roster baseline is the room as we first find it, so existing members aren't "joined".
           if (knownNames.current || req.creating || others.length > 0) knownNames.current = names;
@@ -199,9 +218,13 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
         }),
       );
 
+      timers.current.join = setTimeout(() => {
+        if (transport.current === t) fail("unreachable");
+      }, JOIN_TIMEOUT_MS);
       t.join(req.room, me.current).then(
         () => {
           if (transport.current !== t) return;
+          clearTimeout(timers.current.join);
           dispatch({ type: "joined" });
           if (!req.creating && !seenOthers.current) {
             timers.current.noRoom = setTimeout(() => {
@@ -214,7 +237,7 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
         },
       );
     },
-    [adoptStart, fail, makeTransport, noteFlags, now, teardown],
+    [adoptStart, fail, makeTransport, noteFlags, now, sendPos, teardown],
   );
 
   const busy = () => stateRef.current.phase === "connecting";
@@ -254,35 +277,22 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
     if (request.current) connect(request.current);
   }, [connect]);
 
+  /** Positions go out as `pos` messages, at most every POS_INTERVAL_MS; presence keeps the latest for the next update. */
   const publishPosition = useCallback(
     (x: number, y: number) => {
       const t = transport.current;
       if (!t || !me.current) return;
       me.current = { ...me.current, x, y };
-      const sendPos = () => {
-        if (!me.current || transport.current !== t) return;
-        lastSent.current.pos = now();
-        t.send({ type: "pos", id: me.current.id, x: me.current.x, y: me.current.y });
-      };
-      const sendPresence = () => {
-        if (!me.current || transport.current !== t) return;
-        lastSent.current.presence = now();
-        t.updatePresence(me.current);
-      };
-      const throttle = (key: "pos" | "presence", interval: number, fire: () => void) => {
-        const wait = lastSent.current[key] + interval - now();
-        if (wait <= 0) fire();
-        else if (!timers.current[key]) {
-          timers.current[key] = setTimeout(() => {
-            timers.current[key] = undefined;
-            fire();
-          }, wait);
-        }
-      };
-      throttle("pos", POS_INTERVAL_MS, sendPos);
-      throttle("presence", PRESENCE_THROTTLE_MS, sendPresence);
+      const wait = lastPosSent.current + POS_INTERVAL_MS - now();
+      if (wait <= 0) sendPos();
+      else if (!timers.current.pos) {
+        timers.current.pos = setTimeout(() => {
+          timers.current.pos = undefined;
+          if (transport.current === t) sendPos();
+        }, wait);
+      }
     },
-    [now],
+    [now, sendPos],
   );
 
   const publishFlags = useCallback((flags: TeamFlags) => {

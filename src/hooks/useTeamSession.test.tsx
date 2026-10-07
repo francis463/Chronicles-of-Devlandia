@@ -1,21 +1,45 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { NO_FLAGS, NO_ROOM_TIMEOUT_MS, POS_INTERVAL_MS, TEAM_COLORS } from "../game/team";
+import { JOIN_TIMEOUT_MS, NO_FLAGS, NO_ROOM_TIMEOUT_MS, POS_INTERVAL_MS, TEAM_COLORS } from "../game/team";
 import { createBroadcastTransport } from "../net/broadcastTransport";
 import { createMemoryHub } from "../net/memoryTransport";
+import type { TeamTransport } from "../net/transport";
 import { useTeamSession } from "./useTeamSession";
 
 afterEach(() => {
   vi.useRealTimers();
 });
 
-function world() {
+function world(wrap: (t: TeamTransport) => TeamTransport = (t) => t) {
   const hub = createMemoryHub();
+  const transports: TeamTransport[] = [];
   // A shared clock that always moves forward, so join order is deterministic (no same-millisecond ties).
   let t = Date.now();
   const now = () => (t += 10);
-  const player = () => renderHook(() => useTeamSession(() => hub.transport(), now));
-  return { hub, player };
+  const make = () => {
+    const raw = hub.transport();
+    transports.push(raw);
+    return wrap(raw);
+  };
+  const player = () => renderHook(() => useTeamSession(make, now));
+  return { hub, player, transports };
+}
+
+/** Counts presence updates and position messages going out through the wrapped transports. */
+function counting() {
+  const calls = { presence: 0, pos: 0 };
+  const wrap = (t: TeamTransport): TeamTransport => ({
+    ...t,
+    updatePresence(meta) {
+      calls.presence++;
+      t.updatePresence(meta);
+    },
+    send(msg) {
+      if (msg.type === "pos") calls.pos++;
+      t.send(msg);
+    },
+  });
+  return { calls, wrap };
 }
 const settle = () => act(async () => {});
 
@@ -124,8 +148,8 @@ describe("useTeamSession: lobby", () => {
 });
 
 describe("useTeamSession: in game", () => {
-  async function startedPair() {
-    const w = world();
+  async function startedPair(wrap?: (t: TeamTransport) => TeamTransport) {
+    const w = world(wrap);
     const ana = w.player();
     const kai = w.player();
     act(() => ana.result.current.create("Ana", "local"));
@@ -182,6 +206,98 @@ describe("useTeamSession: in game", () => {
     act(() => zed.result.current.leave());
     await settle();
     expect(roster).toHaveBeenLastCalledWith([], ["Zed"]);
+  });
+});
+
+describe("useTeamSession: staying within Supabase's limits (final review)", () => {
+  async function startedPair(wrap?: (t: TeamTransport) => TeamTransport) {
+    const w = world(wrap);
+    const ana = w.player();
+    const kai = w.player();
+    act(() => ana.result.current.create("Ana", "local"));
+    await settle();
+    act(() => kai.result.current.join("Kai", ana.result.current.room!, "local"));
+    await settle();
+    act(() => ana.result.current.start());
+    await settle();
+    return { ...w, ana, kai };
+  }
+  const kaiFor = (p: { result: { current: { teammates: { name: string; x: number; y: number }[] } } }) =>
+    p.result.current.teammates.find((t) => t.name === "Kai");
+
+  it("fails as unreachable when a join never settles, so the lobby can't stay on Connecting… (12 s)", async () => {
+    vi.useFakeTimers();
+    const stuck: TeamTransport = {
+      join: () => new Promise(() => {}),
+      leave: async () => {},
+      updatePresence() {},
+      send() {},
+      onPresence: () => () => {},
+      onMessage: () => () => {},
+      onStatus: () => () => {},
+    };
+    const s = renderHook(() => useTeamSession(() => stuck));
+    act(() => s.result.current.create("Ana", "online"));
+    await settle();
+    expect(JOIN_TIMEOUT_MS).toBe(12_000);
+    act(() => vi.advanceTimersByTime(JOIN_TIMEOUT_MS - 1));
+    expect(s.result.current.phase).toBe("connecting");
+    act(() => vi.advanceTimersByTime(1));
+    expect(s.result.current.phase).toBe("error");
+    expect(s.result.current.error).toBe("unreachable");
+  });
+
+  it("moving sends at most 4 positions a second and never a presence update", async () => {
+    vi.useFakeTimers();
+    const { calls, wrap } = counting();
+    const { ana } = await startedPair(wrap);
+    const presenceBefore = calls.presence;
+    calls.pos = 0;
+    for (let i = 0; i < 40; i++) {
+      act(() => {
+        vi.advanceTimersByTime(50);
+        ana.result.current.publishPosition(30 + (i % 10), 60);
+      });
+    }
+    act(() => vi.advanceTimersByTime(POS_INTERVAL_MS));
+    expect(POS_INTERVAL_MS).toBe(250);
+    expect(calls.presence).toBe(presenceBefore);
+    expect(calls.pos).toBeGreaterThanOrEqual(7);
+    expect(calls.pos).toBeLessThanOrEqual(9);
+  });
+
+  it("a player who arrives later sees where an idle teammate actually is", async () => {
+    vi.useFakeTimers();
+    const { player, ana, kai } = await startedPair();
+    act(() => {
+      vi.advanceTimersByTime(POS_INTERVAL_MS);
+      kai.result.current.publishPosition(40, 60);
+    });
+    act(() => vi.advanceTimersByTime(5000));
+    const zed = player();
+    act(() => zed.result.current.join("Zed", ana.result.current.room!, "local"));
+    await settle();
+    expect(kaiFor(zed)).toMatchObject({ x: 40, y: 60 });
+  });
+
+  it("after a reconnect, teammates see where you are now, not where you were before the drop", async () => {
+    vi.useFakeTimers();
+    const { hub, transports, ana, kai } = await startedPair();
+    act(() => {
+      vi.advanceTimersByTime(POS_INTERVAL_MS);
+      kai.result.current.publishPosition(40, 60);
+    });
+    act(() => vi.advanceTimersByTime(POS_INTERVAL_MS));
+    expect(kaiFor(ana)).toMatchObject({ x: 40, y: 60 });
+    act(() => hub.drop(transports[1]));
+    act(() => {
+      vi.advanceTimersByTime(POS_INTERVAL_MS);
+      kai.result.current.publishPosition(50, 50);
+    });
+    act(() => vi.advanceTimersByTime(POS_INTERVAL_MS));
+    act(() => hub.restore(transports[1]));
+    await settle();
+    expect(kaiFor(ana)).toMatchObject({ x: 50, y: 50 });
   });
 });
 

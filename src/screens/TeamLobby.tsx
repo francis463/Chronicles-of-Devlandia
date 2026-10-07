@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { normalizeNickname, normalizeRoomCode } from "../game/team";
 import type { TeamErrorKind, TeamSession } from "../hooks/useTeamSession";
 import type { TeamMode } from "../net/transport";
@@ -16,6 +16,12 @@ const MODES: Array<{ mode: TeamMode; label: string }> = [
   { mode: "local", label: "Same computer" },
 ];
 
+/**
+ * [ Leave Room ] appears right where [ Create Room ] was, so the second click of a double-click
+ * (or double-tap) on Create would leave the room at once; it is ignored this long after the room appears.
+ */
+export const ROOM_VIEW_GUARD_MS = 500;
+
 const fieldClass =
   "w-full rounded border-2 border-[var(--panel-border)] bg-[var(--editor-bg)] px-3 py-2 font-mono text-sm text-[var(--text)] outline-none focus:border-[var(--primary-border)]";
 
@@ -25,6 +31,14 @@ export function TeamLobby({ session, onBack }: { session: TeamSession; onBack: (
   const [mode, setMode] = useState<TeamMode>("online");
   const [nicknameError, setNicknameError] = useState(false);
   const connecting = session.phase === "connecting";
+  const inRoom = session.phase === "lobby" || session.phase === "playing";
+  const roomShownAt = useRef(0);
+  useLayoutEffect(() => {
+    if (inRoom) roomShownAt.current = Date.now();
+  }, [inRoom]);
+  const leaveRoom = () => {
+    if (Date.now() - roomShownAt.current >= ROOM_VIEW_GUARD_MS) onBack();
+  };
 
   const withName = (go: (name: string) => void) => {
     const name = normalizeNickname(nickname);
@@ -32,7 +46,7 @@ export function TeamLobby({ session, onBack }: { session: TeamSession; onBack: (
     if (name) go(name);
   };
 
-  if (session.phase === "lobby" || session.phase === "playing") {
+  if (inRoom) {
     const isHost = session.me?.isHost ?? false;
     return (
       <Panel className="mx-auto flex w-full max-w-xl flex-col gap-5 px-4 py-8 sm:px-6">
@@ -57,7 +71,7 @@ export function TeamLobby({ session, onBack }: { session: TeamSession; onBack: (
         ) : (
           <p className="text-center text-sm text-[var(--text-muted)]">Waiting for the host to start…</p>
         )}
-        <Button variant="ghost" onClick={onBack}>
+        <Button variant="ghost" onClick={leaveRoom}>
           [ Leave Room ]
         </Button>
       </Panel>

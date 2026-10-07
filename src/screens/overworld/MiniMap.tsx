@@ -38,7 +38,7 @@ export function MiniMap({
           <div
             key={t.id}
             data-testid={`minimap-teammate-${t.name}`}
-            className="absolute h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-150"
+            className="absolute h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-[250ms] ease-linear"
             style={{ left: `${t.x}%`, top: `${t.y}%`, background: t.color }}
           />
         ))}

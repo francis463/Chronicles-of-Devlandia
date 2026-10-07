@@ -1,7 +1,8 @@
-import { parseMessage, parsePresence, PRESENCE_THROTTLE_MS, type PresenceMeta, type TeamMessage } from "../game/team";
+import { parseMessage, parsePresence, type PresenceMeta, type TeamMessage } from "../game/team";
 import { emitter, roomChannel, TeamError, type TeamStatus, type TeamTransport } from "./transport";
 
 type ChannelLike = {
+  topic: string;
   on(type: string, filter: { event: string }, cb: (arg: unknown) => void): ChannelLike;
   subscribe(cb: (status: string) => void): ChannelLike;
   track(payload: Record<string, unknown>): Promise<unknown>;
@@ -13,10 +14,17 @@ type ChannelLike = {
 export type RealtimeClientLike = {
   channel(name: string, opts: { config: { presence: { key: string }; broadcast: { self: boolean } } }): ChannelLike;
   removeChannel(channel: ChannelLike): Promise<unknown>;
+  getChannels(): ChannelLike[];
 };
 
 const MESSAGE_TYPES: TeamMessage["type"][] = ["pos", "progress", "start"];
 const FAILURE = new Set(["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"]);
+
+/**
+ * Supabase closes a client's channel after 5 presence updates in 30 s, so we send at most 4 in any
+ * 31 s window and coalesce the rest into one trailing update with the latest meta.
+ */
+export const PRESENCE_LIMIT = { tracks: 4, windowMs: 31_000 };
 
 /**
  * Online mode: one Supabase Realtime channel per room. Presence (keyed by player id) carries
@@ -31,12 +39,23 @@ export function createSupabaseTransport(loadClient: () => Promise<RealtimeClient
   let channel: ChannelLike | null = null;
   let me: PresenceMeta | null = null;
   let subscribed = false;
-  let lastTrack = 0;
+  // Bumped by leave(), so a join still waiting for supabase-js knows it was abandoned.
+  let generation = 0;
+  let recentTracks: number[] = [];
   let trailing: ReturnType<typeof setTimeout> | undefined;
 
   const track = () => {
     if (!channel || !me || !subscribed) return;
-    lastTrack = Date.now();
+    const now = Date.now();
+    recentTracks = recentTracks.filter((at) => now - at < PRESENCE_LIMIT.windowMs);
+    if (recentTracks.length >= PRESENCE_LIMIT.tracks) {
+      trailing ??= setTimeout(() => {
+        trailing = undefined;
+        track();
+      }, recentTracks[0] + PRESENCE_LIMIT.windowMs - now);
+      return;
+    }
+    recentTracks.push(now);
     void channel.track(me as unknown as Record<string, unknown>);
   };
 
@@ -52,11 +71,22 @@ export function createSupabaseTransport(loadClient: () => Promise<RealtimeClient
     async join(room, meta) {
       status.emit("connecting");
       me = meta;
+      const mine = ++generation;
       try {
         client = await loadClient();
       } catch {
         throw new TeamError("unreachable");
       }
+      // realtime-js hands back an existing channel for the same topic, and subscribe() on a channel
+      // that isn't closed never calls back: drop any leftover from an earlier attempt first.
+      const topic = `realtime:${roomChannel(room)}`;
+      await Promise.all(
+        client
+          .getChannels()
+          .filter((c) => c.topic === topic)
+          .map((c) => client!.removeChannel(c).catch(() => {})),
+      );
+      if (mine !== generation) throw new TeamError("unreachable");
       const ch = client.channel(roomChannel(room), { config: { presence: { key: meta.id }, broadcast: { self: false } } });
       channel = ch;
       ch.on("presence", { event: "sync" }, emitPresence);
@@ -91,29 +121,24 @@ export function createSupabaseTransport(loadClient: () => Promise<RealtimeClient
       });
     },
     async leave() {
+      generation++;
       clearTimeout(trailing);
+      trailing = undefined;
       const ch = channel;
       channel = null;
       subscribed = false;
       me = null;
-      if (ch && client) {
-        await ch.untrack().catch(() => {});
-        await client.removeChannel(ch).catch(() => {});
-      }
+      // Removing the channel leaves it, which drops our presence; untrack() would wait out a 10 s
+      // timeout while the socket is down and keep the channel registered meanwhile.
+      if (ch && client) await client.removeChannel(ch).catch(() => {});
     },
     updatePresence(meta) {
       me = meta;
-      const wait = lastTrack + PRESENCE_THROTTLE_MS - Date.now();
-      if (wait <= 0) track();
-      else if (!trailing) {
-        trailing = setTimeout(() => {
-          trailing = undefined;
-          track();
-        }, wait);
-      }
+      if (!trailing) track();
     },
     send(msg) {
-      void channel?.send({ type: "broadcast", event: msg.type, payload: msg });
+      // While not subscribed realtime-js would fall back to a REST request per message.
+      if (channel && subscribed) void channel.send({ type: "broadcast", event: msg.type, payload: msg });
     },
     onPresence: presence.on,
     onMessage: messages.on,

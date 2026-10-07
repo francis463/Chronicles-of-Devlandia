@@ -192,7 +192,7 @@ export function MapViewport({
         <div
           key={t.id}
           data-testid={`teammate-${t.name}`}
-          className="pointer-events-none absolute z-20 transition-all duration-150"
+          className="pointer-events-none absolute z-20 transition-all duration-[250ms] ease-linear"
           style={at(t)}
         >
           <span

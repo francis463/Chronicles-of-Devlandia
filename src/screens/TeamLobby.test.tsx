@@ -1,10 +1,13 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
+import { NO_FLAGS } from "../game/team";
 import type { TeamSession } from "../hooks/useTeamSession";
 import { createMemoryHub } from "../net/memoryTransport";
-import { TeamLobby } from "./TeamLobby";
+import { ROOM_VIEW_GUARD_MS, TeamLobby } from "./TeamLobby";
+
+afterEach(() => vi.useRealTimers());
 
 const stub = (over: Partial<TeamSession> = {}): TeamSession => ({
   phase: "idle",
@@ -129,11 +132,28 @@ describe("TeamLobby with two players (App + memory hub)", () => {
   });
 
   it("Leave Room returns to the main menu", async () => {
-    const user = userEvent.setup();
+    vi.useFakeTimers();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     const { ana } = twoApps();
     await openLobby(user, ana, "Ana");
     await user.click(ana.getByRole("button", { name: "[ Create Room ]" }));
+    await act(async () => {});
+    act(() => vi.advanceTimersByTime(ROOM_VIEW_GUARD_MS));
     await user.click(ana.getByRole("button", { name: "[ Leave Room ]" }));
     expect(ana.getByRole("button", { name: /solo quest/i })).toBeInTheDocument();
+  });
+
+  it("ignores Leave Room for half a second after the room appears: the second click of a double-click on Create lands there (final review)", async () => {
+    vi.useFakeTimers();
+    const onBack = vi.fn();
+    const { rerender } = render(<TeamLobby session={stub()} onBack={onBack} />);
+    const me = { id: "a", name: "Ana", joinedAt: 1, startedAt: null, flags: NO_FLAGS, x: 28, y: 72, rank: 0, color: "#22c55e", isHost: true };
+    rerender(<TeamLobby session={stub({ phase: "lobby", room: "KQZM", me, players: [me] })} onBack={onBack} />);
+    fireEvent.click(screen.getByRole("button", { name: "[ Leave Room ]" }));
+    expect(onBack).not.toHaveBeenCalled();
+    expect(ROOM_VIEW_GUARD_MS).toBe(500);
+    act(() => vi.advanceTimersByTime(ROOM_VIEW_GUARD_MS));
+    fireEvent.click(screen.getByRole("button", { name: "[ Leave Room ]" }));
+    expect(onBack).toHaveBeenCalledTimes(1);
   });
 });

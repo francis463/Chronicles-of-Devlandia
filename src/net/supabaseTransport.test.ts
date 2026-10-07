@@ -1,40 +1,83 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { NO_FLAGS, PRESENCE_THROTTLE_MS, type PresenceMeta, type TeamMessage } from "../game/team";
-import { createSupabaseTransport, type RealtimeClientLike } from "./supabaseTransport";
+import { NO_FLAGS, type PresenceMeta, type TeamMessage } from "../game/team";
+import { createSupabaseTransport, PRESENCE_LIMIT, type RealtimeClientLike } from "./supabaseTransport";
 import { TeamError, type TeamStatus } from "./transport";
 
 const meta = (id: string, joinedAt: number): PresenceMeta => ({ id, name: `P-${id}`, joinedAt, startedAt: null, flags: NO_FLAGS, x: 28, y: 72 });
 
-/** Records what the transport asks of the Supabase client and lets the test play the server's part. */
-function fakeClient() {
-  const handlers = new Map<string, Array<(arg: unknown) => void>>();
-  let subscribe: ((status: string) => void) | null = null;
+/**
+ * Records what the transport asks of the Supabase client and lets the test play the server's part.
+ * Like realtime-js 2.117, channel() hands back the registered channel for a topic until it is removed,
+ * and subscribe() only registers its callback on a closed channel.
+ */
+function fakeClient({ untrackHangs = false } = {}) {
+  const registry = new Map<string, ReturnType<typeof makeChannel>>();
+  const created: Array<ReturnType<typeof makeChannel>> = [];
   let state: Record<string, unknown[]> = {};
-  const channel = {
-    on(type: string, filter: { event: string }, cb: (arg: unknown) => void) {
-      const key = `${type}:${filter.event}`;
-      handlers.set(key, [...(handlers.get(key) ?? []), cb]);
-      return channel;
-    },
-    subscribe(cb: (status: string) => void) {
-      subscribe = cb;
-      return channel;
-    },
-    track: vi.fn(async () => "ok"),
-    untrack: vi.fn(async () => "ok"),
-    send: vi.fn(async () => "ok"),
-    presenceState: () => state,
+  function makeChannel(topic: string) {
+    const handlers = new Map<string, Array<(arg: unknown) => void>>();
+    const ch = {
+      topic,
+      state: "closed" as "closed" | "joining" | "joined" | "errored",
+      subscriber: null as ((status: string) => void) | null,
+      on(type: string, filter: { event: string }, cb: (arg: unknown) => void) {
+        const key = `${type}:${filter.event}`;
+        handlers.set(key, [...(handlers.get(key) ?? []), cb]);
+        return ch;
+      },
+      subscribe(cb: (status: string) => void) {
+        if (ch.state === "closed") {
+          ch.state = "joining";
+          ch.subscriber = cb;
+        }
+        return ch;
+      },
+      track: vi.fn(async () => "ok"),
+      untrack: vi.fn(() => (untrackHangs ? new Promise<string>(() => {}) : Promise.resolve("ok"))),
+      send: vi.fn(async () => "ok"),
+      presenceState: () => state,
+      handlers,
+    };
+    return ch;
+  }
+  const client = {
+    channel: vi.fn((name: string) => {
+      const topic = `realtime:${name}`;
+      const existing = registry.get(topic);
+      if (existing) return existing;
+      const ch = makeChannel(topic);
+      registry.set(topic, ch);
+      created.push(ch);
+      return ch;
+    }),
+    getChannels: vi.fn(() => [...registry.values()]),
+    removeChannel: vi.fn(async (ch: ReturnType<typeof makeChannel>) => {
+      if (registry.get(ch.topic) === ch) registry.delete(ch.topic);
+      ch.state = "closed";
+      return "ok";
+    }),
   };
-  const client = { channel: vi.fn(() => channel), removeChannel: vi.fn(async () => "ok") };
+  const latest = () => created[created.length - 1];
   return {
     client: client as unknown as RealtimeClientLike,
     raw: client,
-    channel,
-    status: (s: string) => subscribe?.(s),
-    fire: (type: string, event: string, arg: unknown) => handlers.get(`${type}:${event}`)?.forEach((cb) => cb(arg)),
+    created,
+    get channel() {
+      return latest();
+    },
+    status: (s: string) => {
+      const ch = latest();
+      ch.state = s === "SUBSCRIBED" ? "joined" : s === "CLOSED" ? "closed" : "errored";
+      ch.subscriber?.(s);
+    },
+    fire: (type: string, event: string, arg: unknown) => latest().handlers.get(`${type}:${event}`)?.forEach((cb) => cb(arg)),
     setPresence: (s: Record<string, unknown[]>) => (state = s),
   };
 }
+
+/** Settles to "hung" if the promise hasn't settled within a few event-loop turns. */
+const settlesSoon = <T,>(p: Promise<T>) =>
+  Promise.race([p.then(() => "settled", () => "settled"), new Promise((r) => setTimeout(() => r("hung"), 30))]);
 
 afterEach(() => vi.useRealTimers());
 
@@ -118,7 +161,7 @@ describe("Supabase transport", () => {
     expect(f.channel.send).toHaveBeenCalledWith({ type: "broadcast", event: "pos", payload: { type: "pos", id: "a", x: 30, y: 70 } });
   });
 
-  it("throttles presence updates, keeping the latest", async () => {
+  it("sends at most 4 presence updates per 31 s (Supabase closes a client's channel after 5 in 30 s), then the latest", async () => {
     vi.useFakeTimers();
     const f = fakeClient();
     const t = createSupabaseTransport(async () => f.client);
@@ -126,26 +169,87 @@ describe("Supabase transport", () => {
     await vi.waitFor(() => expect(f.raw.channel).toHaveBeenCalled());
     f.status("SUBSCRIBED");
     await joining;
-    f.channel.track.mockClear();
-    vi.advanceTimersByTime(PRESENCE_THROTTLE_MS);
-    t.updatePresence({ ...meta("a", 1), x: 30 });
-    t.updatePresence({ ...meta("a", 1), x: 31 });
-    t.updatePresence({ ...meta("a", 1), x: 32 });
     expect(f.channel.track).toHaveBeenCalledTimes(1);
-    vi.advanceTimersByTime(PRESENCE_THROTTLE_MS);
-    expect(f.channel.track).toHaveBeenCalledTimes(2);
+    for (let x = 30; x < 40; x++) {
+      vi.advanceTimersByTime(1000);
+      t.updatePresence({ ...meta("a", 1), x });
+    }
+    expect(PRESENCE_LIMIT).toEqual({ tracks: 4, windowMs: 31_000 });
+    expect(f.channel.track).toHaveBeenCalledTimes(4);
     expect(f.channel.track).toHaveBeenLastCalledWith({ ...meta("a", 1), x: 32 });
+    vi.advanceTimersByTime(PRESENCE_LIMIT.windowMs - 10_000);
+    expect(f.channel.track).toHaveBeenCalledTimes(5);
+    expect(f.channel.track).toHaveBeenLastCalledWith({ ...meta("a", 1), x: 39 });
   });
 
-  it("leave untracks and removes the channel", async () => {
+  it("sends broadcasts only while subscribed (no REST fallback while connecting or reconnecting)", async () => {
     const f = fakeClient();
+    const t = createSupabaseTransport(async () => f.client);
+    const joining = t.join("KQZM", meta("a", 1));
+    await vi.waitFor(() => expect(f.raw.channel).toHaveBeenCalled());
+    t.send({ type: "pos", id: "a", x: 30, y: 70 });
+    expect(f.channel.send).not.toHaveBeenCalled();
+    f.status("SUBSCRIBED");
+    await joining;
+    t.send({ type: "pos", id: "a", x: 31, y: 70 });
+    expect(f.channel.send).toHaveBeenCalledTimes(1);
+    f.status("TIMED_OUT");
+    t.send({ type: "pos", id: "a", x: 32, y: 70 });
+    expect(f.channel.send).toHaveBeenCalledTimes(1);
+  });
+
+  it("leave removes the channel without waiting for untrack (which hangs while the socket is down)", async () => {
+    const f = fakeClient({ untrackHangs: true });
     const t = createSupabaseTransport(async () => f.client);
     const joining = t.join("KQZM", meta("a", 1));
     await vi.waitFor(() => expect(f.raw.channel).toHaveBeenCalled());
     f.status("SUBSCRIBED");
     await joining;
-    await t.leave();
-    expect(f.channel.untrack).toHaveBeenCalled();
+    expect(await settlesSoon(t.leave())).toBe("settled");
     expect(f.raw.removeChannel).toHaveBeenCalledWith(f.channel);
+  });
+
+  it("[ Retry ] right after a failed join gets a fresh channel and connects (Review: Retry hung on Connecting…)", async () => {
+    const f = fakeClient({ untrackHangs: true });
+    const first = createSupabaseTransport(async () => f.client);
+    const failing = first.join("KQZM", meta("a", 1));
+    await vi.waitFor(() => expect(f.raw.channel).toHaveBeenCalled());
+    f.status("CHANNEL_ERROR");
+    await expect(failing).rejects.toEqual(new TeamError("unreachable"));
+    void first.leave();
+    const retry = createSupabaseTransport(async () => f.client);
+    const joining = retry.join("KQZM", meta("a", 1));
+    await vi.waitFor(() => expect(f.raw.channel).toHaveBeenCalledTimes(2));
+    expect(f.created).toHaveLength(2);
+    f.status("SUBSCRIBED");
+    expect(await settlesSoon(joining)).toBe("settled");
+  });
+
+  it("a stale channel for the same room is removed before joining", async () => {
+    const f = fakeClient();
+    const stale = f.raw.channel("devlandia-KQZM");
+    stale.subscribe(() => {});
+    stale.state = "errored";
+    const t = createSupabaseTransport(async () => f.client);
+    const joining = t.join("KQZM", meta("a", 1));
+    await vi.waitFor(() => expect(f.created).toHaveLength(2));
+    expect(f.raw.removeChannel).toHaveBeenCalledWith(stale);
+    f.status("SUBSCRIBED");
+    expect(await settlesSoon(joining)).toBe("settled");
+  });
+
+  it("leaving while supabase-js is still loading never subscribes a channel", async () => {
+    const f = fakeClient();
+    let release!: () => void;
+    const loaded = new Promise<void>((r) => (release = r));
+    const t = createSupabaseTransport(async () => {
+      await loaded;
+      return f.client;
+    });
+    const joining = t.join("KQZM", meta("a", 1)).catch(() => "left");
+    await t.leave();
+    release();
+    await joining;
+    expect(f.raw.channel).not.toHaveBeenCalled();
   });
 });
