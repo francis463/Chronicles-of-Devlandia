@@ -1,3 +1,4 @@
+import { useOnline } from "../hooks/useOnline";
 import { Button } from "../ui/Button";
 import { Panel } from "../ui/Panel";
 
@@ -21,6 +22,7 @@ export function MainMenu({
   onTeamLobby: () => void;
   onExit: () => void;
 }) {
+  const online = useOnline();
   return (
     <Panel className="mx-auto flex w-full max-w-5xl flex-col items-center px-4 pt-10 pb-4 sm:px-6">
       <h1 className="text-center text-lg font-bold tracking-widest text-[var(--text)] sm:text-xl">
@@ -45,7 +47,7 @@ export function MainMenu({
 
       <footer className="mt-12 flex w-full flex-wrap justify-between gap-2 text-xs text-[var(--text-muted)]">
         <span>[?] HCI Help / Tutorials</span>
-        <span>v1.0 | Offline Network</span>
+        <span>v1.0 | {online ? "Online" : "Offline"} Network</span>
       </footer>
     </Panel>
   );

@@ -1,7 +1,9 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
+
+afterEach(() => vi.restoreAllMocks());
 
 describe("App", () => {
   it("shows the main menu with title, tagline and footer", () => {
@@ -9,7 +11,18 @@ describe("App", () => {
     expect(screen.getByRole("heading", { name: /chronicles of devlandia/i })).toBeInTheDocument();
     expect(screen.getByText(/solve the map, break the code, find the treasure/i)).toBeInTheDocument();
     expect(screen.getByText("[?] HCI Help / Tutorials")).toBeInTheDocument();
+    expect(screen.getByText("v1.0 | Online Network")).toBeInTheDocument();
+  });
+
+  it("shows the browser's real connection status in the footer", () => {
+    const onLine = vi.spyOn(navigator, "onLine", "get");
+    render(<App />);
+    onLine.mockReturnValue(false);
+    act(() => void window.dispatchEvent(new Event("offline")));
     expect(screen.getByText("v1.0 | Offline Network")).toBeInTheDocument();
+    onLine.mockReturnValue(true);
+    act(() => void window.dispatchEvent(new Event("online")));
+    expect(screen.getByText("v1.0 | Online Network")).toBeInTheDocument();
   });
 
   it("enables Team Lobby and keeps Settings as coming soon", async () => {

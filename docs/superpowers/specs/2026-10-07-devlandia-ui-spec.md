@@ -27,7 +27,7 @@ Font: JetBrains Mono (monospace). Panel radius 6px, button radius 4px. Menu butt
 ## Screen 1 — Main Menu
 - Title "CHRONICLES OF DEVLANDIA", tagline "\"Solve the Map, Break the Code, Find the Treasure.\""
 - A centered 200px stack of buttons with 8px gaps: SOLO QUEST, TEAM LOBBY, SETTINGS, EXIT GAME (danger).
-- Footer: left "[?] HCI Help / Tutorials", right "v1.0 | Offline Network".
+- Footer: left "[?] HCI Help / Tutorials", right "v1.0 | Online Network" or "v1.0 | Offline Network", following the browser's connection status (the wireframe showed "Offline Network" as fixed text from before team play went online).
 
 ## Screen 2 — Overworld (region "C++ PEAKS (SNOW)")
 - **Top HUD:** HP bar + value, STA bar + value, "REGION: C++ PEAKS", phase/time ("Day|Dusk|Night / HH:MM"), "[=] Menu".
