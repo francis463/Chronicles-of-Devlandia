@@ -20,6 +20,7 @@ import { clampPlayer, isInRiver } from "./geometry";
 import { isCorrectAnswer, normalizeAnswer } from "./puzzle";
 import { isCorrectDecode } from "./cipher";
 import { circuitError } from "./logic";
+import { flagsOf, mergeFlags, newlySet, teammateLog } from "./team";
 import type { Direction, GameAction, GameState, Poi, Point } from "./types";
 
 export const initialState: GameState = {
@@ -164,6 +165,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, logicOpen: false, logicError: null };
     case "revealLogicHint":
       return { ...state, logicHintRevealed: true };
+    case "teamSync": {
+      const before = flagsOf(state);
+      const added = newlySet(before, mergeFlags(before, action.flags));
+      if (added.length === 0) return state;
+      const merged = { ...state, ...Object.fromEntries(added.map((k) => [k, true])) };
+      return added.reduce((s, key) => pushLog(s, teammateLog(action.by, key)), merged);
+    }
+    case "note":
+      return pushLog(state, action.text);
     case "respawn":
       return pushLog(
         { ...state, hp: MAX_HP, player: PLAYER_START, drone: DRONE_START, inspected: null },

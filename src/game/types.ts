@@ -1,4 +1,5 @@
 import type { Bits } from "./logic";
+import type { TeamFlags } from "./team";
 
 export type Point = { x: number; y: number };
 
@@ -54,4 +55,6 @@ export type GameAction =
   | { type: "submitLogic"; bits: Bits }
   | { type: "closeLogic" }
   | { type: "revealLogicHint" }
+  | { type: "teamSync"; flags: TeamFlags; by: string }
+  | { type: "note"; text: string }
   | { type: "respawn" };

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { gameReducer, initialState, isDowned, isModalOpen, revealedPois } from "./reducer";
 import type { GameState } from "./types";
+import { NO_FLAGS } from "./team";
 
 const s0 = initialState;
 const lastLog = (s: GameState) => s.logs.at(-1);
@@ -325,5 +326,27 @@ describe("gameReducer: only one terminal at a time", () => {
     expect(gameReducer(cipherOpen, { type: "interact", poi: "gate" })).toBe(cipherOpen);
     const logicOpen = { ...s0, logicOpen: true };
     expect(gameReducer(logicOpen, { type: "interact", poi: "gate" })).toBe(logicOpen);
+  });
+});
+
+describe("gameReducer: teammates", () => {
+  it("teamSync ORs teammates' flags in and logs each newly set one in order", () => {
+    const s = gameReducer(s0, { type: "teamSync", flags: { ...NO_FLAGS, gateUnlocked: true, hasLoot: true }, by: "Kai" });
+    expect(s.gateUnlocked).toBe(true);
+    expect(s.hasLoot).toBe(true);
+    expect(s.logs.slice(-2)).toEqual(["Kai opened the Supply Cache.", "Kai restored the bridge."]);
+  });
+
+  it("teamSync with nothing new returns the same state", () => {
+    const s = gameReducer(s0, { type: "teamSync", flags: { ...NO_FLAGS, gateUnlocked: true }, by: "Kai" });
+    expect(gameReducer(s, { type: "teamSync", flags: { ...NO_FLAGS, gateUnlocked: true }, by: "Kai" })).toBe(s);
+  });
+
+  it("teamSync never unsets a flag", () => {
+    expect(gameReducer({ ...s0, towerPowered: true }, { type: "teamSync", flags: NO_FLAGS, by: "Kai" }).towerPowered).toBe(true);
+  });
+
+  it("note adds a log line", () => {
+    expect(lastLog(gameReducer(s0, { type: "note", text: "Kai joined the team." }))).toBe("Kai joined the team.");
   });
 });
