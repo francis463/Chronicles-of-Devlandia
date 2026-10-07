@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTeamSession } from "./hooks/useTeamSession";
-import { createBroadcastTransport } from "./net/broadcastTransport";
+import { makeTransport as defaultTransport } from "./net/makeTransport";
 import type { TeamMode, TeamTransport } from "./net/transport";
 import { Farewell } from "./screens/Farewell";
 import { MainMenu } from "./screens/MainMenu";
@@ -8,8 +8,6 @@ import { Overworld } from "./screens/overworld/Overworld";
 import { TeamLobby } from "./screens/TeamLobby";
 
 type Screen = "menu" | "overworld" | "lobby" | "farewell";
-
-const defaultTransport = (_mode: TeamMode): TeamTransport => createBroadcastTransport();
 
 export default function App({
   makeTransport = defaultTransport,
