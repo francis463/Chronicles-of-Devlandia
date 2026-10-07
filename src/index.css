@@ -32,3 +32,16 @@ body {
   color: var(--text);
   font-family: var(--font-mono);
 }
+
+/* Map text on any terrain: a 1 px dark outline in eight directions. */
+.text-outline {
+  text-shadow:
+    1px 0 0 #0f172a,
+    -1px 0 0 #0f172a,
+    0 1px 0 #0f172a,
+    0 -1px 0 #0f172a,
+    1px 1px 0 #0f172a,
+    -1px -1px 0 #0f172a,
+    1px -1px 0 #0f172a,
+    -1px 1px 0 #0f172a;
+}

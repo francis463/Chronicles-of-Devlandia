@@ -1,86 +1,159 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
-import { phaseOf } from "../../game/clock";
 import { HIDDEN_ARTIFACT, INSPECT_COPY, POIS } from "../../game/constants";
 import { interactLabel } from "../../game/geometry";
 import type { Poi, PoiId, Point } from "../../game/types";
+import type { Teammate } from "../../hooks/useTeamSession";
+import type { SceneInput } from "../../render/scene";
+import { spriteBox, type SpriteId } from "../../render/sprites";
+import { LANDMARK_POINTS } from "../../render/terrain";
+import { fitWorld, toArt, type ViewSize, type WorldRect } from "../../render/world";
 import { Button } from "../../ui/Button";
 import { Panel } from "../../ui/Panel";
-import { SEMICOLON_BOX, labelLayout, type LabelPlacement, type LabelSide, type MapSize } from "./labelLayout";
-import type { Teammate } from "../../hooks/useTeamSession";
+import { EXPLORER_BOX, SEMICOLON_BOX, labelBoxes, labelLayout, teammateLabelSide, LABEL_GAP, type LabelPlacement } from "./labelLayout";
+import { MapCanvas } from "./MapCanvas";
+import { captionRect, hitArea, landmarkCaptions, mapCaptionRect, promptRect, type MapCaptionId } from "./mapLayout";
 
-const PHASE_TINT = {
-  Night: "rgba(20,20,28,0.25)",
-  Dusk: "rgba(40,40,32,0.12)",
-  Day: "transparent",
-};
-
+const SOLO_COLOR = "#22c55e";
 const at = (p: Point) => ({ left: `${p.x}%`, top: `${p.y}%` });
+const currentDpr = () => window.devicePixelRatio || 1;
 
-// Map labels near the right edge slide inward instead of being clipped: centred on
-// their point while there is room, never closer to the edge than half their width.
-const CACHE_POSITION = { left: "min(82%, calc(100% - 92px))", top: "18%" };
-const TOWER_POSITION = { left: "max(14%, 64px)", top: "18%" };
-const PROMPT_HALF_WIDTH = 104;
+/**
+ * The map area's CSS size and the device pixel ratio. Updates on resize and on DPR changes (zoom,
+ * moving to another screen); falls back to 600 × 360 where ResizeObserver is missing.
+ */
+function useMapSize() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState<ViewSize>(() => ({ width: 600, height: 360, dpr: currentDpr() }));
+  useLayoutEffect(() => {
+    const el = ref.current;
+    const canMeasure = !!el && typeof ResizeObserver !== "undefined";
+    const update = () =>
+      setSize((prev) => {
+        const next = {
+          width: canMeasure ? el!.clientWidth : prev.width,
+          height: canMeasure ? el!.clientHeight : prev.height,
+          dpr: currentDpr(),
+        };
+        return next.width === prev.width && next.height === prev.height && next.dpr === prev.dpr ? prev : next;
+      });
+    update();
+    const observer = canMeasure ? new ResizeObserver(update) : null;
+    if (observer && el) observer.observe(el);
+    window.addEventListener("resize", update);
+    // A DPR change alone doesn't resize the element: watch the current resolution and re-arm.
+    let query: MediaQueryList | null = null;
+    const onDpr = () => {
+      update();
+      arm();
+    };
+    const arm = () => {
+      query?.removeEventListener("change", onDpr);
+      query = typeof window.matchMedia === "function" ? window.matchMedia(`(resolution: ${currentDpr()}dppx)`) : null;
+      query?.addEventListener("change", onDpr);
+    };
+    arm();
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", update);
+      query?.removeEventListener("change", onDpr);
+    };
+  }, []);
+  return [ref, size] as const;
+}
 
-const LABEL_SIDE_CLASS: Record<LabelSide, string> = {
-  right: "top-1/2 left-full ml-2 -translate-y-1/2",
-  left: "top-1/2 right-full mr-2 -translate-y-1/2",
-  above: "bottom-full left-1/2 mb-2",
-  below: "top-full left-1/2 mt-2",
-};
-
-// A zero-size anchor at the game coordinate: the dot is centred on it and the
-// label hangs beside the dot on the side labelLayout picked, so the dot is drawn
-// exactly where the game thinks it is and the two labels never cover each other.
-// Markers are decoration, so they let clicks through to the map buttons beneath.
-function Marker({
+/** A zero-size anchor at a game point carrying a character's label; sprites are on the canvas. */
+function LabelAnchor({
   testId,
-  at: point,
+  point,
   label,
-  placement,
-  dotClass,
-  dotStyle,
-  labelClass,
-  layerClass,
+  labelStyle,
+  className,
+  duration,
 }: {
   testId: string;
-  at: Point;
+  point: Point;
   label: string;
-  placement: LabelPlacement;
-  dotClass: string;
-  dotStyle?: CSSProperties;
-  labelClass: string;
-  layerClass: string;
+  labelStyle: CSSProperties;
+  className: string;
+  duration: string;
 }) {
-  const vertical = placement.side === "above" || placement.side === "below";
   return (
-    <div data-testid={testId} className={`pointer-events-none absolute transition-all ${layerClass}`} style={at(point)}>
-      <span className={`absolute top-0 left-0 block -translate-x-1/2 -translate-y-1/2 rounded-full ${dotClass}`} style={dotStyle}>
-        <span
-          className={`absolute ${LABEL_SIDE_CLASS[placement.side]} text-[10px] uppercase tracking-widest whitespace-nowrap ${labelClass}`}
-          style={vertical ? { transform: `translateX(calc(-50% + ${placement.shift}px))` } : undefined}
-        >
-          {label}
-        </span>
+    <div
+      data-testid={testId}
+      className={`pointer-events-none absolute transition-[left,top] ease-linear motion-reduce:transition-none ${duration}`}
+      style={at(point)}
+    >
+      <span className={`text-outline absolute text-[10px] uppercase tracking-widest whitespace-nowrap ${className}`} style={labelStyle}>
+        {label}
       </span>
     </div>
   );
 }
 
-/** Tracks the map's rendered size; falls back to a typical size where ResizeObserver is missing. */
-function useMapSize() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [size, setSize] = useState<MapSize>({ width: 600, height: 360 });
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el || typeof ResizeObserver === "undefined") return;
-    const update = () => setSize({ width: el.clientWidth, height: el.clientHeight });
-    update();
-    const observer = new ResizeObserver(update);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-  return [ref, size] as const;
+/** Where a label goes relative to its anchor, from the box labelLayout computed. */
+function labelStyleFor(
+  box: { left: number; right: number; top: number; bottom: number },
+  placement: LabelPlacement,
+  anchor: { x: number; y: number },
+): CSSProperties {
+  const midX = (box.left + box.right) / 2 - anchor.x;
+  const midY = (box.top + box.bottom) / 2 - anchor.y;
+  if (placement.side === "right") return { left: box.left - anchor.x, top: midY, transform: "translateY(-50%)" };
+  if (placement.side === "left") return { right: anchor.x - box.right, top: midY, transform: "translateY(-50%)" };
+  return { left: midX, top: box.top - anchor.y, transform: "translateX(-50%)" };
+}
+
+function LandmarkButton({
+  sprite,
+  point,
+  name,
+  color,
+  world,
+  map,
+  prefer,
+  disabled,
+  onClick,
+}: {
+  sprite: SpriteId;
+  point: { x: number; y: number };
+  name: string;
+  color: string;
+  world: WorldRect;
+  map: { width: number; height: number };
+  prefer: "above" | "below";
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  const hit = hitArea(spriteBox(sprite, point), world);
+  const caption = captionRect(name, hit, map, prefer);
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className="absolute cursor-pointer rounded-sm bg-transparent outline-none hover:shadow-[0_0_0_4px_#f8fafc] hover:outline-2 hover:outline-[#0f172a] focus-visible:shadow-[0_0_0_4px_#f8fafc] focus-visible:outline-2 focus-visible:outline-[#0f172a] disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:outline-none"
+      style={{ left: hit.left - world.left, top: hit.top - world.top, width: hit.width, height: hit.height }}
+    >
+      <span
+        className="absolute rounded-sm border border-[var(--panel-border)] px-1 py-0.5 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap"
+        style={{ left: caption.left - hit.left, top: caption.top - hit.top, background: "rgba(15,23,42,0.8)", color }}
+      >
+        {name}
+      </span>
+    </button>
+  );
+}
+
+function MapCaption({ id, text, world }: { id: MapCaptionId; text: string; world: WorldRect }) {
+  const rect = mapCaptionRect(id, text, world);
+  return (
+    <span
+      className="text-outline pointer-events-none absolute text-[10px] uppercase tracking-widest whitespace-nowrap text-[var(--text-muted)]"
+      style={{ left: rect.left - world.left, top: rect.top - world.top }}
+    >
+      {text}
+    </span>
+  );
 }
 
 export function MapViewport({
@@ -90,6 +163,7 @@ export function MapViewport({
   inspected,
   hasLoot,
   gateUnlocked,
+  clueDecoded,
   artifactFound,
   towerPowered,
   teammates = [],
@@ -106,6 +180,7 @@ export function MapViewport({
   inspected: PoiId | null;
   hasLoot: boolean;
   gateUnlocked: boolean;
+  clueDecoded: boolean;
   artifactFound: boolean;
   towerPowered: boolean;
   teammates?: Teammate[];
@@ -116,142 +191,127 @@ export function MapViewport({
   onCloseInspection: () => void;
   onRespawn: () => void;
 }) {
-  const [mapRef, mapSize] = useMapSize();
-  const labels = labelLayout(player, drone, mapSize, artifactFound ? [{ ...HIDDEN_ARTIFACT, box: SEMICOLON_BOX }] : []);
+  const [mapRef, size] = useMapSize();
+  const world = fitWorld(size);
+  const map = { width: size.width, height: size.height };
+  const worldSize = { width: world.width, height: world.height };
+  const obstacles = [
+    ...(artifactFound ? [{ ...HIDDEN_ARTIFACT, box: SEMICOLON_BOX }] : []),
+    ...teammates.map((t) => ({ x: t.x, y: t.y, box: EXPLORER_BOX })),
+  ];
+  const fixed = landmarkCaptions(world, map, { hasLoot, towerPowered });
+  const labels = labelLayout(player, drone, worldSize, obstacles, world.scale, fixed);
+  const boxes = labelBoxes(player, drone, worldSize, labels, world.scale);
+  const inWorld = (p: Point) => ({ x: (p.x / 100) * world.width, y: (p.y / 100) * world.height });
+
   const inspectedPoi = [...POIS, HIDDEN_ARTIFACT].find((poi) => poi.id === inspected);
   const copy = inspected ? INSPECT_COPY[inspected] : null;
   const inspectCopy = !copy
     ? null
     : (hasLoot && copy.looted) || (gateUnlocked && copy.bridged) || (towerPowered && copy.powered) || copy.default;
 
+  const scene: SceneInput = {
+    player,
+    drone,
+    teammates,
+    playerColor: playerColor ?? SOLO_COLOR,
+    downed,
+    hasLoot,
+    gateUnlocked,
+    clueDecoded,
+    artifactFound,
+    towerPowered,
+    minutes,
+  };
+  const me = toArt(player);
+  const fogX = world.left + me.x * world.scale;
+  const fogY = world.top + (me.y - 8) * world.scale;
+  const promptText = inRange ? (inRange.id === "artifact" ? "[E] Dig here" : `[E] Inspect ${interactLabel(inRange)}`) : "";
+  const prompt = inRange ? promptRect(promptText, me, world, map) : null;
+  const P = LANDMARK_POINTS;
+
   return (
     <div ref={mapRef} className="relative min-h-[360px] flex-1 overflow-hidden bg-[var(--panel)]">
-      <span className="absolute top-4 left-1/3 -translate-x-1/2 rounded border border-dashed border-[var(--panel-border)] px-2 py-1 text-[10px] uppercase tracking-widest whitespace-nowrap text-[var(--text-muted)]">
-        (Snowy Peaks Biome)
-      </span>
+      <MapCanvas input={scene} world={world} />
 
-      <div
-        className={`absolute top-1/3 right-1/4 left-1/4 flex justify-center border-t-8 ${gateUnlocked ? "border-solid border-[var(--primary-border)]" : "border-dashed border-[var(--primary)]"}`}
-      >
-        <span className="-mt-6 text-[10px] uppercase tracking-widest text-[var(--text-muted)]">
-          {gateUnlocked ? "Bridge" : "Frozen River"}
-        </span>
-      </div>
-
-      <div className="absolute top-1/2 left-1/2 z-20 -translate-x-1/2 -translate-y-1/2">
-        <Button
-          variant="accent"
-          disabled={downed}
-          className="px-3 py-1.5 whitespace-nowrap"
-          onClick={() => onInteract("gate")}
-        >
-          [G] Gate
-        </Button>
-      </div>
-
-      <div className="absolute z-20 -translate-x-1/2 -translate-y-1/2" style={TOWER_POSITION}>
-        <Button
-          variant="primary"
-          disabled={downed}
-          className="px-2 py-1 whitespace-nowrap"
-          onClick={() => onInteract("tower")}
-        >
-          {towerPowered ? "[T] Tower ✓" : "[T] Tower"}
-        </Button>
-      </div>
-
-      <div className="absolute z-20 -translate-x-1/2 -translate-y-1/2" style={CACHE_POSITION}>
-        <Button
-          variant="ghost"
-          disabled={downed}
-          className="px-2 py-1 whitespace-nowrap text-[var(--accent)]"
-          onClick={() => onInteract("chest")}
-        >
-          {hasLoot ? "[X] Empty Cache" : "[X] Supply Cache"}
-        </Button>
-      </div>
-
-      <span className="absolute right-6 bottom-6 rounded border border-dashed border-[var(--panel-border)] px-2 py-1 text-[10px] uppercase tracking-widest whitespace-nowrap text-[var(--text-muted)]">
-        (Dense Forests Biome)
-      </span>
-
-      {/* 32px, larger than the player's dot, so a gold halo shows even while standing on it */}
-      {artifactFound && (
-        <div
-          data-testid="artifact"
-          className="pointer-events-none absolute z-20 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[var(--accent-border)] bg-[var(--accent)] text-base font-bold text-[var(--bg)] shadow-[0_0_16px_var(--accent)]"
-          style={at(HIDDEN_ARTIFACT)}
-          title="Golden Semicolon"
-        >
-          ;
-        </div>
-      )}
-
-      {teammates.map((t) => (
-        <div
-          key={t.id}
-          data-testid={`teammate-${t.name}`}
-          className="pointer-events-none absolute z-20 transition-all duration-[250ms] ease-linear"
-          style={at(t)}
-        >
-          <span
-            className="absolute top-0 left-0 block h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-[var(--bg)]"
-            style={{ background: t.color }}
-          >
-            <span
-              className="absolute top-1/2 left-full ml-2 -translate-y-1/2 text-[10px] uppercase tracking-widest whitespace-nowrap"
-              style={{ color: t.color }}
-            >
-              {t.name}
-            </span>
-          </span>
-        </div>
-      ))}
-
-      <Marker
-        testId="drone"
-        at={drone}
-        label="[AI Drone]"
-        placement={labels.drone}
-        dotClass="h-3 w-3 bg-[var(--primary-border)]"
-        labelClass="text-[var(--primary-border)]"
-        layerClass="z-20 duration-300"
-      />
-      <Marker
-        testId="player"
-        at={player}
-        label="[Player]"
-        placement={labels.player}
-        dotClass="h-5 w-5 bg-[var(--success)] ring-2 ring-[var(--success-border)]"
-        dotStyle={playerColor ? { background: playerColor } : undefined}
-        labelClass="text-[var(--text)]"
-        layerClass="z-30 duration-150"
-      />
-
-      <div
-        className="pointer-events-none absolute inset-0 z-10 transition-colors duration-700"
-        style={{ background: PHASE_TINT[phaseOf(minutes)] }}
-      />
-      {/* Fog of war around the player; the powered signal tower lifts it. */}
+      {/* Fog of war around the player, as before; the powered signal tower fades it out. */}
       <div
         data-testid="fog"
-        className="pointer-events-none absolute inset-0 z-10 transition-[background] duration-700"
+        className="pointer-events-none absolute inset-0 z-10 transition-opacity duration-1000 ease-linear motion-reduce:transition-none"
         style={{
-          background: towerPowered
-            ? "transparent"
-            : `radial-gradient(circle at ${player.x}% ${player.y}%, transparent 0%, transparent 15%, rgba(15,23,42,0.35) 32%, rgba(15,23,42,0.7) 62%)`,
+          background: `radial-gradient(circle farthest-corner at ${fogX}px ${fogY}px, transparent 0%, transparent 15%, rgba(15,23,42,0.35) 32%, rgba(15,23,42,0.7) 62%)`,
+          opacity: towerPowered ? 0 : 1,
         }}
       />
 
-      {inRange && (
+      <div
+        data-testid="world-layer"
+        className="absolute z-20"
+        style={{ left: `${world.left}px`, top: `${world.top}px`, width: `${world.width}px`, height: `${world.height}px` }}
+      >
+        <MapCaption id="peaks" text="(Snowy Peaks Biome)" world={world} />
+        <MapCaption id="river" text={gateUnlocked ? "Bridge" : "Frozen River"} world={world} />
+        <MapCaption id="forest" text="(Dense Forests Biome)" world={world} />
+
+        <LandmarkButton sprite="tower" point={P.tower} name={towerPowered ? "[T] Tower ✓" : "[T] Tower"} color="var(--primary-border)" world={world} map={map} prefer="above" disabled={downed} onClick={() => onInteract("tower")} />
+        <LandmarkButton sprite={hasLoot ? "chest-open" : "chest-closed"} point={P.chest} name={hasLoot ? "[X] Empty Cache" : "[X] Supply Cache"} color="var(--accent)" world={world} map={map} prefer="above" disabled={downed} onClick={() => onInteract("chest")} />
+        <LandmarkButton sprite="gate" point={P.gate} name="[G] Gate" color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} onClick={() => onInteract("gate")} />
+
+        {clueDecoded && !artifactFound && (
+          <div data-testid="dig-spot" className="pointer-events-none absolute" style={at(HIDDEN_ARTIFACT)}>
+            <span className="sr-only">Dig spot</span>
+          </div>
+        )}
+        {artifactFound && (
+          <div data-testid="artifact" title="Golden Semicolon" className="pointer-events-none absolute" style={at(HIDDEN_ARTIFACT)}>
+            <span className="sr-only">Golden Semicolon</span>
+          </div>
+        )}
+
+        {teammates.map((t) => {
+          const side = teammateLabelSide(t.x);
+          const offset = EXPLORER_BOX.right * world.scale + LABEL_GAP;
+          const top = ((EXPLORER_BOX.top + EXPLORER_BOX.bottom) / 2) * world.scale;
+          return (
+            <LabelAnchor
+              key={t.id}
+              testId={`teammate-${t.name}`}
+              point={t}
+              label={t.name}
+              duration="duration-[250ms]"
+              className=""
+              labelStyle={{ ...(side === "right" ? { left: offset } : { right: offset }), top, transform: "translateY(-50%)", color: t.color }}
+            />
+          );
+        })}
+        <LabelAnchor
+          testId="drone"
+          point={drone}
+          label="[AI Drone]"
+          duration="duration-300"
+          className="text-[var(--primary-border)]"
+          labelStyle={labelStyleFor(boxes.droneLabel, labels.drone, inWorld(drone))}
+        />
+        <LabelAnchor
+          testId="player"
+          point={player}
+          label="[Player]"
+          duration="duration-150"
+          className="text-[var(--text)]"
+          labelStyle={labelStyleFor(boxes.playerLabel, labels.player, inWorld(player))}
+        />
+      </div>
+
+      {inRange && prompt && (
         <div
-          className="pointer-events-none absolute z-40 -translate-x-1/2 rounded border border-[var(--accent)] bg-[var(--bg)] px-2 py-1 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap text-[var(--accent)]"
+          className="pointer-events-none absolute z-40 rounded border border-[var(--accent)] bg-[var(--bg)] px-2 py-1 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap text-[var(--accent)]"
           style={{
-            left: `clamp(${PROMPT_HALF_WIDTH}px, ${player.x}%, calc(100% - ${PROMPT_HALF_WIDTH}px))`,
-            top: `${Math.max(3, player.y - 12)}%`,
+            left: prompt.left + prompt.width / 2,
+            top: prompt.below ? prompt.top : prompt.top + prompt.height,
+            transform: prompt.below ? "translateX(-50%)" : "translate(-50%, -100%)",
           }}
         >
-          {inRange.id === "artifact" ? "[E] Dig here" : `[E] Inspect ${interactLabel(inRange)}`}
+          {promptText}
         </div>
       )}
 

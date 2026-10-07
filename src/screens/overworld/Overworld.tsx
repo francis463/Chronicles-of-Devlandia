@@ -83,6 +83,7 @@ export function Overworld({
             inspected={state.inspected}
             hasLoot={state.hasLoot}
             gateUnlocked={state.gateUnlocked}
+            clueDecoded={state.clueDecoded}
             artifactFound={state.artifactFound}
             towerPowered={state.towerPowered}
             teammates={team?.teammates}

@@ -9,12 +9,17 @@ export type MarkerBox = { left: number; right: number; top: number; bottom: numb
 /** Another sprite the labels should stay off (the found semicolon, a teammate). */
 export type Obstacle = Point & { box: MarkerBox };
 
-/** Explorers stand on their point (bottom-centre); the drone hovers centred 12 px above it. */
-export const EXPLORER_BOX: MarkerBox = { left: -8, right: 8, top: -16, bottom: 0 };
+/**
+ * Edges of each sprite's drawing around its anchor. Explorers stand on their point (bottom-centre:
+ * the feet row ay is drawn from ay to ay + 1, so the box ends one art px below the anchor); the
+ * drone hovers centred 12 px above it.
+ */
+export const EXPLORER_BOX: MarkerBox = { left: -8, right: 8, top: -15, bottom: 1 };
 export const DRONE_BOX: MarkerBox = { left: -6, right: 6, top: -18, bottom: -6 };
-export const SEMICOLON_BOX: MarkerBox = { left: -4, right: 4, top: -12, bottom: 0 };
+export const SEMICOLON_BOX: MarkerBox = { left: -4, right: 4, top: -11, bottom: 1 };
 
-type Box = { left: number; right: number; top: number; bottom: number };
+/** Edges in the world layer's CSS px. */
+export type Box = { left: number; right: number; top: number; bottom: number };
 type MarkerKind = "player" | "drone";
 
 /** CSS px between a sprite's box and its label (ml-2 / mr-2 / mt-2 / mb-2). */
@@ -115,10 +120,11 @@ export function labelBoxes(
 
 /**
  * Picks label sides so neither label covers the other sprite or an obstacle, or leaves the world.
- * `map` is the world layer's CSS size and `scale` its CSS px per art px.
+ * `map` is the world layer's CSS size and `scale` its CSS px per art px; `fixed` are boxes that
+ * don't move with a game point, such as the landmark captions.
  */
-export function labelLayout(player: Point, drone: Point, map: MapSize, obstacles: Obstacle[] = [], scale = 1) {
-  const blocked = obstacles.map((o) => spriteBoxAt(o, o.box, map, scale));
+export function labelLayout(player: Point, drone: Point, map: MapSize, obstacles: Obstacle[] = [], scale = 1, fixed: Box[] = []) {
+  const blocked = [...obstacles.map((o) => spriteBoxAt(o, o.box, map, scale)), ...fixed];
   const playerDot = spriteBoxAt(player, EXPLORER_BOX, map, scale);
   const droneDot = spriteBoxAt(drone, DRONE_BOX, map, scale);
   let best: { cost: number; player: LabelPlacement; drone: LabelPlacement } | null = null;

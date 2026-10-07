@@ -86,9 +86,21 @@ describe("labelLayout", () => {
 
   it("measures markers by their sprite boxes, scaled to the world", () => {
     const b = labelBoxes({ x: 50, y: 50 }, { x: 10, y: 10 }, world640, { player: { side: "right", shift: 0 }, drone: { side: "right", shift: 0 } }, 2);
-    expect(b.playerDot).toEqual({ left: 304, right: 336, top: 148, bottom: 180 });
+    expect(b.playerDot).toEqual({ left: 304, right: 336, top: 150, bottom: 182 });
     expect(b.playerLabel.left).toBe(336 + 8);
-    expect((b.playerLabel.top + b.playerLabel.bottom) / 2).toBe(164);
+    expect((b.playerLabel.top + b.playerLabel.bottom) / 2).toBe(166);
+  });
+});
+
+describe("fixed obstacles", () => {
+  it("keeps labels off fixed boxes such as landmark captions", () => {
+    const player = { x: 40, y: 50 };
+    const drone = { x: 46, y: 50 };
+    const plain = labelBoxes(player, drone, world320, labelLayout(player, drone, world320, [], 1), 1);
+    const caption = { left: plain.droneLabel.left, right: plain.droneLabel.right, top: plain.droneLabel.top, bottom: plain.droneLabel.bottom };
+    const layout = labelLayout(player, drone, world320, [], 1, [caption]);
+    const b = labelBoxes(player, drone, world320, layout, 1);
+    expect(overlap(b.droneLabel, caption) || overlap(b.playerLabel, caption)).toBe(false);
   });
 });
 

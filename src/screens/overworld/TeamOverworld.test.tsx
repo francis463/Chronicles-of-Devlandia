@@ -80,7 +80,7 @@ describe("Overworld in team mode", () => {
     await user.click(ana.getByRole("switch", { name: "Switch B" }));
     await user.click(ana.getByRole("button", { name: "[ RUN CIRCUIT ]" }));
     expect(countIn(logText(kai), "Ana powered the signal tower. The fog lifts.")).toBe(1);
-    expect(kai.getByTestId("fog").style.background).not.toContain("radial-gradient");
+    expect(kai.getByTestId("fog").style.opacity).toBe("0");
     expect(logText(ana)).not.toContain("Kai powered the signal tower");
     expect(countIn(logText(ana), "Signal tower online: the fog lifts across C++ Peaks.")).toBe(1);
   });

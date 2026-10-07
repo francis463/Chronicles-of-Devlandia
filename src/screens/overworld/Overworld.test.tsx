@@ -308,7 +308,7 @@ describe("Overworld signal tower", () => {
     await user.click(screen.getByRole("button", { name: "[ RUN CIRCUIT ]" }));
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(screen.getByText("Signal tower online: the fog lifts across C++ Peaks.")).toBeInTheDocument();
-    expect(screen.getByTestId("fog").style.background).not.toContain("radial-gradient");
+    expect(screen.getByTestId("fog").style.opacity).toBe("0");
     expect(screen.getByRole("button", { name: "[T] Tower ✓" })).toBeInTheDocument();
     expect(screen.getByText("Tower: Power the signal tower (1/1 Online)")).toBeInTheDocument();
     const card = screen.getByRole("region", { name: "POI Inspection" });
