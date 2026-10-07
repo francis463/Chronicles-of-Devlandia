@@ -41,6 +41,36 @@ export type WorldRect = {
   backingHeight: number;
 };
 
+/** How far down the screen a backdrop puts its focus's feet, so a menu panel at the top leaves it in view. */
+const FOCUS_DEPTH = 0.8;
+
+/**
+ * The world as a full-screen backdrop. It is scaled up by whole device pixels until it covers the
+ * view, so every pixel shown belongs to the world and the ground bake is never larger than the world.
+ * `focus` is centred across (as far as the world's edges allow) and its feet sit at least
+ * FOCUS_DEPTH down the screen; any rows that exposes above the world are the mountains' band.
+ */
+export function backdropWorld({ width, height, dpr }: ViewSize, focus: ArtPoint): WorldRect {
+  const backingWidth = Math.round(width * dpr);
+  const backingHeight = Math.round(height * dpr);
+  const s = Math.max(1, Math.ceil(Math.max(backingWidth / WORLD.width, backingHeight / WORLD.height)));
+  const scale = s / dpr;
+  const ox = Math.min(0, Math.max(backingWidth - WORLD.width * s, Math.round(backingWidth / 2 - (focus.x + 0.5) * s)));
+  const oy = Math.max(Math.round((backingHeight - WORLD.height * s) / 2), Math.round(FOCUS_DEPTH * backingHeight - (focus.y + 1) * s));
+  return {
+    s,
+    scale,
+    ox,
+    oy,
+    left: ox / dpr,
+    top: oy / dpr,
+    width: WORLD.width * scale,
+    height: WORLD.height * scale,
+    backingWidth,
+    backingHeight,
+  };
+}
+
 export function fitWorld({ width, height, dpr }: ViewSize): WorldRect {
   const s = Math.max(1, Math.floor(Math.min(width / WORLD.width, height / WORLD.height) * dpr));
   const scale = s / dpr;
