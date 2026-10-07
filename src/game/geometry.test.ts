@@ -24,6 +24,10 @@ describe("geometry", () => {
     expect(isInRiver({ x: 50, y: 39.1 })).toBe(false);
   });
 
+  it("finds the signal tower in the snowy top-left", () => {
+    expect(poiInRange({ x: 14, y: 26 })?.id).toBe("tower");
+  });
+
   it("also considers extra points of interest passed in, such as a revealed dig spot", () => {
     const spot = { id: "artifact" as const, label: "Golden Semicolon", x: 72, y: 84 };
     expect(poiInRange({ x: 72, y: 80 })).toBeNull();

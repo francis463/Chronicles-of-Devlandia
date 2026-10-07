@@ -132,3 +132,17 @@ describe("TouchControls: hidden artifact", () => {
     for (const dir of ["up", "down", "left", "right"] as const) expect(pad(dir)).toBeDisabled();
   });
 });
+
+describe("TouchControls: signal tower", () => {
+  it("names the tower on the [E] button and opens its lock", async () => {
+    const user = setup();
+    render(<Overworld onMenu={noop} initial={{ player: { x: 14, y: 26 } }} />);
+    await user.click(screen.getByRole("button", { name: "[E] Signal Tower" }));
+    expect(screen.getByRole("dialog", { name: "< SIGNAL TOWER: LOGIC LOCK >" })).toBeInTheDocument();
+  });
+
+  it("disables the touch controls while the logic lock is open", () => {
+    render(<Overworld onMenu={noop} initial={{ logicOpen: true }} />);
+    for (const dir of ["up", "down", "left", "right"] as const) expect(pad(dir)).toBeDisabled();
+  });
+});

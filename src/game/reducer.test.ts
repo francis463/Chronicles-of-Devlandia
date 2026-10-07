@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { gameReducer, initialState, isDowned, revealedPois } from "./reducer";
+import { gameReducer, initialState, isDowned, isModalOpen, revealedPois } from "./reducer";
 import type { GameState } from "./types";
 
 const s0 = initialState;
@@ -261,5 +261,57 @@ describe("gameReducer: hidden artifact side quest", () => {
     expect(revealedPois(looted)).toEqual([]);
     expect(revealedPois({ ...looted, clueDecoded: true }).map((p) => p.id)).toEqual(["artifact"]);
     expect(revealedPois({ ...looted, clueDecoded: true, artifactFound: true })).toEqual([]);
+  });
+});
+
+describe("gameReducer: signal tower logic lock", () => {
+  it("interacting with the tower opens the logic lock and logs it", () => {
+    const s = gameReducer(s0, { type: "interact", poi: "tower" });
+    expect(s.logicOpen).toBe(true);
+    expect(s.inspected).toBe("tower");
+    expect(lastLog(s)).toBe("Signal tower terminal ready. Logic lock found.");
+  });
+
+  it("does not reopen the lock once the tower is powered", () => {
+    const s = gameReducer({ ...s0, towerPowered: true }, { type: "interact", poi: "tower" });
+    expect(s.logicOpen).toBe(false);
+    expect(lastLog(s)).toBe("Signal tower online. The beam holds.");
+  });
+
+  it("the solved circuit powers the tower, closes the lock and logs it", () => {
+    const open = { ...gameReducer(s0, { type: "interact", poi: "tower" }), logicError: "x" };
+    const s = gameReducer(open, { type: "submitLogic", bits: [1, 1, 0, 0] });
+    expect(s.towerPowered).toBe(true);
+    expect(s.logicOpen).toBe(false);
+    expect(s.logicError).toBeNull();
+    expect(lastLog(s)).toBe("Signal tower online: the fog lifts across C++ Peaks.");
+  });
+
+  it("a failing circuit keeps the lock open and names the failing line", () => {
+    const open = gameReducer(s0, { type: "interact", poi: "tower" });
+    const s = gameReducer(open, { type: "submitLogic", bits: [1, 1, 1, 0] });
+    expect(s.logicOpen).toBe(true);
+    expect(s.towerPowered).toBe(false);
+    expect(s.logicError).toBe("Circuit failed: line 3 (B XOR C) outputs 0.");
+  });
+
+  it("closeLogic closes and clears the error; revealLogicHint reveals the hint", () => {
+    const open = { ...gameReducer(s0, { type: "interact", poi: "tower" }), logicError: "x" };
+    const closed = gameReducer(open, { type: "closeLogic" });
+    expect(closed.logicOpen).toBe(false);
+    expect(closed.logicError).toBeNull();
+    expect(gameReducer(open, { type: "revealLogicHint" }).logicHintRevealed).toBe(true);
+  });
+
+  it("ignores movement while the logic lock is open", () => {
+    const open = gameReducer(s0, { type: "interact", poi: "tower" });
+    expect(gameReducer(open, { type: "move", dir: "up" }).player).toEqual(open.player);
+  });
+
+  it("isModalOpen is true while any terminal is open", () => {
+    expect(isModalOpen(s0)).toBe(false);
+    expect(isModalOpen({ ...s0, terminalOpen: true })).toBe(true);
+    expect(isModalOpen({ ...s0, cipherOpen: true })).toBe(true);
+    expect(isModalOpen({ ...s0, logicOpen: true })).toBe(true);
   });
 });

@@ -5,12 +5,14 @@ export function BottomHud({
   questComplete,
   clueDecoded,
   artifactFound,
+  towerPowered,
   onDecodeScroll,
 }: {
   hasLoot: boolean;
   questComplete: boolean;
   clueDecoded: boolean;
   artifactFound: boolean;
+  towerPowered: boolean;
   onDecodeScroll: () => void;
 }) {
   const slots = ["Key", "Food", hasLoot ? "Patch" : "—", artifactFound ? "Semicolon" : hasLoot ? "Scroll" : "—"];
@@ -38,6 +40,9 @@ export function BottomHud({
         </span>
         <span className={artifactFound ? "font-bold" : ""}>
           {`Treasure: Golden Semicolon (${artifactFound ? "1/1 Found" : "0/1"})`}
+        </span>
+        <span className={towerPowered ? "font-bold" : ""}>
+          {`Tower: Power the signal tower (${towerPowered ? "1/1 Online" : "0/1"})`}
         </span>
       </div>
     </footer>

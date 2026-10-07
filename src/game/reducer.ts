@@ -19,6 +19,7 @@ import {
 import { clampPlayer, isInRiver } from "./geometry";
 import { isCorrectAnswer, normalizeAnswer } from "./puzzle";
 import { isCorrectDecode } from "./cipher";
+import { circuitError } from "./logic";
 import type { Direction, GameAction, GameState, Poi, Point } from "./types";
 
 export const initialState: GameState = {
@@ -39,11 +40,18 @@ export const initialState: GameState = {
   cipherOpen: false,
   cipherError: null,
   cipherHintRevealed: false,
+  towerPowered: false,
+  logicOpen: false,
+  logicError: null,
+  logicHintRevealed: false,
   logs: INITIAL_LOGS,
   logCount: INITIAL_LOGS.length,
 };
 
 export const isDowned = (s: GameState) => s.hp <= 0;
+
+/** True while any puzzle terminal (gate, scroll cipher, tower logic lock) is open. */
+export const isModalOpen = (s: GameState) => s.terminalOpen || s.cipherOpen || s.logicOpen;
 
 /** Hidden points of interest that are currently diggable: the artifact, after decoding, until found. */
 export const revealedPois = (s: GameState): Poi[] => (s.clueDecoded && !s.artifactFound ? [HIDDEN_ARTIFACT] : []);
@@ -66,7 +74,7 @@ function pushLog(state: GameState, message: string): GameState {
 export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
     case "move": {
-      if (isDowned(state) || state.terminalOpen || state.cipherOpen) return state;
+      if (isDowned(state) || isModalOpen(state)) return state;
       const delta = DELTAS[action.dir];
       const player = clampPlayer({
         x: state.player.x + delta.x * STEP,
@@ -109,6 +117,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           ? pushLog(inspected, LOG.gateOpen)
           : pushLog({ ...inspected, terminalOpen: true }, LOG.gate);
       }
+      if (action.poi === "tower") {
+        return state.towerPowered
+          ? pushLog(inspected, LOG.towerOnline)
+          : pushLog({ ...inspected, logicOpen: true }, LOG.tower);
+      }
       if (action.poi === "chest") {
         return state.hasLoot
           ? pushLog(inspected, LOG.chestEmpty)
@@ -142,6 +155,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, cipherError: cipherError(action.value.trim() || "(empty)") };
     case "revealCipherHint":
       return { ...state, cipherHintRevealed: true };
+    case "submitLogic": {
+      const error = circuitError(action.bits);
+      if (error) return { ...state, logicError: error };
+      return pushLog({ ...state, towerPowered: true, logicOpen: false, logicError: null }, LOG.towerPowered);
+    }
+    case "closeLogic":
+      return { ...state, logicOpen: false, logicError: null };
+    case "revealLogicHint":
+      return { ...state, logicHintRevealed: true };
     case "respawn":
       return pushLog(
         { ...state, hp: MAX_HP, player: PLAYER_START, drone: DRONE_START, inspected: null },

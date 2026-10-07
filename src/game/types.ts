@@ -1,6 +1,8 @@
+import type { Bits } from "./logic";
+
 export type Point = { x: number; y: number };
 
-export type PoiId = "gate" | "chest" | "river" | "artifact";
+export type PoiId = "gate" | "chest" | "river" | "tower" | "artifact";
 
 export type Poi = { id: PoiId; label: string } & Point;
 
@@ -26,6 +28,10 @@ export type GameState = {
   cipherOpen: boolean;
   cipherError: string | null;
   cipherHintRevealed: boolean;
+  towerPowered: boolean;
+  logicOpen: boolean;
+  logicError: string | null;
+  logicHintRevealed: boolean;
   logs: string[];
   /** Total entries ever logged; gives each visible entry a stable identity. */
   logCount: number;
@@ -45,4 +51,7 @@ export type GameAction =
   | { type: "closeCipher" }
   | { type: "submitCipher"; value: string }
   | { type: "revealCipherHint" }
+  | { type: "submitLogic"; bits: Bits }
+  | { type: "closeLogic" }
+  | { type: "revealLogicHint" }
   | { type: "respawn" };

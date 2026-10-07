@@ -288,3 +288,43 @@ describe("Overworld hidden artifact", () => {
     expect(screen.queryAllByText("[E] Dig here")).toHaveLength(0);
   });
 });
+
+describe("Overworld signal tower", () => {
+  it("lists the tower objective and keeps the fog until the tower is powered", () => {
+    render(<Overworld onMenu={() => {}} />);
+    expect(screen.getByText("Tower: Power the signal tower (0/1)")).toBeInTheDocument();
+    expect(screen.getByTestId("fog").style.background).toContain("radial-gradient");
+  });
+
+  it("the tower button opens the logic lock; the right switches power it and lift the fog", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} />);
+    await user.click(screen.getByRole("button", { name: "[T] Tower" }));
+    expect(screen.getByRole("dialog", { name: "< SIGNAL TOWER: LOGIC LOCK >" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "[ RUN CIRCUIT ]" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("Circuit failed: line 2 (A AND B) outputs 0.");
+    await user.click(screen.getByRole("switch", { name: "Switch A" }));
+    await user.click(screen.getByRole("switch", { name: "Switch B" }));
+    await user.click(screen.getByRole("button", { name: "[ RUN CIRCUIT ]" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByText("Signal tower online: the fog lifts across C++ Peaks.")).toBeInTheDocument();
+    expect(screen.getByTestId("fog").style.background).not.toContain("radial-gradient");
+    expect(screen.getByRole("button", { name: "[T] Tower ✓" })).toBeInTheDocument();
+    expect(screen.getByText("Tower: Power the signal tower (1/1 Online)")).toBeInTheDocument();
+    const card = screen.getByRole("region", { name: "POI Inspection" });
+    expect(within(card).getByText("The signal tower hums. Its beam keeps the fog away.")).toBeInTheDocument();
+  });
+
+  it("pauses the clock while the logic lock is open", () => {
+    render(<Overworld onMenu={() => {}} initial={{ logicOpen: true }} />);
+    act(() => vi.advanceTimersByTime(6000));
+    expect(screen.getByText("Dusk / 19:29")).toBeInTheDocument();
+  });
+
+  it("[E] next to the tower opens the logic lock", () => {
+    render(<Overworld onMenu={() => {}} initial={{ player: { x: 14, y: 26 } }} />);
+    expect(screen.getByText("[E] Inspect Signal Tower")).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: "e" });
+    expect(screen.getByRole("dialog", { name: "< SIGNAL TOWER: LOGIC LOCK >" })).toBeInTheDocument();
+  });
+});

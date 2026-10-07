@@ -110,3 +110,16 @@ describe("useKeyboardControls: scroll cipher", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 });
+
+describe("useKeyboardControls: signal tower lock", () => {
+  it("ignores game keys while the logic lock is open and Escape closes it", async () => {
+    const user = userEvent.setup();
+    render(<Overworld onMenu={noop} initial={{ logicOpen: true, player: { x: 14, y: 26 } }} />);
+    screen.getByRole("button", { name: "[ USE HINT ITEM ]" }).focus();
+    await user.keyboard("{ArrowUp}we");
+    expect(player().style.top).toBe("26%");
+    expect(screen.queryByText("Signal tower terminal ready. Logic lock found.")).toBeNull();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});

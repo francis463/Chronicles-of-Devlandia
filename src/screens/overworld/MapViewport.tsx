@@ -18,6 +18,7 @@ const at = (p: Point) => ({ left: `${p.x}%`, top: `${p.y}%` });
 // Map labels near the right edge slide inward instead of being clipped: centred on
 // their point while there is room, never closer to the edge than half their width.
 const CACHE_POSITION = { left: "min(82%, calc(100% - 92px))", top: "18%" };
+const TOWER_POSITION = { left: "max(14%, 64px)", top: "18%" };
 const PROMPT_HALF_WIDTH = 104;
 const ARTIFACT_RADIUS = 16; // the found artifact's marker is h-8 w-8
 
@@ -88,6 +89,7 @@ export function MapViewport({
   hasLoot,
   gateUnlocked,
   artifactFound,
+  towerPowered,
   inRange,
   downed,
   onInteract,
@@ -101,6 +103,7 @@ export function MapViewport({
   hasLoot: boolean;
   gateUnlocked: boolean;
   artifactFound: boolean;
+  towerPowered: boolean;
   inRange: Poi | null;
   downed: boolean;
   onInteract: (poi: PoiId) => void;
@@ -113,7 +116,7 @@ export function MapViewport({
   const copy = inspected ? INSPECT_COPY[inspected] : null;
   const inspectCopy = !copy
     ? null
-    : (hasLoot && copy.looted) || (gateUnlocked && copy.bridged) || copy.default;
+    : (hasLoot && copy.looted) || (gateUnlocked && copy.bridged) || (towerPowered && copy.powered) || copy.default;
 
   return (
     <div ref={mapRef} className="relative min-h-[360px] flex-1 overflow-hidden bg-[var(--panel)]">
@@ -137,6 +140,17 @@ export function MapViewport({
           onClick={() => onInteract("gate")}
         >
           [G] Gate
+        </Button>
+      </div>
+
+      <div className="absolute z-20 -translate-x-1/2 -translate-y-1/2" style={TOWER_POSITION}>
+        <Button
+          variant="primary"
+          disabled={downed}
+          className="px-2 py-1 whitespace-nowrap"
+          onClick={() => onInteract("tower")}
+        >
+          {towerPowered ? "[T] Tower ✓" : "[T] Tower"}
         </Button>
       </div>
 
@@ -190,10 +204,14 @@ export function MapViewport({
         className="pointer-events-none absolute inset-0 z-10 transition-colors duration-700"
         style={{ background: PHASE_TINT[phaseOf(minutes)] }}
       />
+      {/* Fog of war around the player; the powered signal tower lifts it. */}
       <div
-        className="pointer-events-none absolute inset-0 z-10"
+        data-testid="fog"
+        className="pointer-events-none absolute inset-0 z-10 transition-[background] duration-700"
         style={{
-          background: `radial-gradient(circle at ${player.x}% ${player.y}%, transparent 0%, transparent 15%, rgba(15,23,42,0.35) 32%, rgba(15,23,42,0.7) 62%)`,
+          background: towerPowered
+            ? "transparent"
+            : `radial-gradient(circle at ${player.x}% ${player.y}%, transparent 0%, transparent 15%, rgba(15,23,42,0.35) 32%, rgba(15,23,42,0.7) 62%)`,
         }}
       />
 

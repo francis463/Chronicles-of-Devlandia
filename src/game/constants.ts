@@ -10,6 +10,7 @@ export const POIS: Poi[] = [
   { id: "gate", label: "Terminal Gate", x: 50, y: 50 },
   { id: "chest", label: "Supply Cache", x: 82, y: 18 },
   { id: "river", label: "Frozen River", x: 54, y: 33 },
+  { id: "tower", label: "Signal Tower", x: 14, y: 18 },
 ];
 export const INTERACT_RADIUS = 13;
 /** Buried in the Dense Forests; not on the map until the scroll is decoded. */
@@ -51,9 +52,12 @@ export const LOG = {
   scrollFound: "Found an encrypted scroll: QRAFR SBERFG",
   clueDecoded: "Clue decoded: the artifact rests in the Dense Forest.",
   artifactFound: "Artifact found: the Golden Semicolon!",
+  tower: "Signal tower terminal ready. Logic lock found.",
+  towerOnline: "Signal tower online. The beam holds.",
+  towerPowered: "Signal tower online: the fog lifts across C++ Peaks.",
 };
 
-export const INSPECT_COPY: Record<PoiId, { default: string; looted?: string; bridged?: string }> = {
+export const INSPECT_COPY: Record<PoiId, { default: string; looted?: string; bridged?: string; powered?: string }> = {
   gate: {
     default: "A locked compiler gate. Its terminal leads to the code puzzle.",
     bridged: "The compiler gate stands open. The bridge beyond it holds.",
@@ -66,6 +70,10 @@ export const INSPECT_COPY: Record<PoiId, { default: string; looted?: string; bri
     default: "Ice integrity: 42%. Exposure drains HP while crossing.",
     bridged: "The bridge spans the river. Crossing is safe now.",
   },
+  tower: {
+    default: "A dark signal tower. Its logic lock needs every line of the circuit to output 1.",
+    powered: "The signal tower hums. Its beam keeps the fog away.",
+  },
   artifact: { default: "The Golden Semicolon, Devlandia's lost line-ender. Every statement can finally be completed." },
 };
 
@@ -74,6 +82,7 @@ export const PUZZLE_ANSWER = "block";
 // Hidden artifact side quest: the Supply Cache holds a ROT13 scroll naming where it is buried.
 export const SCROLL_CIPHERTEXT = "QRAFR SBERFG";
 export const CIPHER_HINT = "Shift each letter 13 places: Q→D, R→E, A→N, F→S, S→F, B→O, E→R, G→T.";
+export const LOGIC_HINT = "AND needs both inputs at 1. XOR needs exactly one. NOT flips the bit.";
 export const cipherError = (value: string) => `Not quite: "${value}" is not what the scroll says.`;
 export const PUZZLE_HINT = "\"Setting display to 'none' hides the object. Try 'block' instead!\"";
 export const PUZZLE_HINT_LOCKED = "Hint locked. Use a hint item to decode.";

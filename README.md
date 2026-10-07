@@ -29,15 +29,16 @@ The touch controls only appear on touch screens; keyboard players never see them
 - **Supply Cache:** open it for a Repair Patch.
 - **Terminal Gate:** press `E` next to it, or click `[G] Gate`. Fix the CSS property to restore the bridge, which makes the river safe to cross. Stuck? Click `[ USE HINT ITEM ]`.
 - **Hidden artifact:** the Supply Cache also holds an encrypted scroll. Click `[ Decode Scroll ]` in the bottom bar and decode it (it uses ROT13: every letter is shifted 13 places). The decoded clue says where the **Golden Semicolon** is buried; walk there and press `E` (or the touch `[E]` button) to dig it up. The spot stays hidden until you've decoded the scroll.
+- **Signal Tower:** press `E` next to the tower in the snowy top-left (or click `[T] Tower`). Flip switches A–D and press `[ RUN CIRCUIT ]`: every line (`A AND B`, `B XOR C`, `NOT D`) must output 1. The readout shows your switches as a binary and decimal number. Powering the tower lifts the fog of war.
 - **At 0 HP** you're downed. Click `[ Respawn ]` to return to base camp.
 - The clock advances 5 in-game minutes every 2 seconds and cycles through day, dusk and night.
 
 ## Project layout
 
 ```
-src/game/      pure game rules: constants, geometry, clock, puzzle, reducer
+src/game/      pure game rules: constants, geometry, clock, puzzle, cipher, logic, reducer
 src/hooks/     keyboard controls and game timers
-src/screens/   MainMenu, Farewell, TerminalModal (gate), CipherModal (scroll), overworld/*
+src/screens/   MainMenu, Farewell, TerminalModal (gate), CipherModal (scroll), LogicModal (tower), overworld/*
 src/ui/        Panel, Button, Meter, TerminalDialog primitives
 ```
 

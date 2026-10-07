@@ -1,11 +1,11 @@
 import { useEffect, useRef, type Dispatch } from "react";
 import { DRONE_DELAY_MS, RIVER_DAMAGE_MS, TICK_MS } from "../game/constants";
 import { isInRiver } from "../game/geometry";
-import { isDowned } from "../game/reducer";
+import { isDowned, isModalOpen } from "../game/reducer";
 import type { GameAction, GameState } from "../game/types";
 
 export function useGameTimers(state: GameState, dispatch: Dispatch<GameAction>): void {
-  const paused = state.terminalOpen || state.cipherOpen || isDowned(state);
+  const paused = isModalOpen(state) || isDowned(state);
   const draining = !paused && !state.gateUnlocked && isInRiver(state.player);
 
   useEffect(() => {

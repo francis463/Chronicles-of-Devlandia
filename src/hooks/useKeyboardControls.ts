@@ -1,6 +1,6 @@
 import { useEffect, useRef, type Dispatch } from "react";
 import { poiInRange } from "../game/geometry";
-import { isDowned, revealedPois } from "../game/reducer";
+import { isDowned, isModalOpen, revealedPois } from "../game/reducer";
 import type { Direction, GameAction, GameState } from "../game/types";
 
 const KEY_DIRECTIONS: Record<string, Direction> = {
@@ -29,14 +29,14 @@ export function useKeyboardControls(state: GameState, dispatch: Dispatch<GameAct
       const key = event.key.toLowerCase();
 
       if (key === "escape") {
-        if (current.terminalOpen || current.cipherOpen) {
+        if (isModalOpen(current)) {
           event.preventDefault();
-          dispatch({ type: current.terminalOpen ? "closeTerminal" : "closeCipher" });
+          dispatch({ type: current.terminalOpen ? "closeTerminal" : current.cipherOpen ? "closeCipher" : "closeLogic" });
         }
         return;
       }
 
-      if (isTextField(event.target) || current.terminalOpen || current.cipherOpen || isDowned(current)) return;
+      if (isTextField(event.target) || isModalOpen(current) || isDowned(current)) return;
 
       const dir = KEY_DIRECTIONS[key];
       if (dir) {

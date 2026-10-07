@@ -1,11 +1,12 @@
 import { useReducer } from "react";
 import { poiInRange } from "../../game/geometry";
-import { gameReducer, initialState, isDowned, revealedPois } from "../../game/reducer";
+import { gameReducer, initialState, isDowned, isModalOpen, revealedPois } from "../../game/reducer";
 import type { GameState } from "../../game/types";
 import { useGameTimers } from "../../hooks/useGameTimers";
 import { useKeyboardControls } from "../../hooks/useKeyboardControls";
 import { Panel } from "../../ui/Panel";
 import { CipherModal } from "../CipherModal";
+import { LogicModal } from "../LogicModal";
 import { TerminalModal } from "../TerminalModal";
 import { BottomHud } from "./BottomHud";
 import { EventLog } from "./EventLog";
@@ -35,6 +36,7 @@ export function Overworld({ onMenu, initial }: { onMenu: () => void; initial?: P
             hasLoot={state.hasLoot}
             gateUnlocked={state.gateUnlocked}
             artifactFound={state.artifactFound}
+            towerPowered={state.towerPowered}
             inRange={inRange}
             downed={downed}
             onInteract={(poi) => dispatch({ type: "interact", poi })}
@@ -42,7 +44,7 @@ export function Overworld({ onMenu, initial }: { onMenu: () => void; initial?: P
             onRespawn={() => dispatch({ type: "respawn" })}
           />
           <TouchControls
-            disabled={downed || state.terminalOpen || state.cipherOpen}
+            disabled={downed || isModalOpen(state)}
             inRange={inRange}
             onMove={(dir) => dispatch({ type: "move", dir })}
             onInteract={(poi) => dispatch({ type: "interact", poi })}
@@ -55,6 +57,7 @@ export function Overworld({ onMenu, initial }: { onMenu: () => void; initial?: P
         questComplete={state.questComplete}
         clueDecoded={state.clueDecoded}
         artifactFound={state.artifactFound}
+        towerPowered={state.towerPowered}
         onDecodeScroll={() => dispatch({ type: "openCipher" })}
       />
       {state.terminalOpen && (
@@ -73,6 +76,15 @@ export function Overworld({ onMenu, initial }: { onMenu: () => void; initial?: P
           onSubmit={(value) => dispatch({ type: "submitCipher", value })}
           onClose={() => dispatch({ type: "closeCipher" })}
           onRevealHint={() => dispatch({ type: "revealCipherHint" })}
+        />
+      )}
+      {state.logicOpen && (
+        <LogicModal
+          error={state.logicError}
+          hintRevealed={state.logicHintRevealed}
+          onSubmit={(bits) => dispatch({ type: "submitLogic", bits })}
+          onClose={() => dispatch({ type: "closeLogic" })}
+          onRevealHint={() => dispatch({ type: "revealLogicHint" })}
         />
       )}
     </Panel>

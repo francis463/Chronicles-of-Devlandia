@@ -4,8 +4,8 @@ const FOCUSABLE = "button:not([disabled]), input:not([disabled])";
 
 /**
  * The amber terminal frame shared by every in-game puzzle: a modal dialog over a dim
- * backdrop, titled header with [X] CLOSE, Tab kept inside, and the first input focused
- * with its text selected so typing replaces it.
+ * backdrop, titled header with [X] CLOSE, Tab kept inside, and the first input (or the
+ * control marked data-autofocus) focused on open.
  */
 export function TerminalDialog({
   title,
@@ -20,9 +20,10 @@ export function TerminalDialog({
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const input = dialogRef.current?.querySelector("input");
-    input?.focus();
-    input?.select();
+    // The first text box (its text selected so typing replaces it), else the control marked data-autofocus.
+    const target = dialogRef.current?.querySelector<HTMLElement>("input, [data-autofocus]");
+    target?.focus();
+    if (target instanceof HTMLInputElement) target.select();
   }, []);
 
   const trapTab = (event: KeyboardEvent<HTMLDivElement>) => {
