@@ -1,6 +1,41 @@
+import { useEffect, useRef } from "react";
 import { HIDDEN_ARTIFACT, POIS } from "../../game/constants";
 import type { Point } from "../../game/types";
 import type { Teammate } from "../../hooks/useTeamSession";
+import type { Ctx2D } from "../../render/paint";
+import { terrainAt, type TerrainKind } from "../../render/terrain";
+import { WORLD } from "../../render/world";
+
+export const MINI_COLORS: Record<TerrainKind, string> = {
+  ice: "#7cc4e8",
+  mountains: "#64748b",
+  snow: "#e2e8f0",
+  forest: "#24452a",
+  meadow: "#3f7d3a",
+};
+
+/** The terrain as flat colours, stretched to the box the way the dots are placed. */
+export function paintMiniTerrain(ctx: Ctx2D, width: number, height: number): void {
+  for (let y = 0; y < height; y++) {
+    const ay = Math.round((y / height) * WORLD.height);
+    let start = 0;
+    let color = "";
+    for (let x = 0; x <= width; x++) {
+      const next = x < width ? MINI_COLORS[terrainAt(Math.round((x / width) * WORLD.width), ay)] : "";
+      if (next !== color) {
+        if (color) {
+          ctx.fillStyle = color;
+          ctx.fillRect(start, y, x - start, 1);
+        }
+        start = x;
+        color = next;
+      }
+    }
+  }
+}
+
+const MINI_W = 112; // w-28
+const MINI_H = 96; // h-24
 
 export function MiniMap({
   player,
@@ -13,6 +48,16 @@ export function MiniMap({
   teammates?: Teammate[];
   playerColor?: string;
 }) {
+  const terrain = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = terrain.current;
+    const ctx = canvas?.getContext("2d") as Ctx2D | null | undefined;
+    if (!canvas || !ctx) return;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(MINI_W * dpr);
+    canvas.height = Math.round(MINI_H * dpr);
+    paintMiniTerrain(ctx, canvas.width, canvas.height);
+  }, []);
   return (
     <div className="flex gap-3 border-b-2 border-dashed border-[var(--panel-border)] p-3 md:w-36 md:flex-shrink-0 md:flex-col md:border-r-2 md:border-b-0">
       <div
@@ -20,7 +65,7 @@ export function MiniMap({
         role="img"
         className="relative h-24 w-28 flex-shrink-0 overflow-hidden rounded border border-[var(--panel-border)] bg-[var(--bg)]"
       >
-        <div className="absolute top-1/3 right-1/4 left-1/4 border-t-2 border-dashed border-[var(--primary)]" />
+        <canvas ref={terrain} aria-hidden="true" className="absolute inset-0 h-full w-full" />
         {POIS.map((poi) => (
           <div
             key={poi.id}
