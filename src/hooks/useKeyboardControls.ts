@@ -1,0 +1,61 @@
+import { useEffect, useRef, type Dispatch } from "react";
+import { INTERACT_RADIUS } from "../game/constants";
+import { nearestPoi } from "../game/geometry";
+import { isDowned } from "../game/reducer";
+import type { Direction, GameAction, GameState } from "../game/types";
+
+const KEY_DIRECTIONS: Record<string, Direction> = {
+  w: "up",
+  arrowup: "up",
+  s: "down",
+  arrowdown: "down",
+  a: "left",
+  arrowleft: "left",
+  d: "right",
+  arrowright: "right",
+};
+
+function isTextField(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return target.isContentEditable || target.tagName === "INPUT" || target.tagName === "TEXTAREA";
+}
+
+export function useKeyboardControls(state: GameState, dispatch: Dispatch<GameAction>): void {
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const current = stateRef.current;
+      const key = event.key.toLowerCase();
+
+      if (key === "escape") {
+        if (current.terminalOpen) {
+          event.preventDefault();
+          dispatch({ type: "closeTerminal" });
+        }
+        return;
+      }
+
+      if (isTextField(event.target) || current.terminalOpen || isDowned(current)) return;
+
+      const dir = KEY_DIRECTIONS[key];
+      if (dir) {
+        event.preventDefault();
+        dispatch({ type: "move", dir });
+        return;
+      }
+
+      if (key === "e") {
+        const nearest = nearestPoi(current.player);
+        if (nearest.distance <= INTERACT_RADIUS) {
+          event.preventDefault();
+          dispatch({ type: "interact", poi: nearest.poi.id });
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [dispatch]);
+}

@@ -2,6 +2,7 @@ import { useReducer } from "react";
 import { gameReducer, initialState, isDowned } from "../../game/reducer";
 import type { GameState } from "../../game/types";
 import { useGameTimers } from "../../hooks/useGameTimers";
+import { useKeyboardControls } from "../../hooks/useKeyboardControls";
 import { Panel } from "../../ui/Panel";
 import { BottomHud } from "./BottomHud";
 import { EventLog } from "./EventLog";
@@ -12,6 +13,7 @@ import { TopHud } from "./TopHud";
 export function Overworld({ onMenu, initial }: { onMenu: () => void; initial?: Partial<GameState> }) {
   const [state, dispatch] = useReducer(gameReducer, { ...initialState, ...initial });
   useGameTimers(state, dispatch);
+  useKeyboardControls(state, dispatch);
 
   return (
     <Panel className="mx-auto w-full max-w-5xl overflow-hidden">
