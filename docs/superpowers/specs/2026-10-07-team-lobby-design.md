@@ -38,8 +38,9 @@ Make the main menu's **TEAM LOBBY** real: 2–4 players create or join a room wi
 
 ### Overworld in team mode
 - Teammates appear as colored dots with their nickname label, on the map and the mini-map. You see only **your own** AI drone.
-- Player colors by join order: 1 green `#22c55e` (existing `--success`), 2 sky `#38bdf8`, 3 pink `#f472b6`, 4 violet `#a78bfa`.
+- Player colors by join order: 1 green `#22c55e` (existing `--success`), 2 snow `#e2e8f0`, 3 pink `#f472b6`, 4 violet `#a78bfa`.
   - *Change from the chat summary: amber became violet, because amber is already the gate, cache and artifact color.*
+  - *Change during implementation: sky `#38bdf8` became snow `#e2e8f0`, because sky is your own AI drone's color and a sky teammate looked identical to it.*
 - Top bar adds `ROOM KQZM · 3 online` (and "Reconnecting…" while the connection is down).
 - **Shared by the team (flags):** `questComplete` (river surveyed), `hasLoot` (cache opened: Patch + Scroll), `clueDecoded`, `artifactFound`, `gateUnlocked`, `towerPowered`. Once any player sets one, it is set for everyone and never unset.
 - **Per player:** position, HP, stamina, downed/respawn, which terminal is open, hint reveals, inspection card.

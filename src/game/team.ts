@@ -34,7 +34,8 @@ export type RankedPlayer = PresenceMeta & { rank: number; color: string; isHost:
 // ── Constants ─────────────────────────────────────────────────────────────
 
 export const TEAM_MAX = 4;
-export const TEAM_COLORS = ["#22c55e", "#38bdf8", "#f472b6", "#a78bfa"];
+// Green, snow, pink, violet: distinct from your AI drone (sky) and the amber gate/cache/artifact.
+export const TEAM_COLORS = ["#22c55e", "#e2e8f0", "#f472b6", "#a78bfa"];
 export const ROOM_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ";
 export const NO_ROOM_TIMEOUT_MS = 3000;
 export const POS_INTERVAL_MS = 125;

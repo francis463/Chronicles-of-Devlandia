@@ -33,12 +33,37 @@ The touch controls only appear on touch screens; keyboard players never see them
 - **At 0 HP** you're downed. Click `[ Respawn ]` to return to base camp.
 - The clock advances 5 in-game minutes every 2 seconds and cycles through day, dusk and night.
 
+## Team Lobby (2–4 players)
+
+From the main menu choose **TEAM LOBBY**, type a nickname and pick a connection:
+
+- **Online**: players on different devices, over Supabase Realtime (needs internet and a configured project, see below).
+- **Same computer**: browser windows on one device, no internet needed (handy for demos and testing).
+
+One player presses **[ Create Room ]** and reads out the 4-letter room code; the others type it and press **[ Join ]**. The host (the creator) presses **[ Start Expedition ]** once at least 2 players are in. A player who joins after the start drops straight into the game.
+
+In the game, teammates appear as colored dots with their names, and the top bar shows `ROOM <CODE> · <N> online`.
+
+- **Shared by the team:** surveying the river, the Supply Cache loot, the decoded clue, the Golden Semicolon, the bridge, the signal tower (and its lifted fog), and the clock.
+- **Your own:** position, HP, stamina and terminals.
+- Your event log tells you what teammates did, for example *"Kai restored the bridge."* **[=] Menu** leaves the room.
+
+**Online setup.** Online play uses a Supabase project with Realtime only (no tables, no stored data). Put its URL and publishable key in a `.env` file (see `.env.example`):
+
+```bash
+VITE_SUPABASE_URL=https://your-project-ref.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_your_key
+```
+
+Without them, Online shows "Can't reach the team server…" and Same computer still works. The claude.ai preview link blocks outside connections, so there only Same computer works (between windows of the same browser).
+
 ## Project layout
 
 ```
-src/game/      pure game rules: constants, geometry, clock, puzzle, cipher, logic, reducer
-src/hooks/     keyboard controls and game timers
-src/screens/   MainMenu, Farewell, TerminalModal (gate), CipherModal (scroll), LogicModal (tower), overworld/*
+src/game/      pure game rules: constants, geometry, clock, puzzle, cipher, logic, team, reducer
+src/hooks/     keyboard controls, game timers, team session
+src/net/       team transports: Supabase (Online), BroadcastChannel (Same computer), in-memory (tests)
+src/screens/   MainMenu, TeamLobby, Farewell, TerminalModal (gate), CipherModal (scroll), LogicModal (tower), overworld/*
 src/ui/        Panel, Button, Meter, TerminalDialog primitives
 ```
 

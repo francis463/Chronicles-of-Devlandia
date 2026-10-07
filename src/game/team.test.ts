@@ -101,6 +101,12 @@ describe("roster", () => {
     expect(ranked.map((p) => p.color).slice(0, 4)).toEqual(TEAM_COLORS);
   });
 
+  it("keeps teammates' colors distinct from the AI drone (sky #38bdf8) and the amber items (#f59e0b)", () => {
+    expect(TEAM_COLORS).not.toContain("#38bdf8");
+    expect(TEAM_COLORS).not.toContain("#f59e0b");
+    expect(new Set(TEAM_COLORS).size).toBe(4);
+  });
+
   it("reads the team's start time from any member", () => {
     expect(teamStartedAt([meta("a", 1), meta("b", 2, { startedAt: 500 })])).toBe(500);
     expect(teamStartedAt([meta("a", 1)])).toBeNull();
