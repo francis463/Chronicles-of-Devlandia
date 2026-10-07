@@ -5,6 +5,28 @@ import App from "./App";
 
 afterEach(() => vi.restoreAllMocks());
 
+describe("Landing page backdrop", () => {
+  it("draws the pixel-art world behind the main menu, hidden from screen readers", () => {
+    render(<App />);
+    const backdrop = screen.getByTestId("menu-backdrop");
+    expect(backdrop).toHaveAttribute("aria-hidden", "true");
+    expect(backdrop.className).toContain("fixed");
+    expect(backdrop.className).toContain("-z-10");
+    expect(backdrop.className).toContain("pointer-events-none");
+    expect(backdrop.querySelector('[data-testid="map-canvas"]')).not.toBeNull();
+    // a dark wash keeps the menu readable
+    expect(backdrop.querySelector(".bg-\\[rgba\\(15\\,23\\,42\\,0\\.45\\)\\]")).not.toBeNull();
+  });
+
+  it("only on the landing page", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole("button", { name: /solo quest/i }));
+    expect(screen.queryByTestId("menu-backdrop")).toBeNull();
+    expect(screen.getAllByTestId("map-canvas")).toHaveLength(1);
+  });
+});
+
 describe("App", () => {
   it("shows the main menu with title, tagline and footer", () => {
     render(<App />);
