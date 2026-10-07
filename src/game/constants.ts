@@ -42,6 +42,7 @@ export const LOG = {
   coldExposure: `Cold exposure: -${RIVER_DAMAGE} HP.`,
   bridgeRestored: "Bridge restored. The river can be crossed safely.",
   revived: "Drone revived you at base camp.",
+  gateOpen: "Gate unlocked. The bridge holds.",
 };
 
 export const INSPECT_COPY: Record<PoiId, { default: string; looted?: string }> = {
