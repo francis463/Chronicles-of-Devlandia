@@ -48,14 +48,14 @@ In the game, teammates appear as colored dots with their names, and the top bar 
 - **Your own:** position, HP, stamina and terminals.
 - Your event log tells you what teammates did, for example *"Kai restored the bridge."* **[=] Menu** leaves the room.
 
-**Online setup.** Online play uses a Supabase project with Realtime only (no tables, no stored data). Put its URL and publishable key in a `.env` file (see `.env.example`):
+**Online setup.** Online play works out of the box with the game's own Supabase project (`chronicles-of-devlandia`, Realtime only: no tables, no stored data). To use a different project, put its URL and publishable key in a `.env` file (see `.env.example`):
 
 ```bash
 VITE_SUPABASE_URL=https://your-project-ref.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_your_key
 ```
 
-Without them, Online shows "Can't reach the team server…" and Same computer still works. The claude.ai preview link blocks outside connections, so there only Same computer works (between windows of the same browser).
+If the server can't be reached, Online shows "Can't reach the team server…" and Same computer still works. The claude.ai preview link blocks outside connections, so there only Same computer works (between windows of the same browser).
 
 ## Project layout
 
