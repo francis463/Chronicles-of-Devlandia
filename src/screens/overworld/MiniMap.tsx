@@ -24,8 +24,10 @@ export function MiniMap({ player }: { player: Point }) {
       </div>
       <div className="flex flex-col justify-center gap-1 text-[10px] uppercase tracking-widest text-[var(--text-muted)]">
         <span className="font-bold text-[var(--text)]">Controls</span>
-        <span>Move: WASD / Arrows</span>
-        <span>Interact: [E]</span>
+        <span className="pointer-coarse:hidden">Move: WASD / Arrows</span>
+        <span className="pointer-coarse:hidden">Interact: [E]</span>
+        <span className="hidden pointer-coarse:inline">Move: D-pad</span>
+        <span className="hidden pointer-coarse:inline">Interact: [E] button</span>
       </div>
     </div>
   );

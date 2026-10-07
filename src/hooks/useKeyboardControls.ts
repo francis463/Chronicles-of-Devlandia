@@ -1,6 +1,5 @@
 import { useEffect, useRef, type Dispatch } from "react";
-import { INTERACT_RADIUS } from "../game/constants";
-import { nearestPoi } from "../game/geometry";
+import { poiInRange } from "../game/geometry";
 import { isDowned } from "../game/reducer";
 import type { Direction, GameAction, GameState } from "../game/types";
 
@@ -47,10 +46,10 @@ export function useKeyboardControls(state: GameState, dispatch: Dispatch<GameAct
       }
 
       if (key === "e") {
-        const nearest = nearestPoi(current.player);
-        if (nearest.distance <= INTERACT_RADIUS) {
+        const poi = poiInRange(current.player);
+        if (poi) {
           event.preventDefault();
-          dispatch({ type: "interact", poi: nearest.poi.id });
+          dispatch({ type: "interact", poi: poi.id });
         }
       }
     };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clampPlayer, distance, isInRiver, nearestPoi } from "./geometry";
+import { clampPlayer, distance, isInRiver, nearestPoi, poiInRange } from "./geometry";
 
 describe("geometry", () => {
   it("measures Euclidean distance", () => {
@@ -22,5 +22,12 @@ describe("geometry", () => {
     expect(isInRiver({ x: 76, y: 39 })).toBe(true);
     expect(isInRiver({ x: 23.9, y: 30 })).toBe(false);
     expect(isInRiver({ x: 50, y: 39.1 })).toBe(false);
+  });
+
+  it("returns the nearest point of interest only when within interact range", () => {
+    expect(poiInRange({ x: 50, y: 58 })?.id).toBe("gate");
+    expect(poiInRange({ x: 50, y: 63 })?.id).toBe("gate");
+    expect(poiInRange({ x: 50, y: 63.1 })).toBeNull();
+    expect(poiInRange({ x: 28, y: 72 })).toBeNull();
   });
 });

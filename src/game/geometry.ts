@@ -1,4 +1,4 @@
-import { BOUNDS, POIS, RIVER_ZONE } from "./constants";
+import { BOUNDS, INTERACT_RADIUS, POIS, RIVER_ZONE } from "./constants";
 import type { Poi, Point } from "./types";
 
 export function distance(a: Point, b: Point): number {
@@ -16,6 +16,11 @@ export function nearestPoi(p: Point): { poi: Poi; distance: number } {
   return POIS.map((poi) => ({ poi, distance: distance(p, poi) })).reduce((best, next) =>
     next.distance < best.distance ? next : best,
   );
+}
+
+export function poiInRange(p: Point): Poi | null {
+  const nearest = nearestPoi(p);
+  return nearest.distance <= INTERACT_RADIUS ? nearest.poi : null;
 }
 
 export function isInRiver(p: Point): boolean {

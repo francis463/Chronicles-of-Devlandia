@@ -1,6 +1,6 @@
 import { phaseOf } from "../../game/clock";
-import { INSPECT_COPY, INTERACT_RADIUS, POIS } from "../../game/constants";
-import { nearestPoi } from "../../game/geometry";
+import { INSPECT_COPY, POIS } from "../../game/constants";
+import { poiInRange } from "../../game/geometry";
 import type { PoiId, Point } from "../../game/types";
 import { Button } from "../../ui/Button";
 import { Panel } from "../../ui/Panel";
@@ -36,8 +36,7 @@ export function MapViewport({
   onCloseInspection: () => void;
   onRespawn: () => void;
 }) {
-  const nearest = nearestPoi(player);
-  const canInteract = !downed && nearest.distance <= INTERACT_RADIUS;
+  const inRange = downed ? null : poiInRange(player);
   const inspectedPoi = POIS.find((poi) => poi.id === inspected);
   const inspectCopy = inspected
     ? inspected === "chest" && hasLoot
@@ -106,12 +105,12 @@ export function MapViewport({
         }}
       />
 
-      {canInteract && (
+      {inRange && (
         <div
           className="absolute z-40 -translate-x-1/2 rounded border border-[var(--accent)] bg-[var(--bg)] px-2 py-1 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap text-[var(--accent)]"
           style={{ left: `${player.x}%`, top: `${Math.max(3, player.y - 12)}%` }}
         >
-          {`[E] Inspect ${nearest.poi.label}`}
+          {`[E] Inspect ${inRange.label}`}
         </div>
       )}
 

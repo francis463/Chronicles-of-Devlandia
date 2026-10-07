@@ -4,7 +4,7 @@
 
 A browser game for an HCI course project. Explore the snowy C++ Peaks with your AI drone, survey the Frozen River, and fix a CSS bug at the terminal gate to restore the bridge.
 
-Built with Vite, React 19, TypeScript and Tailwind CSS 4. It's desktop-first (keyboard controls) and the layout fits screens down to 360px wide.
+Built with Vite, React 19, TypeScript and Tailwind CSS 4. Play with a keyboard on a computer, or with on-screen touch controls on a phone or tablet. The layout fits screens down to 360px wide.
 
 ## Getting started
 
@@ -17,11 +17,13 @@ npm run build    # type-check and build to dist/
 
 ## How to play
 
-| Action | Keys |
-|---|---|
-| Move | `W` `A` `S` `D` or arrow keys |
-| Inspect / interact with a nearby point | `E` |
-| Close the terminal | `Esc` or `[X] CLOSE` |
+| Action | Keyboard | Touch screen |
+|---|---|---|
+| Move | `W` `A` `S` `D` or arrow keys | D-pad under the map (tap = one step, hold = keep moving) |
+| Inspect / interact with a nearby point | `E` | `[E]` button (lights up when something is in range) |
+| Close the terminal | `Esc` or `[X] CLOSE` | `[X] CLOSE` |
+
+The touch controls only appear on touch screens; keyboard players never see them. To try the game on a phone on the same Wi-Fi, run `npm run dev -- --host` and open the Network link it prints.
 
 - **Quest:** walk onto the Frozen River to survey it. The ice drains 8 HP every 1.8 seconds while you stand on it.
 - **Supply Cache:** open it for a Repair Patch.
@@ -34,7 +36,7 @@ npm run build    # type-check and build to dist/
 ```
 src/game/      pure game rules: constants, geometry, clock, puzzle, reducer
 src/hooks/     keyboard controls and game timers
-src/screens/   MainMenu, Farewell, TerminalModal, overworld/*
+src/screens/   MainMenu, Farewell, TerminalModal, overworld/* (incl. TouchControls)
 src/ui/        Panel, Button, Meter primitives
 ```
 

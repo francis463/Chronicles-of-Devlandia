@@ -26,6 +26,7 @@ export const RIVER_DAMAGE_MS = 1800;
 export const DRONE_DELAY_MS = 320;
 export const DRONE_FOLLOW = 0.58;
 export const LOG_LIMIT = 6;
+export const TOUCH_REPEAT_MS = 150;
 
 export const INITIAL_LOGS = [
   "Entered C++ Peaks.",
