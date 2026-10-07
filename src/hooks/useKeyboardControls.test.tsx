@@ -71,7 +71,27 @@ describe("useKeyboardControls: interact", () => {
     expect(screen.getByText("Supply cache opened: +1 Repair Patch.")).toBeInTheDocument();
   });
 
-  it.todo("[E] next to the gate opens the terminal dialog");
-  it.todo("typing in the terminal input does not move the player");
-  it.todo("Escape closes the terminal dialog");
+  it("[E] next to the gate opens the terminal dialog", async () => {
+    const user = userEvent.setup();
+    render(<Overworld onMenu={noop} initial={{ player: { x: 50, y: 58 } }} />);
+    await user.keyboard("e");
+    expect(screen.getByRole("dialog", { name: /terminal gate lock/i })).toBeInTheDocument();
+  });
+
+  it("typing in the terminal input does not move the player", async () => {
+    const user = userEvent.setup();
+    render(<Overworld onMenu={noop} initial={{ player: { x: 50, y: 58 } }} />);
+    await user.keyboard("e");
+    await user.type(screen.getByRole("textbox", { name: "display value" }), "wwaae");
+    expect(player().style.top).toBe("58%");
+    expect(player().style.left).toBe("50%");
+  });
+
+  it("Escape closes the terminal dialog", async () => {
+    const user = userEvent.setup();
+    render(<Overworld onMenu={noop} initial={{ player: { x: 50, y: 58 } }} />);
+    await user.keyboard("e");
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
 });

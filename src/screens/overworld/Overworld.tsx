@@ -4,6 +4,7 @@ import type { GameState } from "../../game/types";
 import { useGameTimers } from "../../hooks/useGameTimers";
 import { useKeyboardControls } from "../../hooks/useKeyboardControls";
 import { Panel } from "../../ui/Panel";
+import { TerminalModal } from "../TerminalModal";
 import { BottomHud } from "./BottomHud";
 import { EventLog } from "./EventLog";
 import { MapViewport } from "./MapViewport";
@@ -35,6 +36,15 @@ export function Overworld({ onMenu, initial }: { onMenu: () => void; initial?: P
         <EventLog logs={state.logs} />
       </div>
       <BottomHud hasLoot={state.hasLoot} questComplete={state.questComplete} />
+      {state.terminalOpen && (
+        <TerminalModal
+          error={state.puzzleError}
+          hintRevealed={state.hintRevealed}
+          onSubmit={(value) => dispatch({ type: "submitCode", value })}
+          onClose={() => dispatch({ type: "closeTerminal" })}
+          onRevealHint={() => dispatch({ type: "revealHint" })}
+        />
+      )}
     </Panel>
   );
 }

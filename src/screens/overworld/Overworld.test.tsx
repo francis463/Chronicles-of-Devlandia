@@ -132,3 +132,40 @@ describe("Overworld timers", () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 });
+
+describe("Overworld terminal puzzle", () => {
+  it("a wrong answer keeps the terminal open with an error", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} />);
+    await user.click(screen.getByRole("button", { name: "[G] Gate" }));
+    const input = screen.getByRole("textbox", { name: "display value" });
+    await user.clear(input);
+    await user.type(input, "flex{Enter}");
+    expect(screen.getByRole("alert")).toHaveTextContent("Compile error: display: flex keeps the bridge hidden.");
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("using the hint item reveals the drone's hint", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} />);
+    await user.click(screen.getByRole("button", { name: "[G] Gate" }));
+    await user.click(screen.getByRole("button", { name: "[ USE HINT ITEM ]" }));
+    expect(
+      screen.getByText(`"Setting display to 'none' hides the object. Try 'block' instead!"`),
+    ).toBeInTheDocument();
+  });
+
+  it("solving the puzzle closes the terminal and restores the bridge", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} />);
+    await user.click(screen.getByRole("button", { name: "[G] Gate" }));
+    expect(screen.getByRole("dialog", { name: /terminal gate lock/i })).toBeInTheDocument();
+    const input = screen.getByRole("textbox", { name: "display value" });
+    await user.clear(input);
+    await user.type(input, "block");
+    await user.click(screen.getByRole("button", { name: "[ SUBMIT CODE ]" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByText("Bridge restored. The river can be crossed safely.")).toBeInTheDocument();
+    expect(screen.getByText("Bridge")).toBeInTheDocument();
+  });
+});
