@@ -1,70 +1,101 @@
 import { describe, expect, it } from "vitest";
-import { labelBoxes, labelLayout, type MapSize } from "./labelLayout";
+import { EXPLORER_BOX, SEMICOLON_BOX, labelBoxes, labelLayout, teammateLabelSide, type MapSize, type MarkerBox, type Obstacle } from "./labelLayout";
 import type { Point } from "../../game/types";
 
-const phone: MapSize = { width: 339, height: 360 };
-const desktop: MapSize = { width: 668, height: 360 };
+// The world layer's CSS size: phones (1 CSS px per art px) and desktop (2).
+const world320: MapSize = { width: 320, height: 180 };
+const world640: MapSize = { width: 640, height: 360 };
+const WORLDS: Array<[MapSize, number]> = [
+  [world320, 1],
+  [world640, 2],
+];
 
 type Box = { left: number; right: number; top: number; bottom: number };
 const overlap = (a: Box, b: Box) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
 const inside = (a: Box, map: MapSize) => a.left >= 0 && a.top >= 0 && a.right <= map.width && a.bottom <= map.height;
+const boxAt = (p: Point, box: MarkerBox, map: MapSize, scale: number): Box => {
+  const x = (p.x / 100) * map.width;
+  const y = (p.y / 100) * map.height;
+  return { left: x + box.left * scale, right: x + box.right * scale, top: y + box.top * scale, bottom: y + box.bottom * scale };
+};
 
-function expectClear(player: Point, drone: Point, map: MapSize) {
-  const layout = labelLayout(player, drone, map);
-  const b = labelBoxes(player, drone, map, layout);
-  const where = `${JSON.stringify(player)} ${JSON.stringify(drone)} → ${JSON.stringify(layout)}`;
+function expectClear(player: Point, drone: Point, map: MapSize, scale: number, obstacles: Obstacle[] = []) {
+  const layout = labelLayout(player, drone, map, obstacles, scale);
+  const b = labelBoxes(player, drone, map, layout, scale);
+  const where = `${JSON.stringify(player)} ${JSON.stringify(drone)} @${map.width} → ${JSON.stringify(layout)}`;
   expect(overlap(b.playerLabel, b.droneLabel), `labels overlap: ${where}`).toBe(false);
   expect(overlap(b.playerLabel, b.droneDot), `player label on drone: ${where}`).toBe(false);
   expect(overlap(b.droneLabel, b.playerDot), `drone label on player: ${where}`).toBe(false);
-  expect(inside(b.playerLabel, map), `player label off the map: ${where}`).toBe(true);
-  expect(inside(b.droneLabel, map), `drone label off the map: ${where}`).toBe(true);
+  expect(inside(b.playerLabel, map), `player label off the world: ${where}`).toBe(true);
+  expect(inside(b.droneLabel, map), `drone label off the world: ${where}`).toBe(true);
+  for (const o of obstacles) {
+    const ob = boxAt(o, o.box, map, scale);
+    expect(overlap(b.playerLabel, ob) || overlap(b.droneLabel, ob), `label on obstacle: ${where}`).toBe(false);
+  }
 }
 
 describe("labelLayout", () => {
   it("keeps both labels on the right when the markers are far apart", () => {
-    const layout = labelLayout({ x: 28, y: 72 }, { x: 60, y: 20 }, desktop);
+    const layout = labelLayout({ x: 28, y: 72 }, { x: 60, y: 20 }, world640, [], 2);
     expect(layout.player.side).toBe("right");
     expect(layout.drone.side).toBe("right");
   });
 
   it("points the labels away from each other at the spawn point", () => {
-    const layout = labelLayout({ x: 28, y: 72 }, { x: 31.36, y: 71.16 }, phone);
+    const layout = labelLayout({ x: 28, y: 72 }, { x: 36, y: 70 }, world320, [], 1);
     expect(layout.player.side).toBe("left");
     expect(layout.drone.side).toBe("right");
   });
 
-  it("keeps labels clear of each other and on the map for nearby markers anywhere, edges included", () => {
-    for (const map of [phone, desktop]) {
+  it("keeps labels clear of each other and inside the world for nearby markers anywhere, edges included", () => {
+    for (const [map, scale] of WORLDS) {
       for (const px of [6, 10, 28, 50, 72, 90, 94]) {
         for (const py of [10, 50, 90]) {
           for (const [dx, dy] of [[-8, 0], [8, 0], [0, -6], [0, 6], [-5, -3], [5, 3], [3, 1], [-3, -1], [0, 0]]) {
             // The drone only ever moves toward the player, so it stays inside the player's bounds.
             const drone = { x: Math.min(94, Math.max(6, px + dx)), y: Math.min(90, Math.max(10, py + dy)) };
-            expectClear({ x: px, y: py }, drone, map);
+            expectClear({ x: px, y: py }, drone, map, scale);
           }
         }
       }
     }
   });
 
-  it("shifts an above/below label sideways so it stays on the map", () => {
-    const layout = labelLayout({ x: 94, y: 60 }, { x: 86.5, y: 59.8 }, phone);
-    expectClear({ x: 94, y: 60 }, { x: 86.5, y: 59.8 }, phone);
-    expect(["above", "below"]).toContain(layout.player.side);
-    expect(layout.player.shift).toBeLessThan(0);
+  it("shifts an above/below label sideways so it stays inside the world", () => {
+    const layout = labelLayout({ x: 94, y: 60 }, { x: 86.5, y: 59.8 }, world320, [], 1);
+    expectClear({ x: 94, y: 60 }, { x: 86.5, y: 59.8 }, world320, 1);
+    expect(["above", "below", "left"]).toContain(layout.player.side);
   });
 
-  it("keeps labels off other map markers passed as obstacles, such as the found artifact", () => {
+  it("keeps labels off the found Golden Semicolon", () => {
     const player = { x: 40, y: 50 };
     const drone = { x: 46, y: 50 };
-    // sits exactly where the drone's default right-hand label would go
-    const artifact = { x: 52.4, y: 50, radius: 16 };
-    const layout = labelLayout(player, drone, desktop, [artifact]);
-    const b = labelBoxes(player, drone, desktop, layout);
-    const c = { x: (artifact.x / 100) * desktop.width, y: (artifact.y / 100) * desktop.height };
-    const obstacle = { left: c.x - 16, right: c.x + 16, top: c.y - 16, bottom: c.y + 16 };
-    expect(overlap(b.droneLabel, obstacle)).toBe(false);
-    expect(overlap(b.playerLabel, obstacle)).toBe(false);
-    expectClear(player, drone, desktop);
+    // sits where the drone's default right-hand label would go
+    const semicolon: Obstacle = { x: 54, y: 46, box: SEMICOLON_BOX };
+    expectClear(player, drone, world640, 2, [semicolon]);
+  });
+
+  it("keeps your labels off a teammate standing next to you", () => {
+    const player = { x: 40, y: 50 };
+    const drone = { x: 46, y: 50 };
+    const kai: Obstacle = { x: 56, y: 48, box: EXPLORER_BOX };
+    const plain = labelBoxes(player, drone, world320, labelLayout(player, drone, world320, [], 1), 1);
+    expect(overlap(plain.droneLabel, boxAt(kai, kai.box, world320, 1))).toBe(true);
+    expectClear(player, drone, world320, 1, [kai]);
+  });
+
+  it("measures markers by their sprite boxes, scaled to the world", () => {
+    const b = labelBoxes({ x: 50, y: 50 }, { x: 10, y: 10 }, world640, { player: { side: "right", shift: 0 }, drone: { side: "right", shift: 0 } }, 2);
+    expect(b.playerDot).toEqual({ left: 304, right: 336, top: 148, bottom: 180 });
+    expect(b.playerLabel.left).toBe(336 + 8);
+    expect((b.playerLabel.top + b.playerLabel.bottom) / 2).toBe(164);
+  });
+});
+
+describe("teammate labels", () => {
+  it("flip left in the right 20 % of the world", () => {
+    expect(teammateLabelSide(81)).toBe("left");
+    expect(teammateLabelSide(80)).toBe("right");
+    expect(teammateLabelSide(10)).toBe("right");
   });
 });

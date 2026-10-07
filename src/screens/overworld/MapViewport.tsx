@@ -5,7 +5,7 @@ import { interactLabel } from "../../game/geometry";
 import type { Poi, PoiId, Point } from "../../game/types";
 import { Button } from "../../ui/Button";
 import { Panel } from "../../ui/Panel";
-import { labelLayout, type LabelPlacement, type LabelSide, type MapSize } from "./labelLayout";
+import { SEMICOLON_BOX, labelLayout, type LabelPlacement, type LabelSide, type MapSize } from "./labelLayout";
 import type { Teammate } from "../../hooks/useTeamSession";
 
 const PHASE_TINT = {
@@ -21,7 +21,6 @@ const at = (p: Point) => ({ left: `${p.x}%`, top: `${p.y}%` });
 const CACHE_POSITION = { left: "min(82%, calc(100% - 92px))", top: "18%" };
 const TOWER_POSITION = { left: "max(14%, 64px)", top: "18%" };
 const PROMPT_HALF_WIDTH = 104;
-const ARTIFACT_RADIUS = 16; // the found artifact's marker is h-8 w-8
 
 const LABEL_SIDE_CLASS: Record<LabelSide, string> = {
   right: "top-1/2 left-full ml-2 -translate-y-1/2",
@@ -118,7 +117,7 @@ export function MapViewport({
   onRespawn: () => void;
 }) {
   const [mapRef, mapSize] = useMapSize();
-  const labels = labelLayout(player, drone, mapSize, artifactFound ? [{ ...HIDDEN_ARTIFACT, radius: ARTIFACT_RADIUS }] : []);
+  const labels = labelLayout(player, drone, mapSize, artifactFound ? [{ ...HIDDEN_ARTIFACT, box: SEMICOLON_BOX }] : []);
   const inspectedPoi = [...POIS, HIDDEN_ARTIFACT].find((poi) => poi.id === inspected);
   const copy = inspected ? INSPECT_COPY[inspected] : null;
   const inspectCopy = !copy
