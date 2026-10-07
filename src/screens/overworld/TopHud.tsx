@@ -8,11 +8,16 @@ export function TopHud({
   stamina,
   minutes,
   onMenu,
+  teamLabel,
+  reconnecting,
 }: {
   hp: number;
   stamina: number;
   minutes: number;
   onMenu: () => void;
+  /** Team mode: "ROOM KQZM · 3 online". */
+  teamLabel?: string;
+  reconnecting?: boolean;
 }) {
   return (
     <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b-2 border-[var(--panel-border)] bg-[var(--bg)] px-3 py-2">
@@ -23,7 +28,13 @@ export function TopHud({
       <h2 className="order-first w-full text-center text-sm font-bold tracking-widest sm:order-none sm:w-auto">
         REGION: C++ PEAKS
       </h2>
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
+        {teamLabel && <span className="text-[10px] font-bold tracking-widest text-[var(--accent)]">{teamLabel}</span>}
+        {reconnecting && (
+          <span role="status" className="text-[10px] tracking-widest text-[var(--danger-border)]">
+            Reconnecting…
+          </span>
+        )}
         <span className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">
           {`${phaseOf(minutes)} / ${formatTime(minutes)}`}
         </span>

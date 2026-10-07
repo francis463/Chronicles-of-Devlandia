@@ -1,8 +1,11 @@
-import { useReducer } from "react";
+import { useEffect, useReducer } from "react";
 import { poiInRange } from "../../game/geometry";
 import { gameReducer, initialState, isDowned, isModalOpen, revealedPois } from "../../game/reducer";
 import type { GameState } from "../../game/types";
 import type { TeamSession } from "../../hooks/useTeamSession";
+import { TICK_MS } from "../../game/constants";
+import { flagsOf, teamMinutes } from "../../game/team";
+import { useNow } from "../../hooks/useNow";
 import { useGameTimers } from "../../hooks/useGameTimers";
 import { useKeyboardControls } from "../../hooks/useKeyboardControls";
 import { Panel } from "../../ui/Panel";
@@ -19,33 +22,71 @@ import { TouchControls } from "./TouchControls";
 export function Overworld({
   onMenu,
   initial,
+  team,
 }: {
   onMenu: () => void;
   initial?: Partial<GameState>;
-  /** Team mode (wired up in the overworld team-mode task). */
+  /** Team mode: shared progress, teammates on the map and the team clock. */
   team?: TeamSession;
 }) {
   const [state, dispatch] = useReducer(gameReducer, { ...initialState, ...initial });
   useGameTimers(state, dispatch);
   useKeyboardControls(state, dispatch);
   const downed = isDowned(state);
+
+  // ── Team mode ──
+  const publishPosition = team?.publishPosition;
+  const publishFlags = team?.publishFlags;
+  const onProgress = team?.onProgress;
+  const onRoster = team?.onRoster;
+  const flags = flagsOf(state);
+  const flagKey = JSON.stringify(flags);
+  useEffect(() => publishPosition?.(state.player.x, state.player.y), [publishPosition, state.player]);
+  useEffect(() => publishFlags?.(JSON.parse(flagKey)), [publishFlags, flagKey]);
+  useEffect(() => onProgress?.((teamFlags, by) => dispatch({ type: "teamSync", flags: teamFlags, by })), [onProgress]);
+  useEffect(
+    () =>
+      onRoster?.((joined, left) => {
+        joined.forEach((name) => dispatch({ type: "note", text: `${name} joined the team.` }));
+        left.forEach((name) => dispatch({ type: "note", text: `${name} left the team.` }));
+      }),
+    [onRoster],
+  );
+  const now = useNow(TICK_MS, team?.startedAt != null);
+  const minutes = team?.startedAt != null ? teamMinutes(team.startedAt, now) : state.minutes;
+  const teamLabel = team?.room ? `ROOM ${team.room} · ${team.players.length} online` : undefined;
+
   const inRange = downed ? null : poiInRange(state.player, revealedPois(state));
 
   return (
     <Panel className="mx-auto w-full max-w-5xl overflow-hidden">
-      <TopHud hp={state.hp} stamina={state.stamina} minutes={state.minutes} onMenu={onMenu} />
+      <TopHud
+        hp={state.hp}
+        stamina={state.stamina}
+        minutes={minutes}
+        onMenu={onMenu}
+        teamLabel={teamLabel}
+        reconnecting={team?.status === "reconnecting"}
+      />
       <div className="flex flex-col md:flex-row">
-        <MiniMap player={state.player} artifactFound={state.artifactFound} />
+        <MiniMap
+          player={state.player}
+          artifactFound={state.artifactFound}
+          teammates={team?.teammates}
+          playerColor={team?.me?.color}
+        />
         <div className="flex flex-1 flex-col">
           <MapViewport
             player={state.player}
             drone={state.drone}
-            minutes={state.minutes}
+            minutes={minutes}
             inspected={state.inspected}
             hasLoot={state.hasLoot}
             gateUnlocked={state.gateUnlocked}
             artifactFound={state.artifactFound}
             towerPowered={state.towerPowered}
+            teammates={team?.teammates}
+            playerColor={team?.me?.color}
             inRange={inRange}
             downed={downed}
             onInteract={(poi) => dispatch({ type: "interact", poi })}

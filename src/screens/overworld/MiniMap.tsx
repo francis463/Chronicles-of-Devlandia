@@ -1,7 +1,18 @@
 import { HIDDEN_ARTIFACT, POIS } from "../../game/constants";
 import type { Point } from "../../game/types";
+import type { Teammate } from "../../hooks/useTeamSession";
 
-export function MiniMap({ player, artifactFound }: { player: Point; artifactFound: boolean }) {
+export function MiniMap({
+  player,
+  artifactFound,
+  teammates = [],
+  playerColor,
+}: {
+  player: Point;
+  artifactFound: boolean;
+  teammates?: Teammate[];
+  playerColor?: string;
+}) {
   return (
     <div className="flex gap-3 border-b-2 border-dashed border-[var(--panel-border)] p-3 md:w-36 md:flex-shrink-0 md:flex-col md:border-r-2 md:border-b-0">
       <div
@@ -23,9 +34,17 @@ export function MiniMap({ player, artifactFound }: { player: Point; artifactFoun
             style={{ left: `${HIDDEN_ARTIFACT.x}%`, top: `${HIDDEN_ARTIFACT.y}%` }}
           />
         )}
+        {teammates.map((t) => (
+          <div
+            key={t.id}
+            data-testid={`minimap-teammate-${t.name}`}
+            className="absolute h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-150"
+            style={{ left: `${t.x}%`, top: `${t.y}%`, background: t.color }}
+          />
+        ))}
         <div
           className="absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--success)] transition-all duration-150"
-          style={{ left: `${player.x}%`, top: `${player.y}%` }}
+          style={{ left: `${player.x}%`, top: `${player.y}%`, ...(playerColor ? { background: playerColor } : {}) }}
         />
       </div>
       <div className="flex flex-col justify-center gap-1 text-[10px] uppercase tracking-widest text-[var(--text-muted)]">

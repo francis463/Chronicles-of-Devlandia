@@ -104,7 +104,8 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
   const request = useRef<Request | null>(null);
   const progressCbs = useRef(new Set<(flags: TeamFlags, by: string) => void>());
   const rosterCbs = useRef(new Set<(joined: string[], left: string[]) => void>());
-  const lastFlags = useRef(new Map<string, TeamFlags>());
+  // What we know of each teammate's progress; replayed to listeners that subscribe later.
+  const lastFlags = useRef(new Map<string, { name: string; flags: TeamFlags }>());
   const knownNames = useRef<Map<string, string> | null>(null);
   const seenOthers = useRef(false);
   const timers = useRef<{ noRoom?: ReturnType<typeof setTimeout>; pos?: ReturnType<typeof setTimeout>; presence?: ReturnType<typeof setTimeout> }>({});
@@ -134,10 +135,10 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
 
   /** Fires onProgress once per teammate flag the first time we learn about it. */
   const noteFlags = useCallback((id: string, name: string, flags: TeamFlags) => {
-    const before = lastFlags.current.get(id) ?? NO_FLAGS;
+    const before = lastFlags.current.get(id)?.flags ?? NO_FLAGS;
     const after = mergeFlags(before, flags);
     if (newlySet(before, after).length === 0) return;
-    lastFlags.current.set(id, after);
+    lastFlags.current.set(id, { name, flags: after });
     progressCbs.current.forEach((cb) => cb(after, name));
   }, []);
 
@@ -297,6 +298,8 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
 
   const onProgress = useCallback((cb: (flags: TeamFlags, by: string) => void) => {
     progressCbs.current.add(cb);
+    // A listener that arrives late (the map mounting after a mid-game join) still learns the team's progress.
+    lastFlags.current.forEach(({ name, flags }) => cb(flags, name));
     return () => void progressCbs.current.delete(cb);
   }, []);
 

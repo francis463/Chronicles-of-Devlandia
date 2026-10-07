@@ -147,6 +147,15 @@ describe("useTeamSession: in game", () => {
     expect(got).toHaveBeenCalledTimes(1);
   });
 
+  it("replays teammates' progress to listeners that subscribe later (a map opening after joining)", async () => {
+    const { ana, kai } = await startedPair();
+    act(() => ana.result.current.publishFlags({ ...NO_FLAGS, gateUnlocked: true }));
+    await settle();
+    const late = vi.fn();
+    kai.result.current.onProgress(late);
+    expect(late).toHaveBeenCalledWith({ ...NO_FLAGS, gateUnlocked: true }, "Ana");
+  });
+
   it("publishPosition moves the teammate for the others", async () => {
     vi.useFakeTimers();
     const { ana, kai } = await startedPair();

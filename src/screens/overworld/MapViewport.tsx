@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { phaseOf } from "../../game/clock";
 import { HIDDEN_ARTIFACT, INSPECT_COPY, POIS } from "../../game/constants";
 import { interactLabel } from "../../game/geometry";
@@ -6,6 +6,7 @@ import type { Poi, PoiId, Point } from "../../game/types";
 import { Button } from "../../ui/Button";
 import { Panel } from "../../ui/Panel";
 import { labelLayout, type LabelPlacement, type LabelSide, type MapSize } from "./labelLayout";
+import type { Teammate } from "../../hooks/useTeamSession";
 
 const PHASE_TINT = {
   Night: "rgba(20,20,28,0.25)",
@@ -39,6 +40,7 @@ function Marker({
   label,
   placement,
   dotClass,
+  dotStyle,
   labelClass,
   layerClass,
 }: {
@@ -47,13 +49,14 @@ function Marker({
   label: string;
   placement: LabelPlacement;
   dotClass: string;
+  dotStyle?: CSSProperties;
   labelClass: string;
   layerClass: string;
 }) {
   const vertical = placement.side === "above" || placement.side === "below";
   return (
     <div data-testid={testId} className={`pointer-events-none absolute transition-all ${layerClass}`} style={at(point)}>
-      <span className={`absolute top-0 left-0 block -translate-x-1/2 -translate-y-1/2 rounded-full ${dotClass}`}>
+      <span className={`absolute top-0 left-0 block -translate-x-1/2 -translate-y-1/2 rounded-full ${dotClass}`} style={dotStyle}>
         <span
           className={`absolute ${LABEL_SIDE_CLASS[placement.side]} text-[10px] uppercase tracking-widest whitespace-nowrap ${labelClass}`}
           style={vertical ? { transform: `translateX(calc(-50% + ${placement.shift}px))` } : undefined}
@@ -90,6 +93,8 @@ export function MapViewport({
   gateUnlocked,
   artifactFound,
   towerPowered,
+  teammates = [],
+  playerColor,
   inRange,
   downed,
   onInteract,
@@ -104,6 +109,8 @@ export function MapViewport({
   gateUnlocked: boolean;
   artifactFound: boolean;
   towerPowered: boolean;
+  teammates?: Teammate[];
+  playerColor?: string;
   inRange: Poi | null;
   downed: boolean;
   onInteract: (poi: PoiId) => void;
@@ -181,6 +188,27 @@ export function MapViewport({
         </div>
       )}
 
+      {teammates.map((t) => (
+        <div
+          key={t.id}
+          data-testid={`teammate-${t.name}`}
+          className="pointer-events-none absolute z-20 transition-all duration-150"
+          style={at(t)}
+        >
+          <span
+            className="absolute top-0 left-0 block h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-[var(--bg)]"
+            style={{ background: t.color }}
+          >
+            <span
+              className="absolute top-1/2 left-full ml-2 -translate-y-1/2 text-[10px] uppercase tracking-widest whitespace-nowrap"
+              style={{ color: t.color }}
+            >
+              {t.name}
+            </span>
+          </span>
+        </div>
+      ))}
+
       <Marker
         testId="drone"
         at={drone}
@@ -196,6 +224,7 @@ export function MapViewport({
         label="[Player]"
         placement={labels.player}
         dotClass="h-5 w-5 bg-[var(--success)] ring-2 ring-[var(--success-border)]"
+        dotStyle={playerColor ? { background: playerColor } : undefined}
         labelClass="text-[var(--text)]"
         layerClass="z-30 duration-150"
       />
