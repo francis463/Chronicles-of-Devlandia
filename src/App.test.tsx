@@ -23,7 +23,7 @@ describe("App", () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole("button", { name: /solo quest/i }));
-    expect(screen.getByText(/overworld/i)).toBeInTheDocument();
+    expect(screen.getByText("REGION: C++ PEAKS")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /solo quest/i })).toBeNull();
   });
 
@@ -34,5 +34,18 @@ describe("App", () => {
     expect(screen.getByText(/thanks for playing/i)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /back to menu/i }));
     expect(screen.getByRole("button", { name: /solo quest/i })).toBeInTheDocument();
+  });
+});
+
+describe("App navigation from the overworld", () => {
+  it("[=] Menu returns to the main menu and Solo Quest starts a fresh game", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole("button", { name: /solo quest/i }));
+    await user.click(screen.getByRole("button", { name: "[X] Supply Cache" }));
+    expect(screen.getByRole("button", { name: "[X] Empty Cache" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "[=] Menu" }));
+    await user.click(screen.getByRole("button", { name: /solo quest/i }));
+    expect(screen.getByRole("button", { name: "[X] Supply Cache" })).toBeInTheDocument();
   });
 });
