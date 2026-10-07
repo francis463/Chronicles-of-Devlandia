@@ -13,6 +13,11 @@ const PHASE_TINT = {
 
 const at = (p: Point) => ({ left: `${p.x}%`, top: `${p.y}%` });
 
+// Map labels near the right edge slide inward instead of being clipped: centred on
+// their point while there is room, never closer to the edge than half their width.
+const CACHE_POSITION = { left: "min(82%, calc(100% - 92px))", top: "18%" };
+const PROMPT_HALF_WIDTH = 104;
+
 /** Past this x the label sits left of the dot so it isn't clipped at the map's right edge. */
 const LABEL_FLIP_X = 70;
 
@@ -102,7 +107,7 @@ export function MapViewport({
         </Button>
       </div>
 
-      <div className="absolute top-[18%] left-[82%] z-20 -translate-x-[85%] -translate-y-1/2 md:-translate-x-1/2">
+      <div className="absolute z-20 -translate-x-1/2 -translate-y-1/2" style={CACHE_POSITION}>
         <Button
           variant="ghost"
           disabled={downed}
@@ -148,7 +153,10 @@ export function MapViewport({
       {inRange && (
         <div
           className="pointer-events-none absolute z-40 -translate-x-1/2 rounded border border-[var(--accent)] bg-[var(--bg)] px-2 py-1 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap text-[var(--accent)]"
-          style={{ left: `${player.x}%`, top: `${Math.max(3, player.y - 12)}%` }}
+          style={{
+            left: `clamp(${PROMPT_HALF_WIDTH}px, ${player.x}%, calc(100% - ${PROMPT_HALF_WIDTH}px))`,
+            top: `${Math.max(3, player.y - 12)}%`,
+          }}
         >
           {`[E] Inspect ${inRange.label}`}
         </div>
