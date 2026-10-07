@@ -1,6 +1,6 @@
 export type Point = { x: number; y: number };
 
-export type PoiId = "gate" | "chest" | "river";
+export type PoiId = "gate" | "chest" | "river" | "artifact";
 
 export type Poi = { id: PoiId; label: string } & Point;
 
@@ -21,6 +21,11 @@ export type GameState = {
   terminalOpen: boolean;
   puzzleError: string | null;
   hintRevealed: boolean;
+  clueDecoded: boolean;
+  artifactFound: boolean;
+  cipherOpen: boolean;
+  cipherError: string | null;
+  cipherHintRevealed: boolean;
   logs: string[];
   /** Total entries ever logged; gives each visible entry a stable identity. */
   logCount: number;
@@ -36,4 +41,8 @@ export type GameAction =
   | { type: "closeTerminal" }
   | { type: "submitCode"; value: string }
   | { type: "revealHint" }
+  | { type: "openCipher" }
+  | { type: "closeCipher" }
+  | { type: "submitCipher"; value: string }
+  | { type: "revealCipherHint" }
   | { type: "respawn" };

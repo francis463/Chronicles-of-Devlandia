@@ -53,4 +53,18 @@ describe("labelLayout", () => {
     expect(["above", "below"]).toContain(layout.player.side);
     expect(layout.player.shift).toBeLessThan(0);
   });
+
+  it("keeps labels off other map markers passed as obstacles, such as the found artifact", () => {
+    const player = { x: 40, y: 50 };
+    const drone = { x: 46, y: 50 };
+    // sits exactly where the drone's default right-hand label would go
+    const artifact = { x: 52.4, y: 50, radius: 16 };
+    const layout = labelLayout(player, drone, desktop, [artifact]);
+    const b = labelBoxes(player, drone, desktop, layout);
+    const c = { x: (artifact.x / 100) * desktop.width, y: (artifact.y / 100) * desktop.height };
+    const obstacle = { left: c.x - 16, right: c.x + 16, top: c.y - 16, bottom: c.y + 16 };
+    expect(overlap(b.droneLabel, obstacle)).toBe(false);
+    expect(overlap(b.playerLabel, obstacle)).toBe(false);
+    expectClear(player, drone, desktop);
+  });
 });

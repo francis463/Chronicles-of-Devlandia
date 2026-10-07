@@ -5,7 +5,7 @@ import { isDowned } from "../game/reducer";
 import type { GameAction, GameState } from "../game/types";
 
 export function useGameTimers(state: GameState, dispatch: Dispatch<GameAction>): void {
-  const paused = state.terminalOpen || isDowned(state);
+  const paused = state.terminalOpen || state.cipherOpen || isDowned(state);
   const draining = !paused && !state.gateUnlocked && isInRiver(state.player);
 
   useEffect(() => {

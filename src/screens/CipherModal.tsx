@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { PUZZLE_HINT, PUZZLE_HINT_LOCKED } from "../game/constants";
+import { CIPHER_HINT, PUZZLE_HINT_LOCKED, SCROLL_CIPHERTEXT } from "../game/constants";
 import { Button } from "../ui/Button";
 import { TerminalDialog } from "../ui/TerminalDialog";
 
-export function TerminalModal({
+export function CipherModal({
   error,
   hintRevealed,
   onSubmit,
@@ -16,15 +16,13 @@ export function TerminalModal({
   onClose: () => void;
   onRevealHint: () => void;
 }) {
-  const [value, setValue] = useState("none");
+  const [value, setValue] = useState("");
 
   return (
-    <TerminalDialog title="< TERMINAL GATE LOCK: C++ PEAKS >" onClose={onClose}>
+    <TerminalDialog title="< SCROLL CIPHER: ROT13 >" onClose={onClose}>
       <div className="flex flex-col gap-1 text-xs">
-        <span className="font-bold">PUZZLE INSTRUCTIONS:</span>
-        <p className="text-[var(--text-muted)]">
-          Fix the CSS styling property below to reveal the missing bridge path.
-        </p>
+        <span className="font-bold">SCROLL INSTRUCTIONS:</span>
+        <p className="text-[var(--text-muted)]">Decode the scroll to learn where the artifact is hidden.</p>
       </div>
 
       <form
@@ -34,22 +32,20 @@ export function TerminalModal({
         }}
         className="overflow-x-auto rounded-md border-2 border-[var(--panel-border)] bg-[var(--editor-bg)] p-4 font-mono text-[13px] leading-7 whitespace-pre text-[var(--code)]"
       >
-        <div>1 | .frozen-bridge {"{"}</div>
-        <div>{"2 |     width: 100%;"}</div>
-        <div className="flex items-center">
-          <span>{"3 |     display: "}</span>
+        <div>1 | // ROT13: every letter is shifted 13 places</div>
+        <div className="flex items-center gap-2">
+          <span>{`2 | rot13("${SCROLL_CIPHERTEXT}")  →`}</span>
           <input
-            aria-label="display value"
+            aria-label="decoded text"
             value={value}
             onChange={(event) => setValue(event.target.value)}
+            placeholder="plain text"
             spellCheck={false}
             autoComplete="off"
-            autoCapitalize="off"
-            className="w-24 rounded border border-dashed border-[var(--accent)] bg-transparent px-2 text-center font-mono text-[var(--accent)] outline-none focus:border-solid"
+            autoCapitalize="characters"
+            className="w-40 rounded border border-dashed border-[var(--accent)] bg-transparent px-2 font-mono text-[var(--accent)] uppercase outline-none placeholder:text-[var(--text-muted)] placeholder:normal-case focus:border-solid"
           />
-          <span>{";  <-- TYPE CORRECT VALUE HERE"}</span>
         </div>
-        <div>4 | {"}"}</div>
       </form>
 
       {error && (
@@ -64,11 +60,11 @@ export function TerminalModal({
           className="flex-1 rounded-md border-2 border-[var(--primary-border)] bg-[var(--panel)] p-4"
         >
           <h3 className="text-sm text-[var(--primary-border)]">SMART AI DRONE DIAGNOSTIC HINT:</h3>
-          <p className="mt-2 text-xs">{hintRevealed ? PUZZLE_HINT : PUZZLE_HINT_LOCKED}</p>
+          <p className="mt-2 text-xs">{hintRevealed ? CIPHER_HINT : PUZZLE_HINT_LOCKED}</p>
         </section>
         <div className="flex flex-col gap-2 md:w-80">
           <Button variant="success" className="w-full py-3" onClick={() => onSubmit(value)}>
-            [ SUBMIT CODE ]
+            [ SUBMIT DECODE ]
           </Button>
           <Button variant="neutral" className="w-full py-3" onClick={onRevealHint}>
             [ USE HINT ITEM ]

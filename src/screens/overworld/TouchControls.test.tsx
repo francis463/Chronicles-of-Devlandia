@@ -118,3 +118,17 @@ describe("Controls legend", () => {
     expect(screen.getByText("Move: WASD / Arrows")).toBeInTheDocument();
   });
 });
+
+describe("TouchControls: hidden artifact", () => {
+  it("the [E] button digs at the revealed spot", async () => {
+    const user = setup();
+    render(<Overworld onMenu={noop} initial={{ hasLoot: true, clueDecoded: true, player: { x: 72, y: 80 } }} />);
+    await user.click(screen.getByRole("button", { name: "[E] Dig here" }));
+    expect(screen.getByText("Artifact found: the Golden Semicolon!")).toBeInTheDocument();
+  });
+
+  it("disables the touch controls while the cipher is open", () => {
+    render(<Overworld onMenu={noop} initial={{ hasLoot: true, cipherOpen: true }} />);
+    for (const dir of ["up", "down", "left", "right"] as const) expect(pad(dir)).toBeDisabled();
+  });
+});

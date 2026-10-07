@@ -97,3 +97,16 @@ describe("useKeyboardControls: interact", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 });
+
+describe("useKeyboardControls: scroll cipher", () => {
+  it("ignores game keys while the cipher is open and Escape closes it", async () => {
+    const user = userEvent.setup();
+    render(<Overworld onMenu={noop} initial={{ hasLoot: true, cipherOpen: true, player: { x: 80, y: 22 } }} />);
+    screen.getByRole("button", { name: "[ USE HINT ITEM ]" }).focus();
+    await user.keyboard("{ArrowUp}we");
+    expect(player().style.top).toBe("22%");
+    expect(screen.queryByText("Supply cache already collected.")).toBeNull();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});

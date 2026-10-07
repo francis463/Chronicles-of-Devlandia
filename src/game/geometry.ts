@@ -12,14 +12,18 @@ export function clampPlayer(p: Point): Point {
   };
 }
 
-export function nearestPoi(p: Point): { poi: Poi; distance: number } {
-  return POIS.map((poi) => ({ poi, distance: distance(p, poi) })).reduce((best, next) =>
+export function nearestPoi(p: Point, extra: Poi[] = []): { poi: Poi; distance: number } {
+  return [...POIS, ...extra].map((poi) => ({ poi, distance: distance(p, poi) })).reduce((best, next) =>
     next.distance < best.distance ? next : best,
   );
 }
 
-export function poiInRange(p: Point): Poi | null {
-  const nearest = nearestPoi(p);
+/** What pressing [E] does at a point of interest, as shown on prompts and the touch button. */
+export const interactLabel = (poi: Poi) => (poi.id === "artifact" ? "Dig here" : poi.label);
+
+/** The nearest point of interest within reach; `extra` adds revealed hidden points (the dig spot). */
+export function poiInRange(p: Point, extra: Poi[] = []): Poi | null {
+  const nearest = nearestPoi(p, extra);
   return nearest.distance <= INTERACT_RADIUS ? nearest.poi : null;
 }
 

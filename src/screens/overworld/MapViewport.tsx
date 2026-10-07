@@ -1,8 +1,8 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { phaseOf } from "../../game/clock";
-import { INSPECT_COPY, POIS } from "../../game/constants";
-import { poiInRange } from "../../game/geometry";
-import type { PoiId, Point } from "../../game/types";
+import { HIDDEN_ARTIFACT, INSPECT_COPY, POIS } from "../../game/constants";
+import { interactLabel } from "../../game/geometry";
+import type { Poi, PoiId, Point } from "../../game/types";
 import { Button } from "../../ui/Button";
 import { Panel } from "../../ui/Panel";
 import { labelLayout, type LabelPlacement, type LabelSide, type MapSize } from "./labelLayout";
@@ -19,6 +19,7 @@ const at = (p: Point) => ({ left: `${p.x}%`, top: `${p.y}%` });
 // their point while there is room, never closer to the edge than half their width.
 const CACHE_POSITION = { left: "min(82%, calc(100% - 92px))", top: "18%" };
 const PROMPT_HALF_WIDTH = 104;
+const ARTIFACT_RADIUS = 16; // the found artifact's marker is h-8 w-8
 
 const LABEL_SIDE_CLASS: Record<LabelSide, string> = {
   right: "top-1/2 left-full ml-2 -translate-y-1/2",
@@ -86,6 +87,8 @@ export function MapViewport({
   inspected,
   hasLoot,
   gateUnlocked,
+  artifactFound,
+  inRange,
   downed,
   onInteract,
   onCloseInspection,
@@ -97,15 +100,16 @@ export function MapViewport({
   inspected: PoiId | null;
   hasLoot: boolean;
   gateUnlocked: boolean;
+  artifactFound: boolean;
+  inRange: Poi | null;
   downed: boolean;
   onInteract: (poi: PoiId) => void;
   onCloseInspection: () => void;
   onRespawn: () => void;
 }) {
   const [mapRef, mapSize] = useMapSize();
-  const labels = labelLayout(player, drone, mapSize);
-  const inRange = downed ? null : poiInRange(player);
-  const inspectedPoi = POIS.find((poi) => poi.id === inspected);
+  const labels = labelLayout(player, drone, mapSize, artifactFound ? [{ ...HIDDEN_ARTIFACT, radius: ARTIFACT_RADIUS }] : []);
+  const inspectedPoi = [...POIS, HIDDEN_ARTIFACT].find((poi) => poi.id === inspected);
   const copy = inspected ? INSPECT_COPY[inspected] : null;
   const inspectCopy = !copy
     ? null
@@ -151,6 +155,18 @@ export function MapViewport({
         (Dense Forests Biome)
       </span>
 
+      {/* 32px, larger than the player's dot, so a gold halo shows even while standing on it */}
+      {artifactFound && (
+        <div
+          data-testid="artifact"
+          className="pointer-events-none absolute z-20 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[var(--accent-border)] bg-[var(--accent)] text-base font-bold text-[var(--bg)] shadow-[0_0_16px_var(--accent)]"
+          style={at(HIDDEN_ARTIFACT)}
+          title="Golden Semicolon"
+        >
+          ;
+        </div>
+      )}
+
       <Marker
         testId="drone"
         at={drone}
@@ -189,7 +205,7 @@ export function MapViewport({
             top: `${Math.max(3, player.y - 12)}%`,
           }}
         >
-          {`[E] Inspect ${inRange.label}`}
+          {inRange.id === "artifact" ? "[E] Dig here" : `[E] Inspect ${interactLabel(inRange)}`}
         </div>
       )}
 

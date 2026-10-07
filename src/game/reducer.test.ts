@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { gameReducer, initialState, isDowned } from "./reducer";
+import { gameReducer, initialState, isDowned, revealedPois } from "./reducer";
 import type { GameState } from "./types";
 
 const s0 = initialState;
@@ -123,7 +123,7 @@ describe("gameReducer: interact", () => {
   it("chest: loots once, then reports empty", () => {
     const c1 = gameReducer(s0, { type: "interact", poi: "chest" });
     expect(c1.hasLoot).toBe(true);
-    expect(lastLog(c1)).toBe("Supply cache opened: +1 Repair Patch.");
+    expect(c1.logs).toContain("Supply cache opened: +1 Repair Patch.");
     expect(lastLog(gameReducer(c1, { type: "interact", poi: "chest" }))).toBe(
       "Supply cache already collected.",
     );
@@ -190,5 +190,76 @@ describe("gameReducer: respawn", () => {
     expect(s.player).toEqual({ x: 28, y: 72 });
     expect(s.drone).toEqual({ x: 36, y: 70 });
     expect(lastLog(s)).toBe("Drone revived you at base camp.");
+  });
+});
+
+describe("gameReducer: hidden artifact side quest", () => {
+  const looted = gameReducer(s0, { type: "interact", poi: "chest" });
+
+  it("the Supply Cache also yields the encrypted scroll", () => {
+    expect(looted.logs.slice(-2)).toEqual([
+      "Supply cache opened: +1 Repair Patch.",
+      "Found an encrypted scroll: QRAFR SBERFG",
+    ]);
+    expect(s0.clueDecoded).toBe(false);
+    expect(s0.artifactFound).toBe(false);
+  });
+
+  it("opens the cipher only once the scroll is found and not yet decoded", () => {
+    expect(gameReducer(s0, { type: "openCipher" }).cipherOpen).toBe(false);
+    expect(gameReducer(looted, { type: "openCipher" }).cipherOpen).toBe(true);
+    expect(gameReducer({ ...looted, clueDecoded: true }, { type: "openCipher" }).cipherOpen).toBe(false);
+  });
+
+  it("a correct decode closes the cipher and logs the clue", () => {
+    const open = gameReducer(looted, { type: "openCipher" });
+    const s = gameReducer({ ...open, cipherError: "x" }, { type: "submitCipher", value: "Dense Forest" });
+    expect(s.clueDecoded).toBe(true);
+    expect(s.cipherOpen).toBe(false);
+    expect(s.cipherError).toBeNull();
+    expect(lastLog(s)).toBe("Clue decoded: the artifact rests in the Dense Forest.");
+  });
+
+  it("a wrong decode keeps the cipher open with an error", () => {
+    const open = gameReducer(looted, { type: "openCipher" });
+    const s = gameReducer(open, { type: "submitCipher", value: "frozen river" });
+    expect(s.cipherOpen).toBe(true);
+    expect(s.clueDecoded).toBe(false);
+    expect(s.cipherError).toBe('Not quite: "frozen river" is not what the scroll says.');
+    expect(gameReducer(open, { type: "submitCipher", value: "  " }).cipherError).toBe(
+      'Not quite: "(empty)" is not what the scroll says.',
+    );
+  });
+
+  it("closeCipher closes and clears the error; revealCipherHint reveals the hint", () => {
+    const open = { ...gameReducer(looted, { type: "openCipher" }), cipherError: "x" };
+    const closed = gameReducer(open, { type: "closeCipher" });
+    expect(closed.cipherOpen).toBe(false);
+    expect(closed.cipherError).toBeNull();
+    expect(gameReducer(open, { type: "revealCipherHint" }).cipherHintRevealed).toBe(true);
+  });
+
+  it("ignores movement while the cipher is open", () => {
+    const open = gameReducer(looted, { type: "openCipher" });
+    expect(gameReducer(open, { type: "move", dir: "up" }).player).toEqual(open.player);
+  });
+
+  it("the artifact cannot be dug up before the clue is decoded", () => {
+    expect(gameReducer(looted, { type: "interact", poi: "artifact" })).toBe(looted);
+  });
+
+  it("digging after decoding finds the artifact once", () => {
+    const decoded = { ...looted, clueDecoded: true };
+    const found = gameReducer(decoded, { type: "interact", poi: "artifact" });
+    expect(found.artifactFound).toBe(true);
+    expect(found.inspected).toBe("artifact");
+    expect(lastLog(found)).toBe("Artifact found: the Golden Semicolon!");
+    expect(gameReducer(found, { type: "interact", poi: "artifact" })).toBe(found);
+  });
+
+  it("reveals the dig spot only between decoding and finding", () => {
+    expect(revealedPois(looted)).toEqual([]);
+    expect(revealedPois({ ...looted, clueDecoded: true }).map((p) => p.id)).toEqual(["artifact"]);
+    expect(revealedPois({ ...looted, clueDecoded: true, artifactFound: true })).toEqual([]);
   });
 });

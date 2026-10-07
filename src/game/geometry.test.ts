@@ -24,6 +24,12 @@ describe("geometry", () => {
     expect(isInRiver({ x: 50, y: 39.1 })).toBe(false);
   });
 
+  it("also considers extra points of interest passed in, such as a revealed dig spot", () => {
+    const spot = { id: "artifact" as const, label: "Golden Semicolon", x: 72, y: 84 };
+    expect(poiInRange({ x: 72, y: 80 })).toBeNull();
+    expect(poiInRange({ x: 72, y: 80 }, [spot])?.id).toBe("artifact");
+  });
+
   it("returns the nearest point of interest only when within interact range", () => {
     expect(poiInRange({ x: 50, y: 58 })?.id).toBe("gate");
     expect(poiInRange({ x: 50, y: 63 })?.id).toBe("gate");

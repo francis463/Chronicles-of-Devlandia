@@ -12,6 +12,8 @@ export const POIS: Poi[] = [
   { id: "river", label: "Frozen River", x: 54, y: 33 },
 ];
 export const INTERACT_RADIUS = 13;
+/** Buried in the Dense Forests; not on the map until the scroll is decoded. */
+export const HIDDEN_ARTIFACT: Poi = { id: "artifact", label: "Golden Semicolon", x: 72, y: 84 };
 export const RIVER_ZONE = { minX: 24, maxX: 76, minY: 28, maxY: 39 };
 
 export const MAX_HP = 100;
@@ -46,6 +48,9 @@ export const LOG = {
   revived: "Drone revived you at base camp.",
   gateOpen: "Gate unlocked. The bridge holds.",
   downed: "You are downed. Press Respawn.",
+  scrollFound: "Found an encrypted scroll: QRAFR SBERFG",
+  clueDecoded: "Clue decoded: the artifact rests in the Dense Forest.",
+  artifactFound: "Artifact found: the Golden Semicolon!",
 };
 
 export const INSPECT_COPY: Record<PoiId, { default: string; looted?: string; bridged?: string }> = {
@@ -61,9 +66,15 @@ export const INSPECT_COPY: Record<PoiId, { default: string; looted?: string; bri
     default: "Ice integrity: 42%. Exposure drains HP while crossing.",
     bridged: "The bridge spans the river. Crossing is safe now.",
   },
+  artifact: { default: "The Golden Semicolon, Devlandia's lost line-ender. Every statement can finally be completed." },
 };
 
 export const PUZZLE_ANSWER = "block";
+
+// Hidden artifact side quest: the Supply Cache holds a ROT13 scroll naming where it is buried.
+export const SCROLL_CIPHERTEXT = "QRAFR SBERFG";
+export const CIPHER_HINT = "Shift each letter 13 places: Q→D, R→E, A→N, F→S, S→F, B→O, E→R, G→T.";
+export const cipherError = (value: string) => `Not quite: "${value}" is not what the scroll says.`;
 export const PUZZLE_HINT = "\"Setting display to 'none' hides the object. Try 'block' instead!\"";
 export const PUZZLE_HINT_LOCKED = "Hint locked. Use a hint item to decode.";
 export const puzzleError = (value: string) =>
