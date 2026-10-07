@@ -37,10 +37,32 @@ function fakeContexts() {
   return calls;
 }
 
+const originalMatchMedia = window.matchMedia;
+/** A prefers-reduced-motion query whose answer the test can flip, firing its change listeners. */
+function fakeMedia(initial: boolean) {
+  let matches = initial;
+  const listeners = new Set<() => void>();
+  window.matchMedia = ((query: string) => ({
+    media: query,
+    get matches() {
+      return matches;
+    },
+    addEventListener: (_: string, cb: () => void) => listeners.add(cb),
+    removeEventListener: (_: string, cb: () => void) => listeners.delete(cb),
+  })) as unknown as typeof window.matchMedia;
+  return {
+    set(next: boolean) {
+      matches = next;
+      listeners.forEach((cb) => cb());
+    },
+  };
+}
+
 beforeEach(() => vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "Date", "requestAnimationFrame", "cancelAnimationFrame", "performance"] }));
 afterEach(() => {
   vi.useRealTimers();
   HTMLCanvasElement.prototype.getContext = nullContext;
+  window.matchMedia = originalMatchMedia;
 });
 
 const frame = () => act(() => void vi.advanceTimersByTime(20));
@@ -134,5 +156,30 @@ describe("MapCanvas", () => {
     const x = explorers(scenes.at(-1)!)[0].x;
     expect(x).toBeGreaterThan(start);
     expect(x).toBeLessThan(end);
+  });
+
+  it("follows reduced motion while running: steps land at once with no glints, and glide again once it is turned off", () => {
+    fakeContexts();
+    const media = fakeMedia(true);
+    const scenes: Scene[] = [];
+    const boxX = (p: { x: number; y: number }) => spriteBox("explorer-down", toArt(p)).x;
+    const { rerender } = render(<MapCanvas input={input} world={world} onScene={(s) => scenes.push(s)} />);
+    frame();
+    const a = { x: 40, y: 72 };
+    rerender(<MapCanvas input={{ ...input, player: a }} world={world} onScene={(s) => scenes.push(s)} />);
+    frame();
+    frame();
+    expect(explorers(scenes.at(-1)!)[0].x).toBe(boxX(a));
+    expect(scenes.at(-1)!.glints).toEqual([]);
+    // The setting is switched off mid-game; let the reduced step's glide window pass first.
+    act(() => media.set(false));
+    act(() => void vi.advanceTimersByTime(400));
+    const b = { x: 60, y: 72 };
+    rerender(<MapCanvas input={{ ...input, player: b }} world={world} onScene={(s) => scenes.push(s)} />);
+    frame();
+    frame();
+    const x = explorers(scenes.at(-1)!)[0].x;
+    expect(x).toBeGreaterThan(boxX(a));
+    expect(x).toBeLessThan(boxX(b));
   });
 });

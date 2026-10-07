@@ -132,12 +132,12 @@ export function labelLayout(player: Point, drone: Point, map: MapSize, obstacles
     candidates("drone", scale).forEach((dc, di) => {
       const pl = placeLabel(player, "player", pc.side, map, scale, pc.align, droneDot);
       const dl = placeLabel(drone, "drone", dc.side, map, scale, dc.align, playerDot);
-      const collisions =
-        Number(overlaps(pl.box, dl.box)) +
-        Number(overlaps(pl.box, droneDot)) +
-        Number(overlaps(dl.box, playerDot)) +
-        blocked.filter((b) => overlaps(pl.box, b) || overlaps(dl.box, b)).length;
-      const cost = 1000 * (Number(offMap(pl.box, map)) + Number(offMap(dl.box, map))) + 100 * collisions + pi + di;
+      // Leaving the world is worst, then your two labels covering each other or the other sprite,
+      // then covering a fixed box: near a landmark, labels give way to its caption only if they
+      // can do so without landing on each other.
+      const mutual = Number(overlaps(pl.box, dl.box)) + Number(overlaps(pl.box, droneDot)) + Number(overlaps(dl.box, playerDot));
+      const hits = blocked.filter((b) => overlaps(pl.box, b) || overlaps(dl.box, b)).length;
+      const cost = 100000 * (Number(offMap(pl.box, map)) + Number(offMap(dl.box, map))) + 1000 * mutual + 100 * hits + pi + di;
       if (!best || cost < best.cost) {
         best = { cost, player: { side: pc.side, shift: pl.shift, drop: pl.drop }, drone: { side: dc.side, shift: dl.shift, drop: dl.drop } };
       }

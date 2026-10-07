@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { EXPLORER_BOX, SEMICOLON_BOX, labelBoxes, labelLayout, teammateLabelSide, type MapSize, type MarkerBox, type Obstacle } from "./labelLayout";
 import type { Point } from "../../game/types";
+import { fitWorld } from "../../render/world";
+import { landmarkCaptions } from "./mapLayout";
 
 // The world layer's CSS size: phones (1 CSS px per art px) and desktop (2).
 const world320: MapSize = { width: 320, height: 180 };
@@ -101,6 +103,33 @@ describe("fixed obstacles", () => {
     const layout = labelLayout(player, drone, world320, [], 1, [caption]);
     const b = labelBoxes(player, drone, world320, layout, 1);
     expect(overlap(b.droneLabel, caption) || overlap(b.playerLabel, caption)).toBe(false);
+  });
+
+  it("with the landmark captions and drawings MapViewport passes, your labels still never cover each other or the other sprite", () => {
+    // A phone (s 3, world 320×180 CSS) and a desktop (s 2, 640×360) map area, as MapViewport sizes them.
+    for (const view of [{ width: 354, height: 360, dpr: 3 }, { width: 668, height: 360, dpr: 1 }]) {
+      const world = fitWorld(view);
+      const map: MapSize = { width: world.width, height: world.height };
+      for (const state of [{ hasLoot: false, towerPowered: false }, { hasLoot: true, towerPowered: true }]) {
+        const fixed = landmarkCaptions(world, view, state);
+        for (let px = 6; px <= 94; px += 2) {
+          for (let py = 10; py <= 90; py += 2) {
+            // The drone trails the player by up to a step and a bit, from any direction.
+            for (const [dx, dy] of [[-3, 0], [3, 0], [0, -3], [0, 3], [-1.7, 0], [1.7, 0], [0, -1.7], [0, 1.7]]) {
+              const player = { x: px, y: py };
+              const drone = { x: px + dx, y: py + dy };
+              const layout = labelLayout(player, drone, map, [], world.scale, fixed);
+              const b = labelBoxes(player, drone, map, layout, world.scale);
+              const where = `${px},${py} ${dx},${dy} @${view.width}/${view.dpr} loot ${state.hasLoot} → ${JSON.stringify(layout)}`;
+              expect(overlap(b.playerLabel, b.droneLabel), `labels overlap: ${where}`).toBe(false);
+              expect(overlap(b.playerLabel, b.droneDot), `player label on drone: ${where}`).toBe(false);
+              expect(overlap(b.droneLabel, b.playerDot), `drone label on player: ${where}`).toBe(false);
+              expect(inside(b.playerLabel, map) && inside(b.droneLabel, map), `label off the world: ${where}`).toBe(true);
+            }
+          }
+        }
+      }
+    }
   });
 });
 

@@ -1,5 +1,6 @@
 import { act, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { POIS } from "../../game/constants";
 import { MapViewport } from "./MapViewport";
 
 type Props = Parameters<typeof MapViewport>[0];
@@ -43,6 +44,39 @@ describe("MapViewport on the canvas", () => {
       expect(within(button).getByText(name)).toBeInTheDocument();
       expect(button).not.toHaveAttribute("aria-label");
     }
+  });
+
+  it("landmark focus and hover keep the dark outline inside the light ring", () => {
+    // jsdom can't resolve Tailwind's cascade, so this pins the classes. In Tailwind 4 a bare
+    // outline-none / outline-hidden sets --tw-outline-style:none on the element, and
+    // focus-visible:outline-2 reads that variable, so the dark outline would never draw.
+    render(<MapViewport {...props()} />);
+    for (const name of ["[G] Gate", "[T] Tower", "[X] Supply Cache"]) {
+      const classes = screen.getByRole("button", { name }).className.split(/\s+/);
+      expect(classes).not.toContain("outline-none");
+      expect(classes).not.toContain("outline-hidden");
+      expect(classes).toEqual(expect.arrayContaining(["focus-visible:outline-2", "focus-visible:outline-[#0f172a]", "hover:outline-2", "hover:outline-[#0f172a]"]));
+    }
+  });
+
+  it("the caption of the landmark you can use steps aside for the prompt and your explorer, and stays the button's name", () => {
+    const cases = [
+      { id: "gate", name: "[G] Gate" },
+      { id: "chest", name: "[X] Supply Cache" },
+      { id: "tower", name: "[T] Tower" },
+    ] as const;
+    for (const { id } of cases) {
+      const poi = POIS.find((p) => p.id === id)!;
+      const { unmount } = render(<MapViewport {...props({ player: { x: poi.x, y: poi.y + 6 }, inRange: poi })} />);
+      for (const other of cases) {
+        const caption = within(screen.getByRole("button", { name: other.name })).getByText(other.name);
+        if (other.id === id) expect(caption).toHaveClass("opacity-0");
+        else expect(caption).not.toHaveClass("opacity-0");
+      }
+      unmount();
+    }
+    render(<MapViewport {...props()} />);
+    for (const { name } of cases) expect(within(screen.getByRole("button", { name })).getByText(name)).not.toHaveClass("opacity-0");
   });
 
   it("disables the landmark buttons while downed", () => {

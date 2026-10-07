@@ -112,6 +112,7 @@ function LandmarkButton({
   map,
   prefer,
   disabled,
+  hideCaption,
   onClick,
 }: {
   sprite: SpriteId;
@@ -122,6 +123,8 @@ function LandmarkButton({
   map: { width: number; height: number };
   prefer: "above" | "below";
   disabled: boolean;
+  /** While you can use this landmark the prompt names it, and its caption would cover your explorer. */
+  hideCaption: boolean;
   onClick: () => void;
 }) {
   const hit = hitArea(spriteBox(sprite, point), world);
@@ -131,11 +134,11 @@ function LandmarkButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="absolute cursor-pointer rounded-sm bg-transparent outline-none hover:shadow-[0_0_0_4px_#f8fafc] hover:outline-2 hover:outline-[#0f172a] focus-visible:shadow-[0_0_0_4px_#f8fafc] focus-visible:outline-2 focus-visible:outline-[#0f172a] disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:outline-none"
+      className="absolute cursor-pointer rounded-sm bg-transparent hover:shadow-[0_0_0_4px_#f8fafc] hover:outline-2 hover:outline-[#0f172a] focus-visible:shadow-[0_0_0_4px_#f8fafc] focus-visible:outline-2 focus-visible:outline-[#0f172a] disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:outline-none"
       style={{ left: hit.left - world.left, top: hit.top - world.top, width: hit.width, height: hit.height }}
     >
       <span
-        className="absolute rounded-sm border border-[var(--panel-border)] px-1 py-0.5 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap"
+        className={`absolute rounded-sm border border-[var(--panel-border)] px-1 py-0.5 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap ${hideCaption ? "opacity-0" : ""}`}
         style={{ left: caption.left - hit.left, top: caption.top - hit.top, background: "rgba(15,23,42,0.8)", color }}
       >
         {name}
@@ -253,9 +256,9 @@ export function MapViewport({
         <MapCaption id="river" text={gateUnlocked ? "Bridge" : "Frozen River"} world={world} />
         <MapCaption id="forest" text="(Dense Forests Biome)" world={world} />
 
-        <LandmarkButton sprite="tower" point={P.tower} name={towerPowered ? "[T] Tower ✓" : "[T] Tower"} color="var(--primary-border)" world={world} map={map} prefer="above" disabled={downed} onClick={() => onInteract("tower")} />
-        <LandmarkButton sprite={hasLoot ? "chest-open" : "chest-closed"} point={P.chest} name={hasLoot ? "[X] Empty Cache" : "[X] Supply Cache"} color="var(--accent)" world={world} map={map} prefer="above" disabled={downed} onClick={() => onInteract("chest")} />
-        <LandmarkButton sprite="gate" point={P.gate} name="[G] Gate" color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} onClick={() => onInteract("gate")} />
+        <LandmarkButton sprite="tower" point={P.tower} name={towerPowered ? "[T] Tower ✓" : "[T] Tower"} color="var(--primary-border)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "tower"} onClick={() => onInteract("tower")} />
+        <LandmarkButton sprite={hasLoot ? "chest-open" : "chest-closed"} point={P.chest} name={hasLoot ? "[X] Empty Cache" : "[X] Supply Cache"} color="var(--accent)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "chest"} onClick={() => onInteract("chest")} />
+        <LandmarkButton sprite="gate" point={P.gate} name="[G] Gate" color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "gate"} onClick={() => onInteract("gate")} />
 
         {clueDecoded && !artifactFound && (
           <div data-testid="dig-spot" className="pointer-events-none absolute" style={at(HIDDEN_ARTIFACT)}>
