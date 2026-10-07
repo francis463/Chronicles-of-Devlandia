@@ -14,6 +14,7 @@
   --text-muted: #94a3b8;
   --primary: #0284c7;
   --primary-border: #38bdf8;
+  --primary-strong: #0369a1; /* button fill: white text needs >= 4.5:1 (mockup #0284c7 gives 3.9) */
   --danger: #ef4444;
   --danger-border: #f87171;
   --accent: #f59e0b;

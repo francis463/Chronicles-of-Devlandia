@@ -36,6 +36,8 @@ describe("useKeyboardControls: movement", () => {
   it("ignores keys while the terminal is open", async () => {
     const user = userEvent.setup();
     render(<Overworld onMenu={noop} initial={{ terminalOpen: true, player: { x: 50, y: 58 } }} />);
+    // Move focus off the puzzle input so the terminal guard (not the text-field guard) is exercised.
+    screen.getByRole("button", { name: "[ USE HINT ITEM ]" }).focus();
     await user.keyboard("{ArrowUp}we");
     expect(player().style.top).toBe("58%");
     expect(screen.queryByText("Gate terminal ready. Puzzle link found.")).toBeNull();

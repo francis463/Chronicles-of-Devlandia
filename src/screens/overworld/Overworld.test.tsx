@@ -1,4 +1,4 @@
-import { act, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Overworld } from "./Overworld";
@@ -36,6 +36,12 @@ describe("Overworld HUD", () => {
 
   it("pauses the clock while the terminal is open", () => {
     render(<Overworld onMenu={() => {}} initial={{ terminalOpen: true }} />);
+    act(() => vi.advanceTimersByTime(6000));
+    expect(screen.getByText("Dusk / 19:29")).toBeInTheDocument();
+  });
+
+  it("pauses the clock while downed", () => {
+    render(<Overworld onMenu={() => {}} initial={{ hp: 0 }} />);
     act(() => vi.advanceTimersByTime(6000));
     expect(screen.getByText("Dusk / 19:29")).toBeInTheDocument();
   });
@@ -113,6 +119,19 @@ describe("Overworld timers", () => {
     expect(parseFloat(drone.style.left)).toBeCloseTo(36 + (28 - 36) * 0.58);
   });
 
+  it("the drone keeps following while the player moves continuously", () => {
+    render(<Overworld onMenu={() => {}} />);
+    const drone = screen.getByTestId("drone");
+    act(() => vi.advanceTimersByTime(400));
+    const startTop = parseFloat(drone.style.top);
+    for (let i = 0; i < 10; i++) {
+      fireEvent.keyDown(window, { key: "ArrowUp" });
+      act(() => vi.advanceTimersByTime(100));
+    }
+    expect(screen.getByTestId("player").style.top).toBe("32%");
+    expect(parseFloat(drone.style.top)).toBeLessThan(startTop - 15);
+  });
+
   it("at 0 HP shows DOWNED and Respawn restores the player", async () => {
     const user = setup();
     render(<Overworld onMenu={() => {}} initial={{ hp: 0, player: { x: 50, y: 33 } }} />);
@@ -121,6 +140,15 @@ describe("Overworld timers", () => {
     expect(screen.queryByText("DOWNED")).toBeNull();
     expect(screen.getAllByRole("meter")[0]).toHaveAttribute("aria-valuenow", "100");
     expect(screen.getByText("Drone revived you at base camp.")).toBeInTheDocument();
+  });
+
+  it("focuses Respawn when the player goes down and disables the covered map buttons", () => {
+    render(<Overworld onMenu={() => {}} initial={{ hp: 8, player: { x: 50, y: 33 } }} />);
+    act(() => vi.advanceTimersByTime(1800));
+    expect(screen.getByRole("button", { name: "[ Respawn ]" })).toHaveFocus();
+    expect(screen.getByRole("button", { name: "[G] Gate" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "[X] Supply Cache" })).toBeDisabled();
+    expect(screen.getByText("You are downed. Press Respawn.")).toBeInTheDocument();
   });
 
   it("clears every timer on unmount", () => {

@@ -85,6 +85,11 @@ describe("gameReducer: riverDamage", () => {
     expect(isDowned(s)).toBe(true);
   });
 
+  it("logs being downed when HP reaches 0", () => {
+    const s = gameReducer({ ...inRiver, hp: 5 }, { type: "riverDamage" });
+    expect(s.logs.slice(-2)).toEqual(["Cold exposure: -8 HP.", "You are downed. Press Respawn."]);
+  });
+
   it("does nothing once the bridge is restored, outside the river, or when downed", () => {
     expect(gameReducer({ ...inRiver, gateUnlocked: true }, { type: "riverDamage" }).hp).toBe(100);
     expect(gameReducer(s0, { type: "riverDamage" })).toBe(s0);
@@ -130,10 +135,12 @@ describe("gameReducer: interact", () => {
     expect(lastLog(s)).toBe("River scan: unstable ice, thermal damage.");
   });
 
-  it("keeps only the last six log entries", () => {
+  it("keeps only the last six log entries but counts every entry", () => {
+    expect(s0.logCount).toBe(3);
     let s = s0;
     for (let i = 0; i < 10; i++) s = gameReducer(s, { type: "interact", poi: "river" });
     expect(s.logs).toHaveLength(6);
+    expect(s.logCount).toBe(13);
   });
 
   it("closeInspection clears the inspected POI", () => {

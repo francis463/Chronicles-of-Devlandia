@@ -1,4 +1,4 @@
-import { useEffect, type Dispatch } from "react";
+import { useEffect, useRef, type Dispatch } from "react";
 import { DRONE_DELAY_MS, RIVER_DAMAGE_MS, TICK_MS } from "../game/constants";
 import { isInRiver } from "../game/geometry";
 import { isDowned } from "../game/reducer";
@@ -20,8 +20,23 @@ export function useGameTimers(state: GameState, dispatch: Dispatch<GameAction>):
     return () => window.clearInterval(id);
   }, [draining, dispatch]);
 
+  // Throttled, not debounced: while the player keeps moving, the drone still
+  // follows every DRONE_DELAY_MS (the reducer always chases the latest position).
+  const follow = useRef<number | undefined>(undefined);
+
   useEffect(() => {
-    const id = window.setTimeout(() => dispatch({ type: "droneFollow" }), DRONE_DELAY_MS);
-    return () => window.clearTimeout(id);
+    if (follow.current !== undefined) return;
+    follow.current = window.setTimeout(() => {
+      follow.current = undefined;
+      dispatch({ type: "droneFollow" });
+    }, DRONE_DELAY_MS);
   }, [state.player, dispatch]);
+
+  useEffect(
+    () => () => {
+      window.clearTimeout(follow.current);
+      follow.current = undefined;
+    },
+    [],
+  );
 }

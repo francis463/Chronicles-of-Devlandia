@@ -13,6 +13,40 @@ const PHASE_TINT = {
 
 const at = (p: Point) => ({ left: `${p.x}%`, top: `${p.y}%` });
 
+/** Past this x the label sits left of the dot so it isn't clipped at the map's right edge. */
+const LABEL_FLIP_X = 70;
+
+// A zero-size anchor at the game coordinate: the dot is centred on it and the
+// label hangs beside the dot, so the dot is drawn exactly where the game thinks it is.
+function Marker({
+  testId,
+  at: point,
+  label,
+  dotClass,
+  labelClass,
+  layerClass,
+}: {
+  testId: string;
+  at: Point;
+  label: string;
+  dotClass: string;
+  labelClass: string;
+  layerClass: string;
+}) {
+  const side = point.x > LABEL_FLIP_X ? "right-full mr-2" : "left-full ml-2";
+  return (
+    <div data-testid={testId} className={`absolute transition-all ${layerClass}`} style={at(point)}>
+      <span className={`absolute top-0 left-0 block -translate-x-1/2 -translate-y-1/2 rounded-full ${dotClass}`}>
+        <span
+          className={`absolute top-1/2 ${side} -translate-y-1/2 text-[10px] uppercase tracking-widest whitespace-nowrap ${labelClass}`}
+        >
+          {label}
+        </span>
+      </span>
+    </div>
+  );
+}
+
 export function MapViewport({
   player,
   drone,
@@ -59,13 +93,23 @@ export function MapViewport({
       </div>
 
       <div className="absolute top-1/2 left-1/2 z-20 -translate-x-1/2 -translate-y-1/2">
-        <Button variant="accent" className="px-3 py-1.5 whitespace-nowrap" onClick={() => onInteract("gate")}>
+        <Button
+          variant="accent"
+          disabled={downed}
+          className="px-3 py-1.5 whitespace-nowrap"
+          onClick={() => onInteract("gate")}
+        >
           [G] Gate
         </Button>
       </div>
 
       <div className="absolute top-[18%] left-[82%] z-20 -translate-x-[85%] -translate-y-1/2 md:-translate-x-1/2">
-        <Button variant="ghost" className="px-2 py-1 whitespace-nowrap text-[var(--accent)]" onClick={() => onInteract("chest")}>
+        <Button
+          variant="ghost"
+          disabled={downed}
+          className="px-2 py-1 whitespace-nowrap text-[var(--accent)]"
+          onClick={() => onInteract("chest")}
+        >
           {hasLoot ? "[X] Empty Cache" : "[X] Supply Cache"}
         </Button>
       </div>
@@ -74,25 +118,22 @@ export function MapViewport({
         (Dense Forests Biome)
       </span>
 
-      <div
-        data-testid="drone"
-        className="absolute z-20 flex -translate-x-1/2 -translate-y-1/2 items-center gap-2 transition-all duration-300"
-        style={at(drone)}
-      >
-        <span className="h-3 w-3 rounded-full bg-[var(--primary-border)]" />
-        <span className="text-[10px] uppercase tracking-widest whitespace-nowrap text-[var(--primary-border)]">
-          [AI Drone]
-        </span>
-      </div>
-
-      <div
-        data-testid="player"
-        className="absolute z-30 flex -translate-x-1/2 -translate-y-1/2 items-center gap-2 transition-all duration-150"
-        style={at(player)}
-      >
-        <span className="h-5 w-5 rounded-full bg-[var(--success)] ring-2 ring-[var(--success-border)]" />
-        <span className="text-[10px] uppercase tracking-widest whitespace-nowrap">[Player]</span>
-      </div>
+      <Marker
+        testId="drone"
+        at={drone}
+        label="[AI Drone]"
+        dotClass="h-3 w-3 bg-[var(--primary-border)]"
+        labelClass="text-[var(--primary-border)]"
+        layerClass="z-20 duration-300"
+      />
+      <Marker
+        testId="player"
+        at={player}
+        label="[Player]"
+        dotClass="h-5 w-5 bg-[var(--success)] ring-2 ring-[var(--success-border)]"
+        labelClass="text-[var(--text)]"
+        layerClass="z-30 duration-150"
+      />
 
       <div
         className="pointer-events-none absolute inset-0 z-10 transition-colors duration-700"
@@ -107,7 +148,7 @@ export function MapViewport({
 
       {inRange && (
         <div
-          className="absolute z-40 -translate-x-1/2 rounded border border-[var(--accent)] bg-[var(--bg)] px-2 py-1 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap text-[var(--accent)]"
+          className="pointer-events-none absolute z-40 -translate-x-1/2 rounded border border-[var(--accent)] bg-[var(--bg)] px-2 py-1 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap text-[var(--accent)]"
           style={{ left: `${player.x}%`, top: `${Math.max(3, player.y - 12)}%` }}
         >
           {`[E] Inspect ${inRange.label}`}
@@ -120,7 +161,7 @@ export function MapViewport({
             <div className="flex flex-col gap-2">
               <span className="text-[10px] font-bold uppercase tracking-widest">{inspectedPoi.label}</span>
               <p className="text-xs text-[var(--text-muted)]">{inspectCopy}</p>
-              <Button variant="ghost" className="py-1" onClick={onCloseInspection}>
+              <Button variant="ghost" disabled={downed} className="py-1" onClick={onCloseInspection}>
                 [X] Close
               </Button>
             </div>
@@ -131,7 +172,7 @@ export function MapViewport({
       {downed && (
         <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-[rgba(15,23,42,0.85)]">
           <span className="text-lg font-bold tracking-widest text-[var(--danger-border)]">DOWNED</span>
-          <Button variant="danger" onClick={onRespawn}>
+          <Button variant="danger" autoFocus onClick={onRespawn}>
             [ Respawn ]
           </Button>
         </div>

@@ -32,6 +32,7 @@ export const initialState: GameState = {
   puzzleError: null,
   hintRevealed: false,
   logs: INITIAL_LOGS,
+  logCount: INITIAL_LOGS.length,
 };
 
 export const isDowned = (s: GameState) => s.hp <= 0;
@@ -44,7 +45,11 @@ const DELTAS: Record<Direction, Point> = {
 };
 
 function pushLog(state: GameState, message: string): GameState {
-  return { ...state, logs: [...state.logs, message].slice(-LOG_LIMIT) };
+  return {
+    ...state,
+    logs: [...state.logs, message].slice(-LOG_LIMIT),
+    logCount: state.logCount + 1,
+  };
 }
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
@@ -68,9 +73,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         minutes: advanceClock(state.minutes),
         stamina: Math.min(MAX_STAMINA, state.stamina + STAMINA_REGEN),
       };
-    case "riverDamage":
+    case "riverDamage": {
       if (isDowned(state) || state.gateUnlocked || !isInRiver(state.player)) return state;
-      return pushLog({ ...state, hp: Math.max(0, state.hp - RIVER_DAMAGE) }, LOG.coldExposure);
+      const hurt = pushLog({ ...state, hp: Math.max(0, state.hp - RIVER_DAMAGE) }, LOG.coldExposure);
+      return isDowned(hurt) ? pushLog(hurt, LOG.downed) : hurt;
+    }
     case "droneFollow":
       return {
         ...state,

@@ -24,6 +24,7 @@ export function TerminalModal({
 
   useEffect(() => {
     inputRef.current?.focus();
+    inputRef.current?.select();
   }, []);
 
   const trapTab = (event: KeyboardEvent<HTMLDivElement>) => {

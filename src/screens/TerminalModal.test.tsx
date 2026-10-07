@@ -31,6 +31,13 @@ describe("TerminalModal", () => {
     expect(input).toHaveFocus();
   });
 
+  it("selects the prefilled value so typing replaces it", async () => {
+    const user = userEvent.setup();
+    renderModal();
+    await user.keyboard("block");
+    expect(screen.getByRole("textbox", { name: "display value" })).toHaveValue("block");
+  });
+
   it("locks the hint until the hint item is used", async () => {
     const user = userEvent.setup();
     const { onRevealHint } = renderModal();

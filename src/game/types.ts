@@ -22,6 +22,8 @@ export type GameState = {
   puzzleError: string | null;
   hintRevealed: boolean;
   logs: string[];
+  /** Total entries ever logged; gives each visible entry a stable identity. */
+  logCount: number;
 };
 
 export type GameAction =

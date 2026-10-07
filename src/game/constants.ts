@@ -44,6 +44,7 @@ export const LOG = {
   bridgeRestored: "Bridge restored. The river can be crossed safely.",
   revived: "Drone revived you at base camp.",
   gateOpen: "Gate unlocked. The bridge holds.",
+  downed: "You are downed. Press Respawn.",
 };
 
 export const INSPECT_COPY: Record<PoiId, { default: string; looted?: string }> = {

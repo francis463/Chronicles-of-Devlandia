@@ -1,0 +1,46 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { describe, expect, it } from "vitest";
+
+// Reads the real design tokens and the real Button variant classes so the check
+// tracks the source instead of a copy of it.
+const css = readFileSync(resolve(__dirname, "../index.css"), "utf8");
+const button = readFileSync(resolve(__dirname, "Button.tsx"), "utf8");
+
+const tokens = Object.fromEntries(
+  [...css.matchAll(/(--[\w-]+):\s*(#[0-9a-fA-F]{6})\s*;/g)].map((m) => [m[1], m[2]]),
+);
+
+function luminance(hex: string) {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const lin = (c: number) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+  return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+}
+
+function contrast(a: string, b: string) {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+const variants = [...button.matchAll(/^\s*(\w+): "([^"]+)",$/gm)].map(([, name, classes]) => {
+  const bg = classes.match(/(?:^|\s)bg-\[var\((--[\w-]+)\)\]/)?.[1];
+  const text = classes.match(/(?:^|\s)text-\[var\((--[\w-]+)\)\]/)?.[1];
+  return { name, bg, text };
+});
+
+describe("Button text contrast (WCAG AA, 4.5:1 for 12px bold text)", () => {
+  it("finds all six variants", () => {
+    expect(variants.map((v) => v.name).sort()).toEqual(
+      ["accent", "danger", "ghost", "neutral", "primary", "success"].sort(),
+    );
+  });
+
+  it.each(variants)("$name variant text meets 4.5:1", ({ name, bg, text }) => {
+    expect(text, `${name} text token`).toBeDefined();
+    const backgrounds = bg ? [bg] : ["--panel", "--bg"]; // ghost is transparent over panels/HUD bars
+    for (const surface of backgrounds) {
+      const ratio = contrast(tokens[text!], tokens[surface]);
+      expect(ratio, `${name}: ${text} on ${surface} = ${ratio.toFixed(2)}`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+});

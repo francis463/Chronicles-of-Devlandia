@@ -44,7 +44,7 @@ export function Overworld({ onMenu, initial }: { onMenu: () => void; initial?: P
             onInteract={(poi) => dispatch({ type: "interact", poi })}
           />
         </div>
-        <EventLog logs={state.logs} />
+        <EventLog logs={state.logs} logCount={state.logCount} />
       </div>
       <BottomHud hasLoot={state.hasLoot} questComplete={state.questComplete} />
       {state.terminalOpen && (
