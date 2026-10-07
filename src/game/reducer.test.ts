@@ -129,6 +129,11 @@ describe("gameReducer: interact", () => {
     );
   });
 
+  it("river: the scan reports a safe crossing once the bridge is restored", () => {
+    const s = gameReducer({ ...s0, gateUnlocked: true }, { type: "interact", poi: "river" });
+    expect(lastLog(s)).toBe("River scan: bridge stable, crossing is safe.");
+  });
+
   it("river: logs the scan", () => {
     const s = gameReducer(s0, { type: "interact", poi: "river" });
     expect(s.inspected).toBe("river");

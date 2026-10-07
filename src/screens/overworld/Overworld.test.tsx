@@ -161,6 +161,35 @@ describe("Overworld timers", () => {
   });
 });
 
+describe("Overworld inspection text", () => {
+  const card = () => screen.getByRole("region", { name: "POI Inspection" });
+
+  it("describes the locked gate and the dangerous river before the bridge is restored", () => {
+    const { unmount } = render(<Overworld onMenu={() => {}} initial={{ inspected: "gate" }} />);
+    expect(within(card()).getByText("A locked compiler gate. Its terminal leads to the code puzzle.")).toBeInTheDocument();
+    unmount();
+    render(<Overworld onMenu={() => {}} initial={{ inspected: "river" }} />);
+    expect(within(card()).getByText("Ice integrity: 42%. Exposure drains HP while crossing.")).toBeInTheDocument();
+  });
+
+  it("describes the open gate and the safe bridge once the bridge is restored", () => {
+    const { unmount } = render(<Overworld onMenu={() => {}} initial={{ gateUnlocked: true, inspected: "gate" }} />);
+    expect(within(card()).getByText("The compiler gate stands open. The bridge beyond it holds.")).toBeInTheDocument();
+    unmount();
+    render(<Overworld onMenu={() => {}} initial={{ gateUnlocked: true, inspected: "river" }} />);
+    expect(within(card()).getByText("The bridge spans the river. Crossing is safe now.")).toBeInTheDocument();
+  });
+
+  it("updates the open gate card the moment the puzzle is solved", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} />);
+    await user.click(screen.getByRole("button", { name: "[G] Gate" }));
+    await user.keyboard("block{Enter}");
+    expect(within(card()).getByText("The compiler gate stands open. The bridge beyond it holds.")).toBeInTheDocument();
+    expect(within(card()).queryByText(/A locked compiler gate/)).toBeNull();
+  });
+});
+
 describe("Overworld terminal puzzle", () => {
   it("a wrong answer keeps the terminal open with an error", async () => {
     const user = setup();

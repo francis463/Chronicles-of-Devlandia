@@ -99,7 +99,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           ? pushLog(inspected, LOG.chestEmpty)
           : pushLog({ ...inspected, hasLoot: true }, LOG.chestOpened);
       }
-      return pushLog(inspected, LOG.river);
+      return pushLog(inspected, state.gateUnlocked ? LOG.riverBridged : LOG.river);
     }
     case "closeInspection":
       return { ...state, inspected: null };

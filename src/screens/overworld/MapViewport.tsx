@@ -72,11 +72,10 @@ export function MapViewport({
 }) {
   const inRange = downed ? null : poiInRange(player);
   const inspectedPoi = POIS.find((poi) => poi.id === inspected);
-  const inspectCopy = inspected
-    ? inspected === "chest" && hasLoot
-      ? INSPECT_COPY.chest.looted
-      : INSPECT_COPY[inspected].default
-    : null;
+  const copy = inspected ? INSPECT_COPY[inspected] : null;
+  const inspectCopy = !copy
+    ? null
+    : (hasLoot && copy.looted) || (gateUnlocked && copy.bridged) || copy.default;
 
   return (
     <div className="relative min-h-[360px] flex-1 overflow-hidden bg-[var(--panel)]">

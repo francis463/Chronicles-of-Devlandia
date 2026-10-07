@@ -39,6 +39,7 @@ export const LOG = {
   chestOpened: "Supply cache opened: +1 Repair Patch.",
   chestEmpty: "Supply cache already collected.",
   river: "River scan: unstable ice, thermal damage.",
+  riverBridged: "River scan: bridge stable, crossing is safe.",
   questComplete: "Quest complete: Frozen River surveyed.",
   coldExposure: `Cold exposure: -${RIVER_DAMAGE} HP.`,
   bridgeRestored: "Bridge restored. The river can be crossed safely.",
@@ -47,13 +48,19 @@ export const LOG = {
   downed: "You are downed. Press Respawn.",
 };
 
-export const INSPECT_COPY: Record<PoiId, { default: string; looted?: string }> = {
-  gate: { default: "A locked compiler gate. Its terminal leads to the code puzzle." },
+export const INSPECT_COPY: Record<PoiId, { default: string; looted?: string; bridged?: string }> = {
+  gate: {
+    default: "A locked compiler gate. Its terminal leads to the code puzzle.",
+    bridged: "The compiler gate stands open. The bridge beyond it holds.",
+  },
   chest: {
     default: "A sealed field cache. Move closer and press [E] to open.",
     looted: "Cache recovered. Repair Patch added to inventory.",
   },
-  river: { default: "Ice integrity: 42%. Exposure drains HP while crossing." },
+  river: {
+    default: "Ice integrity: 42%. Exposure drains HP while crossing.",
+    bridged: "The bridge spans the river. Crossing is safe now.",
+  },
 };
 
 export const PUZZLE_ANSWER = "block";
