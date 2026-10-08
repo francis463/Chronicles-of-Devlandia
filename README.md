@@ -2,7 +2,7 @@
 
 *"Solve the Map, Break the Code, Find the Treasure."*
 
-A browser game for an HCI course project. Explore the snowy C++ Peaks with your AI drone, survey the Frozen River, and fix a CSS bug at the terminal gate to restore the bridge.
+A browser game for an HCI course project. Explore the snowy C++ Peaks with your AI drone, fix a CSS bug at the terminal gate to open the way north, and survey the Frozen River.
 
 Built with Vite, React 19, TypeScript and Tailwind CSS 4. Play with a keyboard on a computer, or with on-screen touch controls on a phone or tablet. The layout fits screens down to 360px wide.
 
@@ -25,15 +25,16 @@ npm run build    # type-check and build to dist/
 
 The touch controls only appear on touch screens; keyboard players never see them. To try the game on a phone on the same Wi-Fi, run `npm run dev -- --host` and open the Network link it prints.
 
-- **Quest:** walk onto the Frozen River to survey it. The ice drains 8 HP every 1.8 seconds while you stand on it.
+- **North wall:** a stone wall runs across the map at the snow line, and the Terminal Gate is the only way through. The gate stays locked until you solve its terminal, so the river, the Signal Tower and the Supply Cache are out of reach until then (clicking them only shows what they are).
+- **Terminal Gate:** press `E` next to it, or click `[G] Gate`. Fix the CSS property to open the gate. Stuck? Click `[ USE HINT ITEM ]`.
+- **Quest:** go through the gate and walk onto the Frozen River to survey it. Until the Signal Tower is powered, the ice drains 8 HP every 1.8 seconds while you stand on it.
 - **Supply Cache:** open it for a Repair Patch.
-- **Terminal Gate:** press `E` next to it, or click `[G] Gate`. Fix the CSS property to restore the bridge, which makes the river safe to cross. Stuck? Click `[ USE HINT ITEM ]`.
 - **Hidden artifact:** the Supply Cache also holds an encrypted scroll. Click `[ Decode Scroll ]` in the bottom bar and decode it (it uses ROT13: every letter is shifted 13 places). The decoded clue says where the **Golden Semicolon** is buried; walk there and press `E` (or the touch `[E]` button) to dig it up. The spot stays hidden until you've decoded the scroll.
-- **Signal Tower:** press `E` next to the tower in the snowy top-left (or click `[T] Tower`). Flip switches A–D and press `[ RUN CIRCUIT ]`: every line (`A AND B`, `B XOR C`, `NOT D`) must output 1. The readout shows your switches as a binary and decimal number. Powering the tower lifts the fog of war.
+- **Signal Tower:** press `E` next to the tower in the snowy top-left (or click `[T] Tower`). Flip switches A–D and press `[ RUN CIRCUIT ]`: every line (`A AND B`, `B XOR C`, `NOT D`) must output 1. The readout shows your switches as a binary and decimal number. Powering the tower lifts the fog of war and rebuilds the bridge, which makes the river safe to cross.
 - **At 0 HP** you're downed. Click `[ Respawn ]` to return to base camp.
 - The clock advances 5 in-game minutes every 2 seconds and cycles through day, dusk and night.
 
-The map is drawn in pixel art on a canvas: snowy peaks, the frozen river, the meadow and the dense forest, with your hooded explorer and your AI drone. In team games your teammates are explorers in their own colours. Bushes, rocks and trees mark the edge of the walkable area. Pixels stay sharp at any screen size; on some laptop scaling settings (such as Windows at 125 %) the map is drawn a little smaller to keep them sharp. If your device is set to reduce motion, characters step instead of gliding and the blinking lights, pulses and glints stay still.
+The map is drawn in pixel art on a canvas: snowy peaks, the frozen river, the meadow and the dense forest, with your hooded explorer and your AI drone. In team games your teammates are explorers in their own colours. Bushes, rocks and trees mark the edge of the walkable area, and a stone wall with a barred gate closes off the north. Pixels stay sharp at any screen size; on some laptop scaling settings (such as Windows at 125 %) the map is drawn a little smaller to keep them sharp. If your device is set to reduce motion, characters step instead of gliding and the blinking lights, pulses and glints stay still.
 
 ## Team Lobby (2–4 players)
 
@@ -46,9 +47,9 @@ One player presses **[ Create Room ]** and reads out the 4-letter room code; the
 
 In the game, teammates appear as colored dots with their names, and the top bar shows `ROOM <CODE> · <N> online`.
 
-- **Shared by the team:** surveying the river, the Supply Cache loot, the decoded clue, the Golden Semicolon, the bridge, the signal tower (and its lifted fog), and the clock.
+- **Shared by the team:** surveying the river, the Supply Cache loot, the decoded clue, the Golden Semicolon, the north gate, the signal tower (its lifted fog and the bridge), and the clock.
 - **Your own:** position, HP, stamina and terminals.
-- Your event log tells you what teammates did, for example *"Kai restored the bridge."* **[=] Menu** leaves the room.
+- Your event log tells you what teammates did, for example *"Kai opened the gate."* **[=] Menu** leaves the room.
 
 **Online setup.** Online play works out of the box with the game's own Supabase project (`chronicles-of-devlandia`, Realtime only: no tables, no stored data). To use a different project, put its URL and publishable key in a `.env` file (see `.env.example`):
 
