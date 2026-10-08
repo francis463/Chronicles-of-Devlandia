@@ -38,6 +38,9 @@ describe("sprites", () => {
     expect(size("chest-closed")).toEqual([16, 16]);
     expect(size("chest-open")).toEqual([16, 16]);
     expect(size("gate")).toEqual([32, 16]);
+    expect(SPRITES.gate.frames).toHaveLength(2);
+    expect(size("wall")).toEqual([16, 10]);
+    expect(SPRITES.wall.frames).toHaveLength(1);
     expect(size("x-mark")).toEqual([8, 8]);
     expect(size("semicolon")).toEqual([8, 12]);
     for (const id of ["pine", "tree"] as SpriteId[]) {
@@ -84,5 +87,41 @@ describe("sprites", () => {
     expect(inBox(LIGHTS.towerLamp, spriteBox("tower", { x: 45, y: 32 }))).toBe(true);
     expect(LIGHTS.towerLamp.y).toBeLessThanOrEqual(4);
     expect(inBox(LIGHTS.gateTerminal, spriteBox("gate", { x: 160, y: 90 }))).toBe(true);
+  });
+});
+
+describe("the north wall and its gate", () => {
+  const colour = (id: SpriteId, frame: number, row: number, col: number) => {
+    const ch = SPRITES[id].frames[frame][row][col];
+    return ch === "." ? "." : SPRITES[id].palette[ch];
+  };
+  const OPENING = Array.from({ length: 20 }, (_, i) => 5 + i); // gate columns 5–24
+
+  it("wall: 16 × 10, bottom-anchored, fully opaque, snow cap on top and shadow below", () => {
+    const wall = SPRITES.wall;
+    expect(wall.anchor).toBe("bottom");
+    for (const row of wall.frames[0]) expect(row).not.toContain(".");
+    for (let x = 0; x < 16; x++) {
+      expect(colour("wall", 0, 0, x)).toBe("#e2e8f0");
+      expect(colour("wall", 0, 9, x)).toBe("#334155");
+    }
+  });
+
+  it("gate: an open and a locked frame; bars only when locked", () => {
+    for (let r = 4; r <= 14; r++) for (const c of OPENING) expect(colour("gate", 0, r, c), `open ${r},${c}`).toBe(".");
+    for (let r = 4; r <= 13; r++)
+      for (const c of OPENING) {
+        const expected = r === 8 ? "#1e293b" : (c - 5) % 3 === 1 ? "#1e293b" : (c - 5) % 3 === 0 ? "#64748b" : ".";
+        expect(colour("gate", 1, r, c), `locked ${r},${c}`).toBe(expected);
+      }
+    for (const c of OPENING) expect(colour("gate", 1, 14, c), `locked 14,${c}`).toBe(".");
+  });
+
+  it("both gate frames continue the wall's brick pattern", () => {
+    for (const frame of [0, 1])
+      for (let r = 5; r <= 14; r++) {
+        expect(colour("gate", frame, r, 0), `frame ${frame} row ${r} left`).toBe(colour("wall", 0, r - 5, 0));
+        expect(colour("gate", frame, r, 31), `frame ${frame} row ${r} right`).toBe(colour("wall", 0, r - 5, 15));
+      }
   });
 });

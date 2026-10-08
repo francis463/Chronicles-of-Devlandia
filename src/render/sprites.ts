@@ -15,6 +15,7 @@ export type SpriteId =
   | "chest-closed"
   | "chest-open"
   | "gate"
+  | "wall"
   | "x-mark"
   | "semicolon"
   | "pine"
@@ -350,7 +351,9 @@ export const SPRITES: Record<SpriteId, SpriteDef> = {
     w: 32,
     h: 16,
     anchor: "bottom",
-    palette: { S: "#475569", s: "#94a3b8", t: "#1e293b", g: "#22c55e", G: "#4ade80", K: "#334155" },
+    palette: { S: "#475569", s: "#94a3b8", t: "#1e293b", g: "#22c55e", G: "#4ade80", K: "#334155", c: "#e2e8f0", w: "#64748b", b: "#1e293b" },
+    // Frame 0: open archway. Frame 1: locked, iron bars across the opening. Columns 0 and 31 carry
+    // the wall's brick pattern on (art x 144 and 175 are the wall sprite's columns 0 and 15).
     frames: [
       [
         "................................",
@@ -358,17 +361,55 @@ export const SPRITES: Record<SpriteId, SpriteDef> = {
         ".SssssssssssssssssssssssssssssS.",
         ".SsSSSSSSSSSSSSSSSSSSSSSSSSSSsS.",
         ".SssS....................SssssS.",
-        ".SssS....................SttttS.",
-        ".SssS....................StgGtS.",
-        ".SsSS....................StggtS.",
-        ".SssS....................SttttS.",
-        ".SssS....................SssssS.",
-        ".SsSS....................SSsssS.",
-        ".SssS....................SssssS.",
-        ".SssS....................SssssS.",
-        ".SSSS....................SSSSSS.",
-        ".KKKK....................KKKKKK.",
+        "cSssS....................SttttSc",
+        "sSssS....................StgGtSs",
+        "wSsSS....................StggtSS",
+        "wSssS....................SttttSS",
+        "SSssS....................SssssSS",
+        "wSsSS....................SSsssSw",
+        "wSssS....................SssssSw",
+        "SSssS....................SssssSS",
+        "wSSSS....................SSSSSSS",
+        "KKKKK....................KKKKKKK",
         "................................",
+      ],
+      [
+        "................................",
+        ".SSSSSSSSSSSSSSSSSSSSSSSSSSSSSS.",
+        ".SssssssssssssssssssssssssssssS.",
+        ".SsSSSSSSSSSSSSSSSSSSSSSSSSSSsS.",
+        ".SssSwb.wb.wb.wb.wb.wb.wbSssssS.",
+        "cSssSwb.wb.wb.wb.wb.wb.wbSttttSc",
+        "sSssSwb.wb.wb.wb.wb.wb.wbStgGtSs",
+        "wSsSSwb.wb.wb.wb.wb.wb.wbStggtSS",
+        "wSssSbbbbbbbbbbbbbbbbbbbbSttttSS",
+        "SSssSwb.wb.wb.wb.wb.wb.wbSssssSS",
+        "wSsSSwb.wb.wb.wb.wb.wb.wbSSsssSw",
+        "wSssSwb.wb.wb.wb.wb.wb.wbSssssSw",
+        "SSssSwb.wb.wb.wb.wb.wb.wbSssssSS",
+        "wSSSSwb.wb.wb.wb.wb.wb.wbSSSSSSS",
+        "KKKKK....................KKKKKKK",
+        "................................",
+      ],
+    ],
+  },
+  wall: {
+    w: 16,
+    h: 10,
+    anchor: "bottom",
+    palette: { c: "#e2e8f0", h: "#94a3b8", S: "#64748b", m: "#475569", K: "#334155" },
+    frames: [
+      [
+        "cccccccccccccccc",
+        "hhhhhhhhhhhhhhhh",
+        "SSSSSSSmSSSSSSSm",
+        "SSSSSSSmSSSSSSSm",
+        "mmmmmmmmmmmmmmmm",
+        "SSSmSSSSSSSmSSSS",
+        "SSSmSSSSSSSmSSSS",
+        "mmmmmmmmmmmmmmmm",
+        "SSSSSSSmSSSSSSSm",
+        "KKKKKKKKKKKKKKKK",
       ],
     ],
   },
