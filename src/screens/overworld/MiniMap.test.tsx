@@ -38,6 +38,18 @@ describe("mini-map terrain", () => {
     expect(fills.length).toBeLessThan(112 * 96 / 4);
   });
 
+  it("paints the wall as a dark line with a gap at the gate", () => {
+    const { ctx, fills } = recorder();
+    paintMiniTerrain(ctx, 112, 96);
+    expect(fills.filter((f) => f.color === "#1e293b")).toEqual([
+      { color: "#1e293b", x: 0, y: 47, w: 51, h: 1 },
+      { color: "#1e293b", x: 62, y: 47, w: 50, h: 1 },
+    ]);
+    const big = recorder();
+    paintMiniTerrain(big.ctx, 336, 288);
+    expect([...new Set(big.fills.filter((f) => f.color === "#1e293b").map((f) => f.y))]).toEqual([141, 142, 143]);
+  });
+
   it("keeps the dots and renders an aria-hidden canvas behind them, without the old dashed river", () => {
     render(<MiniMap player={{ x: 28, y: 72 }} artifactFound={false} teammates={[{ id: "k", name: "Kai", color: "#a78bfa", x: 60, y: 60 }]} />);
     const box = screen.getByRole("img", { name: "Mini-map" });

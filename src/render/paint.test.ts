@@ -42,12 +42,15 @@ function recorder(): Ctx2D & { log: Call[] } {
 
 function maker() {
   const made: FakeImage[] = [];
+  const contexts = new Map<FakeImage, ReturnType<typeof recorder>>();
   const make: MakeCanvas = (w, h) => {
     const image = { id: made.length, w, h };
     made.push(image);
-    return { image: image as unknown as CanvasImageSource, ctx: recorder() };
+    const ctx = recorder();
+    contexts.set(image, ctx);
+    return { image: image as unknown as CanvasImageSource, ctx };
   };
-  return { make, made };
+  return { make, made, contexts };
 }
 
 const input: SceneInput = {
@@ -76,10 +79,10 @@ const fullScene = () =>
   );
 
 function setup() {
-  const { make, made } = maker();
+  const { make, made, contexts } = maker();
   const sprites = createSpriteCache(make);
   const ground = createGroundCache(make, sprites);
-  return { make, made, sprites, ground };
+  return { make, made, contexts, sprites, ground };
 }
 
 describe("paintScene", () => {
@@ -167,6 +170,21 @@ describe("caches", () => {
     // It covers the visible art range: on the phone, 90 art px of scenery above and below.
     expect(second).toMatchObject({ x: -17, y: -90 });
     expect((second!.image as unknown as FakeImage).h).toBe(360);
+  });
+
+  it("the ground cache bakes only the wall tiles beyond the world, in feet-row order with the scenery", () => {
+    const { ground, sprites, contexts } = setup();
+    // 668 × 360 at DPR 1: s 2, the visible art runs from x −7 to 326, past both sides of the world.
+    const g = ground.get(fitWorld({ width: 668, height: 360, dpr: 1 }))!;
+    const wallImage = sprites.get("wall", 0, "base", false, false);
+    const draws = contexts.get(g.image as unknown as FakeImage)!.log.filter((c) => c[0] === "drawImage");
+    const walls = draws.filter((c) => c[1] === wallImage);
+    expect(walls.map((c) => (c[2] as number) + g.x)).toEqual([-16, 320]);
+    expect(walls.every((c) => (c[3] as number) + g.y === 80)).toBe(true);
+    const feet = draws.map((c) => (c[3] as number) + g.y + (c[1] as FakeImage).h - 1);
+    expect([...feet].sort((a, b) => a - b)).toEqual(feet);
+    for (let i = 1; i < draws.length; i++)
+      if (feet[i] === feet[i - 1]) expect(draws[i][1] === wallImage && draws[i - 1][1] !== wallImage, `tie at ${i}`).toBe(false);
   });
 
   it("builds a new colour variant lazily", () => {

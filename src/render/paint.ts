@@ -1,8 +1,8 @@
 import { greyscale, gridRuns, mirror, rotate90, type Palette } from "./pixels";
 import type { Scene } from "./scene";
 import { SPRITES, TEXTURES, explorerPalette, spriteBox, type SpriteId, type TextureId } from "./sprites";
-import { ICE_RECT, decorations, onPath, terrainAt } from "./terrain";
-import { REACHABLE_RECT, intersects, type Rect, type WorldRect } from "./world";
+import { ICE_RECT, decorations, onPath, terrainAt, wallTiles } from "./terrain";
+import { REACHABLE_RECT, WORLD, intersects, type ArtPoint, type Rect, type WorldRect } from "./world";
 
 /** The slice of CanvasRenderingContext2D the map uses (no paths, arcs or gradients: pixels only). */
 export type Ctx2D = {
@@ -102,9 +102,20 @@ export function createGroundCache(make: MakeCanvas, sprites: SpriteCache): Groun
         }
         flush(area.x + area.w);
       }
-      const baked = decorations(area)
-        .filter((d) => !intersects(spriteBox(d.sprite, d.at), REACHABLE_RECT))
-        .sort((a, b) => a.at.y - b.at.y);
+      // Scenery outside the walkable area, and the wall where it runs on beyond the world's edges
+      // (the tiles inside the world are y-sorted with the explorers instead), in feet-row order.
+      const beyondTheWorld = (at: ArtPoint) => {
+        const box = spriteBox("wall", at);
+        return box.x < 0 || box.x >= WORLD.width;
+      };
+      const baked: Array<{ sprite: SpriteId; at: ArtPoint; wall: boolean }> = [
+        ...decorations(area)
+          .filter((d) => !intersects(spriteBox(d.sprite, d.at), REACHABLE_RECT))
+          .map((d) => ({ sprite: d.sprite as SpriteId, at: d.at, wall: false })),
+        ...wallTiles(area)
+          .filter(beyondTheWorld)
+          .map((at) => ({ sprite: "wall" as SpriteId, at, wall: true })),
+      ].sort((a, b) => a.at.y - b.at.y || Number(b.wall) - Number(a.wall));
       for (const d of baked) {
         const image = sprites.get(d.sprite, 0, "base", false, false);
         const box = spriteBox(d.sprite, d.at);

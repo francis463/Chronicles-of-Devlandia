@@ -1,9 +1,11 @@
 import { useEffect, useRef } from "react";
 import { HIDDEN_ARTIFACT, POIS } from "../../game/constants";
+import { WALL_Y } from "../../game/wall";
 import type { Point } from "../../game/types";
 import type { Teammate } from "../../hooks/useTeamSession";
 import type { Ctx2D } from "../../render/paint";
-import { terrainAt, type TerrainKind } from "../../render/terrain";
+import { spriteBox } from "../../render/sprites";
+import { LANDMARK_POINTS, terrainAt, type TerrainKind } from "../../render/terrain";
 import { WORLD } from "../../render/world";
 
 export const MINI_COLORS: Record<TerrainKind, string> = {
@@ -14,14 +16,25 @@ export const MINI_COLORS: Record<TerrainKind, string> = {
   meadow: "#3f7d3a",
 };
 
-/** The terrain as flat colours, stretched to the box the way the dots are placed. */
+const WALL_COLOR = "#1e293b";
+
+/**
+ * The terrain as flat colours, stretched to the box the way the dots are placed. The north wall is a
+ * dark line about 1 CSS px thick on its game line, painted in place of the terrain, with a gap at the gate.
+ */
 export function paintMiniTerrain(ctx: Ctx2D, width: number, height: number): void {
+  const wallTop = Math.round((WALL_Y / 100) * height);
+  const wallRows = Math.max(1, Math.round(height / 96));
+  const gate = spriteBox("gate", LANDMARK_POINTS.gate);
   for (let y = 0; y < height; y++) {
     const ay = Math.round((y / height) * WORLD.height);
+    const onWall = y >= wallTop && y < wallTop + wallRows;
     let start = 0;
     let color = "";
     for (let x = 0; x <= width; x++) {
-      const next = x < width ? MINI_COLORS[terrainAt(Math.round((x / width) * WORLD.width), ay)] : "";
+      const ax = Math.round((x / width) * WORLD.width);
+      const atGate = ax >= gate.x && ax < gate.x + gate.w;
+      const next = x < width ? (onWall && !atGate ? WALL_COLOR : MINI_COLORS[terrainAt(ax, ay)]) : "";
       if (next !== color) {
         if (color) {
           ctx.fillStyle = color;
