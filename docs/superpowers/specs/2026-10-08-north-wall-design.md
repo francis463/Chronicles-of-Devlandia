@@ -1,6 +1,6 @@
 # North Wall — Design
 
-**Status:** approach and all three design sections approved in chat (2026-10-08).
+**Status:** approach, all three design sections and this spec approved in chat (2026-10-08). Revised after approval: remote use of the north landmarks while the gate is locked (found while planning).
 **Builds on:** the shipped game at `650f3a1` (pixel-art map, `docs/superpowers/specs/2026-10-07-pixel-art-map-design.md`; team play, `docs/superpowers/specs/2026-10-07-team-lobby-design.md`).
 
 ## Goal
@@ -29,6 +29,7 @@ Game coordinates are the existing percentages: x 6–94, y 10–90; every step m
   - gate locked: **"The gate is locked. Solve its terminal to pass."**
   - gate open, step outside the opening: **"The wall is solid here. Go through the gate."**
 - **Everywhere the same:** the rule lives in the game reducer's `move`, so the keyboard, the touch D-pad, solo and team play all follow it. Each player's own game enforces it for that player.
+- **Using north landmarks from afar:** the map's landmark buttons work from anywhere (today you can click [T] Tower from camp). While the gate is locked, a player south of the wall who uses the tower, the cache or the river (click, tap or any other `interact`) gets that landmark's inspect card and the locked line in the log (same "only once" rule), but the tower's logic lock does not open, the cache is not looted and the river is not scanned. North of the wall, or once the gate is open, they work as today. The gate and the dig spot are south, so they are unaffected.
 - **Team play:** opening the gate is a team flag that already syncs (`gateUnlocked`), so whoever opens it opens it for everyone, including players who join later.
 - **The drone** flies; it keeps following across the wall.
 - **Respawn** is at camp (28, 72), south of the wall. A player can only be downed on the ice, which is north, so the gate is already open when they walk back.
@@ -86,7 +87,7 @@ Art coordinates are the pixel-art map's (320 × 180; `toArt(p) = (round(p.x × 3
 | Unit | Change |
 |---|---|
 | `src/game/wall.ts` (new) | `WALL_Y`, `GATE_OPENING`, `crossesWall(from, to)`, `wallBlock(from, to, gateOpen): "locked" \| "solid" \| null` — pure |
-| `src/game/reducer.ts` | `move` asks `wallBlock` before moving; `riverDamage` and the river's inspect log use `towerPowered`; new log lines for the gate and the tower |
+| `src/game/reducer.ts` | `move` asks `wallBlock` before moving; `interact` refuses the tower, cache and river from south of a locked gate; `riverDamage` and the river's inspect log use `towerPowered`; new log lines for the gate and the tower |
 | `src/game/constants.ts` | copy changes above, `INITIAL_LOGS[2]`, new `LOG.wallLocked` / `LOG.wallSolid`; `INSPECT_COPY.gate.bridged` renamed `opened` |
 | `src/game/team.ts` | team log strings for the gate and the tower |
 | `src/hooks/useGameTimers.ts` | river draining uses `towerPowered` |
@@ -114,7 +115,8 @@ All new behaviour is written test-first (Vitest); each test is seen to fail befo
 - **Moving (reducer):**
   - a blocked step leaves position and stamina unchanged and logs the locked line once (a second bump adds nothing);
   - with the gate open, a blocked step elsewhere logs the solid line;
-  - a step through the open gate moves and costs stamina as usual.
+  - a step through the open gate moves and costs stamina as usual;
+  - while locked, using the tower, cache or river from the south opens only their card and logs the locked line (no logic lock, no loot, no scan); with the gate open, or from the north, they work as before.
 - **Story (reducer, timers, components):**
   - solving the gate sets `gateUnlocked`, logs "Gate unlocked. The way north is open.", and the river still hurts;
   - powering the tower stops the cold damage (reducer and the timer's draining), logs the new tower line, and the river's inspect copy and caption switch to their bridged texts;
@@ -129,7 +131,7 @@ All new behaviour is written test-first (Vitest); each test is seen to fail befo
   - no decoration's grown box touches the wall band;
   - the ground cache draws the outside tiles;
   - the mini-map paints the wall line with its gap.
-- **Existing tests:** tests that walk north or onto the river before solving the gate (13 files touch north movement, the river or the tower) first solve the gate in the test, so what they check is unchanged.
+- **Existing tests:** tests that walk across the wall, or use the tower, cache or river from camp, before solving the gate start with the gate open (or solve it first through the UI), so what they check is unchanged. The plan lists each one.
 - **Browser check (Playwright, scratchpad):**
   - at 1280 × 800 and 390 × 844 @3, walk into the wall while locked (stay put, one log line);
   - solve the terminal on screen and walk through;

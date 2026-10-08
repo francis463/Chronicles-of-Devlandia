@@ -154,8 +154,9 @@ const inReach = (points: Point[], poi: Point) => points.some((p) => Math.hypot(p
   - reducer, new `"solving the gate leaves the river icy"`: `{ ...s0, gateUnlocked: true, player: { x: 50, y: 33 } }` `riverDamage` → hp 92.
   - team: `TEAMMATE_LOG` lines `"Ana opened the gate."` and `"Ana powered the signal tower. The fog lifts and the bridge returns."`.
   - Overworld: the river label test becomes "labels the river as a bridge once the tower is powered" (`initial={{ towerPowered: true }}` → `"Bridge"`; `initial={{ gateUnlocked: true }}` → still `"Frozen River"`); gate cards: locked `"A locked compiler gate in the north wall. Its terminal leads to the code puzzle."`, open `"The compiler gate stands open. The way north is clear."`; river card bridged under `towerPowered: true`; terminal wrong answer `"Compile error: display: flex keeps the gate shut."`; solving logs `"Gate unlocked. The way north is open."` and the caption stays `"Frozen River"`; the terminal shows `"Fix the CSS styling property below to open the north gate."` and `"1 | .north-gate {"`.
-  - TeamOverworld: after Ana solves the gate Zed's log contains `"Ana opened the gate."` and Zed still sees `"Frozen River"`.
-  - timers (in `Overworld.test.tsx` "Overworld timers"): standing in the river with `gateUnlocked: true` still loses HP after `RIVER_DAMAGE_MS`; with `towerPowered: true` it does not.
+  - Overworld "the tower button opens the logic lock…": the log line becomes `"Signal tower online: the fog lifts and the bridge returns."`, the card `"The signal tower hums. Its beam keeps the fog away and holds the bridge."`, and the river caption now reads `"Bridge"`.
+  - TeamOverworld: in "a player joining after the start…" Zed's log contains `"Ana opened the gate."` and Zed still sees `"Frozen River"`; in "shares progress: a teammate powering the tower…" the counted lines become `"Ana powered the signal tower. The fog lifts and the bridge returns."` and `"Signal tower online: the fog lifts and the bridge returns."`.
+  - timers, new in "Overworld timers", mirroring "the river drains 8 HP every 1.8 seconds": `"solving the gate does not stop the cold"` (`initial={{ gateUnlocked: true, player: { x: 50, y: 33 } }}`, advance 1800 → the first meter's `aria-valuenow` is `"92"`) and `"a powered tower stops the cold"` (`initial={{ towerPowered: true, player: { x: 50, y: 33 } }}`, advance 3600 → `"100"`).
 - [ ] **Step 2: Run** `npm test`. Expected: exactly those tests FAIL.
 - [ ] **Step 3: Implement** the copy table in `constants.ts`, `team.ts` and `TerminalModal.tsx`; `riverDamage`, the river `interact` and `useGameTimers`'s `draining` read `towerPowered`; `MapViewport`'s card picks `(hasLoot && copy.looted) || (gateUnlocked && copy.opened) || (towerPowered && (copy.bridged ?? copy.powered)) || copy.default` and the river caption reads `towerPowered ? "Bridge" : "Frozen River"`.
 - [ ] **Step 4: Run** `npm test` and `npx tsc -b`. Expected: all PASS, tsc clean.
@@ -268,6 +269,7 @@ KKKKK....................KKKKKKK
   - screenshots: locked gate, open gate, explorer in front of and behind the wall, the bridge absent after the gate and present after the tower (Switch A, Switch B, RUN);
   - touch: the D-pad up at the wall is blocked the same way;
   - Same computer team mode: Ana opens the gate, Kai walks through;
+  - the landing page at both sizes shows the wall and the barred gate behind the menu;
   - no console errors (the blocked supabase.co WebSocket excepted).
 - [ ] **Step 4: Run** `npm test`, `npx tsc -b`, `npm run build`. Expected: all green.
 - [ ] **Step 5: Commit** `docs: the north wall in the README`, then push.
