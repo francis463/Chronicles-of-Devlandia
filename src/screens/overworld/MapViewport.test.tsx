@@ -122,6 +122,8 @@ describe("MapViewport on the canvas", () => {
       expect(caption.className).toContain("pointer-events-none");
     }
     rerender(<MapViewport {...props({ gateUnlocked: true })} />);
+    expect(screen.getByText("Frozen River")).toBeInTheDocument();
+    rerender(<MapViewport {...props({ towerPowered: true })} />);
     expect(screen.getByText("Bridge")).toBeInTheDocument();
   });
 

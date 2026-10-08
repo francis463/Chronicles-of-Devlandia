@@ -6,7 +6,7 @@ import type { GameAction, GameState } from "../game/types";
 
 export function useGameTimers(state: GameState, dispatch: Dispatch<GameAction>): void {
   const paused = isModalOpen(state) || isDowned(state);
-  const draining = !paused && !state.gateUnlocked && isInRiver(state.player);
+  const draining = !paused && !state.towerPowered && isInRiver(state.player);
 
   useEffect(() => {
     if (paused) return;

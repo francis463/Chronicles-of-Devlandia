@@ -45,9 +45,10 @@ describe("scene: what is drawn", () => {
     expect(sprites(scene({ hasLoot: true }), "upright")).not.toContain("chest-closed");
   });
 
-  it("bridge planks only when unlocked, covering BRIDGE_RECT", () => {
+  it("bridge planks only when the tower is powered, covering BRIDGE_RECT", () => {
     expect(sprites(scene(), "flat")).not.toContain("plank");
-    const planks = scene({ gateUnlocked: true }).flat.filter((d) => d.sprite === "plank");
+    expect(sprites(scene({ gateUnlocked: true }), "flat")).not.toContain("plank");
+    const planks = scene({ towerPowered: true }).flat.filter((d) => d.sprite === "plank");
     expect(planks).toHaveLength(9);
     expect(planks.every((p) => p.x === BRIDGE_RECT.x)).toBe(true);
     expect(planks.map((p) => p.y)).toEqual([47, 50, 53, 56, 59, 62, 65, 68, 71]);
@@ -66,7 +67,7 @@ describe("scene: what is drawn", () => {
   });
 
   it("flat overlays come before every explorer whatever their rows", () => {
-    const s = scene({ gateUnlocked: true, player: { x: 50, y: 28 } });
+    const s = scene({ towerPowered: true, player: { x: 50, y: 28 } });
     expect(sprites(s, "flat")).toContain("plank");
     const me = s.upright.find((d) => d.sprite.startsWith("explorer"))!;
     expect(me.y + 15).toBe(50);

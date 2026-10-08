@@ -23,7 +23,7 @@ export function TerminalModal({
       <div className="flex flex-col gap-1 text-xs">
         <span className="font-bold">PUZZLE INSTRUCTIONS:</span>
         <p className="text-[var(--text-muted)]">
-          Fix the CSS styling property below to reveal the missing bridge path.
+          Fix the CSS styling property below to open the north gate.
         </p>
       </div>
 
@@ -34,7 +34,7 @@ export function TerminalModal({
         }}
         className="overflow-x-auto rounded-md border-2 border-[var(--panel-border)] bg-[var(--editor-bg)] p-4 font-mono text-[13px] leading-7 whitespace-pre text-[var(--code)]"
       >
-        <div>1 | .frozen-bridge {"{"}</div>
+        <div>1 | .north-gate {"{"}</div>
         <div>{"2 |     width: 100%;"}</div>
         <div className="flex items-center">
           <span>{"3 |     display: "}</span>

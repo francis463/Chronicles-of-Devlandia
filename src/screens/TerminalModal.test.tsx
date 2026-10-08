@@ -16,9 +16,9 @@ describe("TerminalModal", () => {
     expect(dialog).toHaveAttribute("aria-modal", "true");
     expect(screen.getByText("PUZZLE INSTRUCTIONS:")).toBeInTheDocument();
     expect(
-      screen.getByText("Fix the CSS styling property below to reveal the missing bridge path."),
+      screen.getByText("Fix the CSS styling property below to open the north gate."),
     ).toBeInTheDocument();
-    expect(screen.getByText("1 | .frozen-bridge {")).toBeInTheDocument();
+    expect(screen.getByText("1 | .north-gate {")).toBeInTheDocument();
     expect(screen.getByText("2 |     width: 100%;", { normalizer: (s) => s })).toBeInTheDocument();
     expect(screen.getByText("4 | }")).toBeInTheDocument();
     expect(screen.getByText("SMART AI DRONE DIAGNOSTIC HINT:")).toBeInTheDocument();

@@ -19,7 +19,7 @@ describe("gameReducer: initial state", () => {
     expect(s0.logs).toEqual([
       "Entered C++ Peaks.",
       "Drone link established.",
-      "Objective: survey the frozen river.",
+      "Objective: open the north gate, then survey the frozen river.",
     ]);
     expect(isDowned(s0)).toBe(false);
   });
@@ -95,10 +95,14 @@ describe("gameReducer: riverDamage", () => {
   });
 
   it("does nothing once the bridge is restored, outside the river, or when downed", () => {
-    expect(gameReducer({ ...inRiver, gateUnlocked: true }, { type: "riverDamage" }).hp).toBe(100);
+    expect(gameReducer({ ...inRiver, towerPowered: true }, { type: "riverDamage" }).hp).toBe(100);
     expect(gameReducer(s0, { type: "riverDamage" })).toBe(s0);
     const downed = { ...inRiver, hp: 0 };
     expect(gameReducer(downed, { type: "riverDamage" })).toBe(downed);
+  });
+
+  it("solving the gate leaves the river icy", () => {
+    expect(gameReducer({ ...opened, player: { x: 50, y: 33 } }, { type: "riverDamage" }).hp).toBe(92);
   });
 });
 
@@ -121,7 +125,7 @@ describe("gameReducer: interact", () => {
   it("gate: does not reopen the terminal once unlocked", () => {
     const s = gameReducer({ ...s0, gateUnlocked: true }, { type: "interact", poi: "gate" });
     expect(s.terminalOpen).toBe(false);
-    expect(lastLog(s)).toBe("Gate unlocked. The bridge holds.");
+    expect(lastLog(s)).toBe("Gate open. The way north is clear.");
   });
 
   it("chest: loots once, then reports empty", () => {
@@ -134,7 +138,7 @@ describe("gameReducer: interact", () => {
   });
 
   it("river: the scan reports a safe crossing once the bridge is restored", () => {
-    const s = gameReducer({ ...s0, gateUnlocked: true }, { type: "interact", poi: "river" });
+    const s = gameReducer({ ...opened, towerPowered: true }, { type: "interact", poi: "river" });
     expect(lastLog(s)).toBe("River scan: bridge stable, crossing is safe.");
   });
 
@@ -166,14 +170,14 @@ describe("gameReducer: terminal", () => {
     expect(s.gateUnlocked).toBe(true);
     expect(s.terminalOpen).toBe(false);
     expect(s.puzzleError).toBeNull();
-    expect(lastLog(s)).toBe("Bridge restored. The river can be crossed safely.");
+    expect(lastLog(s)).toBe("Gate unlocked. The way north is open.");
   });
 
   it("a wrong answer keeps the terminal open with a compile error", () => {
     const s = gameReducer(open, { type: "submitCode", value: "flex" });
     expect(s.terminalOpen).toBe(true);
     expect(s.gateUnlocked).toBe(false);
-    expect(s.puzzleError).toBe("Compile error: display: flex keeps the bridge hidden.");
+    expect(s.puzzleError).toBe("Compile error: display: flex keeps the gate shut.");
   });
 
   it("revealHint reveals the hint", () => {
@@ -288,7 +292,7 @@ describe("gameReducer: signal tower logic lock", () => {
     expect(s.towerPowered).toBe(true);
     expect(s.logicOpen).toBe(false);
     expect(s.logicError).toBeNull();
-    expect(lastLog(s)).toBe("Signal tower online: the fog lifts across C++ Peaks.");
+    expect(lastLog(s)).toBe("Signal tower online: the fog lifts and the bridge returns.");
   });
 
   it("a failing circuit keeps the lock open and names the failing line", () => {
@@ -337,7 +341,7 @@ describe("gameReducer: teammates", () => {
     const s = gameReducer(s0, { type: "teamSync", flags: { ...NO_FLAGS, gateUnlocked: true, hasLoot: true }, by: "Kai" });
     expect(s.gateUnlocked).toBe(true);
     expect(s.hasLoot).toBe(true);
-    expect(s.logs.slice(-2)).toEqual(["Kai opened the Supply Cache.", "Kai restored the bridge."]);
+    expect(s.logs.slice(-2)).toEqual(["Kai opened the Supply Cache.", "Kai opened the gate."]);
   });
 
   it("teamSync with nothing new returns the same state", () => {

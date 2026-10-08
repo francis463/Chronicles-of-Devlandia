@@ -81,10 +81,10 @@ describe("Overworld in team mode", () => {
     await user.click(ana.getByRole("switch", { name: "Switch A" }));
     await user.click(ana.getByRole("switch", { name: "Switch B" }));
     await user.click(ana.getByRole("button", { name: "[ RUN CIRCUIT ]" }));
-    expect(countIn(logText(kai), "Ana powered the signal tower. The fog lifts.")).toBe(1);
+    expect(countIn(logText(kai), "Ana powered the signal tower. The fog lifts and the bridge returns.")).toBe(1);
     expect(kai.getByTestId("fog").style.opacity).toBe("0");
     expect(logText(ana)).not.toContain("Kai powered the signal tower");
-    expect(countIn(logText(ana), "Signal tower online: the fog lifts across C++ Peaks.")).toBe(1);
+    expect(countIn(logText(ana), "Signal tower online: the fog lifts and the bridge returns.")).toBe(1);
   });
 
   it("runs the team clock from the start time, even while you have a terminal open", async () => {
@@ -113,8 +113,8 @@ describe("Overworld in team mode", () => {
     await user.click(zed.getByRole("button", { name: "[ Join ]" }));
     await flush();
     expect(zed.getByText("REGION: C++ PEAKS")).toBeInTheDocument();
-    expect(zed.getByText("Bridge")).toBeInTheDocument();
-    expect(logText(zed)).toContain("Ana restored the bridge.");
+    expect(zed.getByText("Frozen River")).toBeInTheDocument();
+    expect(logText(zed)).toContain("Ana opened the gate.");
     expect(logText(ana)).toContain("Zed joined the team.");
   });
 

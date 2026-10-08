@@ -87,7 +87,7 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
       );
 
   const flat: Drawable[] = [];
-  if (input.gateUnlocked)
+  if (input.towerPowered)
     for (let i = 0; i < PLANK_ROWS; i++) flat.push(placed("plank", { x: BRIDGE_RECT.x + 13, y: BRIDGE_RECT.y + (i + 1) * 3 - 1 }));
   const digging = input.clueDecoded && !input.artifactFound;
   if (digging) flat.push(placed("x-mark", P.dig));

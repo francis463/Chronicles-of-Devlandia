@@ -34,7 +34,7 @@ export const TOUCH_REPEAT_MS = 150;
 export const INITIAL_LOGS = [
   "Entered C++ Peaks.",
   "Drone link established.",
-  "Objective: survey the frozen river.",
+  "Objective: open the north gate, then survey the frozen river.",
 ];
 
 export const LOG = {
@@ -45,24 +45,24 @@ export const LOG = {
   riverBridged: "River scan: bridge stable, crossing is safe.",
   questComplete: "Quest complete: Frozen River surveyed.",
   coldExposure: `Cold exposure: -${RIVER_DAMAGE} HP.`,
-  bridgeRestored: "Bridge restored. The river can be crossed safely.",
+  gateUnlocked: "Gate unlocked. The way north is open.",
   revived: "Drone revived you at base camp.",
-  gateOpen: "Gate unlocked. The bridge holds.",
+  gateOpen: "Gate open. The way north is clear.",
   downed: "You are downed. Press Respawn.",
   scrollFound: "Found an encrypted scroll: QRAFR SBERFG",
   clueDecoded: "Clue decoded: the artifact rests in the Dense Forest.",
   artifactFound: "Artifact found: the Golden Semicolon!",
   tower: "Signal tower terminal ready. Logic lock found.",
   towerOnline: "Signal tower online. The beam holds.",
-  towerPowered: "Signal tower online: the fog lifts across C++ Peaks.",
+  towerPowered: "Signal tower online: the fog lifts and the bridge returns.",
   wallLocked: "The gate is locked. Solve its terminal to pass.",
   wallSolid: "The wall is solid here. Go through the gate.",
 };
 
-export const INSPECT_COPY: Record<PoiId, { default: string; looted?: string; bridged?: string; powered?: string }> = {
+export const INSPECT_COPY: Record<PoiId, { default: string; looted?: string; opened?: string; bridged?: string; powered?: string }> = {
   gate: {
-    default: "A locked compiler gate. Its terminal leads to the code puzzle.",
-    bridged: "The compiler gate stands open. The bridge beyond it holds.",
+    default: "A locked compiler gate in the north wall. Its terminal leads to the code puzzle.",
+    opened: "The compiler gate stands open. The way north is clear.",
   },
   chest: {
     default: "A sealed field cache. Move closer and press [E] to open.",
@@ -74,7 +74,7 @@ export const INSPECT_COPY: Record<PoiId, { default: string; looted?: string; bri
   },
   tower: {
     default: "A dark signal tower. Its logic lock needs every line of the circuit to output 1.",
-    powered: "The signal tower hums. Its beam keeps the fog away.",
+    powered: "The signal tower hums. Its beam keeps the fog away and holds the bridge.",
   },
   artifact: { default: "The Golden Semicolon, Devlandia's lost line-ender. Every statement can finally be completed." },
 };
@@ -89,4 +89,4 @@ export const cipherError = (value: string) => `Not quite: "${value}" is not what
 export const PUZZLE_HINT = "\"Setting display to 'none' hides the object. Try 'block' instead!\"";
 export const PUZZLE_HINT_LOCKED = "Hint locked. Use a hint item to decode.";
 export const puzzleError = (value: string) =>
-  `Compile error: display: ${value} keeps the bridge hidden.`;
+  `Compile error: display: ${value} keeps the gate shut.`;

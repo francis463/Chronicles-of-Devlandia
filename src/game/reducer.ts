@@ -102,7 +102,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         stamina: Math.min(MAX_STAMINA, state.stamina + STAMINA_REGEN),
       };
     case "riverDamage": {
-      if (isDowned(state) || state.gateUnlocked || !isInRiver(state.player)) return state;
+      if (isDowned(state) || state.towerPowered || !isInRiver(state.player)) return state;
       const hurt = pushLog({ ...state, hp: Math.max(0, state.hp - RIVER_DAMAGE) }, LOG.coldExposure);
       return isDowned(hurt) ? pushLog(hurt, LOG.downed) : hurt;
     }
@@ -141,7 +141,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           ? pushLog(inspected, LOG.chestEmpty)
           : pushLog(pushLog({ ...inspected, hasLoot: true }, LOG.chestOpened), LOG.scrollFound);
       }
-      return pushLog(inspected, state.gateUnlocked ? LOG.riverBridged : LOG.river);
+      return pushLog(inspected, state.towerPowered ? LOG.riverBridged : LOG.river);
     }
     case "closeInspection":
       return { ...state, inspected: null };
@@ -151,7 +151,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (isCorrectAnswer(action.value)) {
         return pushLog(
           { ...state, gateUnlocked: true, terminalOpen: false, puzzleError: null },
-          LOG.bridgeRestored,
+          LOG.gateUnlocked,
         );
       }
       return { ...state, puzzleError: puzzleError(normalizeAnswer(action.value) || "(empty)") };

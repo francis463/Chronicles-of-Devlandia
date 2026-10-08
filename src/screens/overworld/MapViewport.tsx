@@ -211,7 +211,7 @@ export function MapViewport({
   const copy = inspected ? INSPECT_COPY[inspected] : null;
   const inspectCopy = !copy
     ? null
-    : (hasLoot && copy.looted) || (gateUnlocked && copy.bridged) || (towerPowered && copy.powered) || copy.default;
+    : (hasLoot && copy.looted) || (gateUnlocked && copy.opened) || (towerPowered && (copy.bridged ?? copy.powered)) || copy.default;
 
   const scene: SceneInput = {
     player,
@@ -253,7 +253,7 @@ export function MapViewport({
         style={{ left: `${world.left}px`, top: `${world.top}px`, width: `${world.width}px`, height: `${world.height}px` }}
       >
         <MapCaption id="peaks" text="(Snowy Peaks Biome)" world={world} />
-        <MapCaption id="river" text={gateUnlocked ? "Bridge" : "Frozen River"} world={world} />
+        <MapCaption id="river" text={towerPowered ? "Bridge" : "Frozen River"} world={world} />
         <MapCaption id="forest" text="(Dense Forests Biome)" world={world} />
 
         <LandmarkButton sprite="tower" point={P.tower} name={towerPowered ? "[T] Tower ✓" : "[T] Tower"} color="var(--primary-border)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "tower"} onClick={() => onInteract("tower")} />

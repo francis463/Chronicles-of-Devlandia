@@ -88,11 +88,11 @@ describe("Overworld map", () => {
     expect(screen.getByText("[E] Inspect Terminal Gate")).toBeInTheDocument();
   });
 
-  it("labels the river as a bridge once the gate is unlocked", () => {
-    const { unmount } = render(<Overworld onMenu={() => {}} />);
+  it("labels the river as a bridge once the tower is powered", () => {
+    const { unmount } = render(<Overworld onMenu={() => {}} initial={{ gateUnlocked: true }} />);
     expect(screen.getByText("Frozen River")).toBeInTheDocument();
     unmount();
-    render(<Overworld onMenu={() => {}} initial={{ gateUnlocked: true }} />);
+    render(<Overworld onMenu={() => {}} initial={{ towerPowered: true }} />);
     expect(screen.getByText("Bridge")).toBeInTheDocument();
   });
 });
@@ -103,6 +103,18 @@ describe("Overworld timers", () => {
     act(() => vi.advanceTimersByTime(1800));
     expect(screen.getAllByRole("meter")[0]).toHaveAttribute("aria-valuenow", "92");
     expect(screen.getByText("Cold exposure: -8 HP.")).toBeInTheDocument();
+  });
+
+  it("solving the gate does not stop the cold", () => {
+    render(<Overworld onMenu={() => {}} initial={{ gateUnlocked: true, player: { x: 50, y: 33 } }} />);
+    act(() => vi.advanceTimersByTime(1800));
+    expect(screen.getAllByRole("meter")[0]).toHaveAttribute("aria-valuenow", "92");
+  });
+
+  it("a powered tower stops the cold", () => {
+    render(<Overworld onMenu={() => {}} initial={{ towerPowered: true, player: { x: 50, y: 33 } }} />);
+    act(() => vi.advanceTimersByTime(3600));
+    expect(screen.getAllByRole("meter")[0]).toHaveAttribute("aria-valuenow", "100");
   });
 
   it("pauses river damage while the terminal is open", () => {
@@ -166,7 +178,7 @@ describe("Overworld inspection text", () => {
 
   it("describes the locked gate and the dangerous river before the bridge is restored", () => {
     const { unmount } = render(<Overworld onMenu={() => {}} initial={{ inspected: "gate" }} />);
-    expect(within(card()).getByText("A locked compiler gate. Its terminal leads to the code puzzle.")).toBeInTheDocument();
+    expect(within(card()).getByText("A locked compiler gate in the north wall. Its terminal leads to the code puzzle.")).toBeInTheDocument();
     unmount();
     render(<Overworld onMenu={() => {}} initial={{ inspected: "river" }} />);
     expect(within(card()).getByText("Ice integrity: 42%. Exposure drains HP while crossing.")).toBeInTheDocument();
@@ -174,9 +186,9 @@ describe("Overworld inspection text", () => {
 
   it("describes the open gate and the safe bridge once the bridge is restored", () => {
     const { unmount } = render(<Overworld onMenu={() => {}} initial={{ gateUnlocked: true, inspected: "gate" }} />);
-    expect(within(card()).getByText("The compiler gate stands open. The bridge beyond it holds.")).toBeInTheDocument();
+    expect(within(card()).getByText("The compiler gate stands open. The way north is clear.")).toBeInTheDocument();
     unmount();
-    render(<Overworld onMenu={() => {}} initial={{ gateUnlocked: true, inspected: "river" }} />);
+    render(<Overworld onMenu={() => {}} initial={{ gateUnlocked: true, towerPowered: true, inspected: "river" }} />);
     expect(within(card()).getByText("The bridge spans the river. Crossing is safe now.")).toBeInTheDocument();
   });
 
@@ -185,7 +197,7 @@ describe("Overworld inspection text", () => {
     render(<Overworld onMenu={() => {}} />);
     await user.click(screen.getByRole("button", { name: "[G] Gate" }));
     await user.keyboard("block{Enter}");
-    expect(within(card()).getByText("The compiler gate stands open. The bridge beyond it holds.")).toBeInTheDocument();
+    expect(within(card()).getByText("The compiler gate stands open. The way north is clear.")).toBeInTheDocument();
     expect(within(card()).queryByText(/A locked compiler gate/)).toBeNull();
   });
 });
@@ -198,7 +210,7 @@ describe("Overworld terminal puzzle", () => {
     const input = screen.getByRole("textbox", { name: "display value" });
     await user.clear(input);
     await user.type(input, "flex{Enter}");
-    expect(screen.getByRole("alert")).toHaveTextContent("Compile error: display: flex keeps the bridge hidden.");
+    expect(screen.getByRole("alert")).toHaveTextContent("Compile error: display: flex keeps the gate shut.");
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
@@ -212,7 +224,7 @@ describe("Overworld terminal puzzle", () => {
     ).toBeInTheDocument();
   });
 
-  it("solving the puzzle closes the terminal and restores the bridge", async () => {
+  it("solving the puzzle closes the terminal and opens the gate", async () => {
     const user = setup();
     render(<Overworld onMenu={() => {}} />);
     await user.click(screen.getByRole("button", { name: "[G] Gate" }));
@@ -222,8 +234,8 @@ describe("Overworld terminal puzzle", () => {
     await user.type(input, "block");
     await user.click(screen.getByRole("button", { name: "[ SUBMIT CODE ]" }));
     expect(screen.queryByRole("dialog")).toBeNull();
-    expect(screen.getByText("Bridge restored. The river can be crossed safely.")).toBeInTheDocument();
-    expect(screen.getByText("Bridge")).toBeInTheDocument();
+    expect(screen.getByText("Gate unlocked. The way north is open.")).toBeInTheDocument();
+    expect(screen.getByText("Frozen River")).toBeInTheDocument();
   });
 });
 
@@ -307,12 +319,13 @@ describe("Overworld signal tower", () => {
     await user.click(screen.getByRole("switch", { name: "Switch B" }));
     await user.click(screen.getByRole("button", { name: "[ RUN CIRCUIT ]" }));
     expect(screen.queryByRole("dialog")).toBeNull();
-    expect(screen.getByText("Signal tower online: the fog lifts across C++ Peaks.")).toBeInTheDocument();
+    expect(screen.getByText("Signal tower online: the fog lifts and the bridge returns.")).toBeInTheDocument();
+    expect(screen.getByText("Bridge")).toBeInTheDocument();
     expect(screen.getByTestId("fog").style.opacity).toBe("0");
     expect(screen.getByRole("button", { name: "[T] Tower ✓" })).toBeInTheDocument();
     expect(screen.getByText("Tower: Power the signal tower (1/1 Online)")).toBeInTheDocument();
     const card = screen.getByRole("region", { name: "POI Inspection" });
-    expect(within(card).getByText("The signal tower hums. Its beam keeps the fog away.")).toBeInTheDocument();
+    expect(within(card).getByText("The signal tower hums. Its beam keeps the fog away and holds the bridge.")).toBeInTheDocument();
   });
 
   it("pauses the clock while the logic lock is open", () => {

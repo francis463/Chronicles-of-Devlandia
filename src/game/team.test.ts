@@ -56,8 +56,8 @@ describe("team flags", () => {
     expect(teammateLog("Kai", "hasLoot")).toBe("Kai opened the Supply Cache.");
     expect(teammateLog("Kai", "clueDecoded")).toBe("Kai decoded the scroll: the artifact rests in the Dense Forest.");
     expect(teammateLog("Kai", "artifactFound")).toBe("Kai found the Golden Semicolon!");
-    expect(teammateLog("Kai", "gateUnlocked")).toBe("Kai restored the bridge.");
-    expect(teammateLog("Kai", "towerPowered")).toBe("Kai powered the signal tower. The fog lifts.");
+    expect(teammateLog("Kai", "gateUnlocked")).toBe("Kai opened the gate.");
+    expect(teammateLog("Kai", "towerPowered")).toBe("Kai powered the signal tower. The fog lifts and the bridge returns.");
   });
 
   it("ORs every member's flags for late joiners", () => {

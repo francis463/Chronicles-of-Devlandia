@@ -60,8 +60,8 @@ const TEAMMATE_LOG: Record<FlagKey, (name: string) => string> = {
   hasLoot: (n) => `${n} opened the Supply Cache.`,
   clueDecoded: (n) => `${n} decoded the scroll: the artifact rests in the Dense Forest.`,
   artifactFound: (n) => `${n} found the Golden Semicolon!`,
-  gateUnlocked: (n) => `${n} restored the bridge.`,
-  towerPowered: (n) => `${n} powered the signal tower. The fog lifts.`,
+  gateUnlocked: (n) => `${n} opened the gate.`,
+  towerPowered: (n) => `${n} powered the signal tower. The fog lifts and the bridge returns.`,
 };
 
 // ── Flags ─────────────────────────────────────────────────────────────────
