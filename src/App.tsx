@@ -2,12 +2,11 @@ import { useState } from "react";
 import { useTeamSession } from "./hooks/useTeamSession";
 import { makeTransport as defaultTransport } from "./net/makeTransport";
 import type { TeamMode, TeamTransport } from "./net/transport";
-import { Farewell } from "./screens/Farewell";
 import { MainMenu } from "./screens/MainMenu";
 import { Overworld } from "./screens/overworld/Overworld";
 import { TeamLobby } from "./screens/TeamLobby";
 
-type Screen = "menu" | "overworld" | "lobby" | "farewell";
+type Screen = "menu" | "overworld" | "lobby";
 
 export default function App({
   makeTransport = defaultTransport,
@@ -33,7 +32,7 @@ export default function App({
   return (
     <main className="min-h-screen p-4 sm:p-8">
       {screen === "menu" && (
-        <MainMenu onSoloQuest={startSoloQuest} onTeamLobby={() => setScreen("lobby")} onExit={() => setScreen("farewell")} />
+        <MainMenu onSoloQuest={startSoloQuest} onTeamLobby={() => setScreen("lobby")} />
       )}
       {screen === "overworld" && <Overworld key={gameId} onMenu={() => setScreen("menu")} />}
       {screen === "lobby" &&
@@ -42,7 +41,6 @@ export default function App({
         ) : (
           <TeamLobby session={team} onBack={leaveTeam} />
         ))}
-      {screen === "farewell" && <Farewell onBack={() => setScreen("menu")} />}
     </main>
   );
 }

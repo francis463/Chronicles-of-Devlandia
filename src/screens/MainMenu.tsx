@@ -17,11 +17,9 @@ function ComingSoon({ label }: { label: string }) {
 export function MainMenu({
   onSoloQuest,
   onTeamLobby,
-  onExit,
 }: {
   onSoloQuest: () => void;
   onTeamLobby: () => void;
-  onExit: () => void;
 }) {
   const online = useOnline();
   return (
@@ -43,9 +41,6 @@ export function MainMenu({
             Team Lobby
           </Button>
           <ComingSoon label="Settings" />
-          <Button variant="danger" className="w-full" onClick={onExit}>
-            Exit Game
-          </Button>
         </nav>
 
         <footer className="mt-12 flex w-full flex-wrap justify-between gap-2 text-xs text-[var(--text-muted)]">

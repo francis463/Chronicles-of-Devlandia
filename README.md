@@ -66,7 +66,7 @@ src/game/      pure game rules: constants, geometry, clock, puzzle, cipher, logi
 src/hooks/     keyboard controls, game timers, team session
 src/net/       team transports: Supabase (Online), BroadcastChannel (Same computer), in-memory (tests)
 src/render/    the pixel-art map: world geometry, sprites, terrain, motion, scene description and painting
-src/screens/   MainMenu, TeamLobby, Farewell, TerminalModal (gate), CipherModal (scroll), LogicModal (tower), overworld/*
+src/screens/   MainMenu, TeamLobby, TerminalModal (gate), CipherModal (scroll), LogicModal (tower), overworld/*
 src/ui/        Panel, Button, Meter, TerminalDialog primitives
 ```
 

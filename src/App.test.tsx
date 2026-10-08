@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
@@ -64,13 +64,11 @@ describe("App", () => {
     expect(screen.queryByRole("button", { name: /solo quest/i })).toBeNull();
   });
 
-  it("Exit Game shows the farewell screen and Back to Menu returns", async () => {
-    const user = userEvent.setup();
+  it("the main menu offers Solo Quest, Team Lobby and Settings, with no Exit Game", () => {
     render(<App />);
-    await user.click(screen.getByRole("button", { name: /exit game/i }));
-    expect(screen.getByText(/thanks for playing/i)).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /back to menu/i }));
-    expect(screen.getByRole("button", { name: /solo quest/i })).toBeInTheDocument();
+    const menu = within(screen.getByRole("navigation", { name: "Main menu" }));
+    expect(menu.getAllByRole("button").map((b) => b.textContent)).toEqual(["Solo Quest", "Team Lobby", "SettingsComing soon"]);
+    expect(screen.queryByRole("button", { name: /exit game/i })).toBeNull();
   });
 });
 
