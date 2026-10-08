@@ -75,6 +75,8 @@ describe("Overworld in team mode", () => {
 
   it("shares progress: a teammate powering the tower lifts your fog and logs it once", async () => {
     const { user, ana, kai } = await startedPair();
+    await user.click(ana.getByRole("button", { name: "[G] Gate" }));
+    await user.keyboard("block{Enter}");
     await user.click(ana.getByRole("button", { name: "[T] Tower" }));
     await user.click(ana.getByRole("switch", { name: "Switch A" }));
     await user.click(ana.getByRole("switch", { name: "Switch B" }));
@@ -118,6 +120,8 @@ describe("Overworld in team mode", () => {
 
   it("keeps playing through a dropped connection and merges progress on reconnect (Review Focus 4)", async () => {
     const { user, hub, transports, ana, kai } = await startedPair();
+    await user.click(kai.getByRole("button", { name: "[G] Gate" }));
+    await user.keyboard("block{Enter}");
     act(() => hub.drop(transports[1]));
     expect(kai.getByText("Reconnecting…")).toBeInTheDocument();
     await user.click(kai.getByRole("button", { name: "[X] Supply Cache" }));

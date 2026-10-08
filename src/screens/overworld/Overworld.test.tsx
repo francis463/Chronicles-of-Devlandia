@@ -63,7 +63,7 @@ describe("Overworld HUD", () => {
 describe("Overworld map", () => {
   it("looting the supply cache logs, fills the inventory and empties the cache", async () => {
     const user = setup();
-    render(<Overworld onMenu={() => {}} />);
+    render(<Overworld onMenu={() => {}} initial={{ gateUnlocked: true }} />);
     await user.click(screen.getByRole("button", { name: "[X] Supply Cache" }));
     expect(screen.getByText("Supply cache opened: +1 Repair Patch.")).toBeInTheDocument();
     expect(screen.getByText("Patch")).toBeInTheDocument();
@@ -72,7 +72,7 @@ describe("Overworld map", () => {
 
   it("shows an inspection card that can be closed", async () => {
     const user = setup();
-    render(<Overworld onMenu={() => {}} />);
+    render(<Overworld onMenu={() => {}} initial={{ gateUnlocked: true }} />);
     await user.click(screen.getByRole("button", { name: "[X] Supply Cache" }));
     const card = screen.getByRole("region", { name: "POI Inspection" });
     expect(within(card).getByText("Cache recovered. Repair Patch added to inventory.")).toBeInTheDocument();
@@ -120,7 +120,7 @@ describe("Overworld timers", () => {
   });
 
   it("the drone keeps following while the player moves continuously", () => {
-    render(<Overworld onMenu={() => {}} />);
+    render(<Overworld onMenu={() => {}} initial={{ gateUnlocked: true, player: { x: 48, y: 72 } }} />);
     const drone = screen.getByTestId("drone");
     act(() => vi.advanceTimersByTime(400));
     const startTop = parseFloat(drone.style.top);
@@ -236,7 +236,7 @@ describe("Overworld hidden artifact", () => {
 
   it("looting the cache adds the encrypted scroll and a Decode Scroll button", async () => {
     const user = setup();
-    render(<Overworld onMenu={() => {}} />);
+    render(<Overworld onMenu={() => {}} initial={{ gateUnlocked: true }} />);
     await user.click(screen.getByRole("button", { name: "[X] Supply Cache" }));
     expect(screen.getByText("Found an encrypted scroll: QRAFR SBERFG")).toBeInTheDocument();
     expect(screen.getByText("Scroll")).toBeInTheDocument();
@@ -298,7 +298,7 @@ describe("Overworld signal tower", () => {
 
   it("the tower button opens the logic lock; the right switches power it and lift the fog", async () => {
     const user = setup();
-    render(<Overworld onMenu={() => {}} />);
+    render(<Overworld onMenu={() => {}} initial={{ gateUnlocked: true }} />);
     await user.click(screen.getByRole("button", { name: "[T] Tower" }));
     expect(screen.getByRole("dialog", { name: "< SIGNAL TOWER: LOGIC LOCK >" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "[ RUN CIRCUIT ]" }));

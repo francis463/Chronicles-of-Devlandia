@@ -77,6 +77,9 @@ describe("App navigation from the overworld", () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole("button", { name: /solo quest/i }));
+    // The cache is north of the wall: open the gate first.
+    await user.click(screen.getByRole("button", { name: "[G] Gate" }));
+    await user.keyboard("block{Enter}");
     await user.click(screen.getByRole("button", { name: "[X] Supply Cache" }));
     expect(screen.getByRole("button", { name: "[X] Empty Cache" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "[=] Menu" }));

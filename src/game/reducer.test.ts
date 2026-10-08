@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { gameReducer, initialState, isDowned, isModalOpen, revealedPois } from "./reducer";
-import type { GameState } from "./types";
+import type { GameState, Point } from "./types";
 import { NO_FLAGS } from "./team";
+import { HIDDEN_ARTIFACT, INTERACT_RADIUS, LOG, PLAYER_START, POIS } from "./constants";
+import { isNorthOfWall } from "./wall";
 
 const s0 = initialState;
+const opened: GameState = { ...s0, gateUnlocked: true };
 const lastLog = (s: GameState) => s.logs.at(-1);
 
 describe("gameReducer: initial state", () => {
@@ -122,7 +125,7 @@ describe("gameReducer: interact", () => {
   });
 
   it("chest: loots once, then reports empty", () => {
-    const c1 = gameReducer(s0, { type: "interact", poi: "chest" });
+    const c1 = gameReducer(opened, { type: "interact", poi: "chest" });
     expect(c1.hasLoot).toBe(true);
     expect(c1.logs).toContain("Supply cache opened: +1 Repair Patch.");
     expect(lastLog(gameReducer(c1, { type: "interact", poi: "chest" }))).toBe(
@@ -136,14 +139,14 @@ describe("gameReducer: interact", () => {
   });
 
   it("river: logs the scan", () => {
-    const s = gameReducer(s0, { type: "interact", poi: "river" });
+    const s = gameReducer({ ...s0, player: { x: 50, y: 33 } }, { type: "interact", poi: "river" });
     expect(s.inspected).toBe("river");
     expect(lastLog(s)).toBe("River scan: unstable ice, thermal damage.");
   });
 
   it("keeps only the last six log entries but counts every entry", () => {
     expect(s0.logCount).toBe(3);
-    let s = s0;
+    let s = opened;
     for (let i = 0; i < 10; i++) s = gameReducer(s, { type: "interact", poi: "river" });
     expect(s.logs).toHaveLength(6);
     expect(s.logCount).toBe(13);
@@ -195,7 +198,7 @@ describe("gameReducer: respawn", () => {
 });
 
 describe("gameReducer: hidden artifact side quest", () => {
-  const looted = gameReducer(s0, { type: "interact", poi: "chest" });
+  const looted = gameReducer(opened, { type: "interact", poi: "chest" });
 
   it("the Supply Cache also yields the encrypted scroll", () => {
     expect(looted.logs.slice(-2)).toEqual([
@@ -267,20 +270,20 @@ describe("gameReducer: hidden artifact side quest", () => {
 
 describe("gameReducer: signal tower logic lock", () => {
   it("interacting with the tower opens the logic lock and logs it", () => {
-    const s = gameReducer(s0, { type: "interact", poi: "tower" });
+    const s = gameReducer(opened, { type: "interact", poi: "tower" });
     expect(s.logicOpen).toBe(true);
     expect(s.inspected).toBe("tower");
     expect(lastLog(s)).toBe("Signal tower terminal ready. Logic lock found.");
   });
 
   it("does not reopen the lock once the tower is powered", () => {
-    const s = gameReducer({ ...s0, towerPowered: true }, { type: "interact", poi: "tower" });
+    const s = gameReducer({ ...opened, towerPowered: true }, { type: "interact", poi: "tower" });
     expect(s.logicOpen).toBe(false);
     expect(lastLog(s)).toBe("Signal tower online. The beam holds.");
   });
 
   it("the solved circuit powers the tower, closes the lock and logs it", () => {
-    const open = { ...gameReducer(s0, { type: "interact", poi: "tower" }), logicError: "x" };
+    const open = { ...gameReducer(opened, { type: "interact", poi: "tower" }), logicError: "x" };
     const s = gameReducer(open, { type: "submitLogic", bits: [1, 1, 0, 0] });
     expect(s.towerPowered).toBe(true);
     expect(s.logicOpen).toBe(false);
@@ -289,7 +292,7 @@ describe("gameReducer: signal tower logic lock", () => {
   });
 
   it("a failing circuit keeps the lock open and names the failing line", () => {
-    const open = gameReducer(s0, { type: "interact", poi: "tower" });
+    const open = gameReducer(opened, { type: "interact", poi: "tower" });
     const s = gameReducer(open, { type: "submitLogic", bits: [1, 1, 1, 0] });
     expect(s.logicOpen).toBe(true);
     expect(s.towerPowered).toBe(false);
@@ -297,7 +300,7 @@ describe("gameReducer: signal tower logic lock", () => {
   });
 
   it("closeLogic closes and clears the error; revealLogicHint reveals the hint", () => {
-    const open = { ...gameReducer(s0, { type: "interact", poi: "tower" }), logicError: "x" };
+    const open = { ...gameReducer(opened, { type: "interact", poi: "tower" }), logicError: "x" };
     const closed = gameReducer(open, { type: "closeLogic" });
     expect(closed.logicOpen).toBe(false);
     expect(closed.logicError).toBeNull();
@@ -305,7 +308,7 @@ describe("gameReducer: signal tower logic lock", () => {
   });
 
   it("ignores movement while the logic lock is open", () => {
-    const open = gameReducer(s0, { type: "interact", poi: "tower" });
+    const open = gameReducer(opened, { type: "interact", poi: "tower" });
     expect(gameReducer(open, { type: "move", dir: "up" }).player).toEqual(open.player);
   });
 
@@ -348,5 +351,96 @@ describe("gameReducer: teammates", () => {
 
   it("note adds a log line", () => {
     expect(lastLog(gameReducer(s0, { type: "note", text: "Kai joined the team." }))).toBe("Kai joined the team.");
+  });
+});
+
+describe("gameReducer: the north wall", () => {
+  const poi = (id: string) => POIS.find((p) => p.id === id)!;
+
+  it("a step into the locked wall stays put, costs no stamina and logs the locked line", () => {
+    const start = { ...s0, player: { x: 30, y: 52 } };
+    const s = gameReducer(start, { type: "move", dir: "up" });
+    expect(s.player).toEqual({ x: 30, y: 52 });
+    expect(s.stamina).toBe(100);
+    expect(lastLog(s)).toBe(LOG.wallLocked);
+    expect(s.logCount).toBe(start.logCount + 1);
+  });
+
+  it("a held key against the wall logs once", () => {
+    const start = { ...s0, player: { x: 30, y: 52 } };
+    const once = gameReducer(start, { type: "move", dir: "up" });
+    expect(gameReducer(once, { type: "move", dir: "up" })).toBe(once);
+    let s = once;
+    for (let i = 0; i < 4; i++) s = gameReducer(s, { type: "move", dir: "up" });
+    expect(s.logCount).toBe(start.logCount + 1);
+    expect(s.logs.filter((l) => l === LOG.wallLocked)).toHaveLength(1);
+  });
+
+  it("through the open gate's opening a step moves and costs stamina (guard)", () => {
+    const s = gameReducer({ ...opened, player: { x: 48, y: 52 } }, { type: "move", dir: "up" });
+    expect(s.player).toEqual({ x: 48, y: 48 });
+    expect(s.stamina).toBe(99);
+  });
+
+  it("with the gate open the wall is solid elsewhere, posts included", () => {
+    for (const x of [30, 54]) {
+      const s = gameReducer({ ...opened, player: { x, y: 52 } }, { type: "move", dir: "up" });
+      expect(s.player).toEqual({ x, y: 52 });
+      expect(lastLog(s)).toBe(LOG.wallSolid);
+    }
+  });
+
+  it("a teammate's gate opens your way through", () => {
+    let s = gameReducer({ ...s0, player: { x: 48, y: 52 } }, { type: "move", dir: "up" });
+    expect(s.player).toEqual({ x: 48, y: 52 });
+    s = gameReducer(s, { type: "teamSync", flags: { ...NO_FLAGS, gateUnlocked: true }, by: "Ana" });
+    s = gameReducer(s, { type: "move", dir: "up" });
+    expect(s.player).toEqual({ x: 48, y: 48 });
+  });
+
+  it("remote use of north landmarks waits for the gate", () => {
+    const tower = gameReducer(s0, { type: "interact", poi: "tower" });
+    expect([tower.logicOpen, tower.inspected, lastLog(tower)]).toEqual([false, "tower", LOG.wallLocked]);
+    const chest = gameReducer(s0, { type: "interact", poi: "chest" });
+    expect([chest.hasLoot, chest.inspected, lastLog(chest)]).toEqual([false, "chest", LOG.wallLocked]);
+    const river = gameReducer(s0, { type: "interact", poi: "river" });
+    expect([river.inspected, lastLog(river)]).toEqual(["river", LOG.wallLocked]);
+    // Guards: with the gate open, or from the north side, they work as before.
+    expect(gameReducer(opened, { type: "interact", poi: "tower" }).logicOpen).toBe(true);
+    expect(gameReducer(opened, { type: "interact", poi: "chest" }).hasLoot).toBe(true);
+    expect(gameReducer({ ...s0, player: { x: 14, y: 26 } }, { type: "interact", poi: "tower" }).logicOpen).toBe(true);
+  });
+
+  it("the gate is the only way north (reachability)", () => {
+    function reachable(gateUnlocked: boolean) {
+      const seen = new Map<string, Point>([["28,72", PLAYER_START]]);
+      const queue: Point[] = [PLAYER_START];
+      const crossings: Point[] = [];
+      while (queue.length) {
+        const p = queue.shift()!;
+        for (const dir of ["up", "down", "left", "right"] as const) {
+          const q = gameReducer({ ...s0, gateUnlocked, player: p }, { type: "move", dir }).player;
+          if (isNorthOfWall(q) !== isNorthOfWall(p)) crossings.push(p);
+          const k = `${q.x},${q.y}`;
+          if (!seen.has(k)) {
+            seen.set(k, q);
+            queue.push(q);
+          }
+        }
+      }
+      return { points: [...seen.values()], crossings };
+    }
+    const inReach = (points: Point[], target: Point) =>
+      points.some((p) => Math.hypot(p.x - target.x, p.y - target.y) <= INTERACT_RADIUS);
+
+    const locked = reachable(false);
+    expect([poi("tower"), poi("chest"), poi("river")].map((t) => inReach(locked.points, t))).toEqual([false, false, false]);
+    expect([poi("gate"), HIDDEN_ARTIFACT].map((t) => inReach(locked.points, t))).toEqual([true, true]);
+    expect(locked.points.some((p) => p.y < 49)).toBe(false);
+
+    const open = reachable(true);
+    expect([poi("tower"), poi("chest"), poi("river"), poi("gate"), HIDDEN_ARTIFACT].every((t) => inReach(open.points, t))).toBe(true);
+    expect(open.crossings.length).toBeGreaterThan(0);
+    expect(new Set(open.crossings.map((p) => p.x))).toEqual(new Set([48, 50, 52]));
   });
 });

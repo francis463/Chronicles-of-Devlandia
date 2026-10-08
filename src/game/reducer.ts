@@ -22,6 +22,7 @@ import { isCorrectDecode } from "./cipher";
 import { circuitError } from "./logic";
 import { flagsOf, mergeFlags, newlySet, teammateLog } from "./team";
 import type { Direction, GameAction, GameState, Poi, Point } from "./types";
+import { isNorthOfWall, wallBlock } from "./wall";
 
 export const initialState: GameState = {
   player: PLAYER_START,
@@ -64,6 +65,11 @@ const DELTAS: Record<Direction, Point> = {
   right: { x: 1, y: 0 },
 };
 
+/** Adds a line unless it is already the newest one (bumping the wall again, or pressing on). */
+function pushLogOnce(state: GameState, message: string): GameState {
+  return state.logs.at(-1) === message ? state : pushLog(state, message);
+}
+
 function pushLog(state: GameState, message: string): GameState {
   return {
     ...state,
@@ -81,6 +87,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         x: state.player.x + delta.x * STEP,
         y: state.player.y + delta.y * STEP,
       });
+      const block = wallBlock(state.player, player, state.gateUnlocked);
+      if (block) return pushLogOnce(state, block === "locked" ? LOG.wallLocked : LOG.wallSolid);
       const next = { ...state, player, stamina: Math.max(0, state.stamina - 1) };
       if (!state.questComplete && isInRiver(player)) {
         return pushLog({ ...next, questComplete: true }, LOG.questComplete);
@@ -108,6 +116,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       };
     case "interact": {
       if (isDowned(state) || isModalOpen(state)) return state;
+      // The map's buttons work from anywhere, but the north landmarks wait for the gate.
+      const north = action.poi === "tower" || action.poi === "chest" || action.poi === "river";
+      if (north && !state.gateUnlocked && !isNorthOfWall(state.player)) {
+        return pushLogOnce({ ...state, inspected: action.poi }, LOG.wallLocked);
+      }
       if (action.poi === "artifact") {
         if (!state.clueDecoded || state.artifactFound) return state;
         return pushLog({ ...state, artifactFound: true, inspected: "artifact" }, LOG.artifactFound);

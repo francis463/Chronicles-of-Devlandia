@@ -55,6 +55,8 @@ export const LOG = {
   tower: "Signal tower terminal ready. Logic lock found.",
   towerOnline: "Signal tower online. The beam holds.",
   towerPowered: "Signal tower online: the fog lifts across C++ Peaks.",
+  wallLocked: "The gate is locked. Solve its terminal to pass.",
+  wallSolid: "The wall is solid here. Go through the gate.",
 };
 
 export const INSPECT_COPY: Record<PoiId, { default: string; looted?: string; bridged?: string; powered?: string }> = {
