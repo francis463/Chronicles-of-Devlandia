@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PHASE_TINT, buildScene, type Poses, type SceneInput } from "./scene";
-import { LIGHTS, spriteBox } from "./sprites";
+import { LIGHTS, SPRITES, spriteBox } from "./sprites";
 import { BRIDGE_RECT, LANDMARK_POINTS } from "./terrain";
 import { toArt } from "./world";
 
@@ -76,7 +76,7 @@ describe("scene: what is drawn", () => {
 
   it("upright sprites sorted by feet row, explorers last on ties", () => {
     const s = scene({ player: { x: 50, y: 50 } });
-    const feet = s.upright.map((d) => d.y + (d.sprite === "tower" ? 32 : d.sprite === "gate" ? 16 : d.sprite === "pine" ? 20 : d.sprite === "tree" ? 18 : d.sprite === "semicolon" ? 12 : 16) - 1);
+    const feet = s.upright.map((d) => d.y + SPRITES[d.sprite].h - 1);
     expect([...feet].sort((a, b) => a - b)).toEqual(feet);
     const gate = s.upright.findIndex((d) => d.sprite === "gate");
     const me = s.upright.findIndex((d) => d.sprite.startsWith("explorer"));
@@ -184,5 +184,34 @@ describe("scene: light", () => {
   it("without reduced motion the drone bobs and spins", () => {
     expect(scene({}, 400).drone.y).toBe(scene({}, 0).drone.y - 1);
     expect(scene({}, 125).drone.frame).not.toBe(scene({}, 0).drone.frame);
+  });
+});
+
+describe("scene: the north wall", () => {
+  const walls = (s: ReturnType<typeof scene>) => s.upright.flatMap((d, i) => (d.sprite === "wall" ? [i] : []));
+  const me = (s: ReturnType<typeof scene>) => s.upright.findIndex((d) => d.sprite.startsWith("explorer"));
+  const gateAt = (s: ReturnType<typeof scene>) => s.upright.findIndex((d) => d.sprite === "gate");
+
+  it("the wall stands across the world; north of it is behind, south in front, including at the edges", () => {
+    expect(walls(scene())).toHaveLength(18);
+    for (const x of [30, 6, 94]) {
+      const north = scene({ player: { x, y: 48 } });
+      expect(me(north), `x ${x}`).toBeLessThan(Math.min(...walls(north)));
+    }
+    const south = scene({ player: { x: 30, y: 52 } });
+    expect(me(south)).toBeGreaterThan(Math.max(...walls(south)));
+  });
+
+  it("an explorer in the gate opening sorts around the gate", () => {
+    const inFront = scene({ player: { x: 50, y: 50 } });
+    expect(me(inFront)).toBeGreaterThan(gateAt(inFront));
+    const behind = scene({ player: { x: 50, y: 46 } });
+    expect(me(behind)).toBeLessThan(gateAt(behind));
+  });
+
+  it("the gate is barred while locked and open once solved", () => {
+    const frame = (s: ReturnType<typeof scene>) => s.upright[gateAt(s)].frame;
+    expect(frame(scene())).toBe(1);
+    expect(frame(scene({ gateUnlocked: true }))).toBe(0);
   });
 });

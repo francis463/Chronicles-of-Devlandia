@@ -3,7 +3,7 @@ import type { Phase, Point } from "../game/types";
 import type { Pose } from "./motion";
 import { circlePixels, diamondPixels } from "./pixels";
 import { LIGHTS, SPRITES, spriteBox, type SpriteId } from "./sprites";
-import { BRIDGE_RECT, LANDMARK_POINTS, decorations } from "./terrain";
+import { BRIDGE_RECT, LANDMARK_POINTS, WALL_RECT, decorations, wallTiles } from "./terrain";
 import { REACHABLE_RECT, intersects, type ArtPoint } from "./world";
 
 export const PHASE_TINT: Record<Phase, string> = {
@@ -75,6 +75,10 @@ const interiorDecorations = () =>
     .filter((d) => intersects(spriteBox(d.sprite, d.at), REACHABLE_RECT))
     .map((d) => placed(d.sprite, d.at)));
 
+let wall: Drawable[] | null = null;
+/** Every wall tile inside the world is y-sorted with the explorers, the edge ones included. */
+const wallTilesInWorld = () => (wall ??= wallTiles(WALL_RECT).map((at) => placed("wall", at)));
+
 export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: boolean): Scene {
   const P = LANDMARK_POINTS;
   const phase = phaseOf(input.minutes);
@@ -98,9 +102,10 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
   const mates = input.teammates.flatMap((m) => (poses.teammates[m.id] ? [explorer(poses.teammates[m.id], m.color)] : []));
   const upright = [
     ...interiorDecorations(),
+    ...wallTilesInWorld(),
     placed("tower", P.tower),
     placed(input.hasLoot ? "chest-open" : "chest-closed", P.chest),
-    placed("gate", P.gate),
+    placed("gate", P.gate, { frame: input.gateUnlocked ? 0 : 1 }),
     ...(input.artifactFound ? [placed("semicolon", P.dig)] : []),
     ...mates,
     player,

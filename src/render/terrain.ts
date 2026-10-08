@@ -42,6 +42,28 @@ export const LANDMARK_POINTS = {
   start: { x: 90, y: 130 },
 } as const;
 
+// ── The north wall ─────────────────────────────────────────────────────────
+
+/** The north wall inside the world: art rows 80–89 (its game line is y 49 %, between rows players stand on). */
+export const WALL_RECT: Rect = { x: 0, y: 80, w: WORLD.width, h: 10 };
+const WALL_TILE = 16;
+const WALL_FEET = WALL_RECT.y + WALL_RECT.h - 1;
+
+/** Whether a box reaches into the wall's rows, at any x (the wall runs on past the world's edges). */
+const touchesWall = (r: Rect) => r.y <= WALL_FEET && r.y + r.h - 1 >= WALL_RECT.y;
+
+/** Art points of the wall tiles whose 16 × 10 boxes intersect `range`: one every 16 px, none over the gate. */
+export function wallTiles(range: Rect): ArtPoint[] {
+  if (!touchesWall(range)) return [];
+  const gate = spriteBox("gate", LANDMARK_POINTS.gate);
+  const tiles: ArtPoint[] = [];
+  for (let k = Math.floor(range.x / WALL_TILE); k * WALL_TILE <= range.x + range.w - 1; k++) {
+    const at = { x: k * WALL_TILE + WALL_TILE / 2, y: WALL_FEET };
+    if (!intersects(spriteBox("wall", at), gate)) tiles.push(at);
+  }
+  return tiles;
+}
+
 /** What decorations inside the reachable area must stay clear of. */
 export function protectedBoxes(): Rect[] {
   const p = LANDMARK_POINTS;
@@ -134,7 +156,7 @@ function candidate(cx: number, cy: number): Candidate | null {
   const r0 = REACHABLE_RECT;
   const insideWalls = box.x >= r0.x && box.x + box.w <= r0.x + r0.w && at.y < r0.y + r0.h;
   guarded ??= protectedBoxes();
-  if (!insideWalls || guarded.some((p) => intersects(grow(box, 4), p))) return null;
+  if (!insideWalls || touchesWall(grow(box, 4)) || guarded.some((p) => intersects(grow(box, 4), p))) return null;
   return { sprite, at, priority: r[4], interior: true };
 }
 

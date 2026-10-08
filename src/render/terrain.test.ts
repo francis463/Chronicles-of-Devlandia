@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { spriteBox } from "./sprites";
-import { decorations, onPath, protectedBoxes, terrainAt } from "./terrain";
+import { LANDMARK_POINTS, WALL_RECT, decorations, onPath, protectedBoxes, terrainAt, wallTiles } from "./terrain";
 import { REACHABLE_RECT, WORLD, grow, intersects, type Rect } from "./world";
 
 const WORLD_RECT: Rect = { x: 0, y: 0, w: WORLD.width, h: WORLD.height };
@@ -70,5 +70,29 @@ describe("decorations", () => {
       expect(covers(9, y), `left at ${y}`).toBe(true);
       expect(covers(311, y), `right at ${y}`).toBe(true);
     }
+  });
+});
+
+describe("the north wall", () => {
+  it("wall tiles: 18 inside the world at feet row 89, none over the gate", () => {
+    const tiles = wallTiles(WALL_RECT);
+    const xs = [...Array.from({ length: 9 }, (_, k) => 8 + 16 * k), ...Array.from({ length: 9 }, (_, i) => 8 + 16 * (11 + i))];
+    expect(tiles.map((t) => t.x)).toEqual(xs);
+    expect(tiles.every((t) => t.y === 89)).toBe(true);
+    const gate = spriteBox("gate", LANDMARK_POINTS.gate);
+    expect(tiles.some((t) => intersects(spriteBox("wall", t), gate))).toBe(false);
+  });
+
+  it("wall tiles continue beyond the world, by box", () => {
+    const xs = wallTiles({ x: -7, y: 0, w: 334, h: 180 }).map((t) => t.x);
+    expect(xs).toContain(-8);
+    expect(xs).toContain(328);
+    expect(wallTiles({ x: 0, y: 0, w: 320, h: 70 })).toEqual([]);
+  });
+
+  it("no interior decoration comes near the wall", () => {
+    const band: Rect = { x: -1000, y: 80, w: 3000, h: 10 };
+    const interior = decorations(REACHABLE_RECT).filter((d) => intersects(boxOf(d), REACHABLE_RECT));
+    for (const d of interior) expect(intersects(grow(boxOf(d), 4), band), key(d)).toBe(false);
   });
 });
