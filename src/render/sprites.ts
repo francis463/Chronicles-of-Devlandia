@@ -23,7 +23,11 @@ export type SpriteId =
   | "rock"
   | "bush"
   | "snow-rock"
-  | "plank";
+  | "plank"
+  | "hut"
+  | "well"
+  | "fence"
+  | "signpost";
 /** bottom: bottom-centre on the art point; centre: centred on it; hover: centred 12 px above it. */
 export type SpriteDef = { w: number; h: number; frames: PixelGrid[]; palette: Palette; anchor: "bottom" | "centre" | "hover" };
 export type TextureId = "ice" | "mountains" | "snow" | "forest" | "meadow" | "path" | "bank";
@@ -599,6 +603,109 @@ export const SPRITES: Record<SpriteId, SpriteDef> = {
         "pwwwwwwwwwwwwwwwwwwwwwwwwp",
         "pWWWWWWWWWWWWWWWWWWWWWWWWp",
         "pddddddddddddddddddddddddp",
+      ],
+    ],
+  },  hut: {
+    w: 32,
+    h: 24,
+    anchor: "bottom",
+    palette: { o: "#0b1020", R: "#c2410c", r: "#9a3412", w: "#d6b98c", W: "#b08d5e", d: "#5b3a1e", D: "#fbbf24", g: "#fde68a", k: "#64748b" },
+    frames: [
+      [
+        "..............oooo..............",
+        "............ooRRRRoo............",
+        "..........ooRRrrrrRRoo..........",
+        "........ooRRrrrrrrrrRRoo........",
+        "......ooRRrrrrrrrrrrrrRRoo......",
+        "....ooRRrrrrrrrrrrrrrrrrRRoo....",
+        "..ooRRrrrrrrrrrrrrrrrrrrrrRRoo..",
+        "ooRRrrrrrrrrrrrrrrrrrrrrrrrrRRoo",
+        "oooooooooooooooooooooooooooooooo",
+        "..owwwwwwwwwwwwwwwwwwwwwwwwwwo..",
+        "..owwoooowwwwoooooowwwwoooowwo..",
+        "..owwoggowwwwoddddowwwwoggowwo..",
+        "..owwoggowwwwoddddowwwwoggowwo..",
+        "..owwoooowwwwodddDowwwwoooowwo..",
+        "..owwwwwwwwwwoddddowwwwwwwwwwo..",
+        "..oWWWWWWWWWWoddddoWWWWWWWWWWo..",
+        "..oWWWWWWWWWWoddddoWWWWWWWWWWo..",
+        "..oWWWWWWWWWWoddddoWWWWWWWWWWo..",
+        "..oWWWWWWWWWWoddddoWWWWWWWWWWo..",
+        "..oWWWWWWWWWWoddddoWWWWWWWWWWo..",
+        "..oWWWWWWWWWWoddddoWWWWWWWWWWo..",
+        ".okkkkkkkkkkkkkkkkkkkkkkkkkkkko.",
+        ".okkkkkkkkkkkkkkkkkkkkkkkkkkkko.",
+        "..oooooooooooooooooooooooooooo..",
+      ],
+    ],
+  },
+  well: {
+    w: 16,
+    h: 16,
+    anchor: "bottom",
+    palette: { o: "#0b1020", T: "#9a5f2b", t: "#7c4a1e", s: "#94a3b8", S: "#64748b", b: "#38bdf8", B: "#0369a1" },
+    frames: [
+      [
+        "................",
+        "...oooooooooo...",
+        "..oTTTTTTTTTTo..",
+        ".oTTTTTTTTTTTTo.",
+        ".oooooooooooooo.",
+        "...ot......to...",
+        "...ot......to...",
+        "...ot..oo..to...",
+        "...ot..oo..to...",
+        "..oooooooooooo..",
+        ".oBbbbbbbbbbbBo.",
+        ".osssssssssssso.",
+        ".oSsSsSsSsSsSso.",
+        ".osssssssssssso.",
+        ".oSSSSSSSSSSSSo.",
+        "..oooooooooooo..",
+      ],
+    ],
+  },
+  fence: {
+    w: 16,
+    h: 8,
+    anchor: "bottom",
+    palette: { o: "#0b1020", f: "#b07a45", F: "#8f5f33" },
+    frames: [
+      [
+        "...oo......oo...",
+        "..offo....offo..",
+        "oooffooooooffooo",
+        "fffFFffffffFFfff",
+        "oooffooooooffooo",
+        "..offo....offo..",
+        "..oFFo....oFFo..",
+        "..oooo....oooo..",
+      ],
+    ],
+  },
+  signpost: {
+    w: 16,
+    h: 16,
+    anchor: "bottom",
+    palette: { o: "#0b1020", b: "#d6b98c", B: "#b08d5e", a: "#334155", p: "#7c4a1e", P: "#9a5f2b" },
+    frames: [
+      [
+        "................",
+        "................",
+        ".oooooooooooo...",
+        ".obbbbbbbbbbbo..",
+        ".obbbbbbbbabbbo.",
+        ".obaaaaaaaaabbbo",
+        ".obbbbbbbbabbbo.",
+        ".oBBBBBBBBBBBo..",
+        ".oooooooooooo...",
+        "......opo.......",
+        "......oPo.......",
+        "......opo.......",
+        "......oPo.......",
+        "......opo.......",
+        "......oPo.......",
+        ".....ooooo......",
       ],
     ],
   },

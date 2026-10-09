@@ -90,6 +90,18 @@ describe("sprites", () => {
   });
 });
 
+describe("village sprites", () => {
+  it("village sprites: hut 32×24, well 16×16, fence 16×8, signpost 16×16, bottom-anchored, one frame", () => {
+    const sizes: Array<[SpriteId, number, number]> = [["hut", 32, 24], ["well", 16, 16], ["fence", 16, 8], ["signpost", 16, 16]];
+    for (const [id, w, h] of sizes) {
+      const def = SPRITES[id];
+      expect([def?.w, def?.h, def?.anchor, def?.frames.length], id).toEqual([w, h, "bottom", 1]);
+    }
+    expect(spriteBox("hut", { x: 56, y: 116 })).toEqual({ x: 40, y: 93, w: 32, h: 24 });
+    expect(spriteBox("signpost", { x: 275, y: 112 })).toEqual({ x: 267, y: 97, w: 16, h: 16 });
+  });
+});
+
 describe("the north wall and its gate", () => {
   const colour = (id: SpriteId, frame: number, row: number, col: number) => {
     const ch = SPRITES[id].frames[frame][row][col];
