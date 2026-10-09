@@ -1,10 +1,25 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { EventLog } from "./EventLog";
 
 const rows = () => screen.getAllByRole("listitem");
 
+// jsdom has scrollHeight on Element.prototype (always 0); the stub shadows it on HTMLElement.prototype.
+afterEach(() => void delete (HTMLElement.prototype as { scrollHeight?: number }).scrollHeight);
+
 describe("EventLog", () => {
+  it("keeps the newest entry in view", () => {
+    Object.defineProperty(HTMLElement.prototype, "scrollHeight", { configurable: true, get: () => 500 });
+    const { rerender } = render(<EventLog logs={["a"]} logCount={1} />);
+    const scroller = screen.getByTestId("event-log-scroller");
+    scroller.scrollTop = 0;
+    rerender(<EventLog logs={["a", "b"]} logCount={2} />);
+    expect(scroller.scrollTop).toBe(500);
+    scroller.scrollTop = 123;
+    rerender(<EventLog logs={["a", "b"]} logCount={2} />);
+    expect(scroller.scrollTop).toBe(123);
+  });
+
   it("is an ARIA log region", () => {
     render(<EventLog logs={["a"]} logCount={1} />);
     expect(screen.getByRole("log", { name: "Event log" })).toBeInTheDocument();

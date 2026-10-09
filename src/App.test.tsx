@@ -64,6 +64,15 @@ describe("App", () => {
     expect(screen.queryByRole("button", { name: /solo quest/i })).toBeNull();
   });
 
+  it("the overworld uses the slim page padding at md; the menu keeps its own", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<App />);
+    const main = () => container.querySelector("main")!;
+    expect(main().className.split(/\s+/)).not.toContain("md:p-2");
+    await user.click(screen.getByRole("button", { name: /solo quest/i }));
+    expect(main().className.split(/\s+/)).toContain("md:p-2");
+  });
+
   it("the main menu offers Solo Quest, Team Lobby and Settings, with no Exit Game", () => {
     render(<App />);
     const menu = within(screen.getByRole("navigation", { name: "Main menu" }));

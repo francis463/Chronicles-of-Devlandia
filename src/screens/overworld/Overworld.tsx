@@ -18,6 +18,7 @@ import { BottomHud } from "./BottomHud";
 import { EventLog } from "./EventLog";
 import { MapViewport } from "./MapViewport";
 import { MiniMap } from "./MiniMap";
+import { QuestList } from "./QuestList";
 import { TopHud } from "./TopHud";
 import { TouchControls } from "./TouchControls";
 
@@ -66,8 +67,10 @@ export function Overworld({
   const inRange = downed ? null : placeInReach(state.player, visiblePois(state));
 
   return (
-    <Panel className="mx-auto w-full max-w-5xl overflow-hidden">
+    <Panel className="mx-auto w-full max-w-screen-2xl overflow-hidden md:grid md:min-h-[calc(100dvh-1rem)] md:grid-cols-[14rem_minmax(0,1fr)] md:grid-rows-[auto_auto_auto_1fr_auto]">
+      {/* DOM order is the phone order; at md the grid places the sidebar (mini-map, quests, log) beside the map. */}
       <TopHud
+        className="md:col-span-2"
         hp={state.hp}
         stamina={state.stamina}
         minutes={minutes}
@@ -76,51 +79,55 @@ export function Overworld({
         reconnecting={team?.status === "reconnecting"}
         region={ZONES[state.zone].name}
       />
-      <div className="flex flex-col md:flex-row">
-        <MiniMap
+      <MiniMap
+        className="md:col-start-1 md:row-start-2"
+        zone={state.zone}
+        player={state.player}
+        artifactFound={state.artifactFound}
+        teammates={team?.teammates}
+        playerColor={team?.me?.color}
+      />
+      <div className="flex min-w-0 flex-col md:col-start-2 md:row-start-2 md:row-span-3">
+        <MapViewport
           zone={state.zone}
           player={state.player}
+          drone={state.drone}
+          minutes={minutes}
+          inspected={state.inspected}
+          hasLoot={state.hasLoot}
+          gateUnlocked={state.gateUnlocked}
+          clueDecoded={state.clueDecoded}
           artifactFound={state.artifactFound}
-          teammates={team?.teammates}
+          towerPowered={state.towerPowered}
+          teammates={team?.teammates.filter((t) => t.zone === state.zone)}
           playerColor={team?.me?.color}
+          inRange={inRange}
+          downed={downed}
+          onInteract={(poi) => dispatch({ type: "interact", poi })}
+          onCloseInspection={() => dispatch({ type: "closeInspection" })}
+          onRespawn={() => dispatch({ type: "respawn" })}
+          villagerLine={adaLine(state)}
         />
-        <div className="flex flex-1 flex-col">
-          <MapViewport
-            zone={state.zone}
-            player={state.player}
-            drone={state.drone}
-            minutes={minutes}
-            inspected={state.inspected}
-            hasLoot={state.hasLoot}
-            gateUnlocked={state.gateUnlocked}
-            clueDecoded={state.clueDecoded}
-            artifactFound={state.artifactFound}
-            towerPowered={state.towerPowered}
-            teammates={team?.teammates.filter((t) => t.zone === state.zone)}
-            playerColor={team?.me?.color}
-            inRange={inRange}
-            downed={downed}
-            onInteract={(poi) => dispatch({ type: "interact", poi })}
-            onCloseInspection={() => dispatch({ type: "closeInspection" })}
-            onRespawn={() => dispatch({ type: "respawn" })}
-            villagerLine={adaLine(state)}
-          />
-          <TouchControls
-            disabled={downed || isModalOpen(state)}
-            inRange={inRange}
-            onMove={(dir) => dispatch({ type: "move", dir })}
-            onInteract={(poi) => dispatch({ type: "interact", poi })}
-          />
-        </div>
-        <EventLog logs={state.logs} logCount={state.logCount} />
+        <TouchControls
+          disabled={downed || isModalOpen(state)}
+          inRange={inRange}
+          onMove={(dir) => dispatch({ type: "move", dir })}
+          onInteract={(poi) => dispatch({ type: "interact", poi })}
+        />
       </div>
+      <EventLog className="md:col-start-1 md:row-start-4" logs={state.logs} logCount={state.logCount} />
       <BottomHud
+        className="md:col-span-2 md:row-start-5"
         hasLoot={state.hasLoot}
-        questComplete={state.questComplete}
         clueDecoded={state.clueDecoded}
         artifactFound={state.artifactFound}
-        towerPowered={state.towerPowered}
         onDecodeScroll={() => dispatch({ type: "openCipher" })}
+      />
+      <QuestList
+        className="md:col-start-1 md:row-start-3"
+        questComplete={state.questComplete}
+        artifactFound={state.artifactFound}
+        towerPowered={state.towerPowered}
       />
       {state.terminalOpen && (
         <TerminalModal

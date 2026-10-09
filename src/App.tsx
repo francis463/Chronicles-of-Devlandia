@@ -29,8 +29,11 @@ export default function App({
     setScreen("menu");
   };
 
+  // The overworld takes the window: slim page padding on desktop.
+  const inGame = screen === "overworld" || (screen === "lobby" && team.phase === "playing");
+
   return (
-    <main className="min-h-screen p-4 sm:p-8">
+    <main className={inGame ? "min-h-screen p-4 sm:p-8 md:p-2" : "min-h-screen p-4 sm:p-8"}>
       {screen === "menu" && (
         <MainMenu onSoloQuest={startSoloQuest} onTeamLobby={() => setScreen("lobby")} />
       )}

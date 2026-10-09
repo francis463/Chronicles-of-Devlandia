@@ -87,15 +87,17 @@ export function MiniMap({
   artifactFound,
   teammates = [],
   playerColor,
+  className = "",
 }: {
   zone: ZoneId;
   player: Point;
   artifactFound: boolean;
   teammates?: Teammate[];
   playerColor?: string;
+  className?: string;
 }) {
   return (
-    <div className="flex gap-3 border-b-2 border-dashed border-[var(--panel-border)] p-3 md:w-36 md:flex-shrink-0 md:flex-col md:border-r-2 md:border-b-0">
+    <div className={`flex gap-3 border-b-2 border-dashed border-[var(--panel-border)] p-3 md:flex-shrink-0 md:flex-col md:border-r-2 md:border-b-0 ${className}`}>
       <div
         aria-label="Mini-map"
         role="img"

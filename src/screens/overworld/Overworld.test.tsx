@@ -60,6 +60,38 @@ describe("Overworld HUD", () => {
   });
 });
 
+describe("Overworld layout", () => {
+  const QUEST_LINES = [
+    "Quest: Survey Frozen River (0/1)",
+    "Treasure: Golden Semicolon (0/1)",
+    "Tower: Power the signal tower (0/1)",
+  ];
+
+  it("the quest lines sit in their own Quests section, once each, outside the inventory bar", () => {
+    render(<Overworld onMenu={() => {}} />);
+    const quests = screen.getByRole("region", { name: "Quests" });
+    for (const line of QUEST_LINES) {
+      expect(within(quests).getByText(line)).toBeInTheDocument();
+      expect(screen.getAllByText(line)).toHaveLength(1);
+      expect(within(screen.getByRole("contentinfo")).queryByText(line)).toBeNull();
+    }
+  });
+
+  it("at md the sidebar holds the mini-map, the quests and the event log, with the map beside them", () => {
+    const { container } = render(<Overworld onMenu={() => {}} />);
+    const miniMapRoot = screen.getByRole("img", { name: "Mini-map" }).parentElement!;
+    const quests = screen.getByRole("region", { name: "Quests" });
+    const log = screen.getByRole("log", { name: "Event log" }).closest("aside")!;
+    for (const el of [miniMapRoot, quests, log]) expect(el.className.split(/\s+/)).toContain("md:col-start-1");
+    const mapColumn = screen.getByTestId("map-canvas").parentElement!.parentElement!;
+    expect(mapColumn.className.split(/\s+/)).toContain("md:col-start-2");
+    const panel = container.firstElementChild!;
+    expect(panel.className.split(/\s+/)).toEqual(expect.arrayContaining(["md:min-h-[calc(100dvh-1rem)]", "max-w-screen-2xl"]));
+    expect(miniMapRoot.className.split(/\s+/)).toContain("md:flex-col");
+    expect(quests.className.split(/\s+/)).toEqual(expect.arrayContaining(["bg-[var(--bg)]", "md:border-r-2"]));
+  });
+});
+
 describe("Overworld map", () => {
   it("looting the supply cache logs, fills the inventory and empties the cache", async () => {
     const user = setup();

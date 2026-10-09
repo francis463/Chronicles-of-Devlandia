@@ -11,6 +11,7 @@ export function TopHud({
   teamLabel,
   reconnecting,
   region,
+  className = "",
 }: {
   hp: number;
   stamina: number;
@@ -21,9 +22,10 @@ export function TopHud({
   reconnecting?: boolean;
   /** The zone you are in: "C++ Peaks". */
   region: string;
+  className?: string;
 }) {
   return (
-    <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b-2 border-[var(--panel-border)] bg-[var(--bg)] px-3 py-2">
+    <header className={`flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b-2 border-[var(--panel-border)] bg-[var(--bg)] px-3 py-2 ${className}`}>
       <div className="flex flex-wrap items-center gap-4">
         <Meter label="HP" value={hp} max={MAX_HP} tone="accent" />
         <Meter label="STA" value={stamina} max={MAX_STAMINA} tone="primary" />
