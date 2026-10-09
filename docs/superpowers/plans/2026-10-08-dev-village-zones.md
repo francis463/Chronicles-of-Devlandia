@@ -90,7 +90,7 @@
 2. **A teammate in the other zone shows nowhere on your map:** no sprite, no label, no label obstacle. They show only in their mini-map cell. Pinned in Task 3 ("a teammate who walks into the village leaves your Peaks map and the log says so") and Task 8 ("puts each dot in its zone's cell").
 3. **The zone fade never blocks a click or a key.** The cover is `pointer-events-none` and `aria-hidden`, and sits under the buttons' layer. Pinned in Task 7 ("the zone fade covers the map under the fog, never takes clicks, and is skipped under reduced motion").
 4. **A Peaks button clicked the instant you cross, or a crafted action for a place in another zone,** changes nothing. Pinned in Task 2 ("places outside your zone do nothing").
-5. **Short windows and phones held sideways** clip nothing, and the page scrolls to the D-pad and the bottom bar. Pinned in Task 10 (browser check at 844 × 390 touch and 1280 × 520).
+5. **Short windows and phones held sideways** clip nothing, and the page scrolls to the D-pad and the bottom bar. Pinned in Task 10 (browser check at 844 × 390 touch and 1280 × 440).
 
 ## File Structure
 
@@ -142,7 +142,7 @@
       - `exitFor("peaks", {x:6,y:72}, {x:6,y:68})` is null
       - `exitFor("village", {x:94,y:72}, {x:98,y:72})?.to` is `"peaks"`
       - `exitFor("village", {x:6,y:72}, {x:2,y:72})` is null
-  - `reducer.test.ts`, new describe `gameReducer: zones`:
+  - `reducer.test.ts`, new describe `gameReducer: zones`. Any village state kept in a const (the `toBe` checks need one) is annotated `: GameState`, like `opened` at reducer.test.ts:9. An unannotated `{ ...s0, zone: "village" }` gets `zone: string` and fails `tsc -b`.
     - `"left from (6, 72) in the Peaks enters the village at (94, 72)"`: from `{ ...s0, player: {x:6,y:72}, inspected: "gate", stamina: 50 }`, move left gives zone `"village"`, player (94,72), drone (86,70), stamina 49, inspected null, and last log "Entered Dev Village.".
     - `"right from (94, 72) in the village enters the Peaks at (6, 72)"`: zone `"peaks"`, player (6,72), drone (14,70), and last log "Entered C++ Peaks.".
     - `"the exit spans y 62–78: (6, 62) and (8, 68) leave; (6, 60), (8, 80) and (6, 50) stay clamped"`:
@@ -178,7 +178,7 @@
     5. the river quest check uses `inRiver({ ...state, player })`.
   - `riverDamage` uses `inRiver(state)`. `respawn` adds `zone: "peaks"`.
   - `useGameTimers`: `draining = !paused && !state.towerPowered && inRiver(state)`.
-  - `LOG.enteredPeaks = "Entered C++ Peaks."` and `LOG.enteredVillage = "Entered Dev Village."`. `INITIAL_LOGS[0]` uses `LOG.enteredPeaks`.
+  - `LOG.enteredPeaks = "Entered C++ Peaks."` and `LOG.enteredVillage = "Entered Dev Village."`. `INITIAL_LOGS[0]` stays the literal "Entered C++ Peaks." (it already matches). Referencing `LOG` there would be a use-before-declaration: TS2448, and a TDZ error at load.
 - [ ] **Step 4: Run** `npm test` and `npx tsc -b`. Expected: all PASS, tsc clean.
 - [ ] **Step 5: Commit** `feat(game): zones, and the way west into Dev Village`.
 
@@ -194,7 +194,7 @@
   - `src/game/reducer.ts`: `visiblePois`, `interact`
   - `src/hooks/useKeyboardControls.ts`: [E]
   - `src/screens/overworld/Overworld.tsx`: `inRange`
-  - `src/screens/overworld/MapViewport.tsx`: prompt text
+  - `src/screens/overworld/MapViewport.tsx`: prompt text, INSPECT_COPY lookup guard
 - Test: `src/game/geometry.test.ts`, `src/game/reducer.test.ts`, `src/screens/overworld/Overworld.test.tsx`
 
 **Interfaces:**
@@ -218,7 +218,7 @@
       - `placeInReach({x:34,y:72}, [])` is null
     - `"interactLabel and promptText name what [E] does"`: ADA gives "Talk to Ada" / "[E] Talk to Ada"; SIGNPOST gives "Read Signpost" / "[E] Read Signpost"; the gate gives "Terminal Gate" / "[E] Inspect Terminal Gate"; HIDDEN_ARTIFACT gives "Dig here" / "[E] Dig here".
   - `village.test.ts`: `"adaLine gives the line of the first stage not done"`, with seven cases built on `initialState`. Each step sets one more flag, in order: gateUnlocked, towerPowered, questComplete, hasLoot, clueDecoded, artifactFound. Each expects the spec's line verbatim.
-  - `reducer.test.ts`, describe `gameReducer: places and talking`:
+  - `reducer.test.ts`, describe `gameReducer: places and talking` (village consts annotated `: GameState`, as in Task 1):
     - `"visiblePois: your zone's places, plus the dig spot in the Peaks once revealed"`:
       - s0 gives the ids `["gate","chest","river","tower"]`;
       - `{ ...s0, zone: "village", clueDecoded: true }` gives `["villager","signpost"]`;
@@ -229,7 +229,7 @@
       - so is `gameReducer(s0, interact villager)`.
     - `"talking to Ada opens her card and logs her line once"`:
       - village state: inspected "villager", last log `Ada: "Heading north? The gate's terminal wants one CSS fix. Get the display right and the wall lets you through."`;
-      - talking again returns `toBe` the same state.
+      - talking again adds nothing: with `twice = gameReducer(once, interact villager)`, `twice.logCount` equals `once.logCount` and `twice` `toEqual` `once`. Not `toBe`: the branch spreads a new object.
     - `"Ada's line follows your progress"`: with `gateUnlocked: true` the last log is the tower line.
     - `"the signpost opens its card and logs nothing"`: inspected "signpost"; logCount unchanged.
   - `Overworld.test.tsx`, describe `Overworld village`:
@@ -246,7 +246,10 @@
     - `signpost` gives `{ ...state, inspected: "signpost" }`;
     - the river becomes an explicit branch, so nothing falls through.
   - `useKeyboardControls` [E] and `Overworld` `inRange` use `placeInReach(player, visiblePois(state))`.
-  - MapViewport uses `promptText(inRange)`.
+  - MapViewport:
+    - import the helper as `promptText as promptFor` (MapViewport already has a local `promptText`);
+    - `const promptText = inRange ? promptFor(inRange) : "";` (drop `interactLabel` from the import if unused);
+    - line 211 becomes `const copy = inspected && inspected !== "villager" ? INSPECT_COPY[inspected] : null;`. INSPECT_COPY no longer has a villager key, and Ada's card text arrives in Task 7 through `villagerLine`. Without this, `tsc -b` fails with TS7053.
 - [ ] **Step 4: Run** `npm test` and `npx tsc -b`. Expected: all PASS, tsc clean.
 - [ ] **Step 5: Commit** `feat(game): Ada, the signpost, and places that answer only in their zone`.
 
@@ -283,7 +286,9 @@
       - memoryTransport.test lines 28, 29, 74 and 88;
       - broadcastTransport.test lines 56–58;
       - supabaseTransport.test lines 156, 157, 160, 161, 190, 194 and 197.
-    - **Meta fixtures** gain `zone: "peaks"`: memory, broadcast and supabase `meta()`, makeTransport `me`, and TeamLobby.test `me`.
+    - **Meta fixtures** gain `zone: "peaks"`:
+      - memory, broadcast and supabase `meta()` (already typed `PresenceMeta`);
+      - makeTransport.test `me` and TeamLobby.test `me` are unannotated, so a bare literal widens to `string` and fails tsc. Type them `const me: PresenceMeta = …` (import the type from `../game/team`) and `const me: RankedPlayer = …`.
     - **The TeamLobby.test stub** gains `onZoneChange: vi.fn(() => () => {})`.
     - **useTeamSession.test:**
       - every `publishPosition(x, y)` gains `"peaks"` (lines 188, 259, 274, 288, 295);
@@ -295,13 +300,14 @@
       - `parseMessage({ type:"pos", id:"a", x:50, y:50, zone: 7 }, NOW)` is `{ …, zone: null }`.
     - useTeamSession.test, in `useTeamSession: in game`, with `vi.useFakeTimers()`:
       - `"publishPosition carries the zone to teammates"`: Ana calls `publishPosition(40, 60, "village")`; after `POS_INTERVAL_MS`, Kai's teammate Ana has `zone: "village"`.
-      - `"reports a teammate's zone change from their position updates only, never on first sight"`:
-        1. Ana publishes `(94, 72, "village")`, then `publishFlags({ ...NO_FLAGS, gateUnlocked: true })`. Her presence now says village.
-        2. Ana publishes `(6, 72, "peaks")` and the timers advance.
-        3. Zed joins with `seen = vi.fn()` subscribed through `onZoneChange`. Expect `seen` not called.
-        4. Ana publishes `(94, 72, "village")` and the timers advance. Expect `seen` called once with `("Ana", "village")`.
+      - `"reports a teammate's zone change from their position updates only, never on first sight"`. A raw hub member stands in for a teammate, so presence really arrives before the first `pos`; with real hooks the memory hub delivers a `pos` first.
+        1. `const gil = hub.transport(); await act(() => gil.join(room, { id: "gil", name: "Gil", joinedAt: Date.now() + 1000, startedAt: kai.result.current.startedAt, flags: NO_FLAGS, x: 94, y: 72, zone: "village" }))`. Kai's teammates now show Gil in the village, from presence.
+        2. Subscribe `seen = vi.fn()` on Kai through `onZoneChange`.
+        3. `hub.inject(room, { type: "pos", id: "gil", x: 6, y: 72, zone: "peaks" })`. Expect `seen` not called: this is first sight.
+        4. `hub.inject(room, { type: "pos", id: "gil", x: 94, y: 72, zone: "village" })`. Expect `seen` called once with `("Gil", "village")`.
+        - This fails on a hook that seeds its baseline from presence.
       - `"a change to or from an unknown zone reports nothing"`:
-        1. `hub.inject(room, { type: "pos", id: anaId, x: 50, y: 70, zone: "marsh" })`, then the same with `"village"`. Expect `seen` not called.
+        1. With Gil as above, and his first `pos` already seen in the Peaks: `hub.inject(room, { type: "pos", id: "gil", x: 50, y: 70, zone: "marsh" })`, then the same with `"village"`. Expect `seen` not called.
         2. Then with `"peaks"`. Expect it called once.
     - TeamOverworld.test `"a teammate who walks into the village leaves your Peaks map and the log says so"`:
       - Kai clicks "Move left" six times, then `act(() => vi.advanceTimersByTime(POS_INTERVAL_MS * 2))`.
@@ -504,18 +510,28 @@ signpost 16×16  palette { o: "#0b1020", b: "#d6b98c", B: "#b08d5e", a: "#334155
     - scene.test `base`, paint.test `input`, and the hand-built `Scene` literal in "draws ground, glints, flat…";
     - MapCanvas.test `input`;
     - the MapViewport.test `props()`.
+  - paint.test: the existing direct cache calls gain `"peaks"`. These are `ground.get(a)` at L163 and L165, `ground.get(fitWorld(…354…))` at L167 and `ground.get(fitWorld(…668…))` at L178, and `createGroundCache(() => null, sprites).get(…)` at L204. Otherwise tsc reports TS2554 and the bake tests throw on an undefined area.
   - scene.test:
     - `"the village draws its huts, well, fences, signpost and Ada, and none of the Peaks' landmarks"`. `scene({ zone: "village", player: {x:60,y:70}, drone: {x:68,y:68} })` gives:
       - `upright` with 3 `hut`, 1 `well`, 3 `fence`, 1 `signpost`, 20 `wall`, and one `explorer-down` with variant `"#b45309"`;
       - no `tower`, `chest-closed`, `chest-open`, `gate`, `semicolon`;
       - `flat`, `glints` and `light` empty even with `towerPowered: true, clueDecoded: true`.
-    - `"the Peaks draw none of the village's props"`: no `hut`, `well`, `fence` or `signpost` in `scene()`.
-  - paint.test `"the ground cache is rebuilt when the zone changes and reused when it doesn't"`: with one world, `get(w, "peaks")`, `get(w, "village")` and `get(w, "village")` make 2 images, and the third call returns the second result (`toBe`).
+    - `"the Peaks draw none of the village's props"` (**guard**: holds before and after): no `hut`, `well`, `fence` or `signpost` in `scene()`.
+    - `"the village scene's interior decorations are the village's own, even after a Peaks scene"`:
+      1. `DECOR = ["pine","tree","rock","bush","snow-rock"]`, and `drawn(s)` is the set of `` `${d.sprite}@${d.x},${d.y}` `` for the upright DECOR drawables.
+      2. Build `peaks = drawn(scene())` first, then `village = drawn(scene({ zone: "village", player: {x:60,y:70}, drone: {x:68,y:68} }))`.
+      3. `village` equals the same set built from `decorations(REACHABLE_RECT, AREAS.village)`, keeping those whose sprite box intersects REACHABLE_RECT and keying each by its sprite box's x,y.
+      4. `village` does not equal `peaks`.
+  - paint.test `"the ground cache is rebuilt when the zone changes and reused when it doesn't"`, with `w = fitWorld({ width: 668, height: 360, dpr: 1 })` and `setup()`:
+    1. `a = ground.get(w, "peaks")`; record `n = made.length`.
+    2. `b = ground.get(w, "village")`: `b` is not `a`, and `made.length > n`. Record `m`.
+    3. `ground.get(w, "village")` is `b` (`toBe`), and `made.length === m`.
+    - Do not assert an absolute count: the shared `make` also counts sprite canvases.
   - MapCanvas.test `"jumps the player and drone when the zone changes"`:
     1. Render with `{ ...input, player: {x:6,y:72}, drone: {x:14,y:70} }`, then call `frame()`.
     2. Rerender with `{ ...input, zone: "village", player: {x:94,y:72}, drone: {x:86,y:70} }`, then call `frame()` once.
     3. The player (the explorer with variant `"#22c55e"`) is at `spriteBox("explorer-down", toArt({x:94,y:72}))` x/y, and the drone at its arrival box. Do not select `explorers(s)[0]`: Ada is an explorer too.
-- [ ] **Step 2: Run** `npx vitest run src/render src/screens/overworld/MapCanvas.test.tsx`. Expected: the new tests FAIL.
+- [ ] **Step 2: Run** `npx vitest run src/render src/screens/overworld/MapCanvas.test.tsx`. Expected: the new tests FAIL; the guard "the Peaks draw none of the village's props" PASSES.
 - [ ] **Step 3: Implement** per the Produces block.
   - Turn the caches into `Map<ZoneId, Drawable[]>`.
   - In MapCanvas, keep `let lastZone = latest.current.input.zone`; for each frame, `jump = respawned || now.zone !== lastZone`, then update `lastZone`.
@@ -553,14 +569,15 @@ signpost 16×16  palette { o: "#0b1020", b: "#d6b98c", B: "#b08d5e", a: "#334155
     - Peaks captions and [T], [X], [G] buttons only when `zone === "peaks"`;
     - village: "(Dev Village)", "C++ Peaks →", and the buttons "[V] Ada" (colour `var(--accent-border)`) and "[P] Signpost" (colour `var(--text)`), which call `onInteract("villager")` / `onInteract("signpost")`;
     - Peaks also shows "← Dev Village";
-    - dig spot and artifact anchors only in the Peaks;
+    - dig spot and artifact anchors only in the Peaks, and the found semicolon is a label obstacle only when `zone === "peaks" && artifactFound`;
     - card: `inspectedPoi` is found in `[...POIS, HIDDEN_ARTIFACT, ADA, SIGNPOST]`, and its text is `villagerLine` for the villager, otherwise today's `INSPECT_COPY` rule;
     - fade per Decision 8, with `data-testid="zone-fade"`.
   - TopHud: `region: string` prop rendered as `` `REGION: ${region.toUpperCase()}` ``.
 
 - [ ] **Step 1: Write the failing tests, and change the existing ones.**
   - Change mapLayout `"at 320×180 and 640×360 worlds no caption box intersects another, a landmark sprite box or the dig spot"`:
-    - It loops over zones and checks only that zone's captions:
+    - It loops over zones and checks only that zone's captions. First, right after `captions` is built, it asserts `new Set(captions.map((c) => c.group))` equals `peaks: tower, chest, gate, peaks, river, forest, west-exit` or `village: villager, signpost, village, east-exit`. So the test fails until entries carry `zone`, instead of passing with zero assertions.
+    - The captions are:
       - map captions with `MAP_TEXTS` keyed by every id, adding `village: ["(Dev Village)"]`, `"west-exit": ["← Dev Village"]` and `"east-exit": ["C++ Peaks →"]`;
       - landmark captions.
     - Blockers:
@@ -590,6 +607,10 @@ signpost 16×16  palette { o: "#0b1020", b: "#d6b98c", B: "#b08d5e", a: "#334155
     - `"the zone fade covers the map under the fog, never takes clicks, and is skipped under reduced motion"`:
       - `getByTestId("zone-fade")` has `aria-hidden="true"` and its className contains `pointer-events-none`, `z-[5]` and `motion-reduce:hidden`.
       - After rerendering with another zone it is a new element (`not.toBe` the old one).
+    - `"in the village the found semicolon neither shows nor moves your labels"`:
+      - Render `props({ zone: "village", player: { x: 52, y: 80 }, drone: { x: 44, y: 78 } })` and record the player label's style (`getByTestId("player").firstElementChild!.getAttribute("style")`).
+      - Rerender with `artifactFound: true, clueDecoded: true`.
+      - The style is unchanged, and `queryByTestId("artifact")` and `queryByTestId("dig-spot")` are null.
     - `"the world layer is replaced, not moved, when the zone changes"`: `getByTestId("world-layer")` before and after a zone rerender are different elements.
   - Overworld.test `"walking west from camp enters Dev Village"`:
     - `initial={{ player: { x: 6, y: 72 } }}`, then ArrowLeft.
@@ -630,7 +651,10 @@ signpost 16×16  palette { o: "#0b1020", b: "#d6b98c", B: "#b08d5e", a: "#334155
     - an `aria-hidden` canvas whose backing is `round(96·dpr) × round(54·dpr)`, painted with its zone;
     - place markers: the Peaks get `POIS` and the artifact diamond, the village gets ADA and SIGNPOST;
     - dots for teammates in that zone (`minimap-teammate-${name}`);
-    - in your zone's cell only: your dot `data-testid="minimap-player"`, and `data-current="true"` with `shadow-[inset_0_0_0_1px_var(--accent)]`.
+    - in your zone's cell only:
+      - your dot `data-testid="minimap-player"`;
+      - `data-current="true"` on the cell;
+      - straight after the canvas, `<div aria-hidden="true" data-testid="minimap-current" className="pointer-events-none absolute inset-0 shadow-[inset_0_0_0_1px_var(--accent)]" />`. Do not put the shadow on the cell itself: its opaque canvas paints over the cell's own inset shadow.
   - The legend is unchanged.
 
 - [ ] **Step 1: Write the failing tests, and change the existing ones.**
@@ -643,7 +667,7 @@ signpost 16×16  palette { o: "#0b1020", b: "#d6b98c", B: "#b08d5e", a: "#334155
       - the `#1e293b` fills are exactly `[{x:0,y:26,w:96,h:1}]` (row `round(0.49·54)`);
       - `colorAt(10,50)` is meadow;
       - the fills cover 96 × 54 once.
-    - `"draws two cells, Village on the left and Peaks on the right, and outlines yours"`: with `zone="village"`, the village cell has `style.left === "0px"` and `data-current="true"`; the Peaks cell has `"96px"` and no `data-current`.
+    - `"draws two cells, Village on the left and Peaks on the right, and outlines yours"`: with `zone="village"`, the village cell has `style.left === "0px"`, `data-current="true"` and contains `minimap-current`; the Peaks cell has `"96px"`, no `data-current` and no `minimap-current`.
     - `"puts each dot in its zone's cell"`:
       - teammates Kai (village), Mia (peaks) and Zed (`zone: null`);
       - `within(villageCell).getByTestId("minimap-teammate-Kai")` and `within(peaksCell).getByTestId("minimap-teammate-Mia")`;
@@ -669,12 +693,14 @@ signpost 16×16  palette { o: "#0b1020", b: "#d6b98c", B: "#b08d5e", a: "#334155
 
 **Interfaces:**
 - Produces:
-  - `QuestList({ questComplete, artifactFound, towerPowered, className? })`: `<section aria-label="Quests">` with today's three lines, verbatim and with the same classes.
+  - `QuestList({ questComplete, artifactFound, towerPowered, className = "" })`: ``<section aria-label="Quests" className={`bg-[var(--bg)] px-3 pb-2 md:border-r-2 md:border-dashed md:border-[var(--panel-border)] md:bg-transparent md:p-3 ${className}`}>``. Inside it is today's lines `div` (`flex flex-col items-end gap-1 text-[10px] uppercase tracking-widest text-[var(--accent)]`) with the three spans, verbatim.
+    - Below md it continues the bottom bar's band right under the inventory row.
+    - At md it is a padded sidebar block whose dashed right border joins the mini-map's and the log's.
   - Overworld Panel:
     - `className="mx-auto w-full max-w-screen-2xl overflow-hidden md:grid md:min-h-[calc(100dvh-1rem)] md:grid-cols-[14rem_minmax(0,1fr)] md:grid-rows-[auto_auto_auto_1fr_auto]"`
     - children in this DOM order: TopHud (`md:col-span-2`), MiniMap (`md:col-start-1 md:row-start-2`), the map column (`flex min-w-0 flex-col md:col-start-2 md:row-start-2 md:row-span-3`, holding MapViewport and TouchControls), EventLog (`md:col-start-1 md:row-start-4`), BottomHud (`md:col-span-2 md:row-start-5`), QuestList (`md:col-start-1 md:row-start-3`)
     - the modals stay where they are (they are fixed overlays)
-  - The MiniMap root drops `md:w-36 md:flex-col md:border-r-2` in favour of `md:border-r-2`, with the placement classes passed in.
+  - The MiniMap root drops only `md:w-36` (the grid column sets its width). It keeps `md:flex-shrink-0 md:flex-col md:border-r-2 md:border-b-0`, so at md the 194 px box sits above the legend; in a row it would overflow into the map column. The placement classes are passed in through `className`.
   - EventLog:
     - root `md:relative md:min-h-0 md:border-r-2`;
     - the `ol` is wrapped in `<div data-testid="event-log-scroller" className="md:absolute md:inset-x-3 md:top-10 md:bottom-3 md:overflow-y-auto">`;
@@ -688,10 +714,13 @@ signpost 16×16  palette { o: "#0b1020", b: "#d6b98c", B: "#b08d5e", a: "#334155
       - The className of the mini-map root (the parent element of the "Mini-map" box), the Quests region and the log's `aside` contains `md:col-start-1`.
       - The map viewport's column contains `md:col-start-2`.
       - The Panel contains `md:min-h-[calc(100dvh-1rem)]` and `max-w-screen-2xl`.
+      - The mini-map root's className still contains `md:flex-col`, and the Quests region's contains `bg-[var(--bg)]` and `md:border-r-2`.
   - EventLog.test `"keeps the newest entry in view"`:
     1. Stub `HTMLElement.prototype.scrollHeight` with a getter returning 500, and restore it afterwards.
-    2. Render, then rerender with one more entry (logCount + 1).
-    3. `getByTestId("event-log-scroller").scrollTop` is 500.
+    2. Render `<EventLog logs={["a"]} logCount={1} />`, then set `getByTestId("event-log-scroller").scrollTop = 0`.
+    3. Rerender with `logs={["a","b"]} logCount={2}`.
+    4. `scrollTop` is 500.
+    5. Set it to 123 and rerender with the same props; it stays 123. That pins the effect to `logCount`.
   - App.test `"the overworld uses the slim page padding at md; the menu keeps its own"`: the menu's `<main>` className has no `md:p-2`. After Solo Quest it contains `md:p-2`.
   - Existing quest-line, Patch, Scroll, Semicolon and "[ Decode Scroll ]" queries stay as they are (**guards**).
 - [ ] **Step 2: Run** `npx vitest run src/screens/overworld src/App.test.tsx`. Expected: the new tests FAIL; the guards PASS.
@@ -726,10 +755,13 @@ signpost 16×16  palette { o: "#0b1020", b: "#d6b98c", B: "#b08d5e", a: "#334155
     - solve the gate in the Peaks, return and talk again: the tower line;
     - read the signpost.
   - **1920 × 1080:** the world layer is 1280 × 720.
-  - **1280 × 520:** the bottom bar's bounding box is not overlapped by the map, and `document.scrollingElement.scrollHeight > 520`.
-  - **390 × 844, touch, DPR 3:** the same walk with the D-pad; the stacked order is mini-map, map, D-pad, log, bottom bar, quests.
+  - **1280 × 440:** the page scrolls (`document.scrollingElement.scrollHeight > 440`; expect 472 = 16 + 4 + 49 + 360 + 43). The bottom bar's box starts at or below the map column's bottom and is not overlapped. After scrolling to the bottom, the bar is fully in view.
+  - **1280 × 520:** fits without scrolling (`scrollHeight === 520`). The world layer is 640 × 360, and the bottom bar is not overlapped.
+  - **Mini-map outline:** a pixel on the inner 1 px edge of the current zone's cell is the accent colour, not terrain.
+  - **390 × 844, touch, DPR 3:** the same walk with the D-pad; the stacked order is mini-map, map, D-pad, log, then the bottom bar: the inventory row, then the quest lines in the same `--bg` band with 12 px side padding.
   - **844 × 390, touch:** the page scrolls to the D-pad, and the D-pad and bottom bar are both reachable by scrolling and not covered.
   - **Team, Same computer mode, two pages:** Kai walks into the village; Ana's map has no Kai; Ana's mini-map village cell has Kai; Ana's log has "Kai went to Dev Village." once.
   - **No console errors** (the blocked supabase.co WebSocket excepted).
+  - Ledger `Ruling:` spec line 330's "1280 × 520 … the page scrolls" cannot happen on a non-touch desktop: the page needs at most 472 px. The scroll case is checked at 1280 × 440.
 - [ ] **Step 4: Run** `npm test`, `npx tsc -b` and `npm run build`. Expected: all PASS.
 - [ ] **Step 5: Commit** `docs: Dev Village and the bigger view in the README`, then push. Then the executor's final whole-branch review (per the executing skill), and the finishing-a-development-branch menu.
