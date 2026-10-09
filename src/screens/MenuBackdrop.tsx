@@ -6,6 +6,7 @@ import { MapCanvas } from "./overworld/MapCanvas";
 
 /** The world at the moment a quest begins: dusk, nothing solved, the explorer and drone at camp. */
 const MENU_SCENE: SceneInput = {
+  zone: "peaks",
   player: PLAYER_START,
   drone: DRONE_START,
   teammates: [],

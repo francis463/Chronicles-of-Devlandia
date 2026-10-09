@@ -1,14 +1,16 @@
 import { describe, expect, it } from "vitest";
+import { AREAS } from "./areas";
 import { PHASE_TINT, buildScene, type Poses, type SceneInput } from "./scene";
-import { LIGHTS, SPRITES, spriteBox } from "./sprites";
-import { BRIDGE_RECT, LANDMARK_POINTS } from "./terrain";
-import { toArt } from "./world";
+import { LIGHTS, SPRITES, spriteBox, type SpriteId } from "./sprites";
+import { BRIDGE_RECT, LANDMARK_POINTS, decorations } from "./terrain";
+import { REACHABLE_RECT, intersects, toArt } from "./world";
 
 const DAY = 12 * 60;
 const DUSK = 19 * 60;
 const NIGHT = 23 * 60;
 
 const base: SceneInput = {
+  zone: "peaks",
   player: { x: 28, y: 72 },
   drone: { x: 36, y: 70 },
   teammates: [],
@@ -114,6 +116,41 @@ describe("scene: what is drawn", () => {
     expect(scene({ minutes: DAY }).tint).toBe("transparent");
     expect(scene({ minutes: DUSK }).tint).toBe(PHASE_TINT.Dusk);
     expect(scene({ minutes: NIGHT }).tint).toBe(PHASE_TINT.Night);
+  });
+});
+
+describe("scene: zones", () => {
+  const inVillage: Partial<SceneInput> = { zone: "village", player: { x: 60, y: 70 }, drone: { x: 68, y: 68 } };
+  const count = (s: ReturnType<typeof scene>, id: SpriteId) => s.upright.filter((d) => d.sprite === id).length;
+
+  it("the village draws its huts, well, fences, signpost and Ada, and none of the Peaks' landmarks", () => {
+    const s = scene(inVillage);
+    expect((["hut", "well", "fence", "signpost", "wall"] as const).map((id) => count(s, id))).toEqual([3, 1, 3, 1, 20]);
+    expect(s.upright.filter((d) => d.sprite === "explorer-down" && d.variant === "#b45309")).toHaveLength(1);
+    for (const id of ["tower", "chest-closed", "chest-open", "gate", "semicolon"]) expect(sprites(s, "upright")).not.toContain(id);
+    const busy = scene({ ...inVillage, towerPowered: true, clueDecoded: true });
+    expect([busy.flat, busy.glints, busy.light]).toEqual([[], [], []]);
+  });
+
+  it("the Peaks draw none of the village's props", () => {
+    for (const id of ["hut", "well", "fence", "signpost"]) expect(sprites(scene(), "upright")).not.toContain(id);
+  });
+
+  it("the village scene's interior decorations are the village's own, even after a Peaks scene", () => {
+    const DECOR: string[] = ["pine", "tree", "rock", "bush", "snow-rock"];
+    const drawn = (s: ReturnType<typeof scene>) =>
+      new Set(s.upright.filter((d) => DECOR.includes(d.sprite)).map((d) => `${d.sprite}@${d.x},${d.y}`));
+    const peaks = drawn(scene());
+    const village = drawn(scene(inVillage));
+    const own = new Set(
+      decorations(REACHABLE_RECT, AREAS.village)
+        .map((d) => ({ sprite: d.sprite, box: spriteBox(d.sprite, d.at) }))
+        .filter((d) => intersects(d.box, REACHABLE_RECT))
+        .map((d) => `${d.sprite}@${d.box.x},${d.box.y}`),
+    );
+    expect(own.size).toBeGreaterThan(0);
+    expect(village).toEqual(own);
+    expect(village).not.toEqual(peaks);
   });
 });
 

@@ -1,7 +1,10 @@
+import type { ZoneId } from "../game/zones";
+import { AREAS } from "./areas";
+import { inRect, type Area } from "./areas/area";
 import { greyscale, gridRuns, mirror, rotate90, type Palette } from "./pixels";
 import type { Scene } from "./scene";
 import { SPRITES, TEXTURES, explorerPalette, spriteBox, type SpriteId, type TextureId } from "./sprites";
-import { ICE_RECT, decorations, onPath, terrainAt, wallTiles } from "./terrain";
+import { decorations, onPath, terrainAt, wallTiles } from "./terrain";
 import { REACHABLE_RECT, WORLD, intersects, type ArtPoint, type Rect, type WorldRect } from "./world";
 
 /** The slice of CanvasRenderingContext2D the map uses (no paths, arcs or gradients: pixels only). */
@@ -16,7 +19,7 @@ export type Ctx2D = {
 };
 export type MakeCanvas = (w: number, h: number) => { image: CanvasImageSource; ctx: Ctx2D } | null;
 export type SpriteCache = { get(sprite: SpriteId, frame: number, variant: string, flip: boolean, rotate: boolean): CanvasImageSource | null };
-export type GroundCache = { get(world: WorldRect): { image: CanvasImageSource; x: number; y: number } | null };
+export type GroundCache = { get(world: WorldRect, zone: ZoneId): { image: CanvasImageSource; x: number; y: number } | null };
 
 const DOWNED_HOOD = "#94a3b8";
 const mod = (n: number, m: number) => ((n % m) + m) % m;
@@ -57,14 +60,14 @@ export function visibleArt(world: WorldRect): Rect {
   return { x, y, w: Math.ceil((world.backingWidth - world.ox) / world.s) - x, h: Math.ceil((world.backingHeight - world.oy) / world.s) - y };
 }
 
-const ICE_BANK: Rect = { x: ICE_RECT.x - 1, y: ICE_RECT.y - 1, w: ICE_RECT.w + 2, h: ICE_RECT.h + 2 };
-const inRect = (x: number, y: number, r: Rect) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h;
+/** The bank: a 1 px rim around the ice. */
+const bankOf = (ice: Rect): Rect => ({ x: ice.x - 1, y: ice.y - 1, w: ice.w + 2, h: ice.h + 2 });
 
-function groundTexture(x: number, y: number): TextureId {
-  const kind = terrainAt(x, y);
+function groundTexture(x: number, y: number, area: Area, bank: Rect | null): TextureId {
+  const kind = terrainAt(x, y, area);
   if (kind === "ice") return "ice";
-  if (inRect(x, y, ICE_BANK)) return "bank";
-  if (onPath(x, y)) return "path";
+  if (bank && inRect(x, y, bank)) return "bank";
+  if (onPath(x, y, area)) return "path";
   return kind;
 }
 
@@ -73,10 +76,12 @@ export function createGroundCache(make: MakeCanvas, sprites: SpriteCache): Groun
   let key = "";
   let cached: ReturnType<GroundCache["get"]> = null;
   return {
-    get(world) {
-      const next = `${world.backingWidth},${world.backingHeight},${world.s},${world.ox},${world.oy}`;
+    get(world, zone) {
+      const next = `${world.backingWidth},${world.backingHeight},${world.s},${world.ox},${world.oy},${zone}`;
       if (next === key) return cached;
       key = next;
+      const land = AREAS[zone];
+      const bank = land.ice && bankOf(land.ice);
       const area = visibleArt(world);
       const canvas = make(area.w, area.h);
       cached = null;
@@ -92,7 +97,7 @@ export function createGroundCache(make: MakeCanvas, sprites: SpriteCache): Groun
           }
         };
         for (let x = area.x; x < area.x + area.w; x++) {
-          const tex = TEXTURES[groundTexture(x, y)];
+          const tex = TEXTURES[groundTexture(x, y, land, bank)];
           const color = tex.palette[tex.grid[mod(y, 16)][mod(x, 16)]];
           if (color !== runColor) {
             flush(x);
@@ -109,10 +114,10 @@ export function createGroundCache(make: MakeCanvas, sprites: SpriteCache): Groun
         return box.x < 0 || box.x >= WORLD.width;
       };
       const baked: Array<{ sprite: SpriteId; at: ArtPoint; wall: boolean }> = [
-        ...decorations(area)
+        ...decorations(area, land)
           .filter((d) => !intersects(spriteBox(d.sprite, d.at), REACHABLE_RECT))
           .map((d) => ({ sprite: d.sprite as SpriteId, at: d.at, wall: false })),
-        ...wallTiles(area)
+        ...wallTiles(area, land)
           .filter(beyondTheWorld)
           .map((at) => ({ sprite: "wall" as SpriteId, at, wall: true })),
       ].sort((a, b) => a.at.y - b.at.y || Number(b.wall) - Number(a.wall));
@@ -136,7 +141,7 @@ export function paintScene(ctx: Ctx2D, scene: Scene, world: WorldRect, sprites: 
   ctx.clearRect(0, 0, backingWidth, backingHeight);
   ctx.setTransform(s, 0, 0, s, ox, oy);
 
-  const g = ground.get(world);
+  const g = ground.get(world, scene.zone);
   if (g) ctx.drawImage(g.image, g.x, g.y);
   const pixels = (list: Scene["light"]) => {
     for (const p of list) {

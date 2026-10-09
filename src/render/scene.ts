@@ -1,5 +1,7 @@
 import { phaseOf } from "../game/clock";
 import type { Phase, Point } from "../game/types";
+import type { ZoneId } from "../game/zones";
+import { AREAS } from "./areas";
 import type { Pose } from "./motion";
 import { circlePixels, diamondPixels } from "./pixels";
 import { LIGHTS, SPRITES, spriteBox, type SpriteId } from "./sprites";
@@ -13,6 +15,7 @@ export const PHASE_TINT: Record<Phase, string> = {
 };
 
 export type SceneInput = {
+  zone: ZoneId;
   player: Point;
   drone: Point;
   teammates: { id: string; name: string; color: string; x: number; y: number }[];
@@ -30,7 +33,7 @@ export type Poses = { player: Pose; drone: Pose; teammates: Record<string, Pose>
 export type Drawable = { sprite: SpriteId; frame: number; x: number; y: number; flip: boolean; rotate: boolean; variant: string };
 export type Pixel = { x: number; y: number; color: string; alpha: number };
 /** Painted in this order: glints, flat, upright, drone, tint, light. */
-export type Scene = { glints: Pixel[]; flat: Drawable[]; upright: Drawable[]; drone: Drawable; tint: string; light: Pixel[] };
+export type Scene = { zone: ZoneId; glints: Pixel[]; flat: Drawable[]; upright: Drawable[]; drone: Drawable; tint: string; light: Pixel[] };
 
 const GREEN = "#4ade80";
 const RED = "#ef4444";
@@ -68,21 +71,52 @@ function glow(at: ArtPoint, color: string, strength: number): Pixel[] {
   ] as const).flatMap(([r, a]) => diamondPixels(r).map((o) => ({ x: at.x + o.x, y: at.y + o.y, color, alpha: a * strength })));
 }
 
-let interior: Drawable[] | null = null;
-/** Decorations whose drawings reach into the walkable area are y-sorted with the explorers. */
-const interiorDecorations = () =>
-  (interior ??= decorations(REACHABLE_RECT)
-    .filter((d) => intersects(spriteBox(d.sprite, d.at), REACHABLE_RECT))
-    .map((d) => placed(d.sprite, d.at)));
+/** Computes a zone's static drawables once. */
+function perZone(build: (zone: ZoneId) => Drawable[]): (zone: ZoneId) => Drawable[] {
+  const cache = new Map<ZoneId, Drawable[]>();
+  return (zone) => {
+    let found = cache.get(zone);
+    if (!found) cache.set(zone, (found = build(zone)));
+    return found;
+  };
+}
 
-let wall: Drawable[] | null = null;
+/** Decorations whose drawings reach into the walkable area are y-sorted with the explorers. */
+const interiorDecorations = perZone((zone) =>
+  decorations(REACHABLE_RECT, AREAS[zone])
+    .filter((d) => intersects(spriteBox(d.sprite, d.at), REACHABLE_RECT))
+    .map((d) => placed(d.sprite, d.at)),
+);
+
 /** Every wall tile inside the world is y-sorted with the explorers, the edge ones included. */
-const wallTilesInWorld = () => (wall ??= wallTiles(WALL_RECT).map((at) => placed("wall", at)));
+const wallTilesInWorld = perZone((zone) => wallTiles(WALL_RECT, AREAS[zone]).map((at) => placed("wall", at)));
+
+/** An area's static uprights (the village's huts, well, fences, signpost and Ada). */
+const props = perZone((zone) => AREAS[zone].props.map((p) => placed(p.sprite, p.at, { variant: p.variant ?? "base" })));
+
+const byFeet = (a: Drawable, b: Drawable) => feetRow(a) - feetRow(b) || Number(isExplorer(a)) - Number(isExplorer(b));
 
 export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: boolean): Scene {
   const P = LANDMARK_POINTS;
   const phase = phaseOf(input.minutes);
   const strength = GLOW_STRENGTH[phase];
+
+  const player = input.downed
+    ? placed("explorer-down", poses.player, { rotate: true, variant: "grey" })
+    : explorer(poses.player, input.playerColor);
+  const mates = input.teammates.flatMap((m) => (poses.teammates[m.id] ? [explorer(poses.teammates[m.id], m.color)] : []));
+  const bob = !reduced && Math.floor(t / 400) % 2 === 1 ? -1 : 0;
+  const droneBox = spriteBox("drone", poses.drone);
+  const drone: Drawable = {
+    ...placed("drone", poses.drone),
+    y: droneBox.y + bob,
+    frame: reduced ? 0 : Math.floor(t / 125) % 2,
+  };
+
+  if (input.zone !== "peaks") {
+    const upright = [...interiorDecorations(input.zone), ...wallTilesInWorld(input.zone), ...props(input.zone), ...mates, player].sort(byFeet);
+    return { zone: input.zone, glints: [], flat: [], upright, drone, tint: PHASE_TINT[phase], light: [] };
+  }
 
   const glints: Pixel[] = reduced
     ? []
@@ -96,28 +130,16 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
   const digging = input.clueDecoded && !input.artifactFound;
   if (digging) flat.push(placed("x-mark", P.dig));
 
-  const player = input.downed
-    ? placed("explorer-down", poses.player, { rotate: true, variant: "grey" })
-    : explorer(poses.player, input.playerColor);
-  const mates = input.teammates.flatMap((m) => (poses.teammates[m.id] ? [explorer(poses.teammates[m.id], m.color)] : []));
   const upright = [
-    ...interiorDecorations(),
-    ...wallTilesInWorld(),
+    ...interiorDecorations(input.zone),
+    ...wallTilesInWorld(input.zone),
     placed("tower", P.tower),
     placed(input.hasLoot ? "chest-open" : "chest-closed", P.chest),
     placed("gate", P.gate, { frame: input.gateUnlocked ? 0 : 1 }),
     ...(input.artifactFound ? [placed("semicolon", P.dig)] : []),
     ...mates,
     player,
-  ].sort((a, b) => feetRow(a) - feetRow(b) || Number(isExplorer(a)) - Number(isExplorer(b)));
-
-  const bob = !reduced && Math.floor(t / 400) % 2 === 1 ? -1 : 0;
-  const droneBox = spriteBox("drone", poses.drone);
-  const drone: Drawable = {
-    ...placed("drone", poses.drone),
-    y: droneBox.y + bob,
-    frame: reduced ? 0 : Math.floor(t / 125) % 2,
-  };
+  ].sort(byFeet);
 
   const light: Pixel[] = [];
   const lampOn = input.towerPowered || reduced || Math.floor(t / 500) % 2 === 0;
@@ -139,6 +161,6 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
   }
   if (digging && !reduced && t % 1500 < 250) light.push({ x: P.dig.x + 2, y: P.dig.y - 2, color: WHITE, alpha: 1 });
 
-  return { glints, flat, upright, drone, tint: PHASE_TINT[phase], light };
+  return { zone: input.zone, glints, flat, upright, drone, tint: PHASE_TINT[phase], light };
 }
 

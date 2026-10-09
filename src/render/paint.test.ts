@@ -54,6 +54,7 @@ function maker() {
 }
 
 const input: SceneInput = {
+  zone: "peaks",
   player: { x: 28, y: 72 },
   drone: { x: 36, y: 70 },
   teammates: [{ id: "k", name: "Kai", color: "#a78bfa", x: 60, y: 60 }],
@@ -107,6 +108,7 @@ describe("paintScene", () => {
     const ctx = recorder();
     const world = fitWorld({ width: 600, height: 360, dpr: 1 });
     const scene: Scene = {
+      zone: "peaks",
       glints: [{ x: 100, y: 56, color: "#ffffff", alpha: 1 }],
       flat: [{ sprite: "plank", frame: 0, x: 147, y: 47, flip: false, rotate: false, variant: "base" }],
       upright: [{ sprite: "tower", frame: 0, x: 37, y: 1, flip: false, rotate: false, variant: "base" }],
@@ -160,11 +162,11 @@ describe("caches", () => {
   it("the ground cache is reused for the same key and rebuilt on a new one", () => {
     const { ground, made } = setup();
     const a = fitWorld({ width: 668, height: 360, dpr: 1 });
-    const first = ground.get(a);
+    const first = ground.get(a, "peaks");
     const count = made.length;
-    expect(ground.get(a)).toBe(first);
+    expect(ground.get(a, "peaks")).toBe(first);
     expect(made.length).toBe(count);
-    const second = ground.get(fitWorld({ width: 354, height: 360, dpr: 3 }));
+    const second = ground.get(fitWorld({ width: 354, height: 360, dpr: 3 }), "peaks");
     expect(second).not.toBe(first);
     expect(made.length).toBeGreaterThan(count);
     // It covers the visible art range: on the phone, 90 art px of scenery above and below.
@@ -175,7 +177,7 @@ describe("caches", () => {
   it("the ground cache bakes only the wall tiles beyond the world, in feet-row order with the scenery", () => {
     const { ground, sprites, contexts } = setup();
     // 668 × 360 at DPR 1: s 2, the visible art runs from x −7 to 326, past both sides of the world.
-    const g = ground.get(fitWorld({ width: 668, height: 360, dpr: 1 }))!;
+    const g = ground.get(fitWorld({ width: 668, height: 360, dpr: 1 }), "peaks")!;
     const wallImage = sprites.get("wall", 0, "base", false, false);
     const draws = contexts.get(g.image as unknown as FakeImage)!.log.filter((c) => c[0] === "drawImage");
     const walls = draws.filter((c) => c[1] === wallImage);
@@ -185,6 +187,19 @@ describe("caches", () => {
     expect([...feet].sort((a, b) => a - b)).toEqual(feet);
     for (let i = 1; i < draws.length; i++)
       if (feet[i] === feet[i - 1]) expect(draws[i][1] === wallImage && draws[i - 1][1] !== wallImage, `tie at ${i}`).toBe(false);
+  });
+
+  it("the ground cache is rebuilt when the zone changes and reused when it doesn't", () => {
+    const { ground, made } = setup();
+    const w = fitWorld({ width: 668, height: 360, dpr: 1 });
+    const a = ground.get(w, "peaks");
+    const n = made.length;
+    const b = ground.get(w, "village");
+    expect(b).not.toBe(a);
+    expect(made.length).toBeGreaterThan(n);
+    const m = made.length;
+    expect(ground.get(w, "village")).toBe(b);
+    expect(made.length).toBe(m);
   });
 
   it("builds a new colour variant lazily", () => {
@@ -201,6 +216,6 @@ describe("caches", () => {
   it("returns null when no canvas can be made", () => {
     const sprites = createSpriteCache(() => null);
     expect(sprites.get("tower", 0, "base", false, false)).toBeNull();
-    expect(createGroundCache(() => null, sprites).get(fitWorld({ width: 600, height: 360, dpr: 1 }))).toBeNull();
+    expect(createGroundCache(() => null, sprites).get(fitWorld({ width: 600, height: 360, dpr: 1 }), "peaks")).toBeNull();
   });
 });

@@ -83,6 +83,7 @@ export function Overworld({
         />
         <div className="flex flex-1 flex-col">
           <MapViewport
+            zone={state.zone}
             player={state.player}
             drone={state.drone}
             minutes={minutes}

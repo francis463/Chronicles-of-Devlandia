@@ -6,6 +6,7 @@ import { fitWorld, toArt } from "../../render/world";
 import { MapCanvas } from "./MapCanvas";
 
 const input: SceneInput = {
+  zone: "peaks",
   player: { x: 28, y: 72 },
   drone: { x: 36, y: 70 },
   teammates: [],
@@ -141,6 +142,24 @@ describe("MapCanvas", () => {
     const me = explorers(scenes.at(-1)!)[0];
     expect(me.x).toBe(spriteBox("explorer-down", toArt(input.player)).x);
     expect(me.y).toBe(spriteBox("explorer-down", toArt(input.player)).y);
+  });
+
+  it("jumps the player and drone when the zone changes", () => {
+    fakeContexts();
+    const scenes: Scene[] = [];
+    const { rerender } = render(
+      <MapCanvas input={{ ...input, player: { x: 6, y: 72 }, drone: { x: 14, y: 70 } }} world={world} onScene={(s) => scenes.push(s)} />,
+    );
+    frame();
+    const arrived = { player: { x: 94, y: 72 }, drone: { x: 86, y: 70 } };
+    rerender(<MapCanvas input={{ ...input, zone: "village", ...arrived }} world={world} onScene={(s) => scenes.push(s)} />);
+    frame();
+    const last = scenes.at(-1)!;
+    const me = explorers(last).find((d) => d.variant === input.playerColor)!;
+    const box = spriteBox("explorer-down", toArt(arrived.player));
+    expect([me.x, me.y]).toEqual([box.x, box.y]);
+    const droneBox = spriteBox("drone", toArt(arrived.drone));
+    expect([last.drone.x, last.drone.y]).toEqual([droneBox.x, droneBox.y]);
   });
 
   it("glides the player between positions while alive", () => {

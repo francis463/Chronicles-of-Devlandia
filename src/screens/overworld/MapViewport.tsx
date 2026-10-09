@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { HIDDEN_ARTIFACT, INSPECT_COPY, POIS } from "../../game/constants";
 import { promptText as promptFor } from "../../game/geometry";
 import type { Poi, PoiId, Point } from "../../game/types";
+import type { ZoneId } from "../../game/zones";
 import type { Teammate } from "../../hooks/useTeamSession";
 import type { SceneInput } from "../../render/scene";
 import { spriteBox, type SpriteId } from "../../render/sprites";
@@ -160,6 +161,7 @@ function MapCaption({ id, text, world }: { id: MapCaptionId; text: string; world
 }
 
 export function MapViewport({
+  zone,
   player,
   drone,
   minutes,
@@ -177,6 +179,7 @@ export function MapViewport({
   onCloseInspection,
   onRespawn,
 }: {
+  zone: ZoneId;
   player: Point;
   drone: Point;
   minutes: number;
@@ -214,6 +217,7 @@ export function MapViewport({
     : (hasLoot && copy.looted) || (gateUnlocked && copy.opened) || (towerPowered && (copy.bridged ?? copy.powered)) || copy.default;
 
   const scene: SceneInput = {
+    zone,
     player,
     drone,
     teammates,

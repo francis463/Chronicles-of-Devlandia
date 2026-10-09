@@ -43,6 +43,7 @@ export function MapCanvas({ input, world, onScene }: { input: SceneInput; world:
     const ground = createGroundCache(makeCanvas, sprites);
     const motions = new Map<string, Motion>();
     let wasDowned = latest.current.input.downed;
+    let lastZone = latest.current.input.zone;
     let raf = 0;
 
     const track = (key: string, kind: EntityKind, p: Point, t: number, reducedNow: boolean, jump: boolean) => {
@@ -55,13 +56,15 @@ export function MapCanvas({ input, world, onScene }: { input: SceneInput; world:
 
     const frame = (t: number) => {
       const { input: now, world: rect, onScene: report, reduced: still } = latest.current;
-      const respawned = wasDowned && !now.downed;
+      // Respawning or crossing into another zone puts you (and the drone) there at once.
+      const jump = (wasDowned && !now.downed) || now.zone !== lastZone;
       wasDowned = now.downed;
+      lastZone = now.zone;
       const present = new Set(now.teammates.map((m) => `mate:${m.id}`));
       for (const key of motions.keys()) if (key.startsWith("mate:") && !present.has(key)) motions.delete(key);
       const poses: Poses = {
-        player: track("player", "player", now.player, t, still, respawned),
-        drone: track("drone", "drone", now.drone, t, still, respawned),
+        player: track("player", "player", now.player, t, still, jump),
+        drone: track("drone", "drone", now.drone, t, still, jump),
         teammates: Object.fromEntries(now.teammates.map((m) => [m.id, track(`mate:${m.id}`, "teammate", m, t, still, false)])),
       };
       const scene = buildScene(now, poses, t, still);

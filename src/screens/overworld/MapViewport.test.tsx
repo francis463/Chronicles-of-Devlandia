@@ -5,6 +5,7 @@ import { MapViewport } from "./MapViewport";
 
 type Props = Parameters<typeof MapViewport>[0];
 const props = (over: Partial<Props> = {}): Props => ({
+  zone: "peaks",
   player: { x: 28, y: 72 },
   drone: { x: 36, y: 70 },
   minutes: 19 * 60 + 29,
