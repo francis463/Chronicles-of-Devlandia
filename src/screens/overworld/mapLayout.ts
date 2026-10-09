@@ -1,4 +1,6 @@
 import type { Point } from "../../game/types";
+import type { ZoneId } from "../../game/zones";
+import { VILLAGE_POINTS } from "../../render/areas/village";
 import { spriteBox, type SpriteId } from "../../render/sprites";
 import { LANDMARK_POINTS } from "../../render/terrain";
 import type { ArtPoint, Rect, WorldRect } from "../../render/world";
@@ -49,37 +51,46 @@ export function captionRect(text: string, hit: CssRect, map: MapArea, prefer: "a
   return { left, top: prefer === "above" && above >= EDGE ? above : hit.top + hit.height + 2, width, height };
 }
 
-/** The three landmark buttons: the tower and cache captions sit above them when they fit (off the ice). */
+/**
+ * Each zone's landmark buttons: the tower and cache captions sit above them when they fit (off the
+ * ice), as do Ada's and the signpost's.
+ */
 export const LANDMARK_CAPTIONS = [
-  { id: "tower", sprite: "tower", texts: ["[T] Tower", "[T] Tower ✓"], prefer: "above" },
-  { id: "chest", sprite: "chest-closed", texts: ["[X] Supply Cache", "[X] Empty Cache"], prefer: "above" },
-  { id: "gate", sprite: "gate", texts: ["[G] Gate"], prefer: "below" },
-] as const satisfies ReadonlyArray<{ id: keyof typeof LANDMARK_POINTS; sprite: SpriteId; texts: readonly string[]; prefer: "above" | "below" }>;
+  { id: "tower", zone: "peaks", sprite: "tower", point: LANDMARK_POINTS.tower, texts: ["[T] Tower", "[T] Tower ✓"], prefer: "above" },
+  { id: "chest", zone: "peaks", sprite: "chest-closed", point: LANDMARK_POINTS.chest, texts: ["[X] Supply Cache", "[X] Empty Cache"], prefer: "above" },
+  { id: "gate", zone: "peaks", sprite: "gate", point: LANDMARK_POINTS.gate, texts: ["[G] Gate"], prefer: "below" },
+  { id: "villager", zone: "village", sprite: "explorer-down", point: VILLAGE_POINTS.villager, texts: ["[V] Ada"], prefer: "above" },
+  { id: "signpost", zone: "village", sprite: "signpost", point: VILLAGE_POINTS.signpost, texts: ["[P] Signpost"], prefer: "above" },
+] as const satisfies ReadonlyArray<{ id: string; zone: ZoneId; sprite: SpriteId; point: ArtPoint; texts: readonly string[]; prefer: "above" | "below" }>;
 
 type Edges = { left: number; right: number; top: number; bottom: number };
 
-/** The current caption chips and landmark drawings, as world-layer edges for labelLayout to avoid. */
-export function landmarkCaptions(world: WorldRect, map: MapArea, state: { hasLoot: boolean; towerPowered: boolean }): Edges[] {
-  const toEdges = (r: CssRect): Edges => ({
-    left: r.left - world.left,
-    right: r.left - world.left + r.width,
-    top: r.top - world.top,
-    bottom: r.top - world.top + r.height,
-  });
-  return LANDMARK_CAPTIONS.flatMap((l) => {
+const toEdges = (r: CssRect, world: WorldRect): Edges => ({
+  left: r.left - world.left,
+  right: r.left - world.left + r.width,
+  top: r.top - world.top,
+  bottom: r.top - world.top + r.height,
+});
+
+/** A zone's current caption chips and landmark drawings, as world-layer edges for labelLayout to avoid. */
+export function landmarkCaptions(world: WorldRect, map: MapArea, state: { hasLoot: boolean; towerPowered: boolean }, zone: ZoneId = "peaks"): Edges[] {
+  return LANDMARK_CAPTIONS.filter((l) => l.zone === zone).flatMap((l) => {
     const sprite = l.id === "chest" && state.hasLoot ? "chest-open" : l.sprite;
-    const box = spriteBox(sprite, LANDMARK_POINTS[l.id]);
+    const box = spriteBox(sprite, l.point);
     const text = l.id === "tower" ? l.texts[state.towerPowered ? 1 : 0] : l.id === "chest" ? l.texts[state.hasLoot ? 1 : 0] : l.texts[0];
-    return [toEdges(captionRect(text, hitArea(box, world), map, l.prefer)), toEdges(spriteCss(box, world))];
+    return [toEdges(captionRect(text, hitArea(box, world), map, l.prefer), world), toEdges(spriteCss(box, world), world)];
   });
 }
 
-/** Place names, positioned in world percentages so they clear the landmarks and the dig spot. */
+/** Place names and exit signs, positioned in world percentages so they clear the landmarks and the dig spot. */
 export const MAP_CAPTIONS = [
-  { id: "peaks", at: { x: 40, y: 4 }, align: "centre" },
-  { id: "river", at: { x: 42, y: 22 }, align: "centre" },
-  { id: "forest", at: { x: 97, y: 98 }, align: "right-bottom" },
-] as const satisfies ReadonlyArray<{ id: string; at: Point; align: "centre" | "right-bottom" }>;
+  { id: "peaks", zone: "peaks", at: { x: 40, y: 4 }, align: "centre" },
+  { id: "river", zone: "peaks", at: { x: 42, y: 22 }, align: "centre" },
+  { id: "forest", zone: "peaks", at: { x: 97, y: 98 }, align: "right-bottom" },
+  { id: "village", zone: "village", at: { x: 40, y: 4 }, align: "centre" },
+  { id: "west-exit", zone: "peaks", at: { x: 1, y: 88 }, align: "left-centre" },
+  { id: "east-exit", zone: "village", at: { x: 99, y: 88 }, align: "right-centre" },
+] as const satisfies ReadonlyArray<{ id: string; zone: ZoneId; at: Point; align: "centre" | "right-bottom" | "left-centre" | "right-centre" }>;
 export type MapCaptionId = (typeof MAP_CAPTIONS)[number]["id"];
 
 export function mapCaptionRect(id: MapCaptionId, text: string, world: WorldRect): CssRect {
@@ -87,10 +98,29 @@ export function mapCaptionRect(id: MapCaptionId, text: string, world: WorldRect)
   const x = world.left + (caption.at.x / 100) * world.width;
   const y = world.top + (caption.at.y / 100) * world.height;
   const width = textWidth(text);
-  return caption.align === "centre"
-    ? { left: x - width / 2, top: y - LINE_H / 2, width, height: LINE_H }
-    : { left: x - width, top: y - LINE_H, width, height: LINE_H };
+  switch (caption.align) {
+    case "centre":
+      return { left: x - width / 2, top: y - LINE_H / 2, width, height: LINE_H };
+    case "left-centre":
+      return { left: x, top: y - LINE_H / 2, width, height: LINE_H };
+    case "right-centre":
+      return { left: x - width, top: y - LINE_H / 2, width, height: LINE_H };
+    case "right-bottom":
+      return { left: x - width, top: y - LINE_H, width, height: LINE_H };
+  }
 }
+
+/** Each zone's exit sign: which caption it is and what it says. */
+export const EXIT_SIGNS: Record<ZoneId, { id: MapCaptionId; text: string }> = {
+  peaks: { id: "west-exit", text: "← Dev Village" },
+  village: { id: "east-exit", text: "C++ Peaks →" },
+};
+
+/** A zone's exit sign as world-layer edges, for labelLayout to avoid. */
+export const exitSignBox = (world: WorldRect, zone: ZoneId): Edges => {
+  const sign = EXIT_SIGNS[zone];
+  return toEdges(mapCaptionRect(sign.id, sign.text, world), world);
+};
 
 /** The [E] prompt: 4 px above your head, or 4 px below your feet when there is no room above. */
 export function promptRect(text: string, player: ArtPoint, world: WorldRect, map: MapArea): CssRect & { below: boolean } {

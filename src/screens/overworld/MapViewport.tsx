@@ -1,18 +1,19 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
-import { HIDDEN_ARTIFACT, INSPECT_COPY, POIS } from "../../game/constants";
+import { ADA, HIDDEN_ARTIFACT, INSPECT_COPY, POIS, SIGNPOST } from "../../game/constants";
 import { promptText as promptFor } from "../../game/geometry";
 import type { Poi, PoiId, Point } from "../../game/types";
 import type { ZoneId } from "../../game/zones";
 import type { Teammate } from "../../hooks/useTeamSession";
 import type { SceneInput } from "../../render/scene";
 import { spriteBox, type SpriteId } from "../../render/sprites";
+import { VILLAGE_POINTS } from "../../render/areas/village";
 import { LANDMARK_POINTS } from "../../render/terrain";
 import { fitWorld, toArt, type ViewSize, type WorldRect } from "../../render/world";
 import { Button } from "../../ui/Button";
 import { Panel } from "../../ui/Panel";
 import { EXPLORER_BOX, SEMICOLON_BOX, labelBoxes, labelLayout, teammateLabelSide, LABEL_GAP, type LabelPlacement } from "./labelLayout";
 import { MapCanvas } from "./MapCanvas";
-import { captionRect, hitArea, landmarkCaptions, mapCaptionRect, promptRect, type MapCaptionId } from "./mapLayout";
+import { EXIT_SIGNS, captionRect, exitSignBox, hitArea, landmarkCaptions, mapCaptionRect, promptRect, type MapCaptionId } from "./mapLayout";
 
 const SOLO_COLOR = "#22c55e";
 const at = (p: Point) => ({ left: `${p.x}%`, top: `${p.y}%` });
@@ -178,6 +179,7 @@ export function MapViewport({
   onInteract,
   onCloseInspection,
   onRespawn,
+  villagerLine,
 }: {
   zone: ZoneId;
   player: Point;
@@ -196,25 +198,32 @@ export function MapViewport({
   onInteract: (poi: PoiId) => void;
   onCloseInspection: () => void;
   onRespawn: () => void;
+  /** What Ada says now, shown on her card. */
+  villagerLine: string;
 }) {
   const [mapRef, size] = useMapSize();
   const world = fitWorld(size);
   const map = { width: size.width, height: size.height };
   const worldSize = { width: world.width, height: world.height };
+  const inPeaks = zone === "peaks";
   const obstacles = [
-    ...(artifactFound ? [{ ...HIDDEN_ARTIFACT, box: SEMICOLON_BOX }] : []),
+    ...(inPeaks && artifactFound ? [{ ...HIDDEN_ARTIFACT, box: SEMICOLON_BOX }] : []),
     ...teammates.map((t) => ({ x: t.x, y: t.y, box: EXPLORER_BOX })),
   ];
-  const fixed = landmarkCaptions(world, map, { hasLoot, towerPowered });
+  const fixed = [...landmarkCaptions(world, map, { hasLoot, towerPowered }, zone), exitSignBox(world, zone)];
   const labels = labelLayout(player, drone, worldSize, obstacles, world.scale, fixed);
   const boxes = labelBoxes(player, drone, worldSize, labels, world.scale);
   const inWorld = (p: Point) => ({ x: (p.x / 100) * world.width, y: (p.y / 100) * world.height });
 
-  const inspectedPoi = [...POIS, HIDDEN_ARTIFACT].find((poi) => poi.id === inspected);
+  const inspectedPoi = [...POIS, HIDDEN_ARTIFACT, ADA, SIGNPOST].find((poi) => poi.id === inspected);
   const copy = inspected && inspected !== "villager" ? INSPECT_COPY[inspected] : null;
-  const inspectCopy = !copy
-    ? null
-    : (hasLoot && copy.looted) || (gateUnlocked && copy.opened) || (towerPowered && (copy.bridged ?? copy.powered)) || copy.default;
+  const inspectCopy =
+    inspected === "villager"
+      ? villagerLine
+      : !copy
+        ? null
+        : (hasLoot && copy.looted) || (gateUnlocked && copy.opened) || (towerPowered && (copy.bridged ?? copy.powered)) || copy.default;
+  const exitSign = EXIT_SIGNS[zone];
 
   const scene: SceneInput = {
     zone,
@@ -236,10 +245,19 @@ export function MapViewport({
   const promptText = inRange ? promptFor(inRange) : "";
   const prompt = inRange ? promptRect(promptText, me, world, map) : null;
   const P = LANDMARK_POINTS;
+  const V = VILLAGE_POINTS;
 
   return (
     <div ref={mapRef} className="relative min-h-[360px] flex-1 overflow-hidden bg-[var(--panel)]">
       <MapCanvas input={scene} world={world} />
+
+      {/* Crossing into another zone: the new map fades in from the panel colour, under the fog. */}
+      <div
+        key={`fade:${zone}`}
+        data-testid="zone-fade"
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-[5] bg-[var(--panel)] opacity-0 animate-[zone-fade_200ms_ease-out] motion-reduce:hidden"
+      />
 
       {/* Fog of war around the player, as before; the powered signal tower fades it out. */}
       <div
@@ -252,24 +270,37 @@ export function MapViewport({
       />
 
       <div
+        key={`layer:${zone}`}
         data-testid="world-layer"
-        className="absolute z-20"
+        className="absolute z-20 animate-[zone-in_200ms_ease-out] motion-reduce:animate-none"
         style={{ left: `${world.left}px`, top: `${world.top}px`, width: `${world.width}px`, height: `${world.height}px` }}
       >
-        <MapCaption id="peaks" text="(Snowy Peaks Biome)" world={world} />
-        <MapCaption id="river" text={towerPowered ? "Bridge" : "Frozen River"} world={world} />
-        <MapCaption id="forest" text="(Dense Forests Biome)" world={world} />
+        {inPeaks ? (
+          <>
+            <MapCaption id="peaks" text="(Snowy Peaks Biome)" world={world} />
+            <MapCaption id="river" text={towerPowered ? "Bridge" : "Frozen River"} world={world} />
+            <MapCaption id="forest" text="(Dense Forests Biome)" world={world} />
 
-        <LandmarkButton sprite="tower" point={P.tower} name={towerPowered ? "[T] Tower ✓" : "[T] Tower"} color="var(--primary-border)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "tower"} onClick={() => onInteract("tower")} />
-        <LandmarkButton sprite={hasLoot ? "chest-open" : "chest-closed"} point={P.chest} name={hasLoot ? "[X] Empty Cache" : "[X] Supply Cache"} color="var(--accent)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "chest"} onClick={() => onInteract("chest")} />
-        <LandmarkButton sprite="gate" point={P.gate} name="[G] Gate" color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "gate"} onClick={() => onInteract("gate")} />
+            <LandmarkButton sprite="tower" point={P.tower} name={towerPowered ? "[T] Tower ✓" : "[T] Tower"} color="var(--primary-border)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "tower"} onClick={() => onInteract("tower")} />
+            <LandmarkButton sprite={hasLoot ? "chest-open" : "chest-closed"} point={P.chest} name={hasLoot ? "[X] Empty Cache" : "[X] Supply Cache"} color="var(--accent)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "chest"} onClick={() => onInteract("chest")} />
+            <LandmarkButton sprite="gate" point={P.gate} name="[G] Gate" color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "gate"} onClick={() => onInteract("gate")} />
+          </>
+        ) : (
+          <>
+            <MapCaption id="village" text="(Dev Village)" world={world} />
 
-        {clueDecoded && !artifactFound && (
+            <LandmarkButton sprite="explorer-down" point={V.villager} name="[V] Ada" color="var(--accent-border)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "villager"} onClick={() => onInteract("villager")} />
+            <LandmarkButton sprite="signpost" point={V.signpost} name="[P] Signpost" color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "signpost"} onClick={() => onInteract("signpost")} />
+          </>
+        )}
+        <MapCaption id={exitSign.id} text={exitSign.text} world={world} />
+
+        {inPeaks && clueDecoded && !artifactFound && (
           <div data-testid="dig-spot" className="pointer-events-none absolute" style={at(HIDDEN_ARTIFACT)}>
             <span className="sr-only">Dig spot</span>
           </div>
         )}
-        {artifactFound && (
+        {inPeaks && artifactFound && (
           <div data-testid="artifact" title="Golden Semicolon" className="pointer-events-none absolute" style={at(HIDDEN_ARTIFACT)}>
             <span className="sr-only">Golden Semicolon</span>
           </div>

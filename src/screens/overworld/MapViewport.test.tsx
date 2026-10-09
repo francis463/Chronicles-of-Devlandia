@@ -1,6 +1,6 @@
-import { act, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { POIS } from "../../game/constants";
+import { INSPECT_COPY, POIS } from "../../game/constants";
 import { MapViewport } from "./MapViewport";
 
 type Props = Parameters<typeof MapViewport>[0];
@@ -20,6 +20,7 @@ const props = (over: Partial<Props> = {}): Props => ({
   onInteract: vi.fn(),
   onCloseInspection: vi.fn(),
   onRespawn: vi.fn(),
+  villagerLine: "Hi",
   ...over,
 });
 
@@ -27,6 +28,63 @@ const originalMatchMedia = window.matchMedia;
 afterEach(() => {
   window.matchMedia = originalMatchMedia;
   Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 1 });
+});
+
+describe("MapViewport per zone", () => {
+  it("each zone shows its own buttons and captions", () => {
+    const { rerender } = render(<MapViewport {...props()} />);
+    for (const name of ["[G] Gate", "[T] Tower", "[X] Supply Cache"]) expect(screen.getByRole("button", { name })).toBeInTheDocument();
+    expect(screen.getByText("← Dev Village")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "[V] Ada" })).toBeNull();
+    rerender(<MapViewport {...props({ zone: "village" })} />);
+    for (const name of ["[V] Ada", "[P] Signpost"]) expect(screen.getByRole("button", { name })).toBeInTheDocument();
+    for (const text of ["(Dev Village)", "C++ Peaks →"]) expect(screen.getByText(text)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "[G] Gate" })).toBeNull();
+    expect(screen.queryByText("(Snowy Peaks Biome)")).toBeNull();
+  });
+
+  it("the village buttons talk to Ada and read the signpost", () => {
+    const onInteract = vi.fn();
+    render(<MapViewport {...props({ zone: "village", onInteract })} />);
+    fireEvent.click(screen.getByRole("button", { name: "[V] Ada" }));
+    fireEvent.click(screen.getByRole("button", { name: "[P] Signpost" }));
+    expect(onInteract.mock.calls).toEqual([["villager"], ["signpost"]]);
+  });
+
+  it("Ada's card shows her current line; the signpost's shows its text", () => {
+    const { rerender } = render(<MapViewport {...props({ zone: "village", inspected: "villager", villagerLine: "Line X" })} />);
+    const card = screen.getByRole("region", { name: "POI Inspection" });
+    expect(within(card).getByText("Ada")).toBeInTheDocument();
+    expect(within(card).getByText("Line X")).toBeInTheDocument();
+    rerender(<MapViewport {...props({ zone: "village", inspected: "signpost" })} />);
+    expect(within(screen.getByRole("region", { name: "POI Inspection" })).getByText(INSPECT_COPY.signpost.default)).toBeInTheDocument();
+  });
+
+  it("the zone fade covers the map under the fog, never takes clicks, and is skipped under reduced motion", () => {
+    const { rerender } = render(<MapViewport {...props()} />);
+    const fade = screen.getByTestId("zone-fade");
+    expect(fade).toHaveAttribute("aria-hidden", "true");
+    expect(fade.className.split(/\s+/)).toEqual(expect.arrayContaining(["pointer-events-none", "z-[5]", "motion-reduce:hidden"]));
+    rerender(<MapViewport {...props({ zone: "village" })} />);
+    expect(screen.getByTestId("zone-fade")).not.toBe(fade);
+  });
+
+  it("in the village the found semicolon neither shows nor moves your labels", () => {
+    const here = { zone: "village" as const, player: { x: 52, y: 80 }, drone: { x: 44, y: 78 } };
+    const { rerender } = render(<MapViewport {...props(here)} />);
+    const style = screen.getByTestId("player").firstElementChild!.getAttribute("style");
+    rerender(<MapViewport {...props({ ...here, artifactFound: true, clueDecoded: true })} />);
+    expect(screen.getByTestId("player").firstElementChild!.getAttribute("style")).toBe(style);
+    expect(screen.queryByTestId("artifact")).toBeNull();
+    expect(screen.queryByTestId("dig-spot")).toBeNull();
+  });
+
+  it("the world layer is replaced, not moved, when the zone changes", () => {
+    const { rerender } = render(<MapViewport {...props()} />);
+    const layer = screen.getByTestId("world-layer");
+    rerender(<MapViewport {...props({ zone: "village" })} />);
+    expect(screen.getByTestId("world-layer")).not.toBe(layer);
+  });
 });
 
 describe("MapViewport on the canvas", () => {

@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { AREAS } from "../../render/areas";
 import { spriteBox } from "../../render/sprites";
 import { LANDMARK_POINTS } from "../../render/terrain";
 import { fitWorld, type Rect, type WorldRect } from "../../render/world";
 import { labelBoxes, labelLayout } from "./labelLayout";
-import { LANDMARK_CAPTIONS, MAP_CAPTIONS, captionRect, hitArea, landmarkCaptions, mapCaptionRect, promptRect, spriteCss, type CssRect } from "./mapLayout";
+import { LANDMARK_CAPTIONS, MAP_CAPTIONS, captionRect, exitSignBox, hitArea, landmarkCaptions, mapCaptionRect, promptRect, spriteCss, type CssRect } from "./mapLayout";
 
 const phone = fitWorld({ width: 354, height: 360, dpr: 3 }); // world 320×180 at (17, 90)
 const desktop = fitWorld({ width: 668, height: 360, dpr: 1 }); // world 640×360 at (14, 0)
@@ -22,6 +23,13 @@ const MAP_TEXTS: Record<(typeof MAP_CAPTIONS)[number]["id"], string[]> = {
   peaks: ["(Snowy Peaks Biome)"],
   river: ["Frozen River", "Bridge"],
   forest: ["(Dense Forests Biome)"],
+  village: ["(Dev Village)"],
+  "west-exit": ["← Dev Village"],
+  "east-exit": ["C++ Peaks →"],
+};
+const GROUPS = {
+  peaks: ["tower", "chest", "gate", "peaks", "river", "forest", "west-exit"],
+  village: ["villager", "signpost", "village", "east-exit"],
 };
 
 describe("hit areas", () => {
@@ -42,24 +50,39 @@ describe("hit areas", () => {
 
 describe("captions", () => {
   it("at 320×180 and 640×360 worlds no caption box intersects another, a landmark sprite box or the dig spot", () => {
-    for (const world of [phone, desktop]) {
-      const map = mapOf(world);
-      const captions: Array<{ group: string; rect: CssRect }> = [
-        ...LANDMARK_CAPTIONS.flatMap((l) =>
-          l.texts.map((t) => ({ group: l.id, rect: captionRect(t, hitArea(spriteBox(l.sprite, P[l.id]), world), map, l.prefer) })),
-        ),
-        ...MAP_CAPTIONS.flatMap(({ id }) => MAP_TEXTS[id].map((t) => ({ group: id, rect: mapCaptionRect(id, t, world) }))),
-      ];
-      const blockers = [
-        ...LANDMARKS.map(({ box }) => spriteCss(box, world)),
-        spriteCss(spriteBox("x-mark", P.dig), world),
-        spriteCss(spriteBox("semicolon", P.dig), world),
-      ];
-      for (const a of captions) {
-        for (const b of captions) if (a.group !== b.group) expect(hit(a.rect, b.rect), `${a.group} / ${b.group} @${world.width}`).toBe(false);
-        for (const b of blockers) expect(hit(a.rect, b), `${a.group} on ${JSON.stringify(b)} @${world.width}`).toBe(false);
+    for (const zone of ["peaks", "village"] as const) {
+      for (const world of [phone, desktop]) {
+        const map = mapOf(world);
+        const captions: Array<{ group: string; rect: CssRect }> = [
+          ...LANDMARK_CAPTIONS.filter((l) => l.zone === zone).flatMap((l) =>
+            l.texts.map((t) => ({ group: l.id, rect: captionRect(t, hitArea(spriteBox(l.sprite, l.point), world), map, l.prefer) })),
+          ),
+          ...MAP_CAPTIONS.filter((c) => c.zone === zone).flatMap(({ id }) => MAP_TEXTS[id].map((t) => ({ group: id, rect: mapCaptionRect(id, t, world) }))),
+        ];
+        expect(new Set(captions.map((c) => c.group))).toEqual(new Set(GROUPS[zone]));
+        const blockers =
+          zone === "peaks"
+            ? [
+                ...LANDMARKS.map(({ box }) => spriteCss(box, world)),
+                spriteCss(spriteBox("x-mark", P.dig), world),
+                spriteCss(spriteBox("semicolon", P.dig), world),
+              ]
+            : AREAS.village.props.map((p) => spriteCss(spriteBox(p.sprite, p.at), world));
+        for (const a of captions) {
+          const where = `${zone} @${world.width}`;
+          for (const b of captions) if (a.group !== b.group) expect(hit(a.rect, b.rect), `${a.group} / ${b.group} ${where}`).toBe(false);
+          for (const b of blockers) expect(hit(a.rect, b), `${a.group} on ${JSON.stringify(b)} ${where}`).toBe(false);
+        }
       }
     }
+  });
+
+  it("exit signs: left-centre and right-centre at y 88", () => {
+    const west = mapCaptionRect("west-exit", "← Dev Village", desktop);
+    const east = mapCaptionRect("east-exit", "C++ Peaks →", desktop);
+    expect(west.left).toBeCloseTo(desktop.left + 0.01 * desktop.width);
+    expect(east.left + east.width).toBeCloseTo(desktop.left + 0.99 * desktop.width);
+    for (const r of [west, east]) expect(r.top + r.height / 2).toBeCloseTo(desktop.top + 0.88 * desktop.height);
   });
 
   it("tower and cache captions go above their landmark when there is room, and stay off the ice", () => {
@@ -80,7 +103,7 @@ describe("captions", () => {
   it("at the start the player and drone labels clear the landmark captions and drawings", () => {
     for (const world of [phone, desktop]) {
       const size = { width: world.width, height: world.height };
-      const fixed = landmarkCaptions(world, mapOf(world), { hasLoot: false, towerPowered: false });
+      const fixed = [...landmarkCaptions(world, mapOf(world), { hasLoot: false, towerPowered: false }, "peaks"), exitSignBox(world, "peaks")];
       const player = { x: 28, y: 72 };
       const drone = { x: 36, y: 70 };
       const layout = labelLayout(player, drone, size, [], world.scale, fixed);

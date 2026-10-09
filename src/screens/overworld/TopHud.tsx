@@ -10,6 +10,7 @@ export function TopHud({
   onMenu,
   teamLabel,
   reconnecting,
+  region,
 }: {
   hp: number;
   stamina: number;
@@ -18,6 +19,8 @@ export function TopHud({
   /** Team mode: "ROOM KQZM · 3 online". */
   teamLabel?: string;
   reconnecting?: boolean;
+  /** The zone you are in: "C++ Peaks". */
+  region: string;
 }) {
   return (
     <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b-2 border-[var(--panel-border)] bg-[var(--bg)] px-3 py-2">
@@ -26,7 +29,7 @@ export function TopHud({
         <Meter label="STA" value={stamina} max={MAX_STAMINA} tone="primary" />
       </div>
       <h2 className="order-first w-full text-center text-sm font-bold tracking-widest sm:order-none sm:w-auto">
-        REGION: C++ PEAKS
+        {`REGION: ${region.toUpperCase()}`}
       </h2>
       <div className="flex flex-wrap items-center gap-3">
         {teamLabel && <span className="text-[10px] font-bold tracking-widest text-[var(--accent)]">{teamLabel}</span>}

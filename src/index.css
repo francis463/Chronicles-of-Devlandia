@@ -45,3 +45,7 @@ body {
     1px -1px 0 #0f172a,
     -1px 1px 0 #0f172a;
 }
+
+/* Crossing into another zone: the cover over the old map fades out as the new map fades in. */
+@keyframes zone-fade { from { opacity: 1; } to { opacity: 0; } }
+@keyframes zone-in { from { opacity: 0; } to { opacity: 1; } }

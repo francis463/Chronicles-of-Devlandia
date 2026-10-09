@@ -5,6 +5,7 @@ import type { GameState } from "../../game/types";
 import type { TeamSession } from "../../hooks/useTeamSession";
 import { TICK_MS } from "../../game/constants";
 import { flagsOf, teamMinutes } from "../../game/team";
+import { adaLine } from "../../game/village";
 import { ZONES } from "../../game/zones";
 import { useNow } from "../../hooks/useNow";
 import { useGameTimers } from "../../hooks/useGameTimers";
@@ -73,6 +74,7 @@ export function Overworld({
         onMenu={onMenu}
         teamLabel={teamLabel}
         reconnecting={team?.status === "reconnecting"}
+        region={ZONES[state.zone].name}
       />
       <div className="flex flex-col md:flex-row">
         <MiniMap
@@ -100,6 +102,7 @@ export function Overworld({
             onInteract={(poi) => dispatch({ type: "interact", poi })}
             onCloseInspection={() => dispatch({ type: "closeInspection" })}
             onRespawn={() => dispatch({ type: "respawn" })}
+            villagerLine={adaLine(state)}
           />
           <TouchControls
             disabled={downed || isModalOpen(state)}

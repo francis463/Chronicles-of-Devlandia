@@ -373,6 +373,24 @@ describe("Overworld village", () => {
     expect(screen.getAllByText("[E] Read Signpost")).toHaveLength(2);
   });
 
+  it("walking west from camp enters Dev Village", () => {
+    render(<Overworld onMenu={() => {}} initial={{ player: { x: 6, y: 72 } }} />);
+    fireEvent.keyDown(window, { key: "ArrowLeft" });
+    expect(screen.getByText("REGION: DEV VILLAGE")).toBeInTheDocument();
+    expect(screen.getByRole("log", { name: "Event log" }).textContent).toContain("Entered Dev Village.");
+    expect(screen.getByRole("button", { name: "[V] Ada" })).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: "d" });
+    expect(screen.getByText("REGION: C++ PEAKS")).toBeInTheDocument();
+  });
+
+  it("in the village [E] opens Ada's card with her hint", () => {
+    render(<Overworld onMenu={() => {}} initial={{ zone: "village", player: { x: 34, y: 72 } }} />);
+    fireEvent.keyDown(window, { key: "e" });
+    const card = screen.getByRole("region", { name: "POI Inspection" });
+    expect(within(card).getByText("Ada")).toBeInTheDocument();
+    expect(within(card).getByText("Heading north? The gate's terminal wants one CSS fix. Get the display right and the wall lets you through.")).toBeInTheDocument();
+  });
+
   it("in the village the Peaks' places are out of reach", () => {
     render(<Overworld onMenu={() => {}} initial={{ zone: "village", player: { x: 50, y: 58 } }} />);
     expect(screen.queryByText(/\[E\] Inspect/)).toBeNull();
