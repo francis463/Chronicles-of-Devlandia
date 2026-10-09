@@ -1,6 +1,6 @@
 # Learning Core — Design
 
-**Status:** sub-project order, approach (one challenge engine) and all four design sections approved in chat (2026-10-09). Revised after the adversarial spec review wf_e44c6f12-183 (content, rules and UX lenses, every blocking finding verified; reviewers ran real Python 3.13, PHP 8.3, g++ 13, Java 21, SQLite/PostgreSQL 16 and Chromium 141). Written spec awaiting review.
+**Status:** sub-project order, approach (one challenge engine) and all four design sections approved in chat (2026-10-09). Revised after the adversarial spec review wf_e44c6f12-183 (content, rules and UX lenses; all 31 blocking findings verified real, none refuted, 5 downgraded to minor and folded in anyway; reviewers ran real Python 3.13, PHP 8.3, g++ 13, Java 21, SQLite/PostgreSQL 16 and Chromium 141). Written spec awaiting review.
 **Builds on:** the zones work on `claude/trusting-archimedes-64rvrc` (`2026-10-08-dev-village-zones-design.md`), which itself builds on the pixel-art map, team play and north wall specs.
 **Why:** Group 2's proposal (*Chronicles of Devlandia*, ElecIT-104 / IT 20) promises language questions, mini-games, helpers and more that the game doesn't have. A claim-by-claim comparison found 31 missing and 55 partial items. This spec is the first of the sub-projects that close that gap.
 
