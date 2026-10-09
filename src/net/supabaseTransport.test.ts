@@ -3,7 +3,7 @@ import { NO_FLAGS, type PresenceMeta, type TeamMessage } from "../game/team";
 import { createSupabaseTransport, PRESENCE_LIMIT, type RealtimeClientLike } from "./supabaseTransport";
 import { TeamError, type TeamStatus } from "./transport";
 
-const meta = (id: string, joinedAt: number): PresenceMeta => ({ id, name: `P-${id}`, joinedAt, startedAt: null, flags: NO_FLAGS, x: 28, y: 72 });
+const meta = (id: string, joinedAt: number): PresenceMeta => ({ id, name: `P-${id}`, joinedAt, startedAt: null, flags: NO_FLAGS, x: 28, y: 72, zone: "peaks" });
 
 /**
  * Records what the transport asks of the Supabase client and lets the test play the server's part.
@@ -153,12 +153,12 @@ describe("Supabase transport", () => {
     await vi.waitFor(() => expect(f.raw.channel).toHaveBeenCalled());
     f.status("SUBSCRIBED");
     await joining;
-    f.fire("broadcast", "pos", { payload: { type: "pos", id: "b", x: 40, y: 50 } });
-    f.fire("broadcast", "pos", { payload: { type: "pos", id: "b", x: 400, y: 50 } });
+    f.fire("broadcast", "pos", { payload: { type: "pos", id: "b", x: 40, y: 50, zone: "peaks" } });
+    f.fire("broadcast", "pos", { payload: { type: "pos", id: "b", x: 400, y: 50, zone: "peaks" } });
     f.fire("broadcast", "start", { payload: { type: "start", startedAt: Date.now() } });
     expect(got.map((m) => m.type)).toEqual(["pos", "start"]);
-    t.send({ type: "pos", id: "a", x: 30, y: 70 });
-    expect(f.channel.send).toHaveBeenCalledWith({ type: "broadcast", event: "pos", payload: { type: "pos", id: "a", x: 30, y: 70 } });
+    t.send({ type: "pos", id: "a", x: 30, y: 70, zone: "peaks" });
+    expect(f.channel.send).toHaveBeenCalledWith({ type: "broadcast", event: "pos", payload: { type: "pos", id: "a", x: 30, y: 70, zone: "peaks" } });
   });
 
   it("sends at most 4 presence updates per 31 s (Supabase closes a client's channel after 5 in 30 s), then the latest", async () => {
@@ -187,14 +187,14 @@ describe("Supabase transport", () => {
     const t = createSupabaseTransport(async () => f.client);
     const joining = t.join("KQZM", meta("a", 1));
     await vi.waitFor(() => expect(f.raw.channel).toHaveBeenCalled());
-    t.send({ type: "pos", id: "a", x: 30, y: 70 });
+    t.send({ type: "pos", id: "a", x: 30, y: 70, zone: "peaks" });
     expect(f.channel.send).not.toHaveBeenCalled();
     f.status("SUBSCRIBED");
     await joining;
-    t.send({ type: "pos", id: "a", x: 31, y: 70 });
+    t.send({ type: "pos", id: "a", x: 31, y: 70, zone: "peaks" });
     expect(f.channel.send).toHaveBeenCalledTimes(1);
     f.status("TIMED_OUT");
-    t.send({ type: "pos", id: "a", x: 32, y: 70 });
+    t.send({ type: "pos", id: "a", x: 32, y: 70, zone: "peaks" });
     expect(f.channel.send).toHaveBeenCalledTimes(1);
   });
 

@@ -185,12 +185,12 @@ describe("useTeamSession: in game", () => {
     const { ana, kai } = await startedPair();
     act(() => {
       vi.advanceTimersByTime(POS_INTERVAL_MS);
-      ana.result.current.publishPosition(40, 60);
+      ana.result.current.publishPosition(40, 60, "peaks");
     });
     act(() => vi.advanceTimersByTime(POS_INTERVAL_MS));
     expect(kai.result.current.teammates).toEqual([
       // Fake timers freeze Date.now, so both joined at the same instant: assert the color matches Ana's own.
-      { id: ana.result.current.me!.id, name: "Ana", color: ana.result.current.me!.color, x: 40, y: 60 },
+      { id: ana.result.current.me!.id, name: "Ana", color: ana.result.current.me!.color, x: 40, y: 60, zone: "peaks" },
     ]);
   });
 
@@ -206,6 +206,56 @@ describe("useTeamSession: in game", () => {
     act(() => zed.result.current.leave());
     await settle();
     expect(roster).toHaveBeenLastCalledWith([], ["Zed"]);
+  });
+  it("publishPosition carries the zone to teammates", async () => {
+    vi.useFakeTimers();
+    const { ana, kai } = await startedPair();
+    act(() => {
+      vi.advanceTimersByTime(POS_INTERVAL_MS);
+      ana.result.current.publishPosition(40, 60, "village");
+    });
+    act(() => vi.advanceTimersByTime(POS_INTERVAL_MS));
+    expect(kai.result.current.teammates.find((t) => t.name === "Ana")?.zone).toBe("village");
+  });
+
+  /** A raw hub member stands in for a teammate, so its presence really arrives before its first pos. */
+  async function withGil() {
+    const pair = await startedPair();
+    const room = pair.ana.result.current.room!;
+    const gil = pair.hub.transport();
+    await act(async () => {
+      await gil.join(room, {
+        id: "gil", name: "Gil", joinedAt: Date.now() + 1000, startedAt: pair.kai.result.current.startedAt,
+        flags: NO_FLAGS, x: 94, y: 72, zone: "village",
+      });
+    });
+    const pos = (x: number, zone: unknown) => act(() => pair.hub.inject(room, { type: "pos", id: "gil", x, y: 72, zone }));
+    return { ...pair, pos };
+  }
+
+  it("reports a teammate's zone change from their position updates only, never on first sight", async () => {
+    const { kai, pos } = await withGil();
+    expect(kai.result.current.teammates.find((t) => t.name === "Gil")?.zone).toBe("village");
+    const seen = vi.fn();
+    kai.result.current.onZoneChange(seen);
+    pos(6, "peaks");
+    expect(seen).not.toHaveBeenCalled();
+    pos(94, "village");
+    expect(seen).toHaveBeenCalledTimes(1);
+    expect(seen).toHaveBeenCalledWith("Gil", "village");
+  });
+
+  it("a change to or from an unknown zone reports nothing", async () => {
+    const { kai, pos } = await withGil();
+    pos(6, "peaks");
+    const seen = vi.fn();
+    kai.result.current.onZoneChange(seen);
+    pos(50, "marsh");
+    pos(50, "village");
+    expect(seen).not.toHaveBeenCalled();
+    pos(6, "peaks");
+    expect(seen).toHaveBeenCalledTimes(1);
+    expect(seen).toHaveBeenCalledWith("Gil", "peaks");
   });
 });
 
@@ -256,7 +306,7 @@ describe("useTeamSession: staying within Supabase's limits (final review)", () =
     for (let i = 0; i < 40; i++) {
       act(() => {
         vi.advanceTimersByTime(50);
-        ana.result.current.publishPosition(30 + (i % 10), 60);
+        ana.result.current.publishPosition(30 + (i % 10), 60, "peaks");
       });
     }
     act(() => vi.advanceTimersByTime(POS_INTERVAL_MS));
@@ -271,7 +321,7 @@ describe("useTeamSession: staying within Supabase's limits (final review)", () =
     const { player, ana, kai } = await startedPair();
     act(() => {
       vi.advanceTimersByTime(POS_INTERVAL_MS);
-      kai.result.current.publishPosition(40, 60);
+      kai.result.current.publishPosition(40, 60, "peaks");
     });
     act(() => vi.advanceTimersByTime(5000));
     const zed = player();
@@ -285,14 +335,14 @@ describe("useTeamSession: staying within Supabase's limits (final review)", () =
     const { hub, transports, ana, kai } = await startedPair();
     act(() => {
       vi.advanceTimersByTime(POS_INTERVAL_MS);
-      kai.result.current.publishPosition(40, 60);
+      kai.result.current.publishPosition(40, 60, "peaks");
     });
     act(() => vi.advanceTimersByTime(POS_INTERVAL_MS));
     expect(kaiFor(ana)).toMatchObject({ x: 40, y: 60 });
     act(() => hub.drop(transports[1]));
     act(() => {
       vi.advanceTimersByTime(POS_INTERVAL_MS);
-      kai.result.current.publishPosition(50, 50);
+      kai.result.current.publishPosition(50, 50, "peaks");
     });
     act(() => vi.advanceTimersByTime(POS_INTERVAL_MS));
     act(() => hub.restore(transports[1]));

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NO_FLAGS, type PresenceMeta, type TeamMessage } from "../game/team";
 import { createBroadcastTransport, HEARTBEAT_MS, PRESENCE_EXPIRY_MS } from "./broadcastTransport";
 
-const meta = (id: string, joinedAt: number): PresenceMeta => ({ id, name: `P-${id}`, joinedAt, startedAt: null, flags: NO_FLAGS, x: 28, y: 72 });
+const meta = (id: string, joinedAt: number): PresenceMeta => ({ id, name: `P-${id}`, joinedAt, startedAt: null, flags: NO_FLAGS, x: 28, y: 72, zone: "peaks" });
 
 type FakeChannel = { name: string; onmessage: ((e: { data: unknown }) => void) | null; postMessage(d: unknown): void; close(): void; closed: boolean };
 
@@ -53,9 +53,9 @@ describe("broadcast (Same computer) transport", () => {
     b.onMessage((m) => got.b.push(m));
     await a.join("KQZM", meta("a", 1));
     await b.join("KQZM", meta("b", 2));
-    a.send({ type: "pos", id: "a", x: 30, y: 70 });
-    bus.all[0].postMessage({ kind: "msg", msg: { type: "pos", id: "a", x: 999, y: 70 } });
-    expect(got.b).toEqual([{ type: "pos", id: "a", x: 30, y: 70 }]);
+    a.send({ type: "pos", id: "a", x: 30, y: 70, zone: "peaks" });
+    bus.all[0].postMessage({ kind: "msg", msg: { type: "pos", id: "a", x: 999, y: 70, zone: "peaks" } });
+    expect(got.b).toEqual([{ type: "pos", id: "a", x: 30, y: 70, zone: "peaks" }]);
     expect(got.a).toEqual([]);
   });
 

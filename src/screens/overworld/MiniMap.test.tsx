@@ -51,7 +51,7 @@ describe("mini-map terrain", () => {
   });
 
   it("keeps the dots and renders an aria-hidden canvas behind them, without the old dashed river", () => {
-    render(<MiniMap player={{ x: 28, y: 72 }} artifactFound={false} teammates={[{ id: "k", name: "Kai", color: "#a78bfa", x: 60, y: 60 }]} />);
+    render(<MiniMap player={{ x: 28, y: 72 }} artifactFound={false} teammates={[{ id: "k", name: "Kai", color: "#a78bfa", x: 60, y: 60, zone: "peaks" }]} />);
     const box = screen.getByRole("img", { name: "Mini-map" });
     const canvas = box.querySelector("canvas")!;
     expect(canvas).toHaveAttribute("aria-hidden", "true");

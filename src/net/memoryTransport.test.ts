@@ -3,7 +3,7 @@ import { NO_FLAGS, type PresenceMeta, type TeamMessage } from "../game/team";
 import { createMemoryHub } from "./memoryTransport";
 import { TeamError, type TeamStatus } from "./transport";
 
-const meta = (id: string, joinedAt: number): PresenceMeta => ({ id, name: `P-${id}`, joinedAt, startedAt: null, flags: NO_FLAGS, x: 28, y: 72 });
+const meta = (id: string, joinedAt: number): PresenceMeta => ({ id, name: `P-${id}`, joinedAt, startedAt: null, flags: NO_FLAGS, x: 28, y: 72, zone: "peaks" });
 
 function watch(t: ReturnType<ReturnType<typeof createMemoryHub>["transport"]>) {
   const seen = { presence: [] as string[][], messages: [] as TeamMessage[], status: [] as TeamStatus[] };
@@ -25,8 +25,8 @@ describe("memory transport", () => {
     expect(sa.presence.at(-1)).toEqual(["a", "b"]);
     expect(sb.presence.at(-1)).toEqual(["a", "b"]);
     expect(sa.status.at(-1)).toBe("online");
-    a.send({ type: "pos", id: "a", x: 30, y: 70 });
-    expect(sb.messages).toEqual([{ type: "pos", id: "a", x: 30, y: 70 }]);
+    a.send({ type: "pos", id: "a", x: 30, y: 70, zone: "peaks" });
+    expect(sb.messages).toEqual([{ type: "pos", id: "a", x: 30, y: 70, zone: "peaks" }]);
     expect(sa.messages).toEqual([]);
     await b.leave();
     expect(sa.presence.at(-1)).toEqual(["a"]);
@@ -71,7 +71,7 @@ describe("memory transport", () => {
     hub.drop(b);
     expect(sb.status.at(-1)).toBe("reconnecting");
     expect(sa.presence.at(-1)).toEqual(["a"]);
-    a.send({ type: "pos", id: "a", x: 30, y: 70 });
+    a.send({ type: "pos", id: "a", x: 30, y: 70, zone: "peaks" });
     expect(sb.messages).toEqual([]);
     b.updatePresence({ ...meta("b", 2), flags: { ...NO_FLAGS, hasLoot: true } });
     hub.restore(b);
@@ -85,7 +85,7 @@ describe("memory transport", () => {
     const a = hub.transport();
     const sa = watch(a);
     await a.join("KQZM", meta("a", 1));
-    hub.inject("KQZM", { type: "pos", id: "x", x: 500, y: 50 });
+    hub.inject("KQZM", { type: "pos", id: "x", x: 500, y: 50, zone: "peaks" });
     hub.inject("KQZM", { type: "progress", id: "x", name: "Kai", flags: { gateUnlocked: "yes" } });
     expect(sa.messages).toEqual([]);
   });

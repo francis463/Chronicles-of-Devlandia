@@ -5,6 +5,7 @@ import type { GameState } from "../../game/types";
 import type { TeamSession } from "../../hooks/useTeamSession";
 import { TICK_MS } from "../../game/constants";
 import { flagsOf, teamMinutes } from "../../game/team";
+import { ZONES } from "../../game/zones";
 import { useNow } from "../../hooks/useNow";
 import { useGameTimers } from "../../hooks/useGameTimers";
 import { useKeyboardControls } from "../../hooks/useKeyboardControls";
@@ -39,9 +40,10 @@ export function Overworld({
   const publishFlags = team?.publishFlags;
   const onProgress = team?.onProgress;
   const onRoster = team?.onRoster;
+  const onZoneChange = team?.onZoneChange;
   const flags = flagsOf(state);
   const flagKey = JSON.stringify(flags);
-  useEffect(() => publishPosition?.(state.player.x, state.player.y), [publishPosition, state.player]);
+  useEffect(() => publishPosition?.(state.player.x, state.player.y, state.zone), [publishPosition, state.player, state.zone]);
   useEffect(() => publishFlags?.(JSON.parse(flagKey)), [publishFlags, flagKey]);
   useEffect(() => onProgress?.((teamFlags, by) => dispatch({ type: "teamSync", flags: teamFlags, by })), [onProgress]);
   useEffect(
@@ -51,6 +53,10 @@ export function Overworld({
         left.forEach((name) => dispatch({ type: "note", text: `${name} left the team.` }));
       }),
     [onRoster],
+  );
+  useEffect(
+    () => onZoneChange?.((name, zone) => dispatch({ type: "note", text: `${name} went to ${ZONES[zone].name}.` })),
+    [onZoneChange],
   );
   const now = useNow(TICK_MS, team?.startedAt != null);
   const minutes = team?.startedAt != null ? teamMinutes(team.startedAt, now) : state.minutes;
@@ -86,7 +92,7 @@ export function Overworld({
             clueDecoded={state.clueDecoded}
             artifactFound={state.artifactFound}
             towerPowered={state.towerPowered}
-            teammates={team?.teammates}
+            teammates={team?.teammates.filter((t) => t.zone === state.zone)}
             playerColor={team?.me?.color}
             inRange={inRange}
             downed={downed}

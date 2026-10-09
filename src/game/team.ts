@@ -1,5 +1,6 @@
 import { BOUNDS, MINUTES_PER_DAY, START_MINUTES, TICK_MINUTES, TICK_MS } from "./constants";
 import type { GameState } from "./types";
+import type { ZoneId } from "./zones";
 
 // ── Shapes ────────────────────────────────────────────────────────────────
 
@@ -22,10 +23,12 @@ export type PresenceMeta = {
   flags: TeamFlags;
   x: number;
   y: number;
+  /** Where they are; null means a zone this version doesn't know (shown nowhere, still in the team). */
+  zone: ZoneId | null;
 };
 
 export type TeamMessage =
-  | { type: "pos"; id: string; x: number; y: number }
+  | { type: "pos"; id: string; x: number; y: number; zone: ZoneId | null }
   | { type: "progress"; id: string; name: string; flags: TeamFlags }
   | { type: "start"; startedAt: number };
 
@@ -126,6 +129,12 @@ const isX = (v: unknown): v is number => isNum(v) && v >= BOUNDS.minX && v <= BO
 const isY = (v: unknown): v is number => isNum(v) && v >= BOUNDS.minY && v <= BOUNDS.maxY;
 const isStart = (v: unknown, now: number): v is number => isNum(v) && Math.abs(v - now) <= MAX_START_SKEW_MS;
 
+/** Older clients send no zone (they are in the Peaks); a zone we don't know is "elsewhere", never a reason to drop. */
+function parseZone(v: unknown): ZoneId | null {
+  if (v === undefined) return "peaks";
+  return v === "peaks" || v === "village" ? v : null;
+}
+
 function parseFlags(v: unknown): TeamFlags | null {
   if (!isObj(v) || !FLAG_KEYS.every((k) => typeof v[k] === "boolean")) return null;
   return Object.fromEntries(FLAG_KEYS.map((k) => [k, v[k]])) as TeamFlags;
@@ -137,13 +146,13 @@ export function parsePresence(raw: unknown, now: number): PresenceMeta | null {
   const flags = parseFlags(raw.flags);
   const startedAt = raw.startedAt === null ? null : isStart(raw.startedAt, now) ? raw.startedAt : undefined;
   if (!name || !flags || startedAt === undefined || !isX(raw.x) || !isY(raw.y)) return null;
-  return { id: raw.id, name, joinedAt: raw.joinedAt, startedAt, flags, x: raw.x, y: raw.y };
+  return { id: raw.id, name, joinedAt: raw.joinedAt, startedAt, flags, x: raw.x, y: raw.y, zone: parseZone(raw.zone) };
 }
 
 export function parseMessage(raw: unknown, now: number): TeamMessage | null {
   if (!isObj(raw)) return null;
   if (raw.type === "pos") {
-    return isId(raw.id) && isX(raw.x) && isY(raw.y) ? { type: "pos", id: raw.id, x: raw.x, y: raw.y } : null;
+    return isId(raw.id) && isX(raw.x) && isY(raw.y) ? { type: "pos", id: raw.id, x: raw.x, y: raw.y, zone: parseZone(raw.zone) } : null;
   }
   if (raw.type === "progress") {
     const name = typeof raw.name === "string" ? normalizeNickname(raw.name) : null;

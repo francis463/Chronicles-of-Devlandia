@@ -28,6 +28,7 @@ const meta = (id: string, joinedAt: number, extra: Partial<PresenceMeta> = {}): 
   flags: NO_FLAGS,
   x: 28,
   y: 72,
+  zone: "peaks",
   ...extra,
 });
 
@@ -137,8 +138,17 @@ describe("validation of teammate input", () => {
     expect(parsePresence("nope", NOW)).toBeNull();
   });
 
+  it("zones are parsed leniently and never drop a teammate", () => {
+    expect(parsePresence({ ...meta("a", 1), zone: undefined }, NOW)?.zone).toBe("peaks");
+    expect(parsePresence({ ...meta("a", 1), zone: "village" }, NOW)?.zone).toBe("village");
+    const future = parsePresence({ ...meta("a", 1), zone: "marsh" }, NOW);
+    expect(future).not.toBeNull();
+    expect(future?.zone).toBeNull();
+    expect(parseMessage({ type: "pos", id: "a", x: 50, y: 50, zone: 7 }, NOW)).toEqual({ type: "pos", id: "a", x: 50, y: 50, zone: null });
+  });
+
   it("parses the three message types and drops anything else", () => {
-    expect(parseMessage({ type: "pos", id: "a", x: 50, y: 50 }, NOW)).toEqual({ type: "pos", id: "a", x: 50, y: 50 });
+    expect(parseMessage({ type: "pos", id: "a", x: 50, y: 50 }, NOW)).toEqual({ type: "pos", id: "a", x: 50, y: 50, zone: "peaks" });
     expect(parseMessage({ type: "progress", id: "a", name: "Kai", flags: NO_FLAGS }, NOW)).toEqual({
       type: "progress",
       id: "a",

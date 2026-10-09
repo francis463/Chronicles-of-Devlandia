@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
-import { NO_FLAGS } from "../game/team";
+import { NO_FLAGS, type RankedPlayer } from "../game/team";
 import type { TeamSession } from "../hooks/useTeamSession";
 import { createMemoryHub } from "../net/memoryTransport";
 import { ROOM_VIEW_GUARD_MS, TeamLobby } from "./TeamLobby";
@@ -27,6 +27,7 @@ const stub = (over: Partial<TeamSession> = {}): TeamSession => ({
   publishFlags: vi.fn(),
   onProgress: vi.fn(() => () => {}),
   onRoster: vi.fn(() => () => {}),
+  onZoneChange: vi.fn(() => () => {}),
   ...over,
 });
 
@@ -147,7 +148,7 @@ describe("TeamLobby with two players (App + memory hub)", () => {
     vi.useFakeTimers();
     const onBack = vi.fn();
     const { rerender } = render(<TeamLobby session={stub()} onBack={onBack} />);
-    const me = { id: "a", name: "Ana", joinedAt: 1, startedAt: null, flags: NO_FLAGS, x: 28, y: 72, rank: 0, color: "#22c55e", isHost: true };
+    const me: RankedPlayer = { id: "a", name: "Ana", joinedAt: 1, startedAt: null, flags: NO_FLAGS, x: 28, y: 72, zone: "peaks", rank: 0, color: "#22c55e", isHost: true };
     rerender(<TeamLobby session={stub({ phase: "lobby", room: "KQZM", me, players: [me] })} onBack={onBack} />);
     fireEvent.click(screen.getByRole("button", { name: "[ Leave Room ]" }));
     expect(onBack).not.toHaveBeenCalled();

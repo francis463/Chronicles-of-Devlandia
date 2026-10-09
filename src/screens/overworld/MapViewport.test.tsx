@@ -148,12 +148,12 @@ describe("MapViewport on the canvas", () => {
   });
 
   it("puts teammates' names on the left near the right edge", () => {
-    render(<MapViewport {...props({ teammates: [{ id: "k", name: "Kai", color: "#a78bfa", x: 90, y: 50 }, { id: "m", name: "Mia", color: "#f472b6", x: 40, y: 50 }] })} />);
+    render(<MapViewport {...props({ teammates: [{ id: "k", name: "Kai", color: "#a78bfa", x: 90, y: 50, zone: "peaks" }, { id: "m", name: "Mia", color: "#f472b6", x: 40, y: 50, zone: "peaks" }] })} />);
     expect(within(screen.getByTestId("teammate-Kai")).getByText("Kai").style.right).not.toBe("");
     expect(within(screen.getByTestId("teammate-Mia")).getByText("Mia").style.left).not.toBe("");
   });
 
   it("nothing crashes without a 2D context", () => {
-    expect(() => render(<MapViewport {...props({ teammates: [{ id: "k", name: "Kai", color: "#a78bfa", x: 60, y: 60 }] })} />)).not.toThrow();
+    expect(() => render(<MapViewport {...props({ teammates: [{ id: "k", name: "Kai", color: "#a78bfa", x: 60, y: 60, zone: "peaks" }] })} />)).not.toThrow();
   });
 });

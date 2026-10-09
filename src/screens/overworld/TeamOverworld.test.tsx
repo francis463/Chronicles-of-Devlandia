@@ -68,6 +68,14 @@ describe("Overworld in team mode", () => {
     expect(ana.getByTestId("teammate-Kai").style.top).toBe("68%");
   });
 
+  it("a teammate who walks into the village leaves your Peaks map and the log says so", async () => {
+    const { user, ana, kai } = await startedPair();
+    for (let i = 0; i < 6; i++) await user.click(kai.getByRole("button", { name: "Move left" }));
+    act(() => vi.advanceTimersByTime(POS_INTERVAL_MS * 2));
+    expect(ana.queryByTestId("teammate-Kai")).toBeNull();
+    expect(countIn(logText(ana), "Kai went to Dev Village.")).toBe(1);
+  });
+
   it("shows the room code and how many are online", async () => {
     const { ana, code } = await startedPair();
     expect(ana.getByText(`ROOM ${code} · 2 online`)).toBeInTheDocument();

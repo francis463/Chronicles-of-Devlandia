@@ -16,11 +16,12 @@ import {
   type TeamFlags,
   type TeamMessage,
 } from "../game/team";
+import type { ZoneId } from "../game/zones";
 import type { TeamMode, TeamStatus, TeamTransport } from "../net/transport";
 
 export type TeamErrorKind = "unreachable" | "no-room" | "full";
 export type TeamPhase = "idle" | "connecting" | "lobby" | "playing" | "error";
-export type Teammate = { id: string; name: string; color: string; x: number; y: number };
+export type Teammate = { id: string; name: string; color: string; x: number; y: number; zone: ZoneId | null };
 
 export type TeamSession = {
   phase: TeamPhase;
@@ -36,10 +37,12 @@ export type TeamSession = {
   start(): void;
   leave(): void;
   retry(): void;
-  publishPosition(x: number, y: number): void;
+  publishPosition(x: number, y: number, zone: ZoneId): void;
   publishFlags(flags: TeamFlags): void;
   onProgress(cb: (flags: TeamFlags, by: string) => void): () => void;
   onRoster(cb: (joined: string[], left: string[]) => void): () => void;
+  /** A teammate's position updates moved them from one known zone to another (never their first sighting). */
+  onZoneChange(cb: (name: string, zone: ZoneId) => void): () => void;
 };
 
 type State = {
@@ -49,7 +52,7 @@ type State = {
   room: string | null;
   myId: string | null;
   metas: PresenceMeta[];
-  positions: Record<string, { x: number; y: number }>;
+  positions: Record<string, { x: number; y: number; zone: ZoneId | null }>;
   startedAt: number | null;
 };
 type Action =
@@ -57,7 +60,7 @@ type Action =
   | { type: "joined" }
   | { type: "presence"; metas: PresenceMeta[] }
   | { type: "status"; status: TeamStatus }
-  | { type: "pos"; id: string; x: number; y: number }
+  | { type: "pos"; id: string; x: number; y: number; zone: ZoneId | null }
   | { type: "started"; startedAt: number }
   | { type: "fail"; error: TeamErrorKind }
   | { type: "reset" };
@@ -79,7 +82,7 @@ function reducer(state: State, action: Action): State {
     case "status":
       return { ...state, status: action.status };
     case "pos":
-      return { ...state, positions: { ...state.positions, [action.id]: { x: action.x, y: action.y } } };
+      return { ...state, positions: { ...state.positions, [action.id]: { x: action.x, y: action.y, zone: action.zone } } };
     case "fail":
       return { ...idle, phase: "error", error: action.error, room: state.room };
     case "reset":
@@ -104,6 +107,9 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
   const request = useRef<Request | null>(null);
   const progressCbs = useRef(new Set<(flags: TeamFlags, by: string) => void>());
   const rosterCbs = useRef(new Set<(joined: string[], left: string[]) => void>());
+  const zoneCbs = useRef(new Set<(name: string, zone: ZoneId) => void>());
+  /** Each teammate's zone as their last pos said; presence zones never count (they can be stale). */
+  const lastPosZone = useRef(new Map<string, ZoneId | null>());
   // What we know of each teammate's progress; replayed to listeners that subscribe later.
   const lastFlags = useRef(new Map<string, { name: string; flags: TeamFlags }>());
   const knownNames = useRef<Map<string, string> | null>(null);
@@ -121,6 +127,7 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
     me.current = null;
     lastFlags.current.clear();
     knownNames.current = null;
+    lastPosZone.current.clear();
     seenOthers.current = false;
     return t;
   }, []);
@@ -153,7 +160,7 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
     const t = transport.current;
     if (!t || !me.current) return;
     lastPosSent.current = now();
-    t.send({ type: "pos", id: me.current.id, x: me.current.x, y: me.current.y });
+    t.send({ type: "pos", id: me.current.id, x: me.current.x, y: me.current.y, zone: me.current.zone });
   }, [now]);
 
   const connect = useCallback(
@@ -163,7 +170,7 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
       transport.current = t;
       request.current = req;
       const myId = crypto.randomUUID();
-      me.current = { id: myId, name: req.name, joinedAt: now(), startedAt: null, flags: NO_FLAGS, x: PLAYER_START.x, y: PLAYER_START.y };
+      me.current = { id: myId, name: req.name, joinedAt: now(), startedAt: null, flags: NO_FLAGS, x: PLAYER_START.x, y: PLAYER_START.y, zone: "peaks" };
       dispatch({ type: "connect", room: req.room, myId });
 
       let lastStatus: TeamStatus | null = null;
@@ -179,7 +186,16 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
       offs.current.push(
         t.onMessage((msg: TeamMessage) => {
           if (msg.type === "pos") {
-            if (msg.id !== myId) dispatch({ type: "pos", id: msg.id, x: msg.x, y: msg.y });
+            if (msg.id !== myId) {
+              const before = lastPosZone.current.get(msg.id);
+              lastPosZone.current.set(msg.id, msg.zone);
+              if (before && msg.zone && before !== msg.zone) {
+                const name = knownNames.current?.get(msg.id) ?? stateRef.current.metas.find((m) => m.id === msg.id)?.name;
+                const zone = msg.zone;
+                if (name) zoneCbs.current.forEach((cb) => cb(name, zone));
+              }
+              dispatch({ type: "pos", id: msg.id, x: msg.x, y: msg.y, zone: msg.zone });
+            }
           } else if (msg.type === "progress") {
             if (msg.id !== myId) noteFlags(msg.id, msg.name, msg.flags);
           } else {
@@ -279,10 +295,10 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
 
   /** Positions go out as `pos` messages, at most every POS_INTERVAL_MS; presence keeps the latest for the next update. */
   const publishPosition = useCallback(
-    (x: number, y: number) => {
+    (x: number, y: number, zone: ZoneId) => {
       const t = transport.current;
       if (!t || !me.current) return;
-      me.current = { ...me.current, x, y };
+      me.current = { ...me.current, x, y, zone };
       const wait = lastPosSent.current + POS_INTERVAL_MS - now();
       if (wait <= 0) sendPos();
       else if (!timers.current.pos) {
@@ -318,6 +334,11 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
     return () => void rosterCbs.current.delete(cb);
   }, []);
 
+  const onZoneChange = useCallback((cb: (name: string, zone: ZoneId) => void) => {
+    zoneCbs.current.add(cb);
+    return () => void zoneCbs.current.delete(cb);
+  }, []);
+
   useEffect(() => () => void teardown()?.leave(), [teardown]);
 
   const players = useMemo(() => rankPlayers(state.metas), [state.metas]);
@@ -326,7 +347,7 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
     () =>
       players
         .filter((p) => p.id !== state.myId)
-        .map((p) => ({ id: p.id, name: p.name, color: p.color, ...(state.positions[p.id] ?? { x: p.x, y: p.y }) })),
+        .map((p) => ({ id: p.id, name: p.name, color: p.color, ...(state.positions[p.id] ?? { x: p.x, y: p.y, zone: p.zone }) })),
     [players, state.myId, state.positions],
   );
 
@@ -348,5 +369,6 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
     publishFlags,
     onProgress,
     onRoster,
+    onZoneChange,
   };
 }
