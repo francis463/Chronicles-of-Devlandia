@@ -57,6 +57,8 @@ export const LOG = {
   towerPowered: "Signal tower online: the fog lifts and the bridge returns.",
   wallLocked: "The gate is locked. Solve its terminal to pass.",
   wallSolid: "The wall is solid here. Go through the gate.",
+  enteredPeaks: "Entered C++ Peaks.",
+  enteredVillage: "Entered Dev Village.",
 };
 
 export const INSPECT_COPY: Record<PoiId, { default: string; looted?: string; opened?: string; bridged?: string; powered?: string }> = {

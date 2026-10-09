@@ -105,6 +105,12 @@ describe("Overworld timers", () => {
     expect(screen.getByText("Cold exposure: -8 HP.")).toBeInTheDocument();
   });
 
+  it("the village has no cold", () => {
+    render(<Overworld onMenu={() => {}} initial={{ zone: "village", player: { x: 50, y: 33 } }} />);
+    act(() => vi.advanceTimersByTime(3600));
+    expect(screen.getAllByRole("meter")[0]).toHaveAttribute("aria-valuenow", "100");
+  });
+
   it("solving the gate does not stop the cold", () => {
     render(<Overworld onMenu={() => {}} initial={{ gateUnlocked: true, player: { x: 50, y: 33 } }} />);
     act(() => vi.advanceTimersByTime(1800));

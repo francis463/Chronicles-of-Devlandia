@@ -4,6 +4,7 @@ import type { GameState, Point } from "./types";
 import { NO_FLAGS } from "./team";
 import { HIDDEN_ARTIFACT, INTERACT_RADIUS, LOG, PLAYER_START, POIS } from "./constants";
 import { isNorthOfWall } from "./wall";
+import type { ZoneId } from "./zones";
 
 const s0 = initialState;
 const opened: GameState = { ...s0, gateUnlocked: true };
@@ -416,35 +417,112 @@ describe("gameReducer: the north wall", () => {
   });
 
   it("the gate is the only way north (reachability)", () => {
+    type Spot = { zone: ZoneId; player: Point };
     function reachable(gateUnlocked: boolean) {
-      const seen = new Map<string, Point>([["28,72", PLAYER_START]]);
-      const queue: Point[] = [PLAYER_START];
-      const crossings: Point[] = [];
+      const key = (s: Spot) => `${s.zone},${s.player.x},${s.player.y}`;
+      const start: Spot = { zone: "peaks", player: PLAYER_START };
+      const seen = new Map<string, Spot>([[key(start), start]]);
+      const queue: Spot[] = [start];
+      const crossings: Spot[] = [];
       while (queue.length) {
         const p = queue.shift()!;
         for (const dir of ["up", "down", "left", "right"] as const) {
-          const q = gameReducer({ ...s0, gateUnlocked, player: p }, { type: "move", dir }).player;
-          if (isNorthOfWall(q) !== isNorthOfWall(p)) crossings.push(p);
-          const k = `${q.x},${q.y}`;
-          if (!seen.has(k)) {
-            seen.set(k, q);
+          const next = gameReducer({ ...s0, gateUnlocked, zone: p.zone, player: p.player }, { type: "move", dir });
+          const q: Spot = { zone: next.zone, player: next.player };
+          if (q.zone === p.zone && isNorthOfWall(q.player) !== isNorthOfWall(p.player)) crossings.push(p);
+          if (!seen.has(key(q))) {
+            seen.set(key(q), q);
             queue.push(q);
           }
         }
       }
-      return { points: [...seen.values()], crossings };
+      const spots = [...seen.values()];
+      return { spots, peaks: spots.filter((s) => s.zone === "peaks").map((s) => s.player), crossings };
     }
     const inReach = (points: Point[], target: Point) =>
       points.some((p) => Math.hypot(p.x - target.x, p.y - target.y) <= INTERACT_RADIUS);
 
     const locked = reachable(false);
-    expect([poi("tower"), poi("chest"), poi("river")].map((t) => inReach(locked.points, t))).toEqual([false, false, false]);
-    expect([poi("gate"), HIDDEN_ARTIFACT].map((t) => inReach(locked.points, t))).toEqual([true, true]);
-    expect(locked.points.some((p) => p.y < 49)).toBe(false);
+    expect([poi("tower"), poi("chest"), poi("river")].map((t) => inReach(locked.peaks, t))).toEqual([false, false, false]);
+    expect([poi("gate"), HIDDEN_ARTIFACT].map((t) => inReach(locked.peaks, t))).toEqual([true, true]);
+    expect(locked.spots.some((s) => s.player.y < 49)).toBe(false);
+    expect(locked.spots.some((s) => s.zone === "village")).toBe(true);
 
     const open = reachable(true);
-    expect([poi("tower"), poi("chest"), poi("river"), poi("gate"), HIDDEN_ARTIFACT].every((t) => inReach(open.points, t))).toBe(true);
+    expect([poi("tower"), poi("chest"), poi("river"), poi("gate"), HIDDEN_ARTIFACT].every((t) => inReach(open.peaks, t))).toBe(true);
     expect(open.crossings.length).toBeGreaterThan(0);
-    expect(new Set(open.crossings.map((p) => p.x))).toEqual(new Set([48, 50, 52]));
+    expect(open.crossings.every((c) => c.zone === "peaks")).toBe(true);
+    expect(new Set(open.crossings.map((c) => c.player.x))).toEqual(new Set([48, 50, 52]));
+    expect(open.spots.some((s) => s.zone === "village" && s.player.y < 49)).toBe(false);
+  });
+});
+
+describe("gameReducer: zones", () => {
+  const left = { type: "move", dir: "left" } as const;
+  const right = { type: "move", dir: "right" } as const;
+
+  it("left from (6, 72) in the Peaks enters the village at (94, 72)", () => {
+    const s = gameReducer({ ...s0, player: { x: 6, y: 72 }, inspected: "gate", stamina: 50 }, left);
+    expect(s.zone).toBe("village");
+    expect(s.player).toEqual({ x: 94, y: 72 });
+    expect(s.drone).toEqual({ x: 86, y: 70 });
+    expect(s.stamina).toBe(49);
+    expect(s.inspected).toBeNull();
+    expect(lastLog(s)).toBe("Entered Dev Village.");
+  });
+
+  it("right from (94, 72) in the village enters the Peaks at (6, 72)", () => {
+    const s = gameReducer({ ...s0, zone: "village", player: { x: 94, y: 72 } }, right);
+    expect(s.zone).toBe("peaks");
+    expect(s.player).toEqual({ x: 6, y: 72 });
+    expect(s.drone).toEqual({ x: 14, y: 70 });
+    expect(lastLog(s)).toBe("Entered C++ Peaks.");
+  });
+
+  it("the exit spans y 62–78: (6, 62) and (8, 68) leave; (6, 60), (8, 80) and (6, 50) stay clamped", () => {
+    for (const player of [{ x: 6, y: 62 }, { x: 8, y: 68 }]) {
+      expect(gameReducer({ ...s0, player }, left).zone, JSON.stringify(player)).toBe("village");
+    }
+    for (const player of [{ x: 6, y: 60 }, { x: 8, y: 80 }, { x: 6, y: 50 }]) {
+      const s = gameReducer({ ...s0, player }, left);
+      expect([s.zone, s.player.x], JSON.stringify(player)).toEqual(["peaks", 6]);
+    }
+  });
+
+  it("vertical steps at an edge never change zones", () => {
+    for (const dir of ["up", "down"] as const) {
+      expect(gameReducer({ ...s0, player: { x: 6, y: 72 } }, { type: "move", dir }).zone).toBe("peaks");
+    }
+  });
+
+  it("a held left from camp walks out through the exit and on into the village", () => {
+    let s = s0;
+    for (let i = 0; i < 7; i++) s = gameReducer(s, left);
+    expect(s.zone).toBe("village");
+    expect(s.player).toEqual({ x: 90, y: 72 });
+  });
+
+  it("respawn returns to camp in the Peaks", () => {
+    const s = gameReducer({ ...s0, zone: "village", hp: 0, player: { x: 60, y: 70 } }, { type: "respawn" });
+    expect(s.zone).toBe("peaks");
+    expect(s.player).toEqual({ x: 28, y: 72 });
+  });
+
+  it("the village wall is solid whether or not the gate is open, and logs once", () => {
+    for (const gateUnlocked of [false, true]) {
+      const start: GameState = { ...s0, zone: "village", gateUnlocked, player: { x: 30, y: 52 } };
+      const once = gameReducer(start, { type: "move", dir: "up" });
+      expect(once.player).toEqual({ x: 30, y: 52 });
+      expect(once.stamina).toBe(start.stamina);
+      expect(lastLog(once)).toBe(LOG.wallSolid);
+      expect(gameReducer(once, { type: "move", dir: "up" })).toBe(once);
+    }
+  });
+
+  it("the river does nothing in the village", () => {
+    const onIce: GameState = { ...s0, zone: "village", player: { x: 50, y: 33 } };
+    expect(gameReducer(onIce, { type: "riverDamage" })).toBe(onIce);
+    const s = gameReducer({ ...s0, zone: "village", player: { x: 50, y: 37 } }, { type: "move", dir: "up" });
+    expect(s.questComplete).toBe(false);
   });
 });

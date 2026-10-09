@@ -22,9 +22,11 @@ import { isCorrectDecode } from "./cipher";
 import { circuitError } from "./logic";
 import { flagsOf, mergeFlags, newlySet, teammateLog } from "./team";
 import type { Direction, GameAction, GameState, Poi, Point } from "./types";
-import { isNorthOfWall, wallBlock } from "./wall";
+import { crossesWall, isNorthOfWall, wallBlock } from "./wall";
+import { ZONES, arrival, exitFor } from "./zones";
 
 export const initialState: GameState = {
+  zone: "peaks",
   player: PLAYER_START,
   drone: DRONE_START,
   hp: MAX_HP,
@@ -56,6 +58,9 @@ export const isDowned = (s: GameState) => s.hp <= 0;
 export const isModalOpen = (s: GameState) => s.terminalOpen || s.cipherOpen || s.logicOpen;
 
 /** Hidden points of interest that are currently diggable: the artifact, after decoding, until found. */
+/** On the frozen river's ice, in a zone that has the river. */
+export const inRiver = (s: GameState): boolean => ZONES[s.zone].river && isInRiver(s.player);
+
 export const revealedPois = (s: GameState): Poi[] => (s.clueDecoded && !s.artifactFound ? [HIDDEN_ARTIFACT] : []);
 
 const DELTAS: Record<Direction, Point> = {
@@ -83,14 +88,23 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case "move": {
       if (isDowned(state) || isModalOpen(state)) return state;
       const delta = DELTAS[action.dir];
-      const player = clampPlayer({
-        x: state.player.x + delta.x * STEP,
-        y: state.player.y + delta.y * STEP,
-      });
-      const block = wallBlock(state.player, player, state.gateUnlocked);
+      const target = { x: state.player.x + delta.x * STEP, y: state.player.y + delta.y * STEP };
+      const exit = exitFor(state.zone, state.player, target);
+      if (exit) {
+        return pushLog(
+          { ...state, zone: exit.to, ...arrival(exit, state.player.y), inspected: null, stamina: Math.max(0, state.stamina - 1) },
+          ZONES[exit.to].entered,
+        );
+      }
+      const player = clampPlayer(target);
+      const block = ZONES[state.zone].gate
+        ? wallBlock(state.player, player, state.gateUnlocked)
+        : crossesWall(state.player, player)
+          ? "solid"
+          : null;
       if (block) return pushLogOnce(state, block === "locked" ? LOG.wallLocked : LOG.wallSolid);
       const next = { ...state, player, stamina: Math.max(0, state.stamina - 1) };
-      if (!state.questComplete && isInRiver(player)) {
+      if (!state.questComplete && inRiver({ ...state, player })) {
         return pushLog({ ...next, questComplete: true }, LOG.questComplete);
       }
       return next;
@@ -102,7 +116,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         stamina: Math.min(MAX_STAMINA, state.stamina + STAMINA_REGEN),
       };
     case "riverDamage": {
-      if (isDowned(state) || state.towerPowered || !isInRiver(state.player)) return state;
+      if (isDowned(state) || state.towerPowered || !inRiver(state)) return state;
       const hurt = pushLog({ ...state, hp: Math.max(0, state.hp - RIVER_DAMAGE) }, LOG.coldExposure);
       return isDowned(hurt) ? pushLog(hurt, LOG.downed) : hurt;
     }
@@ -189,7 +203,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return pushLog(state, action.text);
     case "respawn":
       return pushLog(
-        { ...state, hp: MAX_HP, player: PLAYER_START, drone: DRONE_START, inspected: null },
+        { ...state, hp: MAX_HP, zone: "peaks", player: PLAYER_START, drone: DRONE_START, inspected: null },
         LOG.revived,
       );
   }

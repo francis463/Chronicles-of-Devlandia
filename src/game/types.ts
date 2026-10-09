@@ -1,5 +1,6 @@
 import type { Bits } from "./logic";
 import type { TeamFlags } from "./team";
+import type { ZoneId } from "./zones";
 
 export type Point = { x: number; y: number };
 
@@ -12,6 +13,8 @@ export type Direction = "up" | "down" | "left" | "right";
 export type Phase = "Day" | "Dusk" | "Night";
 
 export type GameState = {
+  /** Which screen of the world you are on. */
+  zone: ZoneId;
   player: Point;
   drone: Point;
   hp: number;
