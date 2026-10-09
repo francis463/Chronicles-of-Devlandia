@@ -9,7 +9,7 @@ export function EventLog({ logs, logCount, className = "" }: { logs: string[]; l
     if (el) el.scrollTop = el.scrollHeight;
   }, [logCount]);
   return (
-    <aside className={`border-t-2 border-dashed border-[var(--panel-border)] bg-[var(--bg)] p-3 md:relative md:min-h-0 md:border-t-0 md:border-r-2 ${className}`}>
+    <aside className={`border-t-2 border-dashed border-[var(--panel-border)] bg-[var(--bg)] p-3 md:relative md:min-h-34 md:border-t-0 md:border-r-2 ${className}`}>
       <h3 className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
         Event Log / Live
       </h3>

@@ -90,6 +90,15 @@ describe("Overworld layout", () => {
     expect(miniMapRoot.className.split(/\s+/)).toContain("md:flex-col");
     expect(quests.className.split(/\s+/)).toEqual(expect.arrayContaining(["bg-[var(--bg)]", "md:border-r-2"]));
   });
+
+  it("at md the event log keeps room for its longest entry, so short windows scroll the page instead of cutting it", () => {
+    render(<Overworld onMenu={() => {}} />);
+    // jsdom has no layout: the browser check measures it; this pins the floor (136 px: a 40-px header offset,
+    // Ada's longest line at 80 px, 12 px below), which still lets 1280 × 520 fit without scrolling.
+    const classes = screen.getByRole("log", { name: "Event log" }).closest("aside")!.className.split(/\s+/);
+    expect(classes).toContain("md:min-h-34");
+    expect(classes).not.toContain("md:min-h-0");
+  });
 });
 
 describe("Overworld map", () => {
