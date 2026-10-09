@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { HIDDEN_ARTIFACT, INSPECT_COPY, POIS } from "../../game/constants";
-import { interactLabel } from "../../game/geometry";
+import { promptText as promptFor } from "../../game/geometry";
 import type { Poi, PoiId, Point } from "../../game/types";
 import type { Teammate } from "../../hooks/useTeamSession";
 import type { SceneInput } from "../../render/scene";
@@ -208,7 +208,7 @@ export function MapViewport({
   const inWorld = (p: Point) => ({ x: (p.x / 100) * world.width, y: (p.y / 100) * world.height });
 
   const inspectedPoi = [...POIS, HIDDEN_ARTIFACT].find((poi) => poi.id === inspected);
-  const copy = inspected ? INSPECT_COPY[inspected] : null;
+  const copy = inspected && inspected !== "villager" ? INSPECT_COPY[inspected] : null;
   const inspectCopy = !copy
     ? null
     : (hasLoot && copy.looted) || (gateUnlocked && copy.opened) || (towerPowered && (copy.bridged ?? copy.powered)) || copy.default;
@@ -229,7 +229,7 @@ export function MapViewport({
   const me = toArt(player);
   const fogX = world.left + me.x * world.scale;
   const fogY = world.top + (me.y - 8) * world.scale;
-  const promptText = inRange ? (inRange.id === "artifact" ? "[E] Dig here" : `[E] Inspect ${interactLabel(inRange)}`) : "";
+  const promptText = inRange ? promptFor(inRange) : "";
   const prompt = inRange ? promptRect(promptText, me, world, map) : null;
   const P = LANDMARK_POINTS;
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { gameReducer, initialState, isDowned, isModalOpen, revealedPois } from "./reducer";
+import { gameReducer, initialState, isDowned, isModalOpen, revealedPois, visiblePois } from "./reducer";
 import type { GameState, Point } from "./types";
 import { NO_FLAGS } from "./team";
 import { HIDDEN_ARTIFACT, INTERACT_RADIUS, LOG, PLAYER_START, POIS } from "./constants";
@@ -524,5 +524,45 @@ describe("gameReducer: zones", () => {
     expect(gameReducer(onIce, { type: "riverDamage" })).toBe(onIce);
     const s = gameReducer({ ...s0, zone: "village", player: { x: 50, y: 37 } }, { type: "move", dir: "up" });
     expect(s.questComplete).toBe(false);
+  });
+});
+
+describe("gameReducer: places and talking", () => {
+  const village: GameState = { ...s0, zone: "village" };
+  const ADA_GATE_LINE = 'Ada: "Heading north? The gate\'s terminal wants one CSS fix. Get the display right and the wall lets you through."';
+
+  it("visiblePois: your zone's places, plus the dig spot in the Peaks once revealed", () => {
+    expect(visiblePois(s0).map((p) => p.id)).toEqual(["gate", "chest", "river", "tower"]);
+    expect(visiblePois({ ...village, clueDecoded: true }).map((p) => p.id)).toEqual(["villager", "signpost"]);
+    expect(visiblePois({ ...s0, clueDecoded: true }).map((p) => p.id).at(-1)).toBe("artifact");
+  });
+
+  it("places outside your zone do nothing", () => {
+    for (const poi of ["gate", "tower", "chest"] as const) {
+      expect(gameReducer(village, { type: "interact", poi }), poi).toBe(village);
+    }
+    expect(gameReducer(s0, { type: "interact", poi: "villager" })).toBe(s0);
+  });
+
+  it("talking to Ada opens her card and logs her line once", () => {
+    const once = gameReducer(village, { type: "interact", poi: "villager" });
+    expect(once.inspected).toBe("villager");
+    expect(lastLog(once)).toBe(ADA_GATE_LINE);
+    const twice = gameReducer(once, { type: "interact", poi: "villager" });
+    expect(twice.logCount).toBe(once.logCount);
+    expect(twice).toEqual(once);
+  });
+
+  it("Ada's line follows your progress", () => {
+    const s = gameReducer({ ...village, gateUnlocked: true }, { type: "interact", poi: "villager" });
+    expect(lastLog(s)).toBe(
+      'Ada: "The gate\'s open! The signal tower in the snowy north-west is dark. Power it and the bridge over the river comes back."',
+    );
+  });
+
+  it("the signpost opens its card and logs nothing", () => {
+    const s = gameReducer(village, { type: "interact", poi: "signpost" });
+    expect(s.inspected).toBe("signpost");
+    expect(s.logCount).toBe(village.logCount);
   });
 });

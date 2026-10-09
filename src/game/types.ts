@@ -4,7 +4,7 @@ import type { ZoneId } from "./zones";
 
 export type Point = { x: number; y: number };
 
-export type PoiId = "gate" | "chest" | "river" | "tower" | "artifact";
+export type PoiId = "gate" | "chest" | "river" | "tower" | "artifact" | "villager" | "signpost";
 
 export type Poi = { id: PoiId; label: string } & Point;
 

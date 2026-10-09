@@ -24,6 +24,7 @@ import { flagsOf, mergeFlags, newlySet, teammateLog } from "./team";
 import type { Direction, GameAction, GameState, Poi, Point } from "./types";
 import { crossesWall, isNorthOfWall, wallBlock } from "./wall";
 import { ZONES, arrival, exitFor } from "./zones";
+import { adaLine } from "./village";
 
 export const initialState: GameState = {
   zone: "peaks",
@@ -58,6 +59,9 @@ export const isDowned = (s: GameState) => s.hp <= 0;
 export const isModalOpen = (s: GameState) => s.terminalOpen || s.cipherOpen || s.logicOpen;
 
 /** Hidden points of interest that are currently diggable: the artifact, after decoding, until found. */
+/** What you can use in your zone: its places, plus the dig spot in the Peaks once revealed. */
+export const visiblePois = (s: GameState): Poi[] => [...ZONES[s.zone].places, ...(s.zone === "peaks" ? revealedPois(s) : [])];
+
 /** On the frozen river's ice, in a zone that has the river. */
 export const inRiver = (s: GameState): boolean => ZONES[s.zone].river && isInRiver(s.player);
 
@@ -130,6 +134,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       };
     case "interact": {
       if (isDowned(state) || isModalOpen(state)) return state;
+      // Only places in your zone answer (a crafted action, or a stale button after crossing, does nothing).
+      if (!visiblePois(state).some((p) => p.id === action.poi)) return state;
       // The map's buttons work from anywhere, but the north landmarks wait for the gate.
       const north = action.poi === "tower" || action.poi === "chest" || action.poi === "river";
       if (north && !state.gateUnlocked && !isNorthOfWall(state.player)) {
@@ -139,6 +145,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         if (!state.clueDecoded || state.artifactFound) return state;
         return pushLog({ ...state, artifactFound: true, inspected: "artifact" }, LOG.artifactFound);
       }
+      if (action.poi === "villager") return pushLogOnce({ ...state, inspected: "villager" }, `Ada: "${adaLine(state)}"`);
+      if (action.poi === "signpost") return { ...state, inspected: "signpost" };
       const inspected = { ...state, inspected: action.poi };
       if (action.poi === "gate") {
         return state.gateUnlocked
@@ -155,7 +163,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           ? pushLog(inspected, LOG.chestEmpty)
           : pushLog(pushLog({ ...inspected, hasLoot: true }, LOG.chestOpened), LOG.scrollFound);
       }
-      return pushLog(inspected, state.towerPowered ? LOG.riverBridged : LOG.river);
+      if (action.poi === "river") return pushLog(inspected, state.towerPowered ? LOG.riverBridged : LOG.river);
+      return state;
     }
     case "closeInspection":
       return { ...state, inspected: null };

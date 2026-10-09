@@ -357,3 +357,24 @@ describe("Overworld inspection card placement", () => {
     expect(screen.getByRole("region", { name: "POI Inspection" }).className).toContain("bottom-3");
   });
 });
+
+describe("Overworld village", () => {
+  it("in the village [E] talks to Ada", () => {
+    render(<Overworld onMenu={() => {}} initial={{ zone: "village", player: { x: 34, y: 72 } }} />);
+    expect(screen.getAllByText("[E] Talk to Ada")).toHaveLength(2);
+    fireEvent.keyDown(window, { key: "e" });
+    expect(screen.getByRole("log", { name: "Event log" }).textContent).toContain(
+      'Ada: "Heading north? The gate\'s terminal wants one CSS fix. Get the display right and the wall lets you through."',
+    );
+  });
+
+  it("by the signpost [E] reads it", () => {
+    render(<Overworld onMenu={() => {}} initial={{ zone: "village", player: { x: 90, y: 66 } }} />);
+    expect(screen.getAllByText("[E] Read Signpost")).toHaveLength(2);
+  });
+
+  it("in the village the Peaks' places are out of reach", () => {
+    render(<Overworld onMenu={() => {}} initial={{ zone: "village", player: { x: 50, y: 58 } }} />);
+    expect(screen.queryByText(/\[E\] Inspect/)).toBeNull();
+  });
+});

@@ -15,6 +15,9 @@ export const POIS: Poi[] = [
 export const INTERACT_RADIUS = 13;
 /** Buried in the Dense Forests; not on the map until the scroll is decoded. */
 export const HIDDEN_ARTIFACT: Poi = { id: "artifact", label: "Golden Semicolon", x: 72, y: 84 };
+/** Dev Village's villager and its signpost by the exit to the Peaks. */
+export const ADA: Poi = { id: "villager", label: "Ada", x: 34, y: 70 };
+export const SIGNPOST: Poi = { id: "signpost", label: "Signpost", x: 86, y: 62 };
 export const RIVER_ZONE = { minX: 24, maxX: 76, minY: 28, maxY: 39 };
 
 export const MAX_HP = 100;
@@ -61,7 +64,8 @@ export const LOG = {
   enteredVillage: "Entered Dev Village.",
 };
 
-export const INSPECT_COPY: Record<PoiId, { default: string; looted?: string; opened?: string; bridged?: string; powered?: string }> = {
+/** Ada's card shows her current line (village.ts), so she has no fixed copy here. */
+export const INSPECT_COPY: Record<Exclude<PoiId, "villager">, { default: string; looted?: string; opened?: string; bridged?: string; powered?: string }> = {
   gate: {
     default: "A locked compiler gate in the north wall. Its terminal leads to the code puzzle.",
     opened: "The compiler gate stands open. The way north is clear.",
@@ -78,6 +82,7 @@ export const INSPECT_COPY: Record<PoiId, { default: string; looted?: string; ope
     default: "A dark signal tower. Its logic lock needs every line of the circuit to output 1.",
     powered: "The signal tower hums. Its beam keeps the fog away and holds the bridge.",
   },
+  signpost: { default: "C++ PEAKS → East through the hedge: base camp, the north gate and the frozen river." },
   artifact: { default: "The Golden Semicolon, Devlandia's lost line-ender. Every statement can finally be completed." },
 };
 

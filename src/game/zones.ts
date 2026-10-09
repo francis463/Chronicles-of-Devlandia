@@ -1,4 +1,4 @@
-import { BOUNDS, LOG, POIS } from "./constants";
+import { ADA, BOUNDS, LOG, POIS, SIGNPOST } from "./constants";
 import type { Poi, Point } from "./types";
 
 export type ZoneId = "peaks" | "village";
@@ -28,7 +28,7 @@ export const ZONES: Record<ZoneId, Zone> = {
     entered: LOG.enteredVillage,
     exit: { edge: "east", minY: 62, maxY: 78, to: "peaks" },
     gate: false,
-    places: [],
+    places: [ADA, SIGNPOST],
     river: false,
   },
 };

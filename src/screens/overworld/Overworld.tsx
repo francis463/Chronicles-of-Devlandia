@@ -1,6 +1,6 @@
 import { useEffect, useReducer } from "react";
-import { poiInRange } from "../../game/geometry";
-import { gameReducer, initialState, isDowned, isModalOpen, revealedPois } from "../../game/reducer";
+import { placeInReach } from "../../game/geometry";
+import { gameReducer, initialState, isDowned, isModalOpen, visiblePois } from "../../game/reducer";
 import type { GameState } from "../../game/types";
 import type { TeamSession } from "../../hooks/useTeamSession";
 import { TICK_MS } from "../../game/constants";
@@ -56,7 +56,7 @@ export function Overworld({
   const minutes = team?.startedAt != null ? teamMinutes(team.startedAt, now) : state.minutes;
   const teamLabel = team?.room ? `ROOM ${team.room} · ${team.players.length} online` : undefined;
 
-  const inRange = downed ? null : poiInRange(state.player, revealedPois(state));
+  const inRange = downed ? null : placeInReach(state.player, visiblePois(state));
 
   return (
     <Panel className="mx-auto w-full max-w-5xl overflow-hidden">
