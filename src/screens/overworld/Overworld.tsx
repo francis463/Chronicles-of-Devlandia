@@ -78,6 +78,7 @@ export function Overworld({
       />
       <div className="flex flex-col md:flex-row">
         <MiniMap
+          zone={state.zone}
           player={state.player}
           artifactFound={state.artifactFound}
           teammates={team?.teammates}

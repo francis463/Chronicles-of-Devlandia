@@ -74,6 +74,7 @@ describe("Overworld in team mode", () => {
     act(() => vi.advanceTimersByTime(POS_INTERVAL_MS * 2));
     expect(ana.queryByTestId("teammate-Kai")).toBeNull();
     expect(countIn(logText(ana), "Kai went to Dev Village.")).toBe(1);
+    expect(within(ana.getByTestId("minimap-cell-village")).getByTestId("minimap-teammate-Kai")).toBeInTheDocument();
   });
 
   it("shows the room code and how many are online", async () => {
