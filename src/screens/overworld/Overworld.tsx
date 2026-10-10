@@ -1,5 +1,6 @@
-import { useEffect, useReducer, useRef } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import { cardFor } from "../../game/cards";
+import { challengeOf, challengeView } from "../../game/challenges";
 import { rollGame } from "../../game/roll";
 import { interactLabel, placeInReach, promptText } from "../../game/geometry";
 import { gameReducer, initialState, isDowned, isModalOpen, reachPlaces } from "../../game/reducer";
@@ -9,14 +10,13 @@ import { LOG, TICK_MS } from "../../game/constants";
 import { flagsOf, teamMinutes } from "../../game/team";
 import { ZONES } from "../../game/zones";
 import { chestById } from "../../learn/chests";
-import type { ChestId } from "../../learn/types";
+import type { BlankMode, ChestId } from "../../learn/types";
 import { useNow } from "../../hooks/useNow";
 import { useGameTimers } from "../../hooks/useGameTimers";
 import { useKeyboardControls } from "../../hooks/useKeyboardControls";
 import { Panel } from "../../ui/Panel";
-import { CipherModal } from "../CipherModal";
+import { ChallengeTerminal } from "../ChallengeTerminal";
 import { LogicModal } from "../LogicModal";
-import { TerminalModal } from "../TerminalModal";
 import { BottomHud } from "./BottomHud";
 import { EventLog } from "./EventLog";
 import { MapViewport } from "./MapViewport";
@@ -41,6 +41,8 @@ export function Overworld({
     ...rollGame(Math.random, team?.startedAt ?? undefined),
     ...initial,
   }));
+  // Type or Blocks: kept while terminals open and close, reset by a new game (which remounts this).
+  const [mode, setMode] = useState<BlankMode>("type");
   useGameTimers(state, dispatch);
   useKeyboardControls(state, dispatch);
   const downed = isDowned(state);
@@ -159,23 +161,16 @@ export function Overworld({
         artifactFound={state.artifactFound}
         towerPowered={state.towerPowered}
       />
-      {/* Until the challenge terminal arrives, the old gate and cipher modals render from the engine's state. */}
-      {state.challenge?.target === "gate" && (
-        <TerminalModal
-          error={state.challenge.error}
-          hintRevealed={state.hintsRevealed.includes("gate-css")}
+      {state.challenge && (
+        <ChallengeTerminal
+          key={state.challenge.target}
+          challenge={challengeOf(state, state.challenge.target)}
+          view={challengeView(state)!}
+          mode={mode}
+          onModeChange={setMode}
           onSubmit={(value) => dispatch({ type: "submitChallenge", value })}
-          onClose={() => dispatch({ type: "closeChallenge" })}
           onRevealHint={() => dispatch({ type: "revealChallengeHint" })}
-        />
-      )}
-      {state.challenge?.target === "cipher" && (
-        <CipherModal
-          error={state.challenge.error}
-          hintRevealed={state.hintsRevealed.includes("scroll-cipher")}
-          onSubmit={(value) => dispatch({ type: "submitChallenge", value })}
           onClose={() => dispatch({ type: "closeChallenge" })}
-          onRevealHint={() => dispatch({ type: "revealChallengeHint" })}
         />
       )}
       {state.logicOpen && (

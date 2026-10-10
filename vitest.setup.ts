@@ -13,3 +13,6 @@ afterEach(() => cleanup());
 // Assigned rather than spied on, so restoreAllMocks can't undo it. Tests that need a context
 // assign their own fake and put this back.
 HTMLCanvasElement.prototype.getContext = (() => null) as never;
+
+// jsdom has no scrollIntoView (the drone's hint panel scrolls itself into view).
+Element.prototype.scrollIntoView = () => {};

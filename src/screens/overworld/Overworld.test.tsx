@@ -389,6 +389,20 @@ describe("Overworld signal tower", () => {
   });
 });
 
+describe("Overworld challenge terminal", () => {
+  it("pressing E at the gate opens the challenge terminal, `block` opens the gate", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} initial={{ player: { x: 50, y: 58 } }} />);
+    await user.keyboard("e");
+    const input = screen.getByRole("textbox", { name: "display value" });
+    expect(screen.getByRole("dialog", { name: "< TERMINAL GATE LOCK: C++ PEAKS >" })).toBeInTheDocument();
+    await user.clear(input);
+    await user.type(input, "block{Enter}");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByText("Gate unlocked. The way north is open.")).toBeInTheDocument();
+  });
+});
+
 describe("Overworld language chests", () => {
   it("walking to the HTML chest shows [E] Open HTML Chest on the prompt and the touch button", () => {
     render(<Overworld onMenu={() => {}} initial={{ player: { x: 14, y: 64 } }} />);

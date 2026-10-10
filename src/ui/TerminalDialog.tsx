@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from "react";
 
-const FOCUSABLE = "button:not([disabled]), input:not([disabled])";
+const FOCUSABLE = 'button:not([disabled]), input:not([disabled]), [tabindex="0"], [data-autofocus]';
 
 /**
  * The amber terminal frame shared by every in-game puzzle: a modal dialog over a dim
@@ -18,6 +18,22 @@ export function TerminalDialog({
 }) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
+  const outerRef = useRef<HTMLDivElement>(null);
+
+  // While open, everything else on the page is inert: siblings at every level up to <body>.
+  // Uses the attribute (not the property, which jsdom doesn't reflect) and restores only what it set.
+  useEffect(() => {
+    const changed: Element[] = [];
+    for (let node = outerRef.current as Element | null; node?.parentElement && node !== document.body; node = node.parentElement) {
+      for (const sibling of Array.from(node.parentElement.children)) {
+        if (sibling !== node && !sibling.hasAttribute("inert")) {
+          sibling.setAttribute("inert", "");
+          changed.push(sibling);
+        }
+      }
+    }
+    return () => changed.forEach((el) => el.removeAttribute("inert"));
+  }, []);
 
   useEffect(() => {
     // The first text box (its text selected so typing replaces it), else the control marked data-autofocus.
@@ -42,6 +58,7 @@ export function TerminalDialog({
 
   return (
     <div
+      ref={outerRef}
       className="fixed inset-0 z-[100] flex items-center justify-center bg-[rgba(15,23,42,0.7)] p-4"
       // A click on the dim backdrop would otherwise move focus to the page behind the dialog.
       onMouseDown={(event) => event.target === event.currentTarget && event.preventDefault()}
