@@ -125,7 +125,7 @@
     expect(checkBlank(py, "Append")).toEqual({ ok: false, reason: "'Append' is not a list method. Names are case-sensitive." });
     expect(checkBlank(cipher, "DENSE 4EST")).toEqual({ ok: false, reason: "No digits: the scroll is plain words." });
   });
-  it("skips the bracket and touching-code rules when a legal token or answer contains the character", () => {
+  it("skips the bracket and touching-code rules when a legal token contains the character", () => {
     expect(checkBlank(cpp, "<")).toEqual({ ok: true });
     expect(checkBlank(cpp, "<=")).toEqual({ ok: true });
   });
@@ -148,11 +148,11 @@
     expect([wrongMatchCopy(1), wrongMatchCopy(3)]).toEqual(["1 of 5 pairs is wrong.", "3 of 5 pairs are wrong."]);
   });
   // shuffle.test.ts
-  it("order is a stable permutation for a seed and id, and the first slot varies across seeds", () => {
+  it("order is a stable permutation for a seed and id, and data index 0 (the correct option) lands in every slot across seeds", () => {
     expect(order(4, 7, "x")).toEqual(order(4, 7, "x"));
     expect([...order(4, 7, "x")].sort()).toEqual([0, 1, 2, 3]);
-    const firsts = new Set(Array.from({ length: 200 }, (_, s) => order(4, s, "x")[0]));
-    expect(firsts).toEqual(new Set([0, 1, 2, 3]));
+    const slots = new Set(Array.from({ length: 200 }, (_, s) => order(4, s, "x").indexOf(0)));
+    expect(slots).toEqual(new Set([0, 1, 2, 3]));
   });
   // access.test.ts
   it("accessCode is 4 alphabet characters, deterministic, never blocklisted", () => {
@@ -166,7 +166,7 @@
   - **`checkBlank`** follows spec §"The live check" rules 1–6 in order.
     - Rules 2–4 apply only to `legal`/`notLegal` blanks.
     - Rule 3 is skipped when any legal token contains a bracket.
-    - Rule 4 uses `normalize(input)` and `gapContext(c.code)`. It skips a sub-check when any accepted answer, or (for `legal`) any legal token, contains the touching characters. "Wrapped in quotes" means `/^(["']).*\1$/`.
+    - Rule 4 uses `normalize(input)` and `gapContext(c.code)`. It skips a sub-check only when the blank has `legal` and a legal token contains the touching characters. Like every rule, it never reads `answers`: if an answer would trip rule 4, that is a data error for Task 2's bank test to catch. "Wrapped in quotes" means `/^(["']).*\1$/`.
     - Rule 5 compares case-insensitively unless `caseSensitive`. It adds ` Names are case-sensitive.` when a legal token matches ignoring case.
     - Rule 6 tests the trimmed input.
   - **`order`** is a seeded Fisher–Yates driven by mulberry32 over a 32-bit FNV-1a hash of `` `${seed}:${id}` ``.
@@ -231,6 +231,7 @@
     - `css-color`: `color background background-color border-color fill stroke margin font-size outline caret-color accent-color`
     - `sql-from`: `FROM AS INTO WHERE HAVING LIMIT OFFSET AND OR LIKE SELECT`
     - `gate-css`: `block inline flex grid none contents table flow-root list-item`
+  - **"every input today's isCorrectDecode accepts, with no digit, passes the scroll cipher's live check and is correct":** `it.each(["DENSE FOREST", "dense forest", " Dense Forest ", "DENSEFOREST", "dense-forest", "dense-forest!"])`, asserting `checkBlank(SCROLL_CIPHER, v)` equals `{ ok: true }` and `isCorrectBlank(SCROLL_CIPHER, v)` is `true`.
   - **"chestChallenge returns the picked question with the chest's title":** `chestChallenge({ ...allZero, "chest-sql": 2 }, "chest-sql").id === "sql-max"`, with title `< CODE CHEST: SQL >`.
 - [ ] **Step 2: Run** `npx vitest run src/learn/bank.test.ts`. Expected: FAIL (modules missing).
 - [ ] **Step 3: Implement** the data, transcribing spec §Appendix exactly: prompts, code lines, answers, live data (closed lists as `legal`, open as `notLegal`, with the labels), tiles, hints and explanations. `py-append`'s `legal` is exactly `dir(list)` as Python 3.13 prints it: `__add__ __class__ __class_getitem__ __contains__ __delattr__ __delitem__ __dir__ __doc__ __eq__ __format__ __ge__ __getattribute__ __getitem__ __getstate__ __gt__ __hash__ __iadd__ __imul__ __init__ __init_subclass__ __iter__ __le__ __len__ __lt__ __mul__ __ne__ __new__ __reduce__ __reduce_ex__ __repr__ __reversed__ __rmul__ __setattr__ __setitem__ __sizeof__ __str__ __subclasshook__ append clear copy count extend index insert pop remove reverse sort`.
@@ -245,8 +246,7 @@
   - `src/game/reducer.ts` (initial state, `isModalOpen`, the new actions, the gate and cipher)
   - `src/game/constants.ts` (gate copy and the new `puzzleError`)
   - `src/hooks/useKeyboardControls.ts` (Esc)
-  - `src/screens/overworld/Overworld.tsx` (temporary: feed the old modals from the new state)
-  - `src/screens/TerminalModal.tsx`, `CipherModal.tsx` (temporary prop rename only)
+  - `src/screens/overworld/Overworld.tsx` (temporary: feed the old modals, unchanged, from the new state)
 - Create: `src/game/challenges.ts`
 - Test: `src/game/reducer.test.ts` (migrate and extend), `src/game/challenges.test.ts`, `src/hooks/useKeyboardControls.test.tsx`, `src/screens/overworld/Overworld.test.tsx`, `src/screens/overworld/TouchControls.test.tsx` (seeds only)
 
@@ -282,7 +282,8 @@
     - "isModalOpen: a challenge, the logic lock or the Codex"; "toggleCodex opens and closes the Codex, but not while a challenge is open".
   - **`challenges.test.ts`:** "challengeOf maps each target": gate → `GATE_CSS`, cipher → `SCROLL_CIPHER`, archive → `ARCHIVE_LOCK`, matcher → `MATCHER_ROUNDS[s.matcherRound]`, `chest-sql` with pick 1 → `sql-where`.
   - **`useKeyboardControls.test.tsx`:** "Esc closes an open challenge" (seed `challenge` as above; Esc dispatches `closeChallenge`).
-- [ ] **Step 2: Run** `npx vitest run src/game src/hooks`. Expected: the new tests FAIL; the migrated ones FAIL until the state exists.
+  - **`Overworld.test.tsx`:** seed `challenge` in place of `terminalOpen`/`cipherOpen`, and change the gate's alert expectation (today `Compile error: display: flex keeps the gate shut.`) to `Not quite: display: flex doesn't open this lock. Check the hint or try again.`.
+- [ ] **Step 2: Run** `npx vitest run src/game src/hooks src/screens/overworld`. Expected: the new tests FAIL; the migrated ones FAIL until the state exists.
 - [ ] **Step 3: Implement.**
   - **`submitChallenge`:** for the gate and cipher, keep today's effects and logs, and close on success. On a wrong answer:
     - error = the challenge's `wrong(value)`, where value is the gate's normalised input (or `(empty)`), or the cipher's trimmed input (or `(empty)`);
@@ -301,13 +302,17 @@
 **Files:**
 - Modify:
   - `src/game/types.ts` (`PoiId` gains `ChestId` minus `chest-cs`, plus `"terminal" | "archive"`)
-  - `src/game/constants.ts` (`TERMINAL`, `ARCHIVE` places; `LOG.badge`; card copy)
+  - `src/game/constants.ts` (`TERMINAL`, `ARCHIVE` places; `LOG.badge`; card copy; narrow `INSPECT_COPY`'s key from `Exclude<PoiId, "villager">` to the old places `"gate" | "chest" | "river" | "tower" | "signpost" | "artifact"`, so the wider `PoiId` still compiles)
   - `src/game/zones.ts` (places per zone)
   - `src/game/reducer.ts` (interact and submit for chests; `reachPlaces`)
   - `src/game/geometry.ts` (state-aware labels)
-  - `src/hooks/useKeyboardControls.ts`, `src/screens/overworld/Overworld.tsx`, `MapViewport.tsx`, `TouchControls.tsx` (use the new helpers)
+  - `src/hooks/useKeyboardControls.ts` (`[E]` uses `reachPlaces`)
+  - `src/screens/overworld/Overworld.tsx` (computes the prompt, the touch label and the card; passes them down)
+  - `src/screens/overworld/MapViewport.tsx` (`prompt` and `card` props; drops `villagerLine`, its own place lookup and `INSPECT_COPY`)
+  - `src/screens/overworld/TouchControls.tsx` (`label` prop)
+  - `src/screens/overworld/EventLog.tsx` (spoken badge names)
 - Create: `src/game/cards.ts`
-- Test: `src/game/reducer.test.ts`, `src/game/cards.test.ts`, `src/game/geometry.test.ts`, `src/game/zones.test.ts`, `src/screens/overworld/Overworld.test.tsx`
+- Test: `src/game/reducer.test.ts`, `src/game/cards.test.ts`, `src/game/geometry.test.ts`, `src/game/zones.test.ts`, `src/screens/overworld/Overworld.test.tsx`, `src/screens/overworld/EventLog.test.tsx`, plus props upkeep in `src/screens/overworld/MapViewport.test.tsx` and `src/screens/overworld/TouchControls.test.tsx`
 
 **Interfaces:**
 - Consumes: Task 2 (`CHESTS`, `chestById`, `chestChallenge`), Task 3.
@@ -317,14 +322,18 @@
   - Zone places, in this order: Peaks `[...POIS, ...chestPlaces("peaks")]`; Village `[ADA, SIGNPOST, TERMINAL, ARCHIVE, ...chestPlaces("village")]`.
   - `reachPlaces(s: GameState): Poi[]` (in `reducer.ts`): `visiblePois(s)` minus north chests while `!s.gateUnlocked && !isNorthOfWall(s.player)`. Used by `[E]`, the prompt and the touch button.
   - `interactLabel(s: GameState, poi: Poi): string` and `promptText(s: GameState, poi: Poi): string` replace the place-only versions, with the verbs of spec §"The map overlay" (landmarks keep `[E] Inspect <label>` and the touch label `<label>`).
-  - `cardFor(s: GameState): { title: string; text: string } | null` (in `cards.ts`): the inspection card for `s.inspected`. Today's `INSPECT_COPY` rules for the old places, Ada's line for `villager`, and spec copy for chests (earned or not), the terminal (solved or not) and the Archive (sealed; open shows the C# chest's card). MapViewport takes a `card` prop instead of `villagerLine` and computing copy itself.
+  - `cardFor(s: GameState): { title: string; text: string; y: number } | null` (in `cards.ts`): the inspection card for `s.inspected`. Today's `INSPECT_COPY` rules for the old places, Ada's line for `villager`, and spec copy for chests (earned or not), the terminal (solved or not) and the Archive (sealed; open shows the C# chest's card). `y` is the inspected place's `y`, found among `[...ZONES[s.zone].places, HIDDEN_ARTIFACT]` (not `visiblePois(s)`, which drops the artifact once found while `inspected` stays `"artifact"`).
+  - **MapViewport** takes `card: { title: string; text: string; y: number } | null` and `prompt: string` (empty when nothing is in reach) in place of `villagerLine`. It renders the card whenever `card` is non-null, at `card.y > 50 ? "top-3" : "bottom-3"`, and no longer looks the place up in `[...POIS, HIDDEN_ARTIFACT, ADA, SIGNPOST]` (that list has no chests, terminal or Archive, so their cards would never render). It no longer imports `INSPECT_COPY` or `promptText`.
+  - **TouchControls** takes `label: string | null` (the `[E]` button reads `[E] ${label}`, or `[E] Interact` when null) in place of computing `interactLabel(inRange)`.
+  - **Overworld** computes `inRange = downed ? null : placeInReach(state.player, reachPlaces(state))`, then `prompt = inRange ? promptText(state, inRange) : ""`, `label = inRange ? interactLabel(state, inRange) : null` and `card = cardFor(state)`.
+  - **EventLog** speaks badge names. Log entries stay `string[]`. Where an entry contains `the <Badge> Badge` for a chest whose `spoken !== badge` (C++ I, C++ II, Python I, Python II, C#), the name renders as `<span aria-hidden="true">{badge}</span><span className="sr-only">{spoken}</span>`, trying longer names first so `C++ II` is not read as `C++ I` + `I`. All other text renders unchanged. Team-log assertions that use `countIn` on `textContent` must use badges whose spoken form equals the written one (HTML, CSS, SQL, Java, PHP).
   - `LOG.badge(badge: string)` = `Earned the ${badge} Badge.`.
 
 - [ ] **Step 1: Write the failing tests.**
   - **reducer**, `describe("gameReducer: chests")`:
     - "a south chest opens its picked challenge and sets inspected": `interact chest-html` at (14, 64) → `challenge.target === "chest-html"`, `inspected === "chest-html"`.
     - "a north chest before the gate logs `LOG.wallLocked`, sets `inspected` and opens nothing; after the gate it opens".
-    - "a right answer earns the badge once, records the answer, logs it and shows the success view": with pick 0 on `chest-sql`, `submitChallenge "from"` → `badges` `["chest-sql"]`, `answered["chest-sql"] === "from"`, last log `Earned the SQL Badge.`, `challenge.solved === true`. A second submit is a no-op (`toBe`).
+    - "a right answer earns the badge once, records the answer, logs it and shows the success view": with pick 0 on `chest-sql`, `submitChallenge "from"` → `badges` `["chest-sql"]`, `answered["chest-sql"] === "from"`, last log `Earned the SQL Badge.`, `challenge.solved === true`. A second submit is a no-op (`toBe`). Then, after `closeChallenge`, with pick 0 on `chest-php` (`php-echo`) and the player at (42, 66), `interact chest-php` and `submitChallenge "echo"` → `badges` equals `["chest-sql", "chest-php"]` (earn order).
     - "a choice is checked by data index and records the option text": pick 1 on `chest-sql` (`sql-where`), `submitChallenge 0` → earned, `answered` `WHERE age > 18`.
     - "an earned chest opens its card, not the challenge".
     - "badges, answers, picks and seed survive respawn".
@@ -338,12 +347,18 @@
   - **cards:** "card copy":
     - unearned SQL chest: `A sealed code chest. Answer its SQL question to earn the SQL Badge.`;
     - earned: `SQL Badge earned. ` + the picked question's explain;
-    - terminal, unsolved and solved: `It prints the Archive's access code: <CODE>.`;
-    - Archive, sealed;
-    - Ada: her line.
+    - terminal, unsolved (`matcherSolved: false`): `A village terminal running a Syntax Matcher. Solve it to print the Archive's access code.`, and the text doesn't contain `s.accessCode`; solved: `It prints the Archive's access code: ${s.accessCode}.`;
+    - Archive, sealed: `The Archive's door is chained shut. Its keypad wants a 4-character access code.`;
+    - Ada: her line;
+    - "`y` is the inspected place's": `chest-sql` → 80; `archive` → 66, sealed or open; `artifact` after it is found → the artifact's `y`.
+  - **EventLog:** "badge names in log entries carry their spoken form as hidden text": `logs={["Earned the C++ II Badge.", "Kai earned the C# Badge.", "Earned the SQL Badge."]}`. The first two entries each have one `.sr-only` span reading `C++ 2` and `C sharp`, beside an `aria-hidden="true"` span reading `C++ II` and `C#`; the SQL entry has no `.sr-only` span and `getByText("Earned the SQL Badge.")` finds it.
+  - **MapViewport upkeep:** `props()` replaces `villagerLine: "Hi"` with `card: null, prompt: ""`. "Ada's card shows her current line; the signpost's shows its text" becomes "the inspection card shows the card it is given": `card: { title: "Ada", text: "Line X", y: 70 }` shows the `POI Inspection` region with `Ada` and `Line X`; `card: null` shows none. The signpost's copy is now pinned in `cards.test.ts`. The caption-steps-aside test passes `prompt: "[E] Inspect " + poi.label` alongside `inRange: poi`.
+  - **TouchControls upkeep:** pass `label` where the tests pass `inRange`.
   - **zones:** "village places in order: villager, signpost, terminal, archive, chest-php, chest-sql, chest-py-2".
-  - **Overworld:** "walking to the HTML chest shows `[E] Open HTML Chest` on the prompt and the touch button" (`getAllByText` length 2).
-- [ ] **Step 2: Run** `npx vitest run src/game src/screens/overworld/Overworld.test.tsx`. Expected: FAIL.
+  - **Overworld:**
+    - "walking to the HTML chest shows `[E] Open HTML Chest` on the prompt and the touch button" (`getAllByText` length 2);
+    - "new places show their cards on the map": `initial={{ zone: "village", inspected: "chest-sql" }}` shows the `POI Inspection` region with `A sealed code chest. Answer its SQL question to earn the SQL Badge.` and class `top-3`; with `badges: ["chest-sql"]` it shows `SQL Badge earned.`; in the Peaks with `inspected: "chest-java"` and the gate locked it shows `A sealed code chest. Answer its Java question to earn the Java Badge.` with `bottom-3`; the existing card-placement test (artifact `top-3`, cache `bottom-3`) still passes.
+- [ ] **Step 2: Run** `npx vitest run src/game src/screens/overworld`. Expected: FAIL.
 - [ ] **Step 3: Implement.**
   - **Chest `interact`:** zone guard → north rule (the wall line, `inspected` set) → earned card or `challenge` for the chest.
   - **`submitChallenge` for chests:** check with `isCorrectBlank`, the choice's `correct` or `matchWrongCount`. Right answer: badge, answer, log, `solved: true`. Wrong answer: the generic copy, with the tries and hint logic of Task 3.
@@ -436,7 +451,7 @@
 
 **Files:**
 - Create: `src/screens/ChallengeTerminal.tsx`, `src/screens/challenge/BlankBody.tsx`, `src/screens/challenge/SubmitRow.tsx`, `src/screens/challenge/HintPanel.tsx`, `src/screens/challenge/useLiveCheck.ts`
-- Modify: `src/ui/TerminalDialog.tsx` (focusable list, `inert` background), `src/screens/overworld/Overworld.tsx` (render `ChallengeTerminal`; remove the shims)
+- Modify: `src/ui/TerminalDialog.tsx` (focusable list, `inert` background), `src/screens/overworld/Overworld.tsx` (render `ChallengeTerminal`; remove the shims), `vitest.setup.ts` (a no-op `scrollIntoView`)
 - Delete: `src/screens/TerminalModal.tsx`, `src/screens/CipherModal.tsx` and their tests (their checks move)
 - Test: `src/screens/ChallengeTerminal.test.tsx`, `src/ui/TerminalDialog.test.tsx` (create if absent), `src/screens/overworld/Overworld.test.tsx`
 
@@ -448,7 +463,7 @@
     success: { line: string; spoken: string; explain: string; answer: string } | { code: string; explain: string } | null;
     yourCode: string | null /* keypad: shown once the Matcher is solved */ };
   export function ChallengeTerminal(props: { challenge: Challenge; view: ChallengeView; mode: BlankMode;
-    onModeChange(mode: BlankMode): void; onSubmit(value: SubmitValue): void; onRevealHint(): void; onClose(): void }): JSX.Element;
+    onModeChange(mode: BlankMode): void; onSubmit(value: SubmitValue): void; onRevealHint(): void; onClose(): void }); // return type inferred, as elsewhere
   export function useLiveCheck(c: BlankChallenge, value: string, mode: BlankMode, edited: boolean): { result: CheckResult | "pristine"; flush(): CheckResult };
   ```
   - `challengeView(s: GameState): ChallengeView | null` is added to `src/game/challenges.ts`.
@@ -460,23 +475,26 @@
     - for `SCROLL_CIPHER`: `SCROLL INSTRUCTIONS:`, the textbox `decoded text` with placeholder `plain text`, the button `[ SUBMIT DECODE ]`.
   - "before the first edit the live line reads `Fill the blank, then submit.` with no aria-invalid".
   - "after typing, the result appears after a 500 ms pause, on blur or on submit, and is announced only when it changes":
-    - type `FORM` into an SQL blank; nothing changes before 500 ms; after it, `⚠ 'FORM' is not an SQL keyword.`, `aria-invalid="true"`, and the polite region holds that text;
-    - typing `FORMS` (still invalid, different reason) updates it; retyping the same reason doesn't add a new announcement.
+    - type `FORM` into the bank's `sql-from` (`SQL_BANK[0]`, notLegal `FORM FRM`); nothing changes before 500 ms; after it, `⚠ 'FORM' is not an SQL keyword.`, `aria-invalid="true"`, and the polite region holds that text;
+    - clearing it and typing `FRM` (still invalid, different reason) updates the line and the polite region to `⚠ 'FRM' is not an SQL keyword.` after the pause; retyping `FRM` adds no new announcement;
+    - typing `FORMS` reads `Syntax OK. Submit to check your answer.`, because an open set flags only its listed near-misses.
   - "a valid entry reads `Syntax OK. Submit to check your answer.` (no ✓)".
   - "SUBMIT is aria-disabled with a visible reason; pressing it or Enter doesn't submit and re-announces the reason":
     - `onSubmit` isn't called, the reason line equals the live reason, and the button has `aria-disabled="true"` and is focusable;
     - after a wrong submit, the reason becomes `Change your answer to try again.` until the text changes.
   - "the error line is an alert; after two wrong tries the hint panel shows `Drone: stuck? Here's a tip.` and the hint".
   - "a revealed hint shows without the stuck line".
+  - "reaching two wrong tries scrolls the hint panel into view, instantly under reduced motion": assign `Element.prototype.scrollIntoView = vi.fn()`; rerendering with `wrongTries` going from 1 to 2 calls it once with `behavior: "smooth"`; a later rerender and a hint revealed by `[ USE HINT ITEM ]` don't call it; under the reduced-motion `matchMedia` mock (as in `useReducedMotion.test.tsx`) the call has `behavior: "auto"`.
   - "success view": the code block stays with the answer filled in; `✓ SQL Badge earned` appears in a status region with the accessible name `SQL Badge earned`, then the explanation; `[ CONTINUE ]` is focused, and pressing it calls `onClose`.
-  - "Matcher success shows `ACCESS CODE: K Q Z M`'s visual code, with the spaced-out accessible name".
+  - "Matcher success shows `ACCESS CODE: K Q Z M`'s visual code, with the spaced-out accessible name"; rendered already solved (a reopened Matcher), `[ CONTINUE ]` is focused.
   - "the keypad shows `Your code: <CODE>` once the Matcher is solved, and its pristine line is `Type the 4-character code.`".
   - "[X] CLOSE and Esc close"; "Tab stays inside, and the page behind is inert while open".
   - **Overworld:** "pressing E at the gate opens the challenge terminal, `block` opens the gate" (the old flow, now through the new terminal).
 - [ ] **Step 2: Run** `npx vitest run src/screens src/ui`. Expected: FAIL.
 - [ ] **Step 3: Implement** per spec §"The challenge terminal" items 1–3 (blank Type mode only), 5, 6 and 7, and the Focus rules.
   - **Live check:** `useLiveCheck` debounces 500 ms with `setTimeout`; `flush` runs it at once (on blur and submit).
-  - **Inert:** `TerminalDialog` renders in place, with no portal. While mounted, an effect walks from its outer element up to `document.body` and sets `inert` on every sibling, at each level, that isn't already inert. On unmount it removes `inert` from exactly the elements it set. Its focusable list becomes `button:not([disabled]), input:not([disabled]), [tabindex="0"], [data-autofocus]`.
+  - **Hint panel (spec §Hints):** when `view.wrongTries` reaches 2, an effect calls `scrollIntoView({ block: "nearest", behavior: reduced ? "auto" : "smooth" })` on the panel, with `reduced` from `useReducedMotion()`. It runs once per opening. jsdom has no `scrollIntoView`, so `vitest.setup.ts` assigns a no-op `Element.prototype.scrollIntoView` next to the `getContext` stub.
+  - **Inert:** `TerminalDialog` renders in place, with no portal. While mounted, an effect walks from its outer element up to `document.body` and sets the `inert` attribute on every sibling, at each level, that doesn't already have it. On unmount it removes the attribute from exactly the elements it set. Use `hasAttribute`/`setAttribute("inert", "")`/`removeAttribute`, never the `inert` property: jsdom 29 doesn't reflect it, so the test (`toHaveAttribute("inert")` on a sibling, gone after unmount) would not see it. Its focusable list becomes `button:not([disabled]), input:not([disabled]), [tabindex="0"], [data-autofocus]`.
   - **Mode:** Overworld holds `const [mode, setMode] = useState<BlankMode>("type")` and passes it as `mode`/`onModeChange`. Task 8 adds the toggle that uses it.
 - [ ] **Step 4: Run** `npm test` and `npx tsc -b`. Expected: PASS.
 - [ ] **Step 5: Commit** `feat(screens): one challenge terminal with live syntax checks, an honest SUBMIT and a success view`.
@@ -493,16 +511,17 @@
 - Produces:
   ```ts
   export function useUndo<T>(start: T, now?: () => number): {
-    value: T; set(next: T, opts?: { typing?: boolean }): void; undo(): void; reset(): void; canUndo: boolean; canReset: boolean };
+    value: T; set(next: T, opts?: { typing?: boolean }): void; breakRun(): void; undo(): void; reset(): void; canUndo: boolean; canReset: boolean };
   ```
   - At most 20 steps.
-  - A `typing` change coalesces with the previous typing change if it came less than 1000 ms earlier.
+  - A `typing` change coalesces with the immediately previous change only if that change was also `typing`, came less than 1000 ms earlier, and `breakRun()` hasn't been called since. `breakRun()` adds no step and changes no value; `ChallengeTerminal` calls it on every mode change (spec item 4: a run ends at a 1-second pause, a mode switch or a placed tile).
   - `reset` is itself an undoable step; `canReset` is false when `value` equals `start`.
   - The mode is Task 7's Overworld state; it survives closing a terminal and resets with a new game, because a new game remounts Overworld.
 
 - [ ] **Step 1: Write the failing tests.**
   - **useUndo:**
     - "typing within a second is one step; a pause starts a new one";
+    - "breakRun ends a typing run: typing, breakRun, typing again within a second makes two steps";
     - "20 steps at most";
     - "Reset is undoable";
     - "canUndo and canReset".
@@ -516,6 +535,7 @@
     - "tap, Enter or Space places a tile; a new tile replaces it; pressing the filled slot empties it";
     - "mouse drag places a tile; a touch press shorter than 300 ms doesn't start a drag" (fire `pointerdown`/`pointermove`/`pointerup` with `pointerType`);
     - "switching modes keeps the value";
+    - "switching modes ends a typing run" (fake timers): type `a`, switch to Blocks and back to Type, type `b` within a second; one Undo leaves `a`;
     - "the live line in Blocks mode updates at once, and an empty slot reads `⚠ Place a block first.` after an edit";
     - "Undo after Reset restores the tile; Undo and Reset are unavailable with nothing to do, and focus moves to the blank when the focused one becomes unavailable";
     - "Ctrl+Z outside the text box runs Undo".
@@ -542,16 +562,18 @@
   - **Choice:**
     - "a radio group A–D in the seeded order; arrows move, Space picks; SUBMIT says `Pick an answer first.` until one is picked";
     - "submitting sends the data index";
-    - "after a wrong answer the picked option shows ✗ and its name ends `, wrong` until another is picked".
+    - "after a wrong answer the picked option shows ✗ and its name ends `, wrong` until another is picked";
+    - "on open, focus is on the first shown option (or the checked one); a choice has no `[ UNDO ]` or `[ RESET ]`".
   - **Match:**
     - "pairing in either order with the lowest free number; picking a paired item unpairs it (`Unpaired 2.`) and selects it; picking on the same side moves the selection; picking the selected item clears it";
     - "accessible names end `, pair 2`, `, not paired`, and after a wrong submit `, pair 2, wrong`; new pairs announce `Paired 2: print("Hi") with Python.`";
     - "SUBMIT reads `Pair all 5 first (3/5 paired).` until all are paired, then submits the mapping";
     - "Undo removes the last pair; Reset clears them all and is undoable";
     - "mouse drag from a snippet onto a label pairs them";
-    - "round 3 shows each snippet's language tag".
+    - "round 3 shows each snippet's language tag";
+    - "on open, focus is on the first snippet; after Reset with focus on `[ RESET ]`, both `[ RESET ]` and `[ UNDO ]` become unavailable and focus moves to the first snippet".
 - [ ] **Step 2: Run** `npx vitest run src/screens src/ui`. Expected: FAIL.
-- [ ] **Step 3: Implement** per spec §"The challenge terminal" item 3 (choice, match) and the phone rule (match columns stay side by side).
+- [ ] **Step 3: Implement** per spec §"The challenge terminal" item 3 (choice, match), item 4 (the match toolbar; choices have none), the Focus rules (first or checked option; first snippet; the fallback to the first match item) and the phone rule (match columns stay side by side).
 - [ ] **Step 4: Run** `npm test` and `npx tsc -b`. Expected: PASS.
 - [ ] **Step 5: Commit** `feat(screens): choice questions and the Syntax Matcher's pairing`.
 
@@ -559,8 +581,8 @@
 
 **Files:**
 - Create: `src/screens/Codex.tsx`, `src/screens/overworld/LeaveConfirm.tsx`
-- Modify: `src/screens/overworld/TopHud.tsx` (`[C] Codex`), `QuestList.tsx` (badges line), `MiniMap.tsx` (legend `Codex: [C]`), `Overworld.tsx` (render the Codex and the confirmation), `src/hooks/useKeyboardControls.ts` (`c`)
-- Test: `src/screens/Codex.test.tsx`, `src/hooks/useKeyboardControls.test.tsx`, `src/screens/overworld/Overworld.test.tsx`, `src/screens/overworld/TeamOverworld.test.tsx`
+- Modify: `src/screens/overworld/TopHud.tsx` (`[C] Codex`), `QuestList.tsx` (badges line), `MiniMap.tsx` (legend `Codex: [C]`), `Overworld.tsx` (render the Codex and the confirmation), `src/hooks/useKeyboardControls.ts` (`c`; `paused`), `src/hooks/useGameTimers.ts` (`paused`)
+- Test: `src/screens/Codex.test.tsx`, `src/hooks/useKeyboardControls.test.tsx`, `src/screens/overworld/Overworld.test.tsx`, `src/screens/overworld/TeamOverworld.test.tsx`, `src/App.test.tsx`
 
 **Interfaces:**
 - Consumes: Tasks 2, 4, 6.
@@ -568,6 +590,7 @@
   - `Codex(props: { badges: ChestId[]; answered: Partial<Record<ChestId, string>>; picks: Record<ChestId, 0|1|2>; team: boolean; onClose(): void })`;
   - `TopHud` gains `onCodex(): void`;
   - `QuestList` gains `badges: number` and `team: boolean`.
+  - `useKeyboardControls(state, dispatch, paused = false)` and `useGameTimers(state, dispatch, paused = false)`. Overworld passes `true` while the leave confirmation is open, and adds it to `TouchControls`' `disabled`. While `paused`, the keyboard hook ignores every key, Esc included (`LeaveConfirm` handles its own Esc as `[ STAY ]`), and the timers treat it like `isModalOpen`: no `tick`, no `riverDamage`. `isModalOpen` stays as the spec defines it.
 
 - [ ] **Step 1: Write the failing tests.**
   - **Codex:**
@@ -582,9 +605,11 @@
     - "the top bar has `[C] Codex` at least 16 px from `[=] Menu`" (assert the class providing the gap, e.g. `ml-4`);
     - "Quests show `Badges: 0/10` (team: `Your badges: 0/10`), bold at 10/10";
     - "the legend shows `Codex: [C]`";
-    - "with any badge or unlock, [=] Menu asks `Leave this game? Badges and unlocks aren't saved yet.` with `[ STAY ]` focused; STAY keeps playing and LEAVE calls onMenu; with nothing to lose it leaves at once".
-- [ ] **Step 2: Run** `npx vitest run src/screens src/hooks`. Expected: FAIL.
-- [ ] **Step 3: Implement** per spec §"The Codex" and §"The 10 chests" (Persistence). The Codex uses `TerminalDialog` for its frame. The confirmation is a small dialog using `TerminalDialog`, titled `< LEAVE GAME? >`.
+    - "with any badge or unlock, [=] Menu asks `Leave this game? Badges and unlocks aren't saved yet.` with `[ STAY ]` focused; STAY keeps playing and LEAVE calls onMenu; with nothing to lose it leaves at once";
+    - "while `Leave this game?` is open, W doesn't move the player, E doesn't interact, C doesn't open the Codex, river damage doesn't tick (fake timers, player seeded in the river), and Esc closes the confirmation like `[ STAY ]`".
+  - **App** (`src/App.test.tsx`, the existing "[=] Menu returns to the main menu and Solo Quest starts a fresh game"): the opened gate is an unlock, so after `[=] Menu` the `< LEAVE GAME? >` dialog shows with `[ STAY ]` focused; click `[ LEAVE ]`, then `Solo Quest`, and the test continues as before.
+- [ ] **Step 2: Run** `npx vitest run src/screens src/hooks src/App.test.tsx`. Expected: FAIL.
+- [ ] **Step 3: Implement** per spec §"The Codex" and §"The 10 chests" (Persistence). The confirmation pauses play like any terminal, through `paused`. The Codex uses `TerminalDialog` for its frame. The confirmation is a small dialog using `TerminalDialog`, titled `< LEAVE GAME? >`.
 - [ ] **Step 4: Run** `npm test` and `npx tsc -b`. Expected: PASS.
 - [ ] **Step 5: Commit** `feat(overworld): the Codex, its key and button, the badges line and a leave confirmation`.
 
@@ -596,10 +621,11 @@
   - `src/render/scene.ts` (`SceneInput` gains `archiveOpen`, `matcherSolved`, `earned`; chests, terminal and Archive drawn)
   - `src/render/areas/village.ts` (the Archive leaves `props`; new protected boxes)
   - `src/render/areas/peaks.ts` (chest protected boxes)
-  - `src/screens/overworld/MapViewport.tsx` (pass the new scene input)
-  - `src/screens/overworld/MiniMap.tsx` (diamonds; new props `badges`, `archiveOpen`)
+  - `src/screens/overworld/MapViewport.tsx` (new required props `badges: ChestId[]`, `matcherSolved: boolean`, `archiveOpen: boolean`; the scene input gets `earned: badges`, `matcherSolved`, `archiveOpen`)
+  - `src/screens/overworld/MiniMap.tsx` (diamonds; new required props `badges: ChestId[]`, `archiveOpen: boolean`)
+  - `src/screens/overworld/Overworld.tsx` (pass `badges`, `matcherSolved` and `archiveOpen` from state to MapViewport; `badges` and `archiveOpen` to MiniMap)
   - `src/screens/MenuBackdrop.tsx` (scene input defaults)
-- Test: `src/render/sprites.test.ts`, `src/render/scene.test.ts`, `src/render/terrain.test.ts`, `src/screens/overworld/MiniMap.test.tsx`
+- Test: `src/render/sprites.test.ts`, `src/render/scene.test.ts`, `src/render/terrain.test.ts`, `src/screens/overworld/MiniMap.test.tsx`, `src/screens/overworld/Overworld.test.tsx`, plus fixture upkeep so `tsc -b` stays clean: `src/render/paint.test.ts` and `src/screens/overworld/MapCanvas.test.tsx` (their `SceneInput` literals gain `archiveOpen: false, matcherSolved: false, earned: []`) and `src/screens/overworld/MapViewport.test.tsx` (`props()` gains `badges: [], matcherSolved: false, archiveOpen: false`)
 
 **Interfaces:**
 - Consumes: Task 2 (`CHESTS`), Task 4 (places).
@@ -622,7 +648,8 @@
   - "the Peaks scene draws its six chests; north ones behind the wall's feet row".
   - "village decorations stay clear of the new protected boxes" (extend the existing village decoration test).
   - "mini-map: one diamond per chest in its zone's cell; earned ones solid; no C# diamond until the Archive opens".
-- [ ] **Step 2: Run** `npx vitest run src/render src/screens/overworld/MiniMap.test.tsx`. Expected: FAIL.
+  - **Overworld:** "the mini-map shows an earned chest solid from state": `initial={{ badges: ["chest-html"] }}` makes the HTML diamond in the Peaks cell the solid one (this pins that Overworld passes the data through).
+- [ ] **Step 2: Run** `npx vitest run src/render src/screens/overworld`. Expected: FAIL.
 - [ ] **Step 3: Implement.** Draw the grids to the stated palettes; the tests pin sizes and frames, the look is a judgement call reviewed in the browser check.
 - [ ] **Step 4: Run** `npm test` and `npx tsc -b`. Expected: PASS.
 - [ ] **Step 5: Commit** `feat(render): code chests, the Syntax Terminal and the Archive on the map and mini-map`.
@@ -644,7 +671,7 @@
   - `labelLayout(player, drone, map, obstacles, scale, fixed, heavy: Box[] = [])`: each heavy box a label covers costs 500 (`100` per fixed box, `1000` per mutual overlap as today). MapViewport passes `exitSignBox(world, zone)` as `heavy`, not `fixed`.
   - Caption texts: chests `<Badge>` / `<Badge> ✓`; the terminal `Terminal` (below); the Archive `Archive` / `C#` / `C# ✓` (above). Chest caption sides as in the spec table.
   - **Visibility:** at `world.scale < 2`, a chest caption chip is `opacity-0` unless its button is hovered or focused (`group-hover`/`group-focus-visible`) or the chest is `inRange`.
-  - **Names:** each button's accessible name is its spoken badge name plus ` chest` (e.g. `C sharp chest`, `C++ 1 chest`); the terminal's is `Syntax Terminal`, the Archive's `Archive`.
+  - **Names:** each outdoor chest button's accessible name is its spoken badge name plus ` chest` (e.g. `C++ 1 chest`, `HTML chest`), plus `, earned` once earned (e.g. `SQL chest, earned`). The terminal is named `Syntax Terminal`. The Archive's name follows its caption: `Archive` while sealed, `C sharp chest` once open, and `C sharp chest, earned` once you've earned the C# badge.
 
 - [ ] **Step 1: Write the failing tests.**
   - **mapLayout**, extending "no caption box intersects another…":
@@ -656,9 +683,10 @@
     - the existing grid tests pass with the new captions as fixed and the exit sign as heavy.
   - **MapViewport:**
     - "the Peaks show six chest buttons and the village three plus `Terminal` and `Archive`, named by their spoken forms";
-    - "earned chests' captions read `SQL ✓`";
-    - "the Archive caption reads `Archive`, then `C#`, then `C# ✓`".
-  - **Review Focus 5, MapViewport:** "at 1× a chest caption is hidden until hovered, focused or in reach, but the button keeps its accessible name". Use a phone `ViewSize` mock (scale 1): the chip has `opacity-0`; with `inRange` set to that chest it doesn't; `getByRole("button", { name: "HTML chest" })` exists either way.
+    - "earned chests' captions read `SQL ✓`, and the button is named `SQL chest, earned`";
+    - "the Archive caption reads `Archive`, then `C#`, then `C# ✓`, and the button is named `Archive`, then `C sharp chest`, then `C sharp chest, earned`".
+  - **Review Focus 5, MapViewport:** "at 1× a chest caption is hidden until hovered, focused or in reach, but the button keeps its accessible name". No mock is needed: MapViewport sizes itself with its private `useMapSize`, which in jsdom (no ResizeObserver) falls back to 600 × 360 at DPR 1, i.e. scale 1. As a precondition assert the `world-layer` width is `320px`. Then: the chip has `opacity-0`; with `inRange` set to that chest it doesn't; `getByRole("button", { name: "HTML chest" })` exists either way. Component tests can't reach 2×, so the 2× caption cases live in `mapLayout.test.ts` (via `fitWorld`) and the Task 13 browser check.
+  - Chest buttons don't use `hideCaption`; the old landmarks keep it, and the existing "caption steps aside" test stays as it is.
   - **Contrast:** "--code-chest on the caption chip is at least 4.5:1".
   - **TeamOverworld**, App-level, using the file's `startedPair()`: "Kai earns two badges through the UI; Ana's log shows each line once and the personal-badges note once".
     - `vi.spyOn(Math, "random").mockReturnValue(0)` before `startedPair()`, so every pick is 0 (`html-link`, `css-color`); restore it after.
@@ -687,8 +715,8 @@
     - open another chest and answer with Blocks (tap a tile), using Undo and Reset;
     - walk to the village; solve the Matcher (read the round from the DOM order); unseal the Archive with the printed code; earn the C# badge;
     - the gate: `flex` gives the new error, `block` opens it.
-  - **390 × 844, touch, DPR 3:** a chest with Blocks by tapping; captions hidden at 1× and shown in reach; the terminal stacks with the submit row under the live line; a match keeps two columns.
-  - **Team, Same computer, two pages:** Kai earns a badge, and Ana's log shows the two lines once; Ana unseals the Archive with her code, and Kai's map shows it open with Kai's log line `Ana unsealed the Archive.`.
-  - **No console errors** (the blocked supabase.co WebSocket excepted).
+  - **390 × 844, touch, DPR 3:** a chest with Blocks by tapping; a second chest answered by typing in the input (the submit row still reachable); the success view shows the earned badge; open the Codex with the `[C] Codex` top-bar button (not overlapping `[=] Menu`), see the badge, close it; captions hidden at 1× and shown in reach; the terminal stacks with the submit row under the live line; a match keeps two columns.
+  - **Team, Same computer, two pages:** Kai earns a badge, and Ana's log shows the two lines once; Ana unseals the Archive with her code, and Kai's map shows it open with Kai's log line `Ana unsealed the Archive.`. Then, if the supabase.co WebSocket connects, repeat the badge and Archive steps in Online mode; otherwise print `SKIP Online: network blocked`.
+  - **No console errors** (the blocked supabase.co WebSocket excepted, only when Online was skipped).
 - [ ] **Step 4: Run** `npm test`, `npx tsc -b` and `npm run build`. Expected: all PASS.
 - [ ] **Step 5: Commit** `docs: the learning core in the README`, then push. Then the executor's final whole-branch review and the finishing-a-development-branch menu.
