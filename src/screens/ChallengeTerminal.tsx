@@ -54,6 +54,7 @@ export function ChallengeTerminal({
   challenge,
   view,
   mode,
+  onModeChange,
   onSubmit,
   onRevealHint,
   onClose,
@@ -87,7 +88,7 @@ export function ChallengeTerminal({
       {view.success ? (
         <SuccessView challenge={challenge} success={view.success} continueRef={continueRef} onClose={onClose} />
       ) : challenge.kind === "blank" ? (
-        <BlankBody challenge={challenge} view={view} mode={mode} onSubmit={onSubmit} hint={hint} />
+        <BlankBody challenge={challenge} view={view} mode={mode} onModeChange={onModeChange} onSubmit={onSubmit} hint={hint} />
       ) : (
         hint
       )}

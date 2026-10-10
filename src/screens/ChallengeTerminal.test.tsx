@@ -1,11 +1,13 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { useState } from "react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ChallengeView } from "../game/challenges";
 import { ARCHIVE_LOCK, GATE_CSS, SCROLL_CIPHER } from "../learn/bank/builtin";
 import { MATCHER_ROUNDS } from "../learn/bank/matcher";
 import { chestById } from "../learn/chests";
-import type { Challenge } from "../learn/types";
+import { order } from "../learn/shuffle";
+import type { BlankMode, Challenge } from "../learn/types";
 import { ChallengeTerminal } from "./ChallengeTerminal";
 
 const SQL = chestById("chest-sql").bank[0];
@@ -320,5 +322,169 @@ describe("ChallengeTerminal: success views", () => {
     unmount();
     renderTerminal(ARCHIVE_LOCK, { yourCode: "KQZM" });
     expect(screen.getByText("Your code: KQZM")).toBeInTheDocument();
+  });
+});
+
+/** The terminal with its mode held in state, as Overworld holds it. */
+function Harness({ challenge, start = "type", seed = 0 }: { challenge: Challenge; start?: BlankMode; seed?: number }) {
+  const [mode, setMode] = useState<BlankMode>(start);
+  return (
+    <ChallengeTerminal
+      challenge={challenge}
+      view={view({ seed })}
+      mode={mode}
+      onModeChange={setMode}
+      onSubmit={vi.fn()}
+      onRevealHint={vi.fn()}
+      onClose={vi.fn()}
+    />
+  );
+}
+const slot = () => screen.getByTestId("block-slot");
+const tile = (name: string) => within(screen.getByTestId("block-tray")).getByRole("button", { name });
+const SQL_TILES = SQL.kind === "blank" ? SQL.blocks! : [];
+
+describe("ChallengeTerminal: Blocks mode, Undo and Reset", () => {
+  it("the toggle `Type | Blocks` shows only on code blanks (not the cipher or keypad)", () => {
+    const { unmount } = render(<Harness challenge={SQL} />);
+    expect(screen.getByRole("button", { name: "Type" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Blocks" })).toHaveAttribute("aria-pressed", "false");
+    unmount();
+    for (const c of [SCROLL_CIPHER, ARCHIVE_LOCK]) {
+      const view = render(<Harness challenge={c} start="blocks" />);
+      expect(screen.queryByRole("button", { name: "Blocks" })).toBeNull();
+      expect(screen.getByRole("button", { name: "[ UNDO ]" })).toBeInTheDocument();
+      expect(screen.getByRole("textbox")).toBeInTheDocument();
+      view.unmount();
+    }
+  });
+
+  it("Blocks mode turns the blank into a slot button and shows the tiles in the seeded order", () => {
+    render(<Harness challenge={SQL} start="blocks" seed={5} />);
+    expect(slot().tagName).toBe("BUTTON");
+    expect(slot()).toHaveTextContent("___");
+    const expected = order(SQL_TILES.length, 5, "sql-from").map((i) => SQL_TILES[i]);
+    const tiles = within(screen.getByTestId("block-tray")).getAllByRole("button");
+    expect(tiles.map((t) => t.textContent)).toEqual(expected);
+    expect(screen.queryByRole("textbox")).toBeNull();
+    expect(tiles[0]).toHaveFocus();
+  });
+
+  it("tap, Enter or Space places a tile; a new tile replaces it; pressing the filled slot empties it", async () => {
+    const user = userEvent.setup();
+    render(<Harness challenge={SQL} start="blocks" />);
+    await user.click(tile("INTO"));
+    expect(slot()).toHaveTextContent("INTO");
+    tile("WHERE").focus();
+    await user.keyboard("{Enter}");
+    expect(slot()).toHaveTextContent("WHERE");
+    tile("FROM").focus();
+    await user.keyboard(" ");
+    expect(slot()).toHaveTextContent("FROM");
+    await user.click(slot());
+    expect(slot()).toHaveTextContent("___");
+  });
+
+  it("mouse drag places a tile", () => {
+    render(<Harness challenge={SQL} start="blocks" />);
+    fireEvent.pointerDown(tile("WHERE"), { pointerType: "mouse", pointerId: 1, clientX: 0, clientY: 0 });
+    fireEvent.pointerMove(slot(), { pointerType: "mouse", pointerId: 1, clientX: 40, clientY: 0 });
+    fireEvent.pointerUp(slot(), { pointerType: "mouse", pointerId: 1, clientX: 40, clientY: 0 });
+    expect(slot()).toHaveTextContent("WHERE");
+  });
+
+  it("touch drag", () => {
+    vi.useFakeTimers();
+    render(<Harness challenge={SQL} start="blocks" />);
+    const touch = { pointerType: "touch", pointerId: 2 };
+
+    fireEvent.pointerDown(tile("WHERE"), { ...touch, clientX: 0, clientY: 0 });
+    act(() => vi.advanceTimersByTime(300));
+    expect(fireEvent.touchMove(tile("WHERE"))).toBe(false);
+    fireEvent.pointerMove(slot(), { ...touch, clientX: 60, clientY: 0 });
+    fireEvent.pointerUp(slot(), { ...touch, clientX: 60, clientY: 0 });
+    expect(slot()).toHaveTextContent("WHERE");
+
+    fireEvent.pointerDown(tile("INTO"), { ...touch, clientX: 0, clientY: 0 });
+    act(() => vi.advanceTimersByTime(200));
+    expect(fireEvent.touchMove(tile("INTO"))).toBe(true);
+    fireEvent.pointerUp(slot(), { ...touch, clientX: 60, clientY: 0 });
+    expect(slot()).toHaveTextContent("WHERE");
+
+    fireEvent.pointerDown(tile("INTO"), { ...touch, clientX: 0, clientY: 0 });
+    act(() => vi.advanceTimersByTime(100));
+    fireEvent.pointerMove(tile("INTO"), { ...touch, clientX: 20, clientY: 0 });
+    act(() => vi.advanceTimersByTime(300));
+    expect(fireEvent.touchMove(tile("INTO"))).toBe(true);
+    fireEvent.pointerUp(slot(), { ...touch, clientX: 60, clientY: 0 });
+    expect(slot()).toHaveTextContent("WHERE");
+
+    fireEvent.pointerDown(tile("INTO"), { ...touch, clientX: 0, clientY: 0 });
+    act(() => vi.advanceTimersByTime(300));
+    fireEvent.pointerCancel(tile("INTO"), touch);
+    fireEvent.pointerUp(slot(), { ...touch, clientX: 60, clientY: 0 });
+    expect(slot()).toHaveTextContent("WHERE");
+  });
+
+  it("switching modes keeps the value", async () => {
+    const user = userEvent.setup();
+    render(<Harness challenge={SQL} />);
+    await user.type(screen.getByRole("textbox", { name: "answer" }), "WHERE");
+    await user.click(screen.getByRole("button", { name: "Blocks" }));
+    expect(slot()).toHaveTextContent("WHERE");
+    await user.click(screen.getByRole("button", { name: "Type" }));
+    expect(screen.getByRole("textbox", { name: "answer" })).toHaveValue("WHERE");
+  });
+
+  it("switching modes ends a typing run", async () => {
+    const user = fakeTimers();
+    render(<Harness challenge={SQL} />);
+    await user.type(screen.getByRole("textbox", { name: "answer" }), "a");
+    await user.click(screen.getByRole("button", { name: "Blocks" }));
+    await user.click(screen.getByRole("button", { name: "Type" }));
+    await user.type(screen.getByRole("textbox", { name: "answer" }), "b");
+    await user.click(screen.getByRole("button", { name: "[ UNDO ]" }));
+    expect(screen.getByRole("textbox", { name: "answer" })).toHaveValue("a");
+  });
+
+  it("the live line in Blocks mode updates at once, and an empty slot reads `⚠ Place a block first.` after an edit", async () => {
+    const user = userEvent.setup();
+    render(<Harness challenge={SQL} start="blocks" />);
+    expect(liveLine()).toHaveTextContent("Fill the blank, then submit.");
+    await user.click(tile("WHERE"));
+    expect(liveLine()).toHaveTextContent("Syntax OK. Submit to check your answer.");
+    await user.click(slot());
+    expect(liveLine()).toHaveTextContent("⚠ Place a block first.");
+  });
+
+  it("Undo after Reset restores the tile; Undo and Reset are unavailable with nothing to do, and focus moves to the blank when the focused one becomes unavailable", async () => {
+    const user = userEvent.setup();
+    render(<Harness challenge={SQL} start="blocks" />);
+    const undo = screen.getByRole("button", { name: "[ UNDO ]" });
+    const reset = screen.getByRole("button", { name: "[ RESET ]" });
+    expect(undo).toBeDisabled();
+    expect(reset).toBeDisabled();
+    await user.click(tile("WHERE"));
+    expect(undo).toBeEnabled();
+    expect(reset).toBeEnabled();
+    await user.click(reset);
+    expect(slot()).toHaveTextContent("___");
+    expect(reset).toBeDisabled();
+    expect(slot()).toHaveFocus();
+    await user.click(undo);
+    expect(slot()).toHaveTextContent("WHERE");
+    await user.click(undo);
+    expect(slot()).toHaveTextContent("___");
+    expect(undo).toBeDisabled();
+    expect(slot()).toHaveFocus();
+  });
+
+  it("Ctrl+Z outside the text box runs Undo", async () => {
+    const user = userEvent.setup();
+    render(<Harness challenge={SQL} start="blocks" />);
+    await user.click(tile("WHERE"));
+    tile("INTO").focus();
+    await user.keyboard("{Control>}z{/Control}");
+    expect(slot()).toHaveTextContent("___");
   });
 });
