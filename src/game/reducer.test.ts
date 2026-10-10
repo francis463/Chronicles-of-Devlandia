@@ -4,6 +4,7 @@ import { placeInReach } from "./geometry";
 import type { ChallengeState, ChallengeTarget, GameState, Point } from "./types";
 import { NO_FLAGS } from "./team";
 import { HIDDEN_ARTIFACT, INTERACT_RADIUS, LOG, PLAYER_START, POIS } from "./constants";
+import { cardFor } from "./cards";
 import { isNorthOfWall } from "./wall";
 import type { ZoneId } from "./zones";
 
@@ -722,5 +723,82 @@ describe("gameReducer: chests", () => {
     const p = { x: 20, y: 50 };
     expect(placeInReach(p, reachPlaces({ ...s0, player: p }))?.id).toBe("chest-html");
     expect(placeInReach(p, reachPlaces({ ...opened, player: p }))?.id).toBe("chest-java");
+  });
+});
+
+describe("gameReducer: the Syntax Terminal and the Archive", () => {
+  const village: GameState = { ...s0, zone: "village", player: { x: 60, y: 64 } };
+  const RIGHT = [0, 1, 2, 3, 4];
+  const codeLines = (s: GameState) => s.logs.filter((l) => l.startsWith("Syntax Terminal: access code")).length;
+
+  it("using the terminal opens the Matcher; solving it logs the code and shows the success view; using it again reopens the solved view", () => {
+    const open = gameReducer(village, { type: "interact", poi: "terminal" });
+    expect(open.challenge).toEqual(openOn("matcher"));
+    expect(open.inspected).toBe("terminal");
+    const solved = gameReducer(open, { type: "submitChallenge", value: RIGHT });
+    expect(solved.matcherSolved).toBe(true);
+    expect(lastLog(solved)).toBe(`Syntax Terminal: access code ${solved.accessCode}.`);
+    expect(solved.challenge?.solved).toBe(true);
+    const closed = gameReducer(solved, { type: "closeChallenge" });
+    expect(closed.challenge).toBeNull();
+    const again = gameReducer(closed, { type: "interact", poi: "terminal" });
+    expect(again.challenge).toMatchObject({ target: "matcher", solved: true, error: null });
+    expect(again.matcherSolved).toBe(true);
+    expect(codeLines(again)).toBe(1);
+  });
+
+  it("a wrong pairing reports the count", () => {
+    const open = gameReducer(village, { type: "interact", poi: "terminal" });
+    const s = gameReducer(open, { type: "submitChallenge", value: [1, 0, 2, 3, 4] });
+    expect(s.challenge?.error).toBe("2 of 5 pairs are wrong.");
+    expect(s.matcherSolved).toBe(false);
+    expect(gameReducer(open, { type: "submitChallenge", value: [0, 1] })).toBe(open);
+  });
+
+  it("the sealed Archive opens the keypad; a wrong code is denied; the right code (any case, spaces around) unseals it, logs once and closes", () => {
+    const keypad = gameReducer(village, { type: "interact", poi: "archive" });
+    expect(keypad.challenge).toEqual(openOn("archive"));
+    expect(keypad.inspected).toBe("archive");
+    const wrongCode = keypad.accessCode === "ZZZZ" ? "YYYY" : "ZZZZ";
+    const denied = gameReducer(keypad, { type: "submitChallenge", value: wrongCode });
+    expect(denied.challenge?.error).toBe("Access denied.");
+    expect(denied.archiveOpen).toBe(false);
+    const open = gameReducer(denied, { type: "submitChallenge", value: `  ${keypad.accessCode.toLowerCase()} ` });
+    expect(open.archiveOpen).toBe(true);
+    expect(open.challenge).toBeNull();
+    expect(open.logs.filter((l) => l === "Archive unsealed.")).toHaveLength(1);
+    expect(lastLog(open)).toBe("Archive unsealed.");
+  });
+
+  it("the keypad never unseals on an empty, malformed or crafted value", () => {
+    const keypad = gameReducer(village, { type: "interact", poi: "archive" });
+    for (const value of ["", "AB", 5, "O0I1"]) {
+      const s = gameReducer(keypad, { type: "submitChallenge", value });
+      expect(s.archiveOpen, String(value)).toBe(false);
+      expect(s, String(value)).toBe(keypad);
+    }
+  });
+
+  it("the keypad accepts the code before the Matcher is solved", () => {
+    const keypad = gameReducer({ ...village, matcherSolved: false }, { type: "interact", poi: "archive" });
+    expect(gameReducer(keypad, { type: "submitChallenge", value: keypad.accessCode }).archiveOpen).toBe(true);
+  });
+
+  it("once open, the Archive acts as the C# chest", () => {
+    const open: GameState = { ...village, archiveOpen: true };
+    const cs = gameReducer(open, { type: "interact", poi: "archive" });
+    expect(cs.challenge?.target).toBe("chest-cs");
+    expect(cs.inspected).toBe("archive");
+    const earned = gameReducer(cs, { type: "submitChallenge", value: "WriteLine" });
+    expect(earned.badges).toEqual(["chest-cs"]);
+    expect(lastLog(earned)).toBe("Earned the C# Badge.");
+    const again = gameReducer(gameReducer(earned, { type: "closeChallenge" }), { type: "interact", poi: "archive" });
+    expect(again.challenge).toBeNull();
+    expect(cardFor(again)?.text.startsWith("C# Badge earned.")).toBe(true);
+  });
+
+  it("resetLogic clears the logic error", () => {
+    const failed: GameState = { ...s0, logicOpen: true, logicError: "Circuit failed: line 2 (A AND B) outputs 0." };
+    expect(gameReducer(failed, { type: "resetLogic" }).logicError).toBeNull();
   });
 });

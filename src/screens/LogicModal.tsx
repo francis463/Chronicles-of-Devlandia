@@ -12,12 +12,15 @@ export function LogicModal({
   onSubmit,
   onClose,
   onRevealHint,
+  onReset,
 }: {
   error: string | null;
   hintRevealed: boolean;
   onSubmit: (bits: Bits) => void;
   onClose: () => void;
   onRevealHint: () => void;
+  /** Clears the lock's error; the switches and the last run reset here. */
+  onReset: () => void;
 }) {
   const [bits, setBits] = useState<Bits>([0, 0, 0, 0]);
   // Outputs are shown for the last run only while the switches still match it.
@@ -31,6 +34,12 @@ export function LogicModal({
   const run = () => {
     setLastRun(bits);
     onSubmit(bits);
+  };
+
+  const reset = () => {
+    setBits([0, 0, 0, 0]);
+    setLastRun(null);
+    onReset();
   };
 
   return (
@@ -97,6 +106,9 @@ export function LogicModal({
         <div className="flex flex-col gap-2 md:w-80">
           <Button variant="success" className="w-full py-3" onClick={run}>
             [ RUN CIRCUIT ]
+          </Button>
+          <Button variant="neutral" className="w-full py-3" onClick={reset}>
+            [ RESET ]
           </Button>
           <Button variant="neutral" className="w-full py-3" onClick={onRevealHint}>
             [ USE HINT ITEM ]

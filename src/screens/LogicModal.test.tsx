@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { LogicModal } from "./LogicModal";
 
 function renderModal(props: Partial<Parameters<typeof LogicModal>[0]> = {}) {
-  const handlers = { onSubmit: vi.fn(), onClose: vi.fn(), onRevealHint: vi.fn() };
+  const handlers = { onSubmit: vi.fn(), onClose: vi.fn(), onRevealHint: vi.fn(), onReset: vi.fn() };
   const view = render(<LogicModal error={null} hintRevealed={false} {...handlers} {...props} />);
   return { ...view, ...handlers };
 }
@@ -58,7 +58,7 @@ describe("LogicModal", () => {
     expect(screen.getByText("Hint locked. Use a hint item to decode.")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "[ USE HINT ITEM ]" }));
     expect(onRevealHint).toHaveBeenCalledOnce();
-    rerender(<LogicModal error={null} hintRevealed onSubmit={onSubmit} onClose={onClose} onRevealHint={onRevealHint} />);
+    rerender(<LogicModal error={null} hintRevealed onSubmit={onSubmit} onClose={onClose} onRevealHint={onRevealHint} onReset={vi.fn()} />);
     expect(screen.getByText("AND needs both inputs at 1. XOR needs exactly one. NOT flips the bit.")).toBeInTheDocument();
   });
 
@@ -72,12 +72,28 @@ describe("LogicModal", () => {
 
   it("hides a stale error once a switch changes after the failed run", async () => {
     const user = userEvent.setup();
-    const handlers = { onSubmit: vi.fn(), onClose: vi.fn(), onRevealHint: vi.fn() };
+    const handlers = { onSubmit: vi.fn(), onClose: vi.fn(), onRevealHint: vi.fn(), onReset: vi.fn() };
     const { rerender } = render(<LogicModal error={null} hintRevealed={false} {...handlers} />);
     await user.click(screen.getByRole("button", { name: "[ RUN CIRCUIT ]" }));
     rerender(<LogicModal error="Circuit failed: line 2 (A AND B) outputs 0." hintRevealed={false} {...handlers} />);
     expect(screen.getByRole("alert")).toBeInTheDocument();
     await user.click(sw("A"));
     expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("[ RESET ] turns every switch off, forgets the last run and calls onReset", async () => {
+    const user = userEvent.setup();
+    const { onReset } = renderModal();
+    await user.click(sw("A"));
+    await user.click(sw("B"));
+    await user.click(screen.getByRole("button", { name: "[ RUN CIRCUIT ]" }));
+    expect(output("A AND B")).not.toHaveTextContent("?");
+    await user.click(screen.getByRole("button", { name: "[ RESET ]" }));
+    expect(onReset).toHaveBeenCalledTimes(1);
+    for (const name of ["A", "B", "C", "D"]) expect(sw(name)).toHaveAttribute("aria-checked", "false");
+    for (const expr of ["A AND B", "B XOR C", "NOT D"]) expect(output(expr)).toHaveTextContent("?");
+    await user.click(sw("A"));
+    await user.click(sw("B"));
+    for (const expr of ["A AND B", "B XOR C", "NOT D"]) expect(output(expr)).toHaveTextContent("?");
   });
 });

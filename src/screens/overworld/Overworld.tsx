@@ -1,5 +1,6 @@
 import { useEffect, useReducer } from "react";
 import { cardFor } from "../../game/cards";
+import { rollGame } from "../../game/roll";
 import { interactLabel, placeInReach, promptText } from "../../game/geometry";
 import { gameReducer, initialState, isDowned, isModalOpen, reachPlaces } from "../../game/reducer";
 import type { GameState } from "../../game/types";
@@ -32,7 +33,12 @@ export function Overworld({
   /** Team mode: shared progress, teammates on the map and the team clock. */
   team?: TeamSession;
 }) {
-  const [state, dispatch] = useReducer(gameReducer, { ...initialState, ...initial });
+  // Each game rolls its questions, shuffle seed, Matcher round and access code once, at mount; a team shares the code.
+  const [state, dispatch] = useReducer(gameReducer, undefined, () => ({
+    ...initialState,
+    ...rollGame(Math.random, team?.startedAt ?? undefined),
+    ...initial,
+  }));
   useGameTimers(state, dispatch);
   useKeyboardControls(state, dispatch);
   const downed = isDowned(state);
@@ -156,6 +162,7 @@ export function Overworld({
           onSubmit={(bits) => dispatch({ type: "submitLogic", bits })}
           onClose={() => dispatch({ type: "closeLogic" })}
           onRevealHint={() => dispatch({ type: "revealLogicHint" })}
+          onReset={() => dispatch({ type: "resetLogic" })}
         />
       )}
     </Panel>

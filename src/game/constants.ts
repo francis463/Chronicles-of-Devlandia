@@ -66,6 +66,8 @@ export const LOG = {
   enteredPeaks: "Entered C++ Peaks.",
   enteredVillage: "Entered Dev Village.",
   badge: (badge: string) => `Earned the ${badge} Badge.`,
+  matcher: (code: string) => `Syntax Terminal: access code ${code}.`,
+  archiveUnsealed: "Archive unsealed.",
 };
 
 /** The landmarks' cards. Ada's shows her current line (village.ts); chests, the terminal and the Archive are in cards.ts. */

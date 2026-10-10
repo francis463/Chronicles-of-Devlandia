@@ -17,6 +17,7 @@ import {
 import { clampPlayer, isInRiver } from "./geometry";
 import { circuitError } from "./logic";
 import { accessCode } from "../learn/access";
+import { ARCHIVE_LOCK } from "../learn/bank/builtin";
 import { CHEST_IDS, CHESTS, chestById } from "../learn/chests";
 import { isCorrectBlank, matchWrongCount, normalize, wrongBlankCopy, wrongChoiceCopy, wrongMatchCopy } from "../learn/check";
 import type { BlankChallenge, Challenge, ChallengeTarget, ChestId, SubmitValue } from "../learn/types";
@@ -153,6 +154,23 @@ function submitChest(state: GameState, open: ChallengeState, chest: ChestId, c: 
   );
 }
 
+/** The Syntax Matcher: a right pairing prints the access code and shows the success view. */
+function submitMatcher(state: GameState, open: ChallengeState, c: Challenge, value: SubmitValue): GameState {
+  const verdict = judge(c, value);
+  if (!verdict || c.kind !== "match") return state;
+  if (!verdict.right) return missed(state, open, c, verdict.error, value);
+  return pushLog({ ...state, matcherSolved: true, challenge: { ...open, solved: true, error: null } }, LOG.matcher(state.accessCode));
+}
+
+/** The Archive's keypad: only a well-formed code is compared; the right one unseals the Archive for good. */
+function submitKeypad(state: GameState, open: ChallengeState, value: SubmitValue): GameState {
+  if (typeof value !== "string" || ARCHIVE_LOCK.live.kind !== "pattern") return state;
+  const code = value.trim().toUpperCase();
+  if (!ARCHIVE_LOCK.live.pattern.test(code)) return state;
+  if (code !== state.accessCode) return missed(state, open, ARCHIVE_LOCK, ARCHIVE_LOCK.wrong!(code), value);
+  return pushLog({ ...state, archiveOpen: true, challenge: null }, LOG.archiveUnsealed);
+}
+
 /** The gate and the cipher: their own effects and logs, closing on success. */
 function submitBuiltIn(state: GameState, open: ChallengeState, c: BlankChallenge, value: string): GameState {
   const right = isCorrectBlank(c, value);
@@ -224,8 +242,17 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       }
       if (action.poi === "villager") return pushLogOnce({ ...state, inspected: "villager" }, `Ada: "${adaLine(state)}"`);
       if (action.poi === "signpost") return { ...state, inspected: "signpost" };
-      // The Syntax Terminal and the Archive open their terminals in a later step; for now they show their cards.
-      if (action.poi === "terminal" || action.poi === "archive") return { ...state, inspected: action.poi };
+      if (action.poi === "terminal") {
+        // Once solved, the terminal shows its success view (the code) again, not a new round.
+        return { ...state, inspected: "terminal", challenge: { ...opened("matcher"), solved: state.matcherSolved } };
+      }
+      if (action.poi === "archive") {
+        // Sealed: the keypad. Open: the Archive is the C# chest.
+        if (!state.archiveOpen) return { ...state, inspected: "archive", challenge: opened("archive") };
+        return state.badges.includes("chest-cs")
+          ? { ...state, inspected: "archive" }
+          : { ...state, inspected: "archive", challenge: opened("chest-cs") };
+      }
       if (isChest(action.poi)) {
         const chest = action.poi;
         return state.badges.includes(chest)
@@ -264,6 +291,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         return submitBuiltIn(state, open, c, action.value);
       }
       if (isChest(open.target)) return submitChest(state, open, open.target, c, action.value);
+      if (open.target === "matcher") return submitMatcher(state, open, c, action.value);
+      if (open.target === "archive") return submitKeypad(state, open, action.value);
       return state;
     }
     case "revealChallengeHint": {
