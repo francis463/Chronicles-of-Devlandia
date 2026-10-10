@@ -215,6 +215,24 @@ describe("Overworld badges with a stub session", () => {
     expect(screen.getByRole("dialog", { name: "< YOUR CODEX: 0/10 BADGES >" })).toBeInTheDocument();
   });
 
+  it("teammates get the same access code for one startedAt, whatever their own dice roll (final review)", async () => {
+    const user = setup();
+    const codeWith = async (roll: number) => {
+      const random = vi.spyOn(Math, "random").mockReturnValue(roll);
+      const { unmount } = render(
+        <Overworld onMenu={() => {}} team={stub({ startedAt: 1_700_000_000_000 })} initial={{ zone: "village", player: { x: 60, y: 64 }, matcherSolved: true }} />,
+      );
+      random.mockRestore();
+      await user.click(screen.getByRole("button", { name: "Syntax Terminal" }));
+      const label = screen.getByRole("status", { name: /^ACCESS CODE:/ }).getAttribute("aria-label");
+      unmount();
+      return label;
+    };
+    const first = await codeWith(0.1);
+    expect(first).toMatch(/^ACCESS CODE: [A-Z2-9] [A-Z2-9] [A-Z2-9] [A-Z2-9]$/);
+    expect(await codeWith(0.9)).toBe(first);
+  });
+
   it("each badge in state is published once", () => {
     const session = stub();
     const { rerender } = render(<Overworld onMenu={() => {}} team={session} initial={{ badges: ["chest-html"] }} />);

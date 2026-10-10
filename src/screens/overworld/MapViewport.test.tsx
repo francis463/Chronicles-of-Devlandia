@@ -273,7 +273,7 @@ describe("MapViewport chests, the Syntax Terminal and the Archive", () => {
     expect(within(screen.getByRole("button", { name: "CSS chest" })).getByText("CSS")).toHaveClass("opacity-0");
   });
 
-  it("a hidden caption takes no taps, and a showing one sits above the other buttons", () => {
+  it("a hidden caption takes no taps, a showing landmark caption sits above the other buttons, and a 1× chest caption never takes taps", () => {
     const { rerender } = render(<MapViewport {...props()} />);
     const html = within(screen.getByRole("button", { name: "HTML chest" })).getByText("HTML");
     expect(html).toHaveClass("pointer-events-none");
@@ -283,10 +283,13 @@ describe("MapViewport chests, the Syntax Terminal and the Archive", () => {
     const poi = POIS.find((p) => p.id === "chest")!;
     rerender(<MapViewport {...props({ player: { x: poi.x, y: poi.y + 6 }, inRange: poi, prompt: "[E] Inspect Supply Cache" })} />);
     expect(within(screen.getByRole("button", { name: "[X] Supply Cache" })).getByText("[X] Supply Cache")).toHaveClass("pointer-events-none");
+    // At 1× a chest caption is information only: shown in reach it still takes no taps, so a tap on a
+    // neighbouring drawing under it reaches that place (final review).
     rerender(<MapViewport {...props({ inRange: { id: "chest-html", label: "HTML Chest", x: 10, y: 60 } })} />);
     const shown = within(screen.getByRole("button", { name: "HTML chest" })).getByText("HTML");
-    expect(shown).toHaveClass("z-10");
-    expect(shown).not.toHaveClass("pointer-events-none");
+    expect(shown).not.toHaveClass("opacity-0");
+    expect(shown).toHaveClass("pointer-events-none");
+    expect(shown).not.toHaveClass("z-10");
   });
 
   it("chest buttons are disabled while downed, and the old landmarks keep their caption as their name", () => {

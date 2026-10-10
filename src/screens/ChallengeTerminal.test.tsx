@@ -663,3 +663,55 @@ describe("ChallengeTerminal: the Syntax Matcher", () => {
     expect(item("SELECT name FROM users;")).toHaveFocus();
   });
 });
+
+describe("ChallengeTerminal: final review fixes", () => {
+  const props = (challenge: Challenge, over: Partial<ChallengeView> = {}, mode: BlankMode = "type") => ({
+    challenge, view: view(over), mode, onSubmit: vi.fn(), onClose: vi.fn(), onRevealHint: vi.fn(), onModeChange: vi.fn(),
+  });
+  const classes = (el: HTMLElement) => el.className.split(/\s+/);
+
+  it("the Type | Blocks toggle colours only the mode that is on", () => {
+    // Tailwind sorts same-property utilities itself, so the pressed button must not also carry the neutral colours.
+    const { rerender } = render(<ChallengeTerminal {...props(SQL)} />);
+    const group = () => screen.getByRole("group", { name: "Answer mode" });
+    const check = (on: string, off: string) => {
+      const pressed = within(group()).getByRole("button", { name: on });
+      const other = within(group()).getByRole("button", { name: off });
+      expect(pressed).toHaveAttribute("aria-pressed", "true");
+      expect(classes(pressed)).toEqual(expect.arrayContaining(["bg-[var(--accent)]", "text-[var(--bg)]", "border-[var(--accent-border)]"]));
+      expect(classes(pressed)).not.toEqual(expect.arrayContaining(["bg-[var(--neutral)]"]));
+      expect(classes(pressed)).not.toEqual(expect.arrayContaining(["text-[var(--text)]"]));
+      expect(classes(other)).toEqual(expect.arrayContaining(["bg-[var(--neutral)]", "text-[var(--text)]"]));
+      expect(classes(other)).not.toEqual(expect.arrayContaining(["bg-[var(--accent)]"]));
+    };
+    check("Type", "Blocks");
+    rerender(<ChallengeTerminal {...props(SQL, {}, "blocks")} />);
+    check("Blocks", "Type");
+  });
+
+  it("[ CONTINUE ] is described by the success line and the explanation, so focusing it speaks the reward", () => {
+    const { unmount } = render(<ChallengeTerminal {...props(SQL, { solved: true, success: { line: "✓ SQL Badge earned", spoken: "SQL Badge earned", explain: "FROM names the table.", answer: "FROM" } })} />);
+    expect(screen.getByRole("button", { name: "[ CONTINUE ]" })).toHaveAccessibleDescription("SQL Badge earned FROM names the table.");
+    unmount();
+    render(<ChallengeTerminal {...props(MATCHER_ROUNDS[0], { solved: true, success: { code: "KQZM", explain: "Each snippet has its language." } })} />);
+    expect(screen.getByRole("button", { name: "[ CONTINUE ]" })).toHaveAccessibleDescription("ACCESS CODE: K Q Z M Each snippet has its language.");
+  });
+
+  it("each wrong try mounts a fresh alert, so the same words are announced again", () => {
+    const choice = chestById("chest-sql").bank[1];
+    for (const c of [ARCHIVE_LOCK, choice, MATCHER_ROUNDS[0]] as Challenge[]) {
+      const error = "Access denied. The drone has a tip below.";
+      const { rerender, unmount } = render(<ChallengeTerminal {...props(c, { error, wrongTries: 2 })} />);
+      const first = screen.getByRole("alert");
+      rerender(<ChallengeTerminal {...props(c, { error, wrongTries: 3 })} />);
+      expect(screen.getByRole("alert"), c.id).not.toBe(first);
+      expect(screen.getByRole("alert")).toHaveTextContent(error);
+      unmount();
+    }
+  });
+
+  it("the Blocks drop slot is at least 44 px tall", () => {
+    render(<ChallengeTerminal {...props(SQL, {}, "blocks")} />);
+    expect(classes(screen.getByTestId("block-slot"))).toContain("min-h-11");
+  });
+});

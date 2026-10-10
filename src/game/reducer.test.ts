@@ -684,6 +684,12 @@ describe("gameReducer: chests", () => {
     expect(gameReducer(php, { type: "submitChallenge", value: "echo" }).badges).toEqual(["chest-sql", "chest-php"]);
   });
 
+  it("records a typed answer in its accepted form: no trailing ';', single spaces, your case (final review)", () => {
+    const s = gameReducer(sqlOpen, { type: "submitChallenge", value: "  From; " });
+    expect(s.badges).toEqual(["chest-sql"]);
+    expect(s.answered["chest-sql"]).toBe("From");
+  });
+
   it("a choice is checked by data index and records the option text", () => {
     const where = { ...sqlOpen, picks: { ...s0.picks, "chest-sql": 1 as const } };
     const s = gameReducer(where, { type: "submitChallenge", value: 0 });

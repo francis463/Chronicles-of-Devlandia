@@ -128,6 +128,7 @@ function LandmarkButton({
   disabled,
   hideCaption,
   peek = false,
+  passive = false,
   onClick,
 }: {
   /** The button's hit area, in map-area CSS px. */
@@ -145,11 +146,14 @@ function LandmarkButton({
   hideCaption: boolean;
   /** A hidden caption still shows while the button is hovered or focused. */
   peek?: boolean;
+  /** The caption is information only and never takes taps (a chest's on a 1× map, where it was never laid out against its neighbours). */
+  passive?: boolean;
   onClick: () => void;
 }) {
   const caption = captionRect(name, hit, map, prefer);
-  // A hidden caption takes no taps; a showing one sits above the other buttons, so tapping it opens its own place.
-  const chip = hideCaption ? `pointer-events-none opacity-0${peek ? " group-hover:opacity-100 group-focus-visible:opacity-100" : ""}` : "z-10";
+  // A hidden or passive caption takes no taps, so a tap under it reaches the place drawn there; any other showing
+  // caption sits above the other buttons, so tapping it opens its own place.
+  const chip = hideCaption ? `pointer-events-none opacity-0${peek ? " group-hover:opacity-100 group-focus-visible:opacity-100" : ""}` : passive ? "pointer-events-none" : "z-10";
   return (
     <button
       type="button"
@@ -347,6 +351,7 @@ export function MapViewport({
               disabled={downed}
               hideCaption={smallMap && inRange?.id !== l.id}
               peek
+              passive={smallMap}
               onClick={() => onInteract(l.id)}
             />
           );

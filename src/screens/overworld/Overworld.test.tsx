@@ -486,6 +486,11 @@ describe("Overworld: the Codex and leaving", () => {
     expect(screen.getByRole("dialog", { name: "< CODEX: 0/10 BADGES >" })).toBeInTheDocument();
   });
 
+  it("on phones [C] Codex (and [=] Menu beside it) is at least 44 px tall (final review)", () => {
+    render(<Overworld onMenu={() => {}} />);
+    for (const name of ["[C] Codex", "[=] Menu"]) expect(screen.getByRole("button", { name })).toHaveClass("pointer-coarse:min-h-11");
+  });
+
   it("Quests show Badges: 0/10, bold at 10/10", () => {
     const { unmount } = render(<Overworld onMenu={() => {}} />);
     expect(screen.getByText("Badges: 0/10")).not.toHaveClass("font-bold");

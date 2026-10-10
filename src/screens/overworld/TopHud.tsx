@@ -45,10 +45,10 @@ export function TopHud({
         <span className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">
           {`${phaseOf(minutes)} / ${formatTime(minutes)}`}
         </span>
-        <Button variant="ghost" className="mr-4 px-2 py-1 text-[10px]" onClick={onCodex}>
+        <Button variant="ghost" className="mr-4 px-2 py-1 text-[10px] pointer-coarse:min-h-11" onClick={onCodex}>
           [C] Codex
         </Button>
-        <Button variant="ghost" className="px-2 py-1 text-[10px]" onClick={onMenu}>
+        <Button variant="ghost" className="px-2 py-1 text-[10px] pointer-coarse:min-h-11" onClick={onMenu}>
           [=] Menu
         </Button>
       </div>

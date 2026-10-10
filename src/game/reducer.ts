@@ -126,7 +126,8 @@ const isChest = (id: string): id is ChestId => (CHEST_IDS as readonly string[]).
 function judge(c: Challenge, value: SubmitValue): { right: boolean; answer: string; error: string } | null {
   if (c.kind === "blank") {
     if (typeof value !== "string") return null;
-    return { right: isCorrectBlank(c, value), answer: value.trim(), error: wrongBlankCopy(value) };
+    // The answer as accepted: trimmed, one trailing ';' dropped, single spaces, your case (the success view shows it in the code).
+    return { right: isCorrectBlank(c, value), answer: normalize(value, true), error: wrongBlankCopy(value) };
   }
   if (c.kind === "choice") {
     if (typeof value !== "number" || !Number.isInteger(value) || value < 0 || value > 3) return null;

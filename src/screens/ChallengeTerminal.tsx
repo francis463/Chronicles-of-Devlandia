@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 import type { ChallengeView } from "../game/challenges";
 import type { BlankMode, Challenge, SubmitValue } from "../learn/types";
 import { TerminalDialog } from "../ui/TerminalDialog";
@@ -24,6 +24,8 @@ function SuccessView({
   onClose: () => void;
 }) {
   const code = challenge.kind === "match" ? undefined : challenge.code;
+  const lineId = useId();
+  const explainId = useId();
   return (
     <>
       {code && (
@@ -47,19 +49,24 @@ function SuccessView({
         </ul>
       )}
       {"code" in success ? (
-        <div role="status" aria-label={`ACCESS CODE: ${success.code.split("").join(" ")}`} className="text-2xl font-bold tracking-widest text-[var(--accent)]">
-          {`ACCESS CODE: ${success.code}`}
+        <div id={lineId} role="status" aria-label={`ACCESS CODE: ${success.code.split("").join(" ")}`} className="text-2xl font-bold tracking-widest text-[var(--accent)]">
+          {/* The spoken form is content too, so the live region and [ CONTINUE ]'s description read it. */}
+          <span aria-hidden="true">{`ACCESS CODE: ${success.code}`}</span>
+          <span className="sr-only">{`ACCESS CODE: ${success.code.split("").join(" ")}`}</span>
         </div>
       ) : (
-        <div role="status" aria-label={success.spoken} className="text-sm font-bold tracking-widest text-[var(--success-border)]">
-          {success.line}
+        <div id={lineId} role="status" aria-label={success.spoken} className="text-sm font-bold tracking-widest text-[var(--success-border)]">
+          <span aria-hidden="true">{success.line}</span>
+          <span className="sr-only">{success.spoken}</span>
         </div>
       )}
-      <p className="text-xs text-[var(--text-muted)]">{success.explain}</p>
+      <p id={explainId} className="text-xs text-[var(--text-muted)]">{success.explain}</p>
+      {/* Focus lands here on a solve: describing it by the reward makes a screen reader speak the badge or the code. */}
       <button
         ref={continueRef}
         type="button"
         data-autofocus
+        aria-describedby={`${lineId} ${explainId}`}
         onClick={onClose}
         className="min-h-11 cursor-pointer rounded border-[1.5px] border-[var(--success-border)] bg-[var(--success)] px-4 py-3 text-xs font-bold uppercase tracking-widest text-[var(--bg)] hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary-border)] md:self-end md:w-80"
       >

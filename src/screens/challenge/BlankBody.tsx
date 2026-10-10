@@ -105,7 +105,7 @@ export function BlankBody({
       aria-label={`${c.inputLabel ?? "answer"}: ${value || "empty"}`}
       aria-invalid={invalid ? true : undefined}
       onClick={() => value && change("")}
-      className="min-h-9 min-w-16 cursor-pointer rounded border border-dashed border-[var(--accent)] bg-transparent px-2 font-mono text-[var(--accent)] focus-visible:outline-2 focus-visible:outline-[var(--primary-border)]"
+      className="min-h-11 min-w-16 cursor-pointer rounded border border-dashed border-[var(--accent)] bg-transparent px-2 font-mono text-[var(--accent)] focus-visible:outline-2 focus-visible:outline-[var(--primary-border)]"
     >
       {value || "___"}
     </button>
@@ -167,7 +167,8 @@ export function BlankBody({
         onMode={c.blocks ? onModeChange : undefined}
       />
       {view.error && (
-        <p role="alert" className="text-xs text-[var(--danger-border)]">
+        // A fresh node per wrong try, so the same words are announced again.
+        <p key={view.wrongTries} role="alert" className="text-xs text-[var(--danger-border)]">
           {view.error}
         </p>
       )}

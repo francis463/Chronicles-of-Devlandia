@@ -72,7 +72,8 @@ export function ChoiceBody({
         })}
       </div>
       {view.error && (
-        <p role="alert" className="text-xs text-[var(--danger-border)]">
+        // A fresh node per wrong try, so the same words are announced again.
+        <p key={view.wrongTries} role="alert" className="text-xs text-[var(--danger-border)]">
           {view.error}
         </p>
       )}

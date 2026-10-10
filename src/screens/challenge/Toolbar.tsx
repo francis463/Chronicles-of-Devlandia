@@ -1,8 +1,12 @@
 import { useLayoutEffect, useRef } from "react";
 import type { BlankMode } from "../../learn/types";
 
-const TOOL =
-  "min-h-11 cursor-pointer rounded border-[1.5px] border-[var(--neutral-border)] bg-[var(--neutral)] px-3 py-2 text-xs font-bold uppercase tracking-widest text-[var(--text)] hover:brightness-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary-border)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:brightness-100";
+const SHAPE =
+  "min-h-11 cursor-pointer rounded border-[1.5px] px-3 py-2 text-xs font-bold uppercase tracking-widest hover:brightness-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary-border)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:brightness-100";
+// One colour set per button: Tailwind orders same-property utilities itself, so layering accent over neutral never shows.
+const NEUTRAL = "border-[var(--neutral-border)] bg-[var(--neutral)] text-[var(--text)]";
+const PRESSED = "border-[var(--accent-border)] bg-[var(--accent)] text-[var(--bg)]";
+const TOOL = `${SHAPE} ${NEUTRAL}`;
 
 /** Undo, Reset and (on code blanks) the Type | Blocks toggle. A focused button that becomes unavailable hands focus to the blank. */
 export function Toolbar({
@@ -46,7 +50,7 @@ export function Toolbar({
               type="button"
               aria-pressed={mode === m}
               onClick={() => onMode(m)}
-              className={`${TOOL} ${mode === m ? "border-[var(--accent-border)] bg-[var(--accent)] text-[var(--bg)]" : ""}`}
+              className={`${SHAPE} ${mode === m ? PRESSED : NEUTRAL}`}
             >
               {m === "type" ? "Type" : "Blocks"}
             </button>
