@@ -44,3 +44,12 @@ describe("Button text contrast (WCAG AA, 4.5:1 for 12px bold text)", () => {
     }
   });
 });
+
+describe("Matcher pair tags", () => {
+  it.each([1, 2, 3, 4, 5])("--pair-%i is at least 3:1 on --panel, and its number (--bg) at least 4.5:1 on the tag", (n) => {
+    const tag = tokens[`--pair-${n}`];
+    expect(tag, `--pair-${n}`).toBeDefined();
+    expect(contrast(tag, tokens["--panel"])).toBeGreaterThanOrEqual(3);
+    expect(contrast(tokens["--bg"], tag)).toBeGreaterThanOrEqual(4.5);
+  });
+});

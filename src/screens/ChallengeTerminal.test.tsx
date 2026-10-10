@@ -488,3 +488,178 @@ describe("ChallengeTerminal: Blocks mode, Undo and Reset", () => {
     expect(slot()).toHaveTextContent("___");
   });
 });
+
+const WHERE = chestById("chest-sql").bank[1];
+const ROUND = MATCHER_ROUNDS[0];
+const esc = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const item = (text: string) => screen.getByRole("button", { name: new RegExp(`^${esc(text)}`) });
+const statusText = () => screen.getByTestId("match-announce").textContent;
+
+describe("ChallengeTerminal: choice questions", () => {
+  const options = WHERE.kind === "choice" ? WHERE.options : (["", "", "", ""] as const);
+
+  it("a radio group A–D in the seeded order; arrows move, Space picks; SUBMIT says `Pick an answer first.` until one is picked", async () => {
+    const user = userEvent.setup();
+    renderTerminal(WHERE, { seed: 3 });
+    const shown = order(4, 3, "sql-where").map((i) => options[i]);
+    expect(screen.getByRole("radiogroup")).toBeInTheDocument();
+    const radios = screen.getAllByRole("radio");
+    expect(radios.map((r) => r.getAttribute("aria-label"))).toEqual(shown.map((o, i) => `${"ABCD"[i]}. ${o}`));
+    expect(screen.getByTestId("submit-reason")).toHaveTextContent("Pick an answer first.");
+    expect(radios[0]).toHaveFocus();
+    await user.keyboard("{ArrowDown}");
+    expect(radios[1]).toHaveFocus();
+    await user.keyboard(" ");
+    expect(radios[1]).toBeChecked();
+    expect(screen.queryByTestId("submit-reason")).toBeNull();
+  });
+
+  it("submitting sends the data index", async () => {
+    const user = userEvent.setup();
+    const { onSubmit } = renderTerminal(WHERE, { seed: 3 });
+    const shownOrder = order(4, 3, "sql-where");
+    await user.click(screen.getAllByRole("radio")[2]);
+    await user.click(screen.getByRole("button", { name: "[ SUBMIT ANSWER ]" }));
+    expect(onSubmit).toHaveBeenCalledWith(shownOrder[2]);
+  });
+
+  it("after a wrong answer the picked option shows ✗ and its name ends `, wrong` until another is picked", async () => {
+    const user = userEvent.setup();
+    const { rerenderWith } = renderTerminal(WHERE);
+    const radios = () => screen.getAllByRole("radio");
+    await user.click(radios()[1]);
+    await user.click(screen.getByRole("button", { name: "[ SUBMIT ANSWER ]" }));
+    rerenderWith({ error: "Not quite: that isn't the answer. Check the hint or try again.", wrongTries: 1 });
+    expect(radios()[1].getAttribute("aria-label")).toMatch(/, wrong$/);
+    expect(screen.getByText("✗")).toBeInTheDocument();
+    expect(screen.getByTestId("submit-reason")).toHaveTextContent("Change your answer to try again.");
+    await user.click(radios()[2]);
+    expect(radios()[1].getAttribute("aria-label")).not.toMatch(/, wrong$/);
+    expect(screen.queryByText("✗")).toBeNull();
+  });
+
+  it("on open, focus is on the first shown option (or the checked one); a choice has no `[ UNDO ]` or `[ RESET ]`", () => {
+    renderTerminal(WHERE);
+    expect(screen.getAllByRole("radio")[0]).toHaveFocus();
+    expect(screen.queryByRole("button", { name: "[ UNDO ]" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "[ RESET ]" })).toBeNull();
+  });
+});
+
+describe("ChallengeTerminal: the Syntax Matcher", () => {
+  it("pairing in either order with the lowest free number; picking a paired item unpairs it (`Unpaired 2.`) and selects it; picking on the same side moves the selection; picking the selected item clears it", async () => {
+    const user = userEvent.setup();
+    renderTerminal(ROUND);
+    await user.click(item("SELECT name FROM users;"));
+    await user.click(item("SQL"));
+    expect(item("SELECT name FROM users;")).toHaveAccessibleName("SELECT name FROM users;, pair 1");
+    expect(item("SQL")).toHaveAccessibleName("SQL, pair 1");
+    await user.click(item("PHP"));
+    await user.click(item('$name = "Ada"; echo $name;'));
+    expect(item("PHP")).toHaveAccessibleName("PHP, pair 2");
+    await user.click(item("PHP"));
+    expect(statusText()).toBe("Unpaired 2.");
+    expect(item("PHP")).toHaveAttribute("aria-pressed", "true");
+    expect(item('$name = "Ada"; echo $name;')).toHaveAccessibleName('$name = "Ada"; echo $name;, not paired');
+    await user.click(item("Java"));
+    expect(item("PHP")).toHaveAttribute("aria-pressed", "false");
+    expect(item("Java")).toHaveAttribute("aria-pressed", "true");
+    await user.click(item("Java"));
+    expect(item("Java")).toHaveAttribute("aria-pressed", "false");
+    await user.click(item('System.out.println("Hi");'));
+    await user.click(item("Java"));
+    expect(item("Java")).toHaveAccessibleName("Java, pair 2");
+  });
+
+  it("accessible names end `, pair 2`, `, not paired`, and after a wrong submit `, pair 2, wrong`; new pairs announce `Paired 2: print(\"Hi\") with Python.`", async () => {
+    const user = userEvent.setup();
+    const { rerenderWith } = renderTerminal(ROUND);
+    expect(item('print("Hi")')).toHaveAccessibleName('print("Hi"), not paired');
+    await user.click(item("SELECT name FROM users;"));
+    await user.click(item("SQL"));
+    await user.click(item('print("Hi")'));
+    await user.click(item("Python"));
+    expect(statusText()).toBe('Paired 2: print("Hi") with Python.');
+    await user.click(item('$name = "Ada"; echo $name;'));
+    await user.click(item("Java"));
+    await user.click(item('System.out.println("Hi");'));
+    await user.click(item("PHP"));
+    await user.click(item("<p>Hi</p>"));
+    await user.click(item("HTML"));
+    await user.click(screen.getByRole("button", { name: "[ SUBMIT MATCHES ]" }));
+    rerenderWith({ error: "2 of 5 pairs are wrong.", wrongTries: 1 });
+    expect(item("Java")).toHaveAccessibleName("Java, pair 3, wrong");
+    expect(item("PHP")).toHaveAccessibleName("PHP, pair 4, wrong");
+    expect(item("SQL")).toHaveAccessibleName("SQL, pair 1");
+  });
+
+  it("SUBMIT reads `Pair all 5 first (3/5 paired).` until all are paired, then submits the mapping", async () => {
+    const user = userEvent.setup();
+    const { onSubmit } = renderTerminal(ROUND);
+    const pairs: [string, string][] = [
+      ["SELECT name FROM users;", "SQL"], ['$name = "Ada"; echo $name;', "PHP"], ['System.out.println("Hi");', "Java"],
+      ['print("Hi")', "Python"], ["<p>Hi</p>", "HTML"],
+    ];
+    for (const [snippet, label] of pairs.slice(0, 3)) {
+      await user.click(item(snippet));
+      await user.click(item(label));
+    }
+    expect(screen.getByTestId("submit-reason")).toHaveTextContent("Pair all 5 first (3/5 paired).");
+    for (const [snippet, label] of pairs.slice(3)) {
+      await user.click(item(snippet));
+      await user.click(item(label));
+    }
+    expect(screen.queryByTestId("submit-reason")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "[ SUBMIT MATCHES ]" }));
+    expect(onSubmit).toHaveBeenCalledWith([0, 1, 2, 3, 4]);
+  });
+
+  it("Undo removes the last pair; Reset clears them all and is undoable", async () => {
+    const user = userEvent.setup();
+    renderTerminal(ROUND);
+    await user.click(item("SELECT name FROM users;"));
+    await user.click(item("SQL"));
+    await user.click(item('print("Hi")'));
+    await user.click(item("Python"));
+    await user.click(screen.getByRole("button", { name: "[ UNDO ]" }));
+    expect(item("Python")).toHaveAccessibleName("Python, not paired");
+    expect(item("SQL")).toHaveAccessibleName("SQL, pair 1");
+    await user.click(screen.getByRole("button", { name: "[ RESET ]" }));
+    expect(item("SQL")).toHaveAccessibleName("SQL, not paired");
+    await user.click(screen.getByRole("button", { name: "[ UNDO ]" }));
+    expect(item("SQL")).toHaveAccessibleName("SQL, pair 1");
+  });
+
+  it("mouse drag from a snippet onto a label pairs them", () => {
+    renderTerminal(ROUND);
+    fireEvent.pointerDown(item('print("Hi")'), { pointerType: "mouse", pointerId: 1, clientX: 0, clientY: 0 });
+    fireEvent.pointerMove(item("Python"), { pointerType: "mouse", pointerId: 1, clientX: 80, clientY: 0 });
+    fireEvent.pointerUp(item("Python"), { pointerType: "mouse", pointerId: 1, clientX: 80, clientY: 0 });
+    expect(item('print("Hi")')).toHaveAccessibleName('print("Hi"), pair 1');
+  });
+
+  it("round 3 shows each snippet's language tag", () => {
+    renderTerminal(MATCHER_ROUNDS[2]);
+    expect(item("print(2 ** 3)")).toHaveAccessibleName("print(2 ** 3) (Python), not paired");
+    expect(item("std::cout << 7 % 3;")).toHaveAccessibleName("std::cout << 7 % 3; (C++), not paired");
+    expect(screen.getAllByText("Python")).toHaveLength(2);
+  });
+
+  it("on open, focus is on the first snippet; after Reset with focus on [ RESET ], focus moves to the first snippet, and an unavailable Undo does the same", async () => {
+    const user = userEvent.setup();
+    renderTerminal(ROUND);
+    const first = item("SELECT name FROM users;");
+    expect(first).toHaveFocus();
+    await user.click(item('print("Hi")'));
+    await user.click(item("Python"));
+    const reset = screen.getByRole("button", { name: "[ RESET ]" });
+    const undo = screen.getByRole("button", { name: "[ UNDO ]" });
+    await user.click(reset);
+    expect(reset).toBeDisabled();
+    expect(item("SELECT name FROM users;")).toHaveFocus();
+    await user.click(undo);
+    await user.click(undo);
+    expect(undo).toBeDisabled();
+    expect(item("SELECT name FROM users;")).toHaveFocus();
+  });
+});

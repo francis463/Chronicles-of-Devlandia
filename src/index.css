@@ -24,6 +24,12 @@
   --neutral: #64748b;
   --neutral-border: #94a3b8;
   --code: #4ade80;
+  /* Syntax Matcher pair tags: each >= 3:1 on --panel, with its --bg number >= 4.5:1 on it. */
+  --pair-1: #2dd4bf;
+  --pair-2: #fbbf24;
+  --pair-3: #f472b6;
+  --pair-4: #38bdf8;
+  --pair-5: #a3e635;
 }
 
 body {
