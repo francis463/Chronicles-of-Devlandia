@@ -129,22 +129,23 @@ export function Overworld({
         artifactFound={state.artifactFound}
         towerPowered={state.towerPowered}
       />
-      {state.terminalOpen && (
+      {/* Until the challenge terminal arrives, the old gate and cipher modals render from the engine's state. */}
+      {state.challenge?.target === "gate" && (
         <TerminalModal
-          error={state.puzzleError}
-          hintRevealed={state.hintRevealed}
-          onSubmit={(value) => dispatch({ type: "submitCode", value })}
-          onClose={() => dispatch({ type: "closeTerminal" })}
-          onRevealHint={() => dispatch({ type: "revealHint" })}
+          error={state.challenge.error}
+          hintRevealed={state.hintsRevealed.includes("gate-css")}
+          onSubmit={(value) => dispatch({ type: "submitChallenge", value })}
+          onClose={() => dispatch({ type: "closeChallenge" })}
+          onRevealHint={() => dispatch({ type: "revealChallengeHint" })}
         />
       )}
-      {state.cipherOpen && (
+      {state.challenge?.target === "cipher" && (
         <CipherModal
-          error={state.cipherError}
-          hintRevealed={state.cipherHintRevealed}
-          onSubmit={(value) => dispatch({ type: "submitCipher", value })}
-          onClose={() => dispatch({ type: "closeCipher" })}
-          onRevealHint={() => dispatch({ type: "revealCipherHint" })}
+          error={state.challenge.error}
+          hintRevealed={state.hintsRevealed.includes("scroll-cipher")}
+          onSubmit={(value) => dispatch({ type: "submitChallenge", value })}
+          onClose={() => dispatch({ type: "closeChallenge" })}
+          onRevealHint={() => dispatch({ type: "revealChallengeHint" })}
         />
       )}
       {state.logicOpen && (

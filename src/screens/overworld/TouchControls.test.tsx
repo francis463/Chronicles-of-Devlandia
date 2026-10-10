@@ -93,7 +93,7 @@ describe("TouchControls: disabled states", () => {
   });
 
   it("disables every touch control while the terminal is open", () => {
-    render(<Overworld onMenu={noop} initial={{ terminalOpen: true, player: { x: 50, y: 58 } }} />);
+    render(<Overworld onMenu={noop} initial={{ challenge: { target: "gate", error: null, wrongTries: 0, solved: false, lastWrong: null }, player: { x: 50, y: 58 } }} />);
     for (const dir of ["up", "down", "left", "right"] as const) expect(pad(dir)).toBeDisabled();
     expect(screen.getByRole("button", { name: "[E] Terminal Gate" })).toBeDisabled();
   });
@@ -128,7 +128,7 @@ describe("TouchControls: hidden artifact", () => {
   });
 
   it("disables the touch controls while the cipher is open", () => {
-    render(<Overworld onMenu={noop} initial={{ hasLoot: true, cipherOpen: true }} />);
+    render(<Overworld onMenu={noop} initial={{ hasLoot: true, challenge: { target: "cipher", error: null, wrongTries: 0, solved: false, lastWrong: null } }} />);
     for (const dir of ["up", "down", "left", "right"] as const) expect(pad(dir)).toBeDisabled();
   });
 });

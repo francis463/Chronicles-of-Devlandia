@@ -96,4 +96,4 @@ export const cipherError = (value: string) => `Not quite: "${value}" is not what
 export const PUZZLE_HINT = "\"Setting display to 'none' hides the object. Try 'block' instead!\"";
 export const PUZZLE_HINT_LOCKED = "Hint locked. Use a hint item to decode.";
 export const puzzleError = (value: string) =>
-  `Compile error: display: ${value} keeps the gate shut.`;
+  `Not quite: display: ${value} doesn't open this lock. Check the hint or try again.`;

@@ -31,7 +31,7 @@ export function useKeyboardControls(state: GameState, dispatch: Dispatch<GameAct
       if (key === "escape") {
         if (isModalOpen(current)) {
           event.preventDefault();
-          dispatch({ type: current.terminalOpen ? "closeTerminal" : current.cipherOpen ? "closeCipher" : "closeLogic" });
+          dispatch({ type: current.challenge ? "closeChallenge" : current.logicOpen ? "closeLogic" : "toggleCodex" });
         }
         return;
       }

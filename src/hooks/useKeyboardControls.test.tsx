@@ -35,7 +35,7 @@ describe("useKeyboardControls: movement", () => {
 
   it("ignores keys while the terminal is open", async () => {
     const user = userEvent.setup();
-    render(<Overworld onMenu={noop} initial={{ terminalOpen: true, player: { x: 50, y: 58 } }} />);
+    render(<Overworld onMenu={noop} initial={{ challenge: { target: "gate", error: null, wrongTries: 0, solved: false, lastWrong: null }, player: { x: 50, y: 58 } }} />);
     // Move focus off the puzzle input so the terminal guard (not the text-field guard) is exercised.
     screen.getByRole("button", { name: "[ USE HINT ITEM ]" }).focus();
     await user.keyboard("{ArrowUp}we");
@@ -89,6 +89,15 @@ describe("useKeyboardControls: interact", () => {
     expect(player().style.left).toBe("50%");
   });
 
+  it("Esc closes an open challenge", async () => {
+    const user = userEvent.setup();
+    render(<Overworld onMenu={noop} initial={{ challenge: { target: "gate", error: null, wrongTries: 0, solved: false, lastWrong: null }, player: { x: 50, y: 58 } }} />);
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    screen.getByRole("button", { name: "[ USE HINT ITEM ]" }).focus();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
   it("Escape closes the terminal dialog", async () => {
     const user = userEvent.setup();
     render(<Overworld onMenu={noop} initial={{ player: { x: 50, y: 58 } }} />);
@@ -101,7 +110,7 @@ describe("useKeyboardControls: interact", () => {
 describe("useKeyboardControls: scroll cipher", () => {
   it("ignores game keys while the cipher is open and Escape closes it", async () => {
     const user = userEvent.setup();
-    render(<Overworld onMenu={noop} initial={{ hasLoot: true, cipherOpen: true, player: { x: 80, y: 22 } }} />);
+    render(<Overworld onMenu={noop} initial={{ hasLoot: true, challenge: { target: "cipher", error: null, wrongTries: 0, solved: false, lastWrong: null }, player: { x: 80, y: 22 } }} />);
     screen.getByRole("button", { name: "[ USE HINT ITEM ]" }).focus();
     await user.keyboard("{ArrowUp}we");
     expect(player().style.top).toBe("22%");

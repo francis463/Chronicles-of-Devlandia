@@ -125,6 +125,18 @@ describe("the question bank and the chest table", () => {
     },
   );
 
+  it.each(["", "QRAFR SBERFG", "forest", "dense forests", "frozen river"])("the scroll cipher rejects %j", (v) => {
+    expect(isCorrectBlank(SCROLL_CIPHER, v)).toBe(false);
+  });
+
+  it.each(["block", " Block ", "BLOCK;", "block ;"])("the gate accepts %j", (v) => {
+    expect(isCorrectBlank(GATE_CSS, v)).toBe(true);
+  });
+
+  it.each(["none", "", "blocks", "inline-block"])("the gate rejects %j", (v) => {
+    expect(isCorrectBlank(GATE_CSS, v)).toBe(false);
+  });
+
   it("chestChallenge returns the picked question with the chest's title", () => {
     const picked = chestChallenge({ ...allZero, "chest-sql": 2 }, "chest-sql");
     expect(picked.id).toBe("sql-max");

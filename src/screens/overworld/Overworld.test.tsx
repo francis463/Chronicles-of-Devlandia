@@ -35,7 +35,7 @@ describe("Overworld HUD", () => {
   });
 
   it("pauses the clock while the terminal is open", () => {
-    render(<Overworld onMenu={() => {}} initial={{ terminalOpen: true }} />);
+    render(<Overworld onMenu={() => {}} initial={{ challenge: { target: "gate", error: null, wrongTries: 0, solved: false, lastWrong: null } }} />);
     act(() => vi.advanceTimersByTime(6000));
     expect(screen.getByText("Dusk / 19:29")).toBeInTheDocument();
   });
@@ -165,7 +165,7 @@ describe("Overworld timers", () => {
   });
 
   it("pauses river damage while the terminal is open", () => {
-    render(<Overworld onMenu={() => {}} initial={{ player: { x: 50, y: 33 }, terminalOpen: true }} />);
+    render(<Overworld onMenu={() => {}} initial={{ player: { x: 50, y: 33 }, challenge: { target: "gate", error: null, wrongTries: 0, solved: false, lastWrong: null } }} />);
     act(() => vi.advanceTimersByTime(3600));
     expect(screen.getAllByRole("meter")[0]).toHaveAttribute("aria-valuenow", "100");
   });
@@ -257,7 +257,7 @@ describe("Overworld terminal puzzle", () => {
     const input = screen.getByRole("textbox", { name: "display value" });
     await user.clear(input);
     await user.type(input, "flex{Enter}");
-    expect(screen.getByRole("alert")).toHaveTextContent("Compile error: display: flex keeps the gate shut.");
+    expect(screen.getByRole("alert")).toHaveTextContent("Not quite: display: flex doesn't open this lock. Check the hint or try again.");
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
@@ -318,7 +318,7 @@ describe("Overworld hidden artifact", () => {
   });
 
   it("pauses the clock while the cipher is open", () => {
-    render(<Overworld onMenu={() => {}} initial={{ hasLoot: true, cipherOpen: true }} />);
+    render(<Overworld onMenu={() => {}} initial={{ hasLoot: true, challenge: { target: "cipher", error: null, wrongTries: 0, solved: false, lastWrong: null } }} />);
     act(() => vi.advanceTimersByTime(6000));
     expect(screen.getByText("Dusk / 19:29")).toBeInTheDocument();
   });

@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { gameReducer, initialState, isDowned, isModalOpen, revealedPois, visiblePois } from "./reducer";
-import type { GameState, Point } from "./types";
+import type { ChallengeState, ChallengeTarget, GameState, Point } from "./types";
 import { NO_FLAGS } from "./team";
 import { HIDDEN_ARTIFACT, INTERACT_RADIUS, LOG, PLAYER_START, POIS } from "./constants";
 import { isNorthOfWall } from "./wall";
 import type { ZoneId } from "./zones";
 
 const s0 = initialState;
+/** A freshly opened terminal for a target, as the reducer opens it. */
+const openOn = (target: ChallengeTarget): ChallengeState => ({ target, error: null, wrongTries: 0, solved: false, lastWrong: null });
 const opened: GameState = { ...s0, gateUnlocked: true };
 const lastLog = (s: GameState) => s.logs.at(-1);
 
@@ -56,7 +58,7 @@ describe("gameReducer: move", () => {
 
   it("is ignored while downed or while the terminal is open", () => {
     expect(gameReducer({ ...s0, hp: 0 }, { type: "move", dir: "up" }).player).toEqual(s0.player);
-    expect(gameReducer({ ...s0, terminalOpen: true }, { type: "move", dir: "up" }).player).toEqual(
+    expect(gameReducer({ ...s0, challenge: openOn("gate") }, { type: "move", dir: "up" }).player).toEqual(
       s0.player,
     );
   });
@@ -119,13 +121,13 @@ describe("gameReducer: interact", () => {
   it("gate: inspects, logs and opens the terminal", () => {
     const s = gameReducer(s0, { type: "interact", poi: "gate" });
     expect(s.inspected).toBe("gate");
-    expect(s.terminalOpen).toBe(true);
+    expect(s.challenge?.target).toBe("gate");
     expect(lastLog(s)).toBe("Gate terminal ready. Puzzle link found.");
   });
 
   it("gate: does not reopen the terminal once unlocked", () => {
     const s = gameReducer({ ...s0, gateUnlocked: true }, { type: "interact", poi: "gate" });
-    expect(s.terminalOpen).toBe(false);
+    expect(s.challenge).toBeNull();
     expect(lastLog(s)).toBe("Gate open. The way north is clear.");
   });
 
@@ -164,31 +166,29 @@ describe("gameReducer: interact", () => {
 });
 
 describe("gameReducer: terminal", () => {
-  const open = { ...s0, terminalOpen: true };
+  const open = { ...s0, challenge: openOn("gate") };
 
   it("a correct answer unlocks the gate, closes the terminal and logs", () => {
-    const s = gameReducer({ ...open, puzzleError: "x" }, { type: "submitCode", value: "block;" });
+    const s = gameReducer({ ...open, challenge: { ...openOn("gate"), error: "x" } }, { type: "submitChallenge", value: "block;" });
     expect(s.gateUnlocked).toBe(true);
-    expect(s.terminalOpen).toBe(false);
-    expect(s.puzzleError).toBeNull();
+    expect(s.challenge).toBeNull();
     expect(lastLog(s)).toBe("Gate unlocked. The way north is open.");
   });
 
-  it("a wrong answer keeps the terminal open with a compile error", () => {
-    const s = gameReducer(open, { type: "submitCode", value: "flex" });
-    expect(s.terminalOpen).toBe(true);
+  it("a wrong answer keeps the terminal open with the gate's error", () => {
+    const s = gameReducer(open, { type: "submitChallenge", value: "flex" });
+    expect(s.challenge?.target).toBe("gate");
     expect(s.gateUnlocked).toBe(false);
-    expect(s.puzzleError).toBe("Compile error: display: flex keeps the gate shut.");
+    expect(s.challenge?.error).toBe("Not quite: display: flex doesn't open this lock. Check the hint or try again.");
   });
 
-  it("revealHint reveals the hint", () => {
-    expect(gameReducer(open, { type: "revealHint" }).hintRevealed).toBe(true);
+  it("revealChallengeHint reveals the gate's hint", () => {
+    expect(gameReducer(open, { type: "revealChallengeHint" }).hintsRevealed).toContain("gate-css");
   });
 
-  it("closeTerminal closes and clears the error", () => {
-    const s = gameReducer({ ...open, puzzleError: "x" }, { type: "closeTerminal" });
-    expect(s.terminalOpen).toBe(false);
-    expect(s.puzzleError).toBeNull();
+  it("closeChallenge closes and clears the error", () => {
+    const s = gameReducer({ ...open, challenge: { ...openOn("gate"), error: "x" } }, { type: "closeChallenge" });
+    expect(s.challenge).toBeNull();
   });
 });
 
@@ -215,37 +215,34 @@ describe("gameReducer: hidden artifact side quest", () => {
   });
 
   it("opens the cipher only once the scroll is found and not yet decoded", () => {
-    expect(gameReducer(s0, { type: "openCipher" }).cipherOpen).toBe(false);
-    expect(gameReducer(looted, { type: "openCipher" }).cipherOpen).toBe(true);
-    expect(gameReducer({ ...looted, clueDecoded: true }, { type: "openCipher" }).cipherOpen).toBe(false);
+    expect(gameReducer(s0, { type: "openCipher" }).challenge).toBeNull();
+    expect(gameReducer(looted, { type: "openCipher" }).challenge).toEqual(openOn("cipher"));
+    expect(gameReducer({ ...looted, clueDecoded: true }, { type: "openCipher" }).challenge).toBeNull();
   });
 
   it("a correct decode closes the cipher and logs the clue", () => {
     const open = gameReducer(looted, { type: "openCipher" });
-    const s = gameReducer({ ...open, cipherError: "x" }, { type: "submitCipher", value: "Dense Forest" });
+    const s = gameReducer(open, { type: "submitChallenge", value: "Dense Forest" });
     expect(s.clueDecoded).toBe(true);
-    expect(s.cipherOpen).toBe(false);
-    expect(s.cipherError).toBeNull();
+    expect(s.challenge).toBeNull();
     expect(lastLog(s)).toBe("Clue decoded: the artifact rests in the Dense Forest.");
   });
 
   it("a wrong decode keeps the cipher open with an error", () => {
     const open = gameReducer(looted, { type: "openCipher" });
-    const s = gameReducer(open, { type: "submitCipher", value: "frozen river" });
-    expect(s.cipherOpen).toBe(true);
+    const s = gameReducer(open, { type: "submitChallenge", value: "frozen river" });
+    expect(s.challenge?.target).toBe("cipher");
     expect(s.clueDecoded).toBe(false);
-    expect(s.cipherError).toBe('Not quite: "frozen river" is not what the scroll says.');
-    expect(gameReducer(open, { type: "submitCipher", value: "  " }).cipherError).toBe(
+    expect(s.challenge?.error).toBe('Not quite: "frozen river" is not what the scroll says.');
+    expect(gameReducer(open, { type: "submitChallenge", value: "  " }).challenge?.error).toBe(
       'Not quite: "(empty)" is not what the scroll says.',
     );
   });
 
-  it("closeCipher closes and clears the error; revealCipherHint reveals the hint", () => {
-    const open = { ...gameReducer(looted, { type: "openCipher" }), cipherError: "x" };
-    const closed = gameReducer(open, { type: "closeCipher" });
-    expect(closed.cipherOpen).toBe(false);
-    expect(closed.cipherError).toBeNull();
-    expect(gameReducer(open, { type: "revealCipherHint" }).cipherHintRevealed).toBe(true);
+  it("closeChallenge closes the cipher; revealChallengeHint reveals its hint", () => {
+    const open = gameReducer(looted, { type: "openCipher" });
+    expect(gameReducer(open, { type: "closeChallenge" }).challenge).toBeNull();
+    expect(gameReducer(open, { type: "revealChallengeHint" }).hintsRevealed).toContain("scroll-cipher");
   });
 
   it("ignores movement while the cipher is open", () => {
@@ -319,18 +316,18 @@ describe("gameReducer: signal tower logic lock", () => {
 
   it("isModalOpen is true while any terminal is open", () => {
     expect(isModalOpen(s0)).toBe(false);
-    expect(isModalOpen({ ...s0, terminalOpen: true })).toBe(true);
-    expect(isModalOpen({ ...s0, cipherOpen: true })).toBe(true);
+    expect(isModalOpen({ ...s0, challenge: openOn("gate") })).toBe(true);
+    expect(isModalOpen({ ...s0, challenge: openOn("cipher") })).toBe(true);
     expect(isModalOpen({ ...s0, logicOpen: true })).toBe(true);
   });
 });
 
 describe("gameReducer: only one terminal at a time", () => {
   it("does not open a second terminal while one is open", () => {
-    const gateOpen = { ...s0, hasLoot: true, terminalOpen: true };
+    const gateOpen = { ...s0, hasLoot: true, challenge: openOn("gate") };
     expect(gameReducer(gateOpen, { type: "openCipher" })).toBe(gateOpen);
     expect(gameReducer(gateOpen, { type: "interact", poi: "tower" })).toBe(gateOpen);
-    const cipherOpen = { ...s0, hasLoot: true, cipherOpen: true };
+    const cipherOpen = { ...s0, hasLoot: true, challenge: openOn("cipher") };
     expect(gameReducer(cipherOpen, { type: "interact", poi: "gate" })).toBe(cipherOpen);
     const logicOpen = { ...s0, logicOpen: true };
     expect(gameReducer(logicOpen, { type: "interact", poi: "gate" })).toBe(logicOpen);
@@ -564,5 +561,87 @@ describe("gameReducer: places and talking", () => {
     const s = gameReducer(village, { type: "interact", poi: "signpost" });
     expect(s.inspected).toBe("signpost");
     expect(s.logCount).toBe(village.logCount);
+  });
+});
+
+describe("gameReducer: the challenge engine", () => {
+  const gate = { ...s0, challenge: openOn("gate") };
+
+  it("interacting with the locked gate opens the gate challenge and logs as before", () => {
+    const s = gameReducer(s0, { type: "interact", poi: "gate" });
+    expect(s.challenge).toEqual(openOn("gate"));
+    expect(lastLog(s)).toBe("Gate terminal ready. Puzzle link found.");
+  });
+
+  it("submitting `block;` opens the gate, closes the terminal and logs `Gate unlocked. The way north is open.`", () => {
+    const s = gameReducer(gate, { type: "submitChallenge", value: "block;" });
+    expect(s.gateUnlocked).toBe(true);
+    expect(s.challenge).toBeNull();
+    expect(lastLog(s)).toBe("Gate unlocked. The way north is open.");
+  });
+
+  it("a wrong gate value sets the new error and counts one wrong try; the same value again changes nothing", () => {
+    const once = gameReducer(gate, { type: "submitChallenge", value: "flex" });
+    expect(once.challenge?.error).toBe("Not quite: display: flex doesn't open this lock. Check the hint or try again.");
+    expect(once.challenge?.wrongTries).toBe(1);
+    expect(gameReducer(once, { type: "submitChallenge", value: "flex" })).toBe(once);
+  });
+
+  it("the second different wrong answer reveals the hint, appends the drone note, and keeps counting", () => {
+    const once = gameReducer(gate, { type: "submitChallenge", value: "flex" });
+    const twice = gameReducer(once, { type: "submitChallenge", value: "grid" });
+    expect(twice.hintsRevealed).toContain("gate-css");
+    expect(twice.challenge?.error).toBe(
+      "Not quite: display: grid doesn't open this lock. Check the hint or try again. The drone has a tip below.",
+    );
+    expect(twice.challenge?.wrongTries).toBe(2);
+    const thrice = gameReducer(twice, { type: "submitChallenge", value: "inline" });
+    expect(thrice.challenge?.wrongTries).toBe(3);
+    expect(thrice.challenge?.error?.endsWith(" The drone has a tip below.")).toBe(true);
+    expect(thrice.hintsRevealed.filter((id) => id === "gate-css")).toHaveLength(1);
+  });
+
+  it("closing resets the tries but keeps a revealed hint", () => {
+    const twice = [
+      { type: "submitChallenge", value: "flex" },
+      { type: "submitChallenge", value: "grid" },
+    ].reduce((s, a) => gameReducer(s, a as Parameters<typeof gameReducer>[1]), gate as GameState);
+    const closed = gameReducer(twice, { type: "closeChallenge" });
+    expect(closed.challenge).toBeNull();
+    expect(closed.hintsRevealed).toContain("gate-css");
+    const reopened = gameReducer(closed, { type: "interact", poi: "gate" });
+    expect(reopened.challenge?.wrongTries).toBe(0);
+  });
+
+  it("the cipher accepts `dense-forest!` (letters compare), logs the clue line and closes", () => {
+    const cipher = { ...s0, hasLoot: true, challenge: openOn("cipher") };
+    const s = gameReducer(cipher, { type: "submitChallenge", value: "dense-forest!" });
+    expect(s.clueDecoded).toBe(true);
+    expect(s.challenge).toBeNull();
+    expect(lastLog(s)).toBe("Clue decoded: the artifact rests in the Dense Forest.");
+  });
+
+  it("crafted submits do nothing", () => {
+    expect(gameReducer(s0, { type: "submitChallenge", value: "block" })).toBe(s0);
+    expect(gameReducer(gate, { type: "submitChallenge", value: 3 })).toBe(gate);
+    const cipher = { ...s0, hasLoot: true, challenge: openOn("cipher") };
+    expect(gameReducer(cipher, { type: "submitChallenge", value: [0, 1] })).toBe(cipher);
+  });
+
+  it("isModalOpen: a challenge, the logic lock or the Codex", () => {
+    expect(isModalOpen(s0)).toBe(false);
+    expect(isModalOpen(gate)).toBe(true);
+    expect(isModalOpen({ ...s0, logicOpen: true })).toBe(true);
+    expect(isModalOpen({ ...s0, codexOpen: true })).toBe(true);
+  });
+
+  it("toggleCodex opens the Codex only while no challenge and no logic lock is open, and always closes it", () => {
+    const opened = gameReducer(s0, { type: "toggleCodex" });
+    expect(opened.codexOpen).toBe(true);
+    expect(gameReducer(opened, { type: "toggleCodex" }).codexOpen).toBe(false);
+    expect(gameReducer(gate, { type: "toggleCodex" })).toBe(gate);
+    const logic = { ...s0, logicOpen: true };
+    expect(gameReducer(logic, { type: "toggleCodex" })).toBe(logic);
+    expect(gameReducer({ ...gate, codexOpen: true }, { type: "toggleCodex" }).codexOpen).toBe(false);
   });
 });

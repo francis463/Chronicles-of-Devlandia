@@ -13,15 +13,16 @@ import {
   START_MINUTES,
   STEP,
   HIDDEN_ARTIFACT,
-  cipherError,
-  puzzleError,
 } from "./constants";
 import { clampPlayer, isInRiver } from "./geometry";
-import { isCorrectAnswer, normalizeAnswer } from "./puzzle";
-import { isCorrectDecode } from "./cipher";
 import { circuitError } from "./logic";
+import { accessCode } from "../learn/access";
+import { CHEST_IDS } from "../learn/chests";
+import { isCorrectBlank, normalize } from "../learn/check";
+import type { BlankChallenge, Challenge, ChallengeTarget, ChestId, SubmitValue } from "../learn/types";
+import { challengeOf } from "./challenges";
 import { flagsOf, mergeFlags, newlySet, teammateLog } from "./team";
-import type { Direction, GameAction, GameState, Poi, Point } from "./types";
+import type { ChallengeState, Direction, GameAction, GameState, Poi, Point } from "./types";
 import { crossesWall, isNorthOfWall, wallBlock } from "./wall";
 import { ZONES, arrival, exitFor } from "./zones";
 import { adaLine } from "./village";
@@ -37,26 +38,31 @@ export const initialState: GameState = {
   questComplete: false,
   hasLoot: false,
   gateUnlocked: false,
-  terminalOpen: false,
-  puzzleError: null,
-  hintRevealed: false,
   clueDecoded: false,
   artifactFound: false,
-  cipherOpen: false,
-  cipherError: null,
-  cipherHintRevealed: false,
   towerPowered: false,
   logicOpen: false,
   logicError: null,
   logicHintRevealed: false,
+  picks: Object.fromEntries(CHEST_IDS.map((id) => [id, 0])) as Record<ChestId, 0 | 1 | 2>,
+  seed: 0,
+  badges: [],
+  answered: {},
+  challenge: null,
+  hintsRevealed: [],
+  matcherRound: 0,
+  matcherSolved: false,
+  accessCode: accessCode(0),
+  archiveOpen: false,
+  codexOpen: false,
   logs: INITIAL_LOGS,
   logCount: INITIAL_LOGS.length,
 };
 
 export const isDowned = (s: GameState) => s.hp <= 0;
 
-/** True while any puzzle terminal (gate, scroll cipher, tower logic lock) is open. */
-export const isModalOpen = (s: GameState) => s.terminalOpen || s.cipherOpen || s.logicOpen;
+/** True while a challenge terminal, the tower's logic lock or the Codex is open: movement, time and hazards pause. */
+export const isModalOpen = (s: GameState) => s.challenge !== null || s.logicOpen || s.codexOpen;
 
 /** Hidden points of interest that are currently diggable: the artifact, after decoding, until found. */
 /** What you can use in your zone: its places, plus the dig spot in the Peaks once revealed. */
@@ -85,6 +91,37 @@ function pushLog(state: GameState, message: string): GameState {
     logs: [...state.logs, message].slice(-LOG_LIMIT),
     logCount: state.logCount + 1,
   };
+}
+
+const opened = (target: ChallengeTarget): ChallengeState => ({ target, error: null, wrongTries: 0, solved: false, lastWrong: null });
+
+const DRONE_NOTE = " The drone has a tip below.";
+
+/** A wrong submission: one more try, the error (with the drone's note from the 2nd try on), and the hint once at 2. */
+function missed(state: GameState, open: ChallengeState, c: Challenge, error: string, value: SubmitValue): GameState {
+  const wrongTries = open.wrongTries + 1;
+  const reveal = wrongTries >= 2 && !state.hintsRevealed.includes(c.id);
+  return {
+    ...state,
+    hintsRevealed: reveal ? [...state.hintsRevealed, c.id] : state.hintsRevealed,
+    challenge: {
+      ...open,
+      wrongTries,
+      lastWrong: JSON.stringify(value),
+      error: wrongTries >= 2 ? error + DRONE_NOTE : error,
+    },
+  };
+}
+
+/** The gate and the cipher: their own effects and logs, closing on success. */
+function submitBuiltIn(state: GameState, open: ChallengeState, c: BlankChallenge, value: string): GameState {
+  const right = isCorrectBlank(c, value);
+  if (open.target === "gate") {
+    if (right) return pushLog({ ...state, gateUnlocked: true, challenge: null }, LOG.gateUnlocked);
+    return missed(state, open, c, c.wrong!(normalize(value, false) || "(empty)"), value);
+  }
+  if (right) return pushLog({ ...state, clueDecoded: true, challenge: null }, LOG.clueDecoded);
+  return missed(state, open, c, c.wrong!(value.trim() || "(empty)"), value);
 }
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
@@ -151,7 +188,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (action.poi === "gate") {
         return state.gateUnlocked
           ? pushLog(inspected, LOG.gateOpen)
-          : pushLog({ ...inspected, terminalOpen: true }, LOG.gate);
+          : pushLog({ ...inspected, challenge: opened("gate") }, LOG.gate);
       }
       if (action.poi === "tower") {
         return state.towerPowered
@@ -168,30 +205,30 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     }
     case "closeInspection":
       return { ...state, inspected: null };
-    case "closeTerminal":
-      return { ...state, terminalOpen: false, puzzleError: null };
-    case "submitCode":
-      if (isCorrectAnswer(action.value)) {
-        return pushLog(
-          { ...state, gateUnlocked: true, terminalOpen: false, puzzleError: null },
-          LOG.gateUnlocked,
-        );
-      }
-      return { ...state, puzzleError: puzzleError(normalizeAnswer(action.value) || "(empty)") };
-    case "revealHint":
-      return { ...state, hintRevealed: true };
     case "openCipher":
       if (!state.hasLoot || state.clueDecoded || isDowned(state) || isModalOpen(state)) return state;
-      return { ...state, cipherOpen: true };
-    case "closeCipher":
-      return { ...state, cipherOpen: false, cipherError: null };
-    case "submitCipher":
-      if (isCorrectDecode(action.value)) {
-        return pushLog({ ...state, clueDecoded: true, cipherOpen: false, cipherError: null }, LOG.clueDecoded);
+      return { ...state, challenge: opened("cipher") };
+    case "submitChallenge": {
+      const open = state.challenge;
+      if (!open || open.solved || JSON.stringify(action.value) === open.lastWrong) return state;
+      const c = challengeOf(state, open.target);
+      if ((open.target === "gate" || open.target === "cipher") && c.kind === "blank" && typeof action.value === "string") {
+        return submitBuiltIn(state, open, c, action.value);
       }
-      return { ...state, cipherError: cipherError(action.value.trim() || "(empty)") };
-    case "revealCipherHint":
-      return { ...state, cipherHintRevealed: true };
+      return state;
+    }
+    case "revealChallengeHint": {
+      if (!state.challenge) return state;
+      const id = challengeOf(state, state.challenge.target).id;
+      return state.hintsRevealed.includes(id) ? state : { ...state, hintsRevealed: [...state.hintsRevealed, id] };
+    }
+    case "closeChallenge":
+      return state.challenge ? { ...state, challenge: null } : state;
+    case "resetLogic":
+      return { ...state, logicError: null };
+    case "toggleCodex":
+      if (state.codexOpen) return { ...state, codexOpen: false };
+      return state.challenge === null && !state.logicOpen ? { ...state, codexOpen: true } : state;
     case "submitLogic": {
       const error = circuitError(action.bits);
       if (error) return { ...state, logicError: error };

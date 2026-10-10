@@ -1,3 +1,4 @@
+import type { ChallengeTarget, ChestId, SubmitValue } from "../learn/types";
 import type { Bits } from "./logic";
 import type { TeamFlags } from "./team";
 import type { ZoneId } from "./zones";
@@ -12,6 +13,17 @@ export type Direction = "up" | "down" | "left" | "right";
 
 export type Phase = "Day" | "Dusk" | "Night";
 
+export type { ChallengeTarget, ChestId };
+
+/** The open challenge terminal. `lastWrong` is the JSON of the last wrong value, so resubmitting it does nothing. */
+export type ChallengeState = {
+  target: ChallengeTarget;
+  error: string | null;
+  wrongTries: number;
+  solved: boolean;
+  lastWrong: string | null;
+};
+
 export type GameState = {
   /** Which screen of the world you are on. */
   zone: ZoneId;
@@ -24,18 +36,29 @@ export type GameState = {
   questComplete: boolean;
   hasLoot: boolean;
   gateUnlocked: boolean;
-  terminalOpen: boolean;
-  puzzleError: string | null;
-  hintRevealed: boolean;
   clueDecoded: boolean;
   artifactFound: boolean;
-  cipherOpen: boolean;
-  cipherError: string | null;
-  cipherHintRevealed: boolean;
   towerPowered: boolean;
   logicOpen: boolean;
   logicError: string | null;
   logicHintRevealed: boolean;
+  /** Which bank challenge each chest asks this game. */
+  picks: Record<ChestId, 0 | 1 | 2>;
+  /** The per-game shuffle seed for options, tiles and labels. */
+  seed: number;
+  /** Earned chests, in earn order. */
+  badges: ChestId[];
+  /** Your answer text per earned chest, for the Codex. */
+  answered: Partial<Record<ChestId, string>>;
+  challenge: ChallengeState | null;
+  /** Challenge ids whose hint is revealed. */
+  hintsRevealed: string[];
+  matcherRound: 0 | 1 | 2;
+  matcherSolved: boolean;
+  accessCode: string;
+  /** Shared with the team. */
+  archiveOpen: boolean;
+  codexOpen: boolean;
   logs: string[];
   /** Total entries ever logged; gives each visible entry a stable identity. */
   logCount: number;
@@ -48,13 +71,12 @@ export type GameAction =
   | { type: "droneFollow" }
   | { type: "interact"; poi: PoiId }
   | { type: "closeInspection" }
-  | { type: "closeTerminal" }
-  | { type: "submitCode"; value: string }
-  | { type: "revealHint" }
   | { type: "openCipher" }
-  | { type: "closeCipher" }
-  | { type: "submitCipher"; value: string }
-  | { type: "revealCipherHint" }
+  | { type: "submitChallenge"; value: SubmitValue }
+  | { type: "revealChallengeHint" }
+  | { type: "closeChallenge" }
+  | { type: "resetLogic" }
+  | { type: "toggleCodex" }
   | { type: "submitLogic"; bits: Bits }
   | { type: "closeLogic" }
   | { type: "revealLogicHint" }
