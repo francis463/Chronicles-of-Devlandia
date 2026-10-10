@@ -121,9 +121,10 @@ export function labelBoxes(
 /**
  * Picks label sides so neither label covers the other sprite or an obstacle, or leaves the world.
  * `map` is the world layer's CSS size and `scale` its CSS px per art px; `fixed` are boxes that
- * don't move with a game point, such as the landmark captions.
+ * don't move with a game point, such as the landmark captions, and `heavy` are fixed boxes worth
+ * five of them, such as the exit sign: labels give way to it first.
  */
-export function labelLayout(player: Point, drone: Point, map: MapSize, obstacles: Obstacle[] = [], scale = 1, fixed: Box[] = []) {
+export function labelLayout(player: Point, drone: Point, map: MapSize, obstacles: Obstacle[] = [], scale = 1, fixed: Box[] = [], heavy: Box[] = []) {
   const blocked = [...obstacles.map((o) => spriteBoxAt(o, o.box, map, scale)), ...fixed];
   const playerDot = spriteBoxAt(player, EXPLORER_BOX, map, scale);
   const droneDot = spriteBoxAt(drone, DRONE_BOX, map, scale);
@@ -136,8 +137,10 @@ export function labelLayout(player: Point, drone: Point, map: MapSize, obstacles
       // then covering a fixed box: near a landmark, labels give way to its caption only if they
       // can do so without landing on each other.
       const mutual = Number(overlaps(pl.box, dl.box)) + Number(overlaps(pl.box, droneDot)) + Number(overlaps(dl.box, playerDot));
-      const hits = blocked.filter((b) => overlaps(pl.box, b) || overlaps(dl.box, b)).length;
-      const cost = 100000 * (Number(offMap(pl.box, map)) + Number(offMap(dl.box, map))) + 1000 * mutual + 100 * hits + pi + di;
+      const covers = (b: Box) => overlaps(pl.box, b) || overlaps(dl.box, b);
+      const hits = blocked.filter(covers).length;
+      const heavyHits = heavy.filter(covers).length;
+      const cost = 100000 * (Number(offMap(pl.box, map)) + Number(offMap(dl.box, map))) + 1000 * mutual + 500 * heavyHits + 100 * hits + pi + di;
       if (!best || cost < best.cost) {
         best = { cost, player: { side: pc.side, shift: pl.shift, drop: pl.drop }, drone: { side: dc.side, shift: dl.shift, drop: dl.drop } };
       }

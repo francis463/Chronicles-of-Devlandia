@@ -1,20 +1,31 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { HIDDEN_ARTIFACT } from "../../game/constants";
 import type { Card } from "../../game/cards";
+import { chestById } from "../../learn/chests";
 import type { ChestId } from "../../learn/types";
 import type { Poi, PoiId, Point } from "../../game/types";
 import type { ZoneId } from "../../game/zones";
 import type { Teammate } from "../../hooks/useTeamSession";
 import type { SceneInput } from "../../render/scene";
-import { spriteBox, type SpriteId } from "../../render/sprites";
-import { VILLAGE_POINTS } from "../../render/areas/village";
-import { LANDMARK_POINTS } from "../../render/terrain";
 import { fitWorld, toArt, type ViewSize, type WorldRect } from "../../render/world";
 import { Button } from "../../ui/Button";
 import { Panel } from "../../ui/Panel";
 import { EXPLORER_BOX, SEMICOLON_BOX, labelBoxes, labelLayout, teammateLabelSide, LABEL_GAP, type LabelPlacement } from "./labelLayout";
 import { MapCanvas } from "./MapCanvas";
-import { EXIT_SIGNS, captionRect, exitSignBox, hitArea, landmarkCaptions, mapCaptionRect, promptRect, type MapCaptionId } from "./mapLayout";
+import {
+  CHEST_CAPTION_SCALE,
+  EXIT_SIGNS,
+  LANDMARK_CAPTIONS,
+  captionRect,
+  captionText,
+  exitSignBox,
+  landmarkCaptions,
+  mapCaptionRect,
+  promptRect,
+  zoneHitAreas,
+  type CssRect,
+  type MapCaptionId,
+} from "./mapLayout";
 
 const SOLO_COLOR = "#22c55e";
 const at = (p: Point) => ({ left: `${p.x}%`, top: `${p.y}%` });
@@ -107,41 +118,49 @@ function labelStyleFor(
 }
 
 function LandmarkButton({
-  sprite,
-  point,
+  hit,
   name,
+  label,
   color,
   world,
   map,
   prefer,
   disabled,
   hideCaption,
+  peek = false,
   onClick,
 }: {
-  sprite: SpriteId;
-  point: { x: number; y: number };
+  /** The button's hit area, in map-area CSS px. */
+  hit: CssRect;
+  /** The caption chip's text. */
   name: string;
+  /** The accessible name, when it isn't the caption (chests, the terminal, the Archive). */
+  label?: string;
   color: string;
   world: WorldRect;
   map: { width: number; height: number };
   prefer: "above" | "below";
   disabled: boolean;
-  /** While you can use this landmark the prompt names it, and its caption would cover your explorer. */
+  /** While you can use a landmark the prompt names it, and its caption would cover your explorer; on a 1× map chest captions hide. */
   hideCaption: boolean;
+  /** A hidden caption still shows while the button is hovered or focused. */
+  peek?: boolean;
   onClick: () => void;
 }) {
-  const hit = hitArea(spriteBox(sprite, point), world);
   const caption = captionRect(name, hit, map, prefer);
+  // A hidden caption takes no taps; a showing one sits above the other buttons, so tapping it opens its own place.
+  const chip = hideCaption ? `pointer-events-none opacity-0${peek ? " group-hover:opacity-100 group-focus-visible:opacity-100" : ""}` : "z-10";
   return (
     <button
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="absolute cursor-pointer rounded-sm bg-transparent hover:shadow-[0_0_0_4px_#f8fafc] hover:outline-2 hover:outline-[#0f172a] focus-visible:shadow-[0_0_0_4px_#f8fafc] focus-visible:outline-2 focus-visible:outline-[#0f172a] disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:outline-none"
+      aria-label={label}
+      className="group absolute cursor-pointer rounded-sm bg-transparent hover:shadow-[0_0_0_4px_#f8fafc] hover:outline-2 hover:outline-[#0f172a] focus-visible:shadow-[0_0_0_4px_#f8fafc] focus-visible:outline-2 focus-visible:outline-[#0f172a] disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:outline-none"
       style={{ left: hit.left - world.left, top: hit.top - world.top, width: hit.width, height: hit.height }}
     >
       <span
-        className={`absolute rounded-sm border border-[var(--panel-border)] px-1 py-0.5 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap ${hideCaption ? "opacity-0" : ""}`}
+        className={`absolute rounded-sm border border-[var(--panel-border)] px-1 py-0.5 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap ${chip}`}
         style={{ left: caption.left - hit.left, top: caption.top - hit.top, background: "rgba(15,23,42,0.8)", color }}
       >
         {name}
@@ -219,8 +238,10 @@ export function MapViewport({
     ...(inPeaks && artifactFound ? [{ ...HIDDEN_ARTIFACT, box: SEMICOLON_BOX }] : []),
     ...teammates.map((t) => ({ x: t.x, y: t.y, box: EXPLORER_BOX })),
   ];
-  const fixed = [...landmarkCaptions(world, map, { hasLoot, towerPowered }, zone), exitSignBox(world, zone)];
-  const labels = labelLayout(player, drone, worldSize, obstacles, world.scale, fixed);
+  const mapState = { hasLoot, towerPowered, badges, archiveOpen, reach: inRange?.id ?? null };
+  const hits = zoneHitAreas(world, zone);
+  const fixed = landmarkCaptions(world, map, mapState, zone);
+  const labels = labelLayout(player, drone, worldSize, obstacles, world.scale, fixed, [exitSignBox(world, zone)]);
   const boxes = labelBoxes(player, drone, worldSize, labels, world.scale);
   const inWorld = (p: Point) => ({ x: (p.x / 100) * world.width, y: (p.y / 100) * world.height });
 
@@ -247,8 +268,10 @@ export function MapViewport({
   const fogX = world.left + me.x * world.scale;
   const fogY = world.top + (me.y - 8) * world.scale;
   const prompt = inRange ? promptRect(promptText, me, world, map) : null;
-  const P = LANDMARK_POINTS;
-  const V = VILLAGE_POINTS;
+  const smallMap = world.scale < CHEST_CAPTION_SCALE;
+  const caption = (id: PoiId) => captionText(LANDMARK_CAPTIONS.find((l) => l.id === id)!, mapState);
+  const chests = LANDMARK_CAPTIONS.flatMap((l) => (l.zone === zone && l.chest ? [{ ...l, chest: chestById(l.chest) }] : []));
+  const csEarned = badges.includes("chest-cs");
 
   return (
     <div ref={mapRef} className="relative min-h-[360px] flex-1 overflow-hidden bg-[var(--panel)]">
@@ -284,18 +307,50 @@ export function MapViewport({
             <MapCaption id="river" text={towerPowered ? "Bridge" : "Frozen River"} world={world} />
             <MapCaption id="forest" text="(Dense Forests Biome)" world={world} />
 
-            <LandmarkButton sprite="tower" point={P.tower} name={towerPowered ? "[T] Tower ✓" : "[T] Tower"} color="var(--primary-border)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "tower"} onClick={() => onInteract("tower")} />
-            <LandmarkButton sprite={hasLoot ? "chest-open" : "chest-closed"} point={P.chest} name={hasLoot ? "[X] Empty Cache" : "[X] Supply Cache"} color="var(--accent)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "chest"} onClick={() => onInteract("chest")} />
-            <LandmarkButton sprite="gate" point={P.gate} name="[G] Gate" color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "gate"} onClick={() => onInteract("gate")} />
+            <LandmarkButton hit={hits.tower} name={caption("tower")} color="var(--primary-border)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "tower"} onClick={() => onInteract("tower")} />
+            <LandmarkButton hit={hits.chest} name={caption("chest")} color="var(--accent)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "chest"} onClick={() => onInteract("chest")} />
+            <LandmarkButton hit={hits.gate} name={caption("gate")} color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "gate"} onClick={() => onInteract("gate")} />
           </>
         ) : (
           <>
             <MapCaption id="village" text="(Dev Village)" world={world} />
 
-            <LandmarkButton sprite="explorer-down" point={V.villager} name="[V] Ada" color="var(--accent-border)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "villager"} onClick={() => onInteract("villager")} />
-            <LandmarkButton sprite="signpost" point={V.signpost} name="[P] Signpost" color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "signpost"} onClick={() => onInteract("signpost")} />
+            <LandmarkButton hit={hits.villager} name={caption("villager")} color="var(--accent-border)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "villager"} onClick={() => onInteract("villager")} />
+            <LandmarkButton hit={hits.signpost} name={caption("signpost")} color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "signpost"} onClick={() => onInteract("signpost")} />
+            <LandmarkButton hit={hits.terminal} name={caption("terminal")} label="Syntax Terminal" color="var(--code-chest)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "terminal"} onClick={() => onInteract("terminal")} />
+            <LandmarkButton
+              hit={hits.archive}
+              name={caption("archive")}
+              label={archiveOpen ? `C sharp chest${csEarned ? ", earned" : ""}` : "Archive"}
+              color="var(--code-chest)"
+              world={world}
+              map={map}
+              prefer="above"
+              disabled={downed}
+              hideCaption={inRange?.id === "archive"}
+              onClick={() => onInteract("archive")}
+            />
           </>
         )}
+        {chests.map((l) => {
+          const earned = badges.includes(l.chest.id);
+          return (
+            <LandmarkButton
+              key={l.id}
+              hit={hits[l.id]}
+              name={captionText({ ...l, chest: l.chest.id }, mapState)}
+              label={`${l.chest.spoken} chest${earned ? ", earned" : ""}`}
+              color="var(--code-chest)"
+              world={world}
+              map={map}
+              prefer={l.prefer}
+              disabled={downed}
+              hideCaption={smallMap && inRange?.id !== l.id}
+              peek
+              onClick={() => onInteract(l.id)}
+            />
+          );
+        })}
         <MapCaption id={exitSign.id} text={exitSign.text} world={world} />
 
         {inPeaks && clueDecoded && !artifactFound && (

@@ -1,9 +1,12 @@
-import type { Point } from "../../game/types";
+import type { PoiId, Point } from "../../game/types";
 import type { ZoneId } from "../../game/zones";
+import { CHESTS } from "../../learn/chests";
+import type { ChestId } from "../../learn/types";
 import { VILLAGE_POINTS } from "../../render/areas/village";
+import { ARCHIVE_POINT, TERMINAL_POINT } from "../../render/learnPoints";
 import { spriteBox, type SpriteId } from "../../render/sprites";
 import { LANDMARK_POINTS } from "../../render/terrain";
-import type { ArtPoint, Rect, WorldRect } from "../../render/world";
+import { toArt, type ArtPoint, type Rect, type WorldRect } from "../../render/world";
 
 // Text metrics of the 10 px uppercase tracking-widest JetBrains Mono used on the map:
 // 6 px per character plus 1 px of letter spacing, on a 15 px line (preflight's 1.5).
@@ -52,16 +55,89 @@ export function captionRect(text: string, hit: CssRect, map: MapArea, prefer: "a
 }
 
 /**
- * Each zone's landmark buttons: the tower and cache captions sit above them when they fit (off the
- * ice), as do Ada's and the signpost's.
+ * Two places' hit areas that would overlap are each cut back at the midline between their drawings
+ * (across the wider gap), so a tap lands on the nearer place; an area never shrinks below its drawing.
  */
-export const LANDMARK_CAPTIONS = [
+export function hitAreas(boxes: ReadonlyArray<{ id: string; box: Rect }>, world: WorldRect): Record<string, CssRect> {
+  const drawn = boxes.map((b) => spriteCss(b.box, world));
+  const edges = boxes.map((b) => {
+    const r = hitArea(b.box, world);
+    return { left: r.left, top: r.top, right: r.left + r.width, bottom: r.top + r.height };
+  });
+  for (let i = 0; i < boxes.length; i++) {
+    for (let j = i + 1; j < boxes.length; j++) {
+      const a = edges[i];
+      const b = edges[j];
+      if (!(a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom)) continue;
+      const [w, e] = drawn[i].left <= drawn[j].left ? [i, j] : [j, i];
+      const [n, s] = drawn[i].top <= drawn[j].top ? [i, j] : [j, i];
+      const gapX = drawn[e].left - (drawn[w].left + drawn[w].width);
+      const gapY = drawn[s].top - (drawn[n].top + drawn[n].height);
+      // Drawings that overlap on both axes leave no fair line to cut along.
+      if (gapX < 0 && gapY < 0) continue;
+      if (gapX >= gapY) {
+        const mid = drawn[w].left + drawn[w].width + gapX / 2;
+        edges[w].right = Math.min(edges[w].right, mid);
+        edges[e].left = Math.max(edges[e].left, mid);
+      } else {
+        const mid = drawn[n].top + drawn[n].height + gapY / 2;
+        edges[n].bottom = Math.min(edges[n].bottom, mid);
+        edges[s].top = Math.max(edges[s].top, mid);
+      }
+    }
+  }
+  return Object.fromEntries(boxes.map((b, k) => [b.id, { left: edges[k].left, top: edges[k].top, width: edges[k].right - edges[k].left, height: edges[k].bottom - edges[k].top }]));
+}
+
+export type LandmarkCaption = {
+  id: PoiId;
+  zone: ZoneId;
+  sprite: SpriteId;
+  point: ArtPoint;
+  texts: readonly string[];
+  prefer: "above" | "below";
+  /** An outdoor chest: on a 1× map its caption shows only on hover, focus or while it is in reach. */
+  chest?: ChestId;
+};
+
+/**
+ * Each zone's buttons: the tower and cache captions sit above them when they fit (off the ice), as
+ * do Ada's, the signpost's and the Archive's; chest captions take the chest table's side.
+ */
+export const LANDMARK_CAPTIONS: readonly LandmarkCaption[] = [
   { id: "tower", zone: "peaks", sprite: "tower", point: LANDMARK_POINTS.tower, texts: ["[T] Tower", "[T] Tower ✓"], prefer: "above" },
   { id: "chest", zone: "peaks", sprite: "chest-closed", point: LANDMARK_POINTS.chest, texts: ["[X] Supply Cache", "[X] Empty Cache"], prefer: "above" },
   { id: "gate", zone: "peaks", sprite: "gate", point: LANDMARK_POINTS.gate, texts: ["[G] Gate"], prefer: "below" },
   { id: "villager", zone: "village", sprite: "explorer-down", point: VILLAGE_POINTS.villager, texts: ["[V] Ada"], prefer: "above" },
   { id: "signpost", zone: "village", sprite: "signpost", point: VILLAGE_POINTS.signpost, texts: ["[P] Signpost"], prefer: "above" },
-] as const satisfies ReadonlyArray<{ id: string; zone: ZoneId; sprite: SpriteId; point: ArtPoint; texts: readonly string[]; prefer: "above" | "below" }>;
+  { id: "terminal", zone: "village", sprite: "syntax-terminal", point: TERMINAL_POINT, texts: ["Terminal"], prefer: "below" },
+  { id: "archive", zone: "village", sprite: "archive", point: ARCHIVE_POINT, texts: ["Archive", "C#", "C# ✓"], prefer: "above" },
+  ...CHESTS.flatMap((c): LandmarkCaption[] =>
+    c.at && c.caption ? [{ id: c.id as PoiId, zone: c.zone, sprite: "code-chest", point: toArt(c.at), texts: [c.badge, `${c.badge} ✓`], prefer: c.caption, chest: c.id }] : [],
+  ),
+];
+
+/** What the map captions depend on. `reach` is the place in reach, whose chest caption shows at 1×. */
+export type MapState = { hasLoot: boolean; towerPowered: boolean; badges?: readonly ChestId[]; archiveOpen?: boolean; reach?: PoiId | null };
+
+/** Chest captions always show on maps at this scale and larger. */
+export const CHEST_CAPTION_SCALE = 2;
+
+/** A button's caption in the current state. */
+export function captionText(l: LandmarkCaption, state: MapState): string {
+  const earned = (id: ChestId) => !!state.badges?.includes(id);
+  if (l.id === "tower") return l.texts[state.towerPowered ? 1 : 0];
+  if (l.id === "chest") return l.texts[state.hasLoot ? 1 : 0];
+  if (l.id === "archive") return l.texts[!state.archiveOpen ? 0 : earned("chest-cs") ? 2 : 1];
+  if (l.chest) return l.texts[earned(l.chest) ? 1 : 0];
+  return l.texts[0];
+}
+
+const spriteOf = (l: LandmarkCaption, state: MapState): SpriteId => (l.id === "chest" && state.hasLoot ? "chest-open" : l.sprite);
+
+/** A zone's button hit areas, by place id, after the midline cuts. */
+export const zoneHitAreas = (world: WorldRect, zone: ZoneId): Record<string, CssRect> =>
+  hitAreas(LANDMARK_CAPTIONS.filter((l) => l.zone === zone).map((l) => ({ id: l.id, box: spriteBox(l.sprite, l.point) })), world);
 
 type Edges = { left: number; right: number; top: number; bottom: number };
 
@@ -72,13 +148,13 @@ const toEdges = (r: CssRect, world: WorldRect): Edges => ({
   bottom: r.top - world.top + r.height,
 });
 
-/** A zone's current caption chips and landmark drawings, as world-layer edges for labelLayout to avoid. */
-export function landmarkCaptions(world: WorldRect, map: MapArea, state: { hasLoot: boolean; towerPowered: boolean }, zone: ZoneId = "peaks"): Edges[] {
+/** A zone's showing caption chips and its drawings, as world-layer edges for labelLayout to avoid. */
+export function landmarkCaptions(world: WorldRect, map: MapArea, state: MapState, zone: ZoneId = "peaks"): Edges[] {
+  const hits = zoneHitAreas(world, zone);
   return LANDMARK_CAPTIONS.filter((l) => l.zone === zone).flatMap((l) => {
-    const sprite = l.id === "chest" && state.hasLoot ? "chest-open" : l.sprite;
-    const box = spriteBox(sprite, l.point);
-    const text = l.id === "tower" ? l.texts[state.towerPowered ? 1 : 0] : l.id === "chest" ? l.texts[state.hasLoot ? 1 : 0] : l.texts[0];
-    return [toEdges(captionRect(text, hitArea(box, world), map, l.prefer), world), toEdges(spriteCss(box, world), world)];
+    const drawing = toEdges(spriteCss(spriteBox(spriteOf(l, state), l.point), world), world);
+    if (l.chest && world.scale < CHEST_CAPTION_SCALE && state.reach !== l.id) return [drawing];
+    return [toEdges(captionRect(captionText(l, state), hits[l.id], map, l.prefer), world), drawing];
   });
 }
 

@@ -1,10 +1,25 @@
 import { describe, expect, it } from "vitest";
+import { CHESTS } from "../../learn/chests";
 import { AREAS } from "../../render/areas";
+import { ARCHIVE_POINT, TERMINAL_POINT, chestPoints } from "../../render/learnPoints";
 import { spriteBox } from "../../render/sprites";
 import { LANDMARK_POINTS } from "../../render/terrain";
 import { fitWorld, type Rect, type WorldRect } from "../../render/world";
 import { labelBoxes, labelLayout } from "./labelLayout";
-import { LANDMARK_CAPTIONS, MAP_CAPTIONS, captionRect, exitSignBox, hitArea, landmarkCaptions, mapCaptionRect, promptRect, spriteCss, type CssRect } from "./mapLayout";
+import {
+  LANDMARK_CAPTIONS,
+  MAP_CAPTIONS,
+  captionRect,
+  exitSignBox,
+  hitArea,
+  hitAreas,
+  landmarkCaptions,
+  mapCaptionRect,
+  promptRect,
+  spriteCss,
+  zoneHitAreas,
+  type CssRect,
+} from "./mapLayout";
 
 const phone = fitWorld({ width: 354, height: 360, dpr: 3 }); // world 320×180 at (17, 90)
 const desktop = fitWorld({ width: 668, height: 360, dpr: 1 }); // world 640×360 at (14, 0)
@@ -29,10 +44,55 @@ const MAP_TEXTS: Record<(typeof MAP_CAPTIONS)[number]["id"], string[]> = {
 };
 const GROUPS = {
   peaks: ["tower", "chest", "gate", "peaks", "river", "forest", "west-exit"],
-  village: ["villager", "signpost", "village", "east-exit"],
+  village: ["villager", "signpost", "terminal", "archive", "village", "east-exit"],
 };
+/** Chest captions show at 2× and larger; on a 1× map only on hover, focus or in reach. */
+const chestGroups = (zone: "peaks" | "village") => CHESTS.filter((c) => c.zone === zone && c.at).map((c) => c.id as string);
+const inside = (inner: CssRect, outer: CssRect) =>
+  inner.left >= outer.left - 1e-9 && inner.top >= outer.top - 1e-9 && inner.left + inner.width <= outer.left + outer.width + 1e-9 && inner.top + inner.height <= outer.top + outer.height + 1e-9;
+/** Every drawing with a button in the zone, by its button's id. */
+const drawings = (zone: "peaks" | "village") =>
+  LANDMARK_CAPTIONS.filter((l) => l.zone === zone).map((l) => ({ id: l.id as string, box: spriteBox(l.sprite, l.point) }));
 
 describe("hit areas", () => {
+  it("cuts two overlapping 44-px areas back at the midline between the drawings", () => {
+    const a = { x: 100, y: 100, w: 16, h: 16 };
+    const b = { x: 126, y: 100, w: 16, h: 16 };
+    const areas = hitAreas([{ id: "a", box: a }, { id: "b", box: b }], phone);
+    // The drawings end at 116 and start at 126: the midline is at 121 art px.
+    expect(areas.a.left + areas.a.width).toBeCloseTo(phone.left + 121);
+    expect(areas.b.left).toBeCloseTo(phone.left + 121);
+    expect([areas.a.height, areas.b.height]).toEqual([44, 44]);
+    expect(areas.a.left).toBeCloseTo(hitArea(a, phone).left);
+    // Apart, nothing is cut.
+    expect(hitAreas([{ id: "a", box: a }, { id: "c", box: { ...b, x: 200 } }], phone)).toEqual({ a: hitArea(a, phone), c: hitArea({ ...b, x: 200 }, phone) });
+  });
+
+  it("no two hit areas intersect after the midline cut, and the centre of every drawing lies in its own hit area", () => {
+    for (const zone of ["peaks", "village"] as const) {
+      for (const world of [phone, desktop]) {
+        const hits = zoneHitAreas(world, zone);
+        const ids = Object.keys(hits);
+        expect(ids.sort()).toEqual(drawings(zone).map((d) => d.id).sort());
+        for (const a of ids) for (const b of ids) if (a < b) expect(hit(hits[a], hits[b]), `${a} / ${b} ${zone} @${world.width}`).toBe(false);
+        for (const { id, box } of drawings(zone)) {
+          const d = spriteCss(box, world);
+          const centre = { left: d.left + d.width / 2, top: d.top + d.height / 2, width: 0, height: 0 };
+          expect(inside(centre, hits[id]), `${id} ${zone} @${world.width}`).toBe(true);
+        }
+      }
+    }
+  });
+
+  it("hit areas never shrink below their drawing", () => {
+    for (const zone of ["peaks", "village"] as const) {
+      for (const world of [phone, desktop]) {
+        const hits = zoneHitAreas(world, zone);
+        for (const { id, box } of drawings(zone)) expect(inside(spriteCss(box, world), hits[id]), `${id} ${zone} @${world.width}`).toBe(true);
+      }
+    }
+  });
+
   it("are at least 44 px and centred on the drawing", () => {
     for (const world of [phone, desktop]) {
       for (const { box } of LANDMARKS) {
@@ -49,29 +109,44 @@ describe("hit areas", () => {
 });
 
 describe("captions", () => {
-  it("at 320×180 and 640×360 worlds no caption box intersects another, a landmark sprite box or the dig spot", () => {
+  // At 1× the 44-px hit areas dwarf the 16-px drawings (the Snowy Peaks caption already crosses the tower's), so
+  // other places' hit areas are checked where every caption shows; at 1× a hidden caption takes no taps, and a
+  // showing one sits above the other buttons (MapViewport).
+  it("at 320×180 (without chest captions) and 640×360 (with them) no caption box intersects another, a landmark or chest drawing, the dig spot or an exit sign, nor at 640×360 another place's hit area", () => {
     for (const zone of ["peaks", "village"] as const) {
       for (const world of [phone, desktop]) {
         const map = mapOf(world);
+        const hits = zoneHitAreas(world, zone);
+        const showsChests = world.scale >= 2;
         const captions: Array<{ group: string; rect: CssRect }> = [
-          ...LANDMARK_CAPTIONS.filter((l) => l.zone === zone).flatMap((l) =>
-            l.texts.map((t) => ({ group: l.id, rect: captionRect(t, hitArea(spriteBox(l.sprite, l.point), world), map, l.prefer) })),
+          ...LANDMARK_CAPTIONS.filter((l) => l.zone === zone && (showsChests || !l.chest)).flatMap((l) =>
+            l.texts.map((t) => ({ group: l.id as string, rect: captionRect(t, hits[l.id], map, l.prefer) })),
           ),
-          ...MAP_CAPTIONS.filter((c) => c.zone === zone).flatMap(({ id }) => MAP_TEXTS[id].map((t) => ({ group: id, rect: mapCaptionRect(id, t, world) }))),
+          ...MAP_CAPTIONS.filter((c) => c.zone === zone).flatMap(({ id }) => MAP_TEXTS[id].map((t) => ({ group: id as string, rect: mapCaptionRect(id, t, world) }))),
         ];
-        expect(new Set(captions.map((c) => c.group))).toEqual(new Set(GROUPS[zone]));
-        const blockers =
+        expect(new Set(captions.map((c) => c.group))).toEqual(new Set([...GROUPS[zone], ...(showsChests ? chestGroups(zone) : [])]));
+        const sprites =
           zone === "peaks"
             ? [
-                ...LANDMARKS.map(({ box }) => spriteCss(box, world)),
-                spriteCss(spriteBox("x-mark", P.dig), world),
-                spriteCss(spriteBox("semicolon", P.dig), world),
+                ...LANDMARKS.map(({ box }) => box),
+                spriteBox("x-mark", P.dig),
+                spriteBox("semicolon", P.dig),
+                ...chestPoints("peaks").map((c) => spriteBox("code-chest", c.at)),
               ]
-            : AREAS.village.props.map((p) => spriteCss(spriteBox(p.sprite, p.at), world));
+            : [
+                ...AREAS.village.props.map((p) => spriteBox(p.sprite, p.at)),
+                spriteBox("archive", ARCHIVE_POINT),
+                spriteBox("syntax-terminal", TERMINAL_POINT),
+                ...chestPoints("village").map((c) => spriteBox("code-chest", c.at)),
+              ];
+        const blockers = sprites.map((box) => ({ id: "", rect: spriteCss(box, world) }));
+        const areas = Object.entries(hits).map(([id, rect]) => ({ id, rect }));
         for (const a of captions) {
           const where = `${zone} @${world.width}`;
           for (const b of captions) if (a.group !== b.group) expect(hit(a.rect, b.rect), `${a.group} / ${b.group} ${where}`).toBe(false);
-          for (const b of blockers) expect(hit(a.rect, b), `${a.group} on ${JSON.stringify(b)} ${where}`).toBe(false);
+          for (const b of [...blockers, ...areas.filter((h) => h.id !== a.group && world.scale >= 2)]) {
+            expect(hit(a.rect, b.rect), `${a.group} on ${b.id || "a drawing"} ${JSON.stringify(b.rect)} ${where}`).toBe(false);
+          }
         }
       }
     }
@@ -103,12 +178,13 @@ describe("captions", () => {
   it("at the start the player and drone labels clear the landmark captions and drawings", () => {
     for (const world of [phone, desktop]) {
       const size = { width: world.width, height: world.height };
-      const fixed = [...landmarkCaptions(world, mapOf(world), { hasLoot: false, towerPowered: false }, "peaks"), exitSignBox(world, "peaks")];
+      const fixed = landmarkCaptions(world, mapOf(world), { hasLoot: false, towerPowered: false }, "peaks");
+      const sign = exitSignBox(world, "peaks");
       const player = { x: 28, y: 72 };
       const drone = { x: 36, y: 70 };
-      const layout = labelLayout(player, drone, size, [], world.scale, fixed);
+      const layout = labelLayout(player, drone, size, [], world.scale, fixed, [sign]);
       const b = labelBoxes(player, drone, size, layout, world.scale);
-      for (const f of fixed) {
+      for (const f of [...fixed, sign]) {
         expect(overlapBox(b.playerLabel, f), `player label @${world.width}`).toBe(false);
         expect(overlapBox(b.droneLabel, f), `drone label @${world.width}`).toBe(false);
       }

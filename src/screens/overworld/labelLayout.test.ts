@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { EXPLORER_BOX, SEMICOLON_BOX, labelBoxes, labelLayout, teammateLabelSide, type MapSize, type MarkerBox, type Obstacle } from "./labelLayout";
 import type { Point } from "../../game/types";
 import { fitWorld } from "../../render/world";
+import { CHEST_IDS } from "../../learn/chests";
 import { exitSignBox, landmarkCaptions } from "./mapLayout";
 
 // The exhaustive grid tests check every position on both zones; they take ~3 s alone and more under a loaded suite.
@@ -104,6 +105,19 @@ describe("labelLayout", () => {
 });
 
 describe("fixed obstacles", () => {
+  it("a label over an exit sign costs 5 fixed-box hits", () => {
+    const player = { x: 50, y: 50 };
+    const drone = { x: 10, y: 10 };
+    const plain = labelBoxes(player, drone, world640, labelLayout(player, drone, world640, [], 2), 2);
+    expect(labelLayout(player, drone, world640, [], 2).player.side).toBe("right");
+    const sign = { ...plain.playerLabel };
+    const dot = plain.playerDot;
+    // One box under every other place the player's label could go, stopping short of the right-hand one.
+    const around = { left: dot.left - 104, right: sign.left - 1, top: dot.top - 50, bottom: dot.bottom + 48 };
+    expect(labelLayout(player, drone, world640, [], 2, [around, { ...around }], [sign]).player.side).not.toBe("right");
+    expect(labelLayout(player, drone, world640, [], 2, Array.from({ length: 6 }, () => ({ ...around })), [sign]).player.side).toBe("right");
+  });
+
   it("keeps labels off fixed boxes such as landmark captions", () => {
     const player = { x: 40, y: 50 };
     const drone = { x: 46, y: 50 };
@@ -120,14 +134,18 @@ describe("fixed obstacles", () => {
       const world = fitWorld(view);
       const map: MapSize = { width: world.width, height: world.height };
       for (const zone of ZONES) {
-        for (const state of [{ hasLoot: false, towerPowered: false }, { hasLoot: true, towerPowered: true }]) {
-          const fixed = [...landmarkCaptions(world, view, state, zone), exitSignBox(world, zone)];
+        for (const state of [
+          { hasLoot: false, towerPowered: false, badges: [], archiveOpen: false },
+          { hasLoot: true, towerPowered: true, badges: CHEST_IDS, archiveOpen: true },
+        ]) {
+          const fixed = landmarkCaptions(world, view, state, zone);
+          const heavy = [exitSignBox(world, zone)];
           for (let px = 6; px <= 94; px += 2) {
             for (let py = firstRow(zone); py <= 90; py += 2) {
               for (const [dx, dy] of TRAIL) {
                 const player = { x: px, y: py };
                 const drone = { x: px + dx, y: py + dy };
-                const layout = labelLayout(player, drone, map, [], world.scale, fixed);
+                const layout = labelLayout(player, drone, map, [], world.scale, fixed, heavy);
                 const b = labelBoxes(player, drone, map, layout, world.scale);
                 const where = `${zone} ${px},${py} ${dx},${dy} @${view.width}/${view.dpr} loot ${state.hasLoot} → ${JSON.stringify(layout)}`;
                 expect(overlap(b.playerLabel, b.droneLabel), `labels overlap: ${where}`).toBe(false);
@@ -148,13 +166,13 @@ describe("fixed obstacles", () => {
       const map: MapSize = { width: world.width, height: world.height };
       for (const zone of ZONES) {
         const sign = exitSignBox(world, zone);
-        const fixed = [...landmarkCaptions(world, view, { hasLoot: false, towerPowered: false }, zone), sign];
+        const fixed = landmarkCaptions(world, view, { hasLoot: false, towerPowered: false, badges: [], archiveOpen: false }, zone);
         for (let px = 6; px <= 94; px += 2) {
           for (let py = firstRow(zone); py <= 90; py += 2) {
             for (const [dx, dy] of TRAIL) {
               const player = { x: px, y: py };
               const drone = { x: px + dx, y: py + dy };
-              const b = labelBoxes(player, drone, map, labelLayout(player, drone, map, [], world.scale, fixed), world.scale);
+              const b = labelBoxes(player, drone, map, labelLayout(player, drone, map, [], world.scale, fixed, [sign]), world.scale);
               const where = `${zone} ${px},${py} ${dx},${dy} @${view.width}`;
               expect(overlap(b.playerLabel, sign) || overlap(b.droneLabel, sign), `label on the exit sign: ${where}`).toBe(false);
             }

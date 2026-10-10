@@ -221,3 +221,77 @@ describe("MapViewport on the canvas", () => {
     expect(() => render(<MapViewport {...props({ teammates: [{ id: "k", name: "Kai", color: "#a78bfa", x: 60, y: 60, zone: "peaks" }] })} />)).not.toThrow();
   });
 });
+
+describe("MapViewport chests, the Syntax Terminal and the Archive", () => {
+  it("the Peaks show six chest buttons and the village three plus Terminal and Archive, named by their spoken forms", () => {
+    const onInteract = vi.fn();
+    const { rerender } = render(<MapViewport {...props({ onInteract })} />);
+    const peaks = ["C++ 1 chest", "Java chest", "C++ 2 chest", "HTML chest", "CSS chest", "Python 1 chest"];
+    for (const name of peaks) expect(screen.getByRole("button", { name })).toBeInTheDocument();
+    expect(within(screen.getByRole("button", { name: "C++ 1 chest" })).getByText("C++ I")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Syntax Terminal" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "HTML chest" }));
+    rerender(<MapViewport {...props({ zone: "village", onInteract })} />);
+    for (const name of ["PHP chest", "SQL chest", "Python 2 chest", "Syntax Terminal", "Archive"]) expect(screen.getByRole("button", { name })).toBeInTheDocument();
+    expect(within(screen.getByRole("button", { name: "Syntax Terminal" })).getByText("Terminal")).toBeInTheDocument();
+    for (const name of peaks) expect(screen.queryByRole("button", { name })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Syntax Terminal" }));
+    fireEvent.click(screen.getByRole("button", { name: "Archive" }));
+    fireEvent.click(screen.getByRole("button", { name: "SQL chest" }));
+    expect(onInteract.mock.calls).toEqual([["chest-html"], ["terminal"], ["archive"], ["chest-sql"]]);
+  });
+
+  it("earned chests' captions read SQL ✓, and the button is named SQL chest, earned", () => {
+    render(<MapViewport {...props({ zone: "village", badges: ["chest-sql"] })} />);
+    const sql = screen.getByRole("button", { name: "SQL chest, earned" });
+    expect(within(sql).getByText("SQL ✓")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "PHP chest" })).toBeInTheDocument();
+  });
+
+  it("the Archive caption reads Archive, then C#, then C# ✓, and the button is named Archive, then C sharp chest, then C sharp chest, earned", () => {
+    const { rerender } = render(<MapViewport {...props({ zone: "village" })} />);
+    expect(within(screen.getByRole("button", { name: "Archive" })).getByText("Archive")).toBeInTheDocument();
+    rerender(<MapViewport {...props({ zone: "village", archiveOpen: true })} />);
+    expect(within(screen.getByRole("button", { name: "C sharp chest" })).getByText("C#")).toBeInTheDocument();
+    rerender(<MapViewport {...props({ zone: "village", archiveOpen: true, badges: ["chest-cs"] })} />);
+    expect(within(screen.getByRole("button", { name: "C sharp chest, earned" })).getByText("C# ✓")).toBeInTheDocument();
+  });
+
+  it("at 1× a chest caption is hidden until hovered, focused or in reach, but the button keeps its accessible name (Review Focus 5)", () => {
+    const { rerender } = render(<MapViewport {...props()} />);
+    expect(screen.getByTestId("world-layer").style.width).toBe("320px");
+    const button = screen.getByRole("button", { name: "HTML chest" });
+    expect(button).toHaveClass("group");
+    const chip = within(button).getByText("HTML");
+    expect(chip).toHaveClass("opacity-0");
+    expect(chip.className.split(/\s+/)).toEqual(expect.arrayContaining(["group-hover:opacity-100", "group-focus-visible:opacity-100"]));
+    // The landmarks' captions still show at 1×.
+    expect(within(screen.getByRole("button", { name: "[G] Gate" })).getByText("[G] Gate")).not.toHaveClass("opacity-0");
+    const html = { id: "chest-html" as const, label: "HTML Chest", x: 10, y: 60 };
+    rerender(<MapViewport {...props({ player: { x: 10, y: 66 }, inRange: html, prompt: "[E] Open HTML Chest" })} />);
+    expect(within(screen.getByRole("button", { name: "HTML chest" })).getByText("HTML")).not.toHaveClass("opacity-0");
+    expect(within(screen.getByRole("button", { name: "CSS chest" })).getByText("CSS")).toHaveClass("opacity-0");
+  });
+
+  it("a hidden caption takes no taps, and a showing one sits above the other buttons", () => {
+    const { rerender } = render(<MapViewport {...props()} />);
+    const html = within(screen.getByRole("button", { name: "HTML chest" })).getByText("HTML");
+    expect(html).toHaveClass("pointer-events-none");
+    const cache = within(screen.getByRole("button", { name: "[X] Supply Cache" })).getByText("[X] Supply Cache");
+    expect(cache).toHaveClass("z-10");
+    expect(cache).not.toHaveClass("pointer-events-none");
+    const poi = POIS.find((p) => p.id === "chest")!;
+    rerender(<MapViewport {...props({ player: { x: poi.x, y: poi.y + 6 }, inRange: poi, prompt: "[E] Inspect Supply Cache" })} />);
+    expect(within(screen.getByRole("button", { name: "[X] Supply Cache" })).getByText("[X] Supply Cache")).toHaveClass("pointer-events-none");
+    rerender(<MapViewport {...props({ inRange: { id: "chest-html", label: "HTML Chest", x: 10, y: 60 } })} />);
+    const shown = within(screen.getByRole("button", { name: "HTML chest" })).getByText("HTML");
+    expect(shown).toHaveClass("z-10");
+    expect(shown).not.toHaveClass("pointer-events-none");
+  });
+
+  it("chest buttons are disabled while downed, and the old landmarks keep their caption as their name", () => {
+    render(<MapViewport {...props({ downed: true })} />);
+    expect(screen.getByRole("button", { name: "HTML chest" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "HTML chest" })).toHaveAttribute("aria-label", "HTML chest");
+  });
+});

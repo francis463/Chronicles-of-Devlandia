@@ -720,7 +720,7 @@ describe("gameReducer: chests", () => {
   });
 
   it("south of the locked wall, north chests are out of reach of [E]", () => {
-    const p = { x: 20, y: 50 };
+    const p = { x: 16, y: 50 };
     expect(placeInReach(p, reachPlaces({ ...s0, player: p }))?.id).toBe("chest-html");
     expect(placeInReach(p, reachPlaces({ ...opened, player: p }))?.id).toBe("chest-java");
   });

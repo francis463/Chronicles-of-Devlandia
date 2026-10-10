@@ -53,3 +53,13 @@ describe("Matcher pair tags", () => {
     expect(contrast(tokens["--bg"], tag)).toBeGreaterThanOrEqual(4.5);
   });
 });
+
+describe("Chest captions", () => {
+  it("--code-chest on the caption chip is at least 4.5:1", () => {
+    const chest = tokens["--code-chest"];
+    expect(chest, "--code-chest").toBe("#2dd4bf");
+    // The chip is the page colour at 80 % over the map: on its own, and over the lightest ground (white at worst).
+    const overWhite = `#${[1, 3, 5].map((i) => Math.round(0.8 * parseInt(tokens["--bg"].slice(i, i + 2), 16) + 0.2 * 255).toString(16).padStart(2, "0")).join("")}`;
+    for (const chip of [tokens["--bg"], overWhite]) expect(contrast(chest, chip), `on ${chip}`).toBeGreaterThanOrEqual(4.5);
+  });
+});
