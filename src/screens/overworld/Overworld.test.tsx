@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { RIVER_DAMAGE_MS } from "../../game/constants";
 import { Overworld } from "./Overworld";
 
 const setup = () => userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
@@ -470,5 +471,69 @@ describe("Overworld village", () => {
   it("in the village the Peaks' places are out of reach", () => {
     render(<Overworld onMenu={() => {}} initial={{ zone: "village", player: { x: 50, y: 58 } }} />);
     expect(screen.queryByText(/\[E\] Inspect/)).toBeNull();
+  });
+});
+
+describe("Overworld: the Codex and leaving", () => {
+  it("the top bar has [C] Codex at least 16 px from [=] Menu, and it opens the Codex", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} />);
+    const codex = screen.getByRole("button", { name: "[C] Codex" });
+    const menu = screen.getByRole("button", { name: "[=] Menu" });
+    expect(codex.nextElementSibling).toBe(menu);
+    expect(codex).toHaveClass("mr-4");
+    await user.click(codex);
+    expect(screen.getByRole("dialog", { name: "< CODEX: 0/10 BADGES >" })).toBeInTheDocument();
+  });
+
+  it("Quests show Badges: 0/10, bold at 10/10", () => {
+    const { unmount } = render(<Overworld onMenu={() => {}} />);
+    expect(screen.getByText("Badges: 0/10")).not.toHaveClass("font-bold");
+    unmount();
+    const all = ["chest-cpp-1", "chest-java", "chest-cpp-2", "chest-html", "chest-css", "chest-py-1", "chest-php", "chest-sql", "chest-py-2", "chest-cs"] as const;
+    render(<Overworld onMenu={() => {}} initial={{ badges: [...all] }} />);
+    expect(screen.getByText("Badges: 10/10")).toHaveClass("font-bold");
+  });
+
+  it("the legend shows Codex: [C]", () => {
+    render(<Overworld onMenu={() => {}} />);
+    expect(screen.getByText("Codex: [C]")).toBeInTheDocument();
+  });
+
+  it("with any badge or unlock, [=] Menu asks first with [ STAY ] focused; STAY keeps playing and LEAVE calls onMenu; with nothing to lose it leaves at once", async () => {
+    const user = setup();
+    const onMenu = vi.fn();
+    const { unmount } = render(<Overworld onMenu={onMenu} />);
+    await user.click(screen.getByRole("button", { name: "[=] Menu" }));
+    expect(onMenu).toHaveBeenCalledOnce();
+    unmount();
+    onMenu.mockClear();
+    render(<Overworld onMenu={onMenu} initial={{ badges: ["chest-html"] }} />);
+    await user.click(screen.getByRole("button", { name: "[=] Menu" }));
+    expect(onMenu).not.toHaveBeenCalled();
+    const dialog = screen.getByRole("dialog", { name: "< LEAVE GAME? >" });
+    expect(dialog).toHaveTextContent("Leave this game? Badges and unlocks aren't saved yet.");
+    expect(screen.getByRole("button", { name: "[ STAY ]" })).toHaveFocus();
+    await user.click(screen.getByRole("button", { name: "[ STAY ]" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "[=] Menu" }));
+    await user.click(screen.getByRole("button", { name: "[ LEAVE ]" }));
+    expect(onMenu).toHaveBeenCalledOnce();
+  });
+
+  it("while Leave this game? is open, keys, the clock and river damage pause, and Esc closes it like [ STAY ]", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} initial={{ gateUnlocked: true, player: { x: 50, y: 33 } }} />);
+    await user.click(screen.getByRole("button", { name: "[=] Menu" }));
+    const hp = () => screen.getByRole("meter", { name: /HP/ }).getAttribute("aria-valuenow");
+    const before = hp();
+    act(() => vi.advanceTimersByTime(RIVER_DAMAGE_MS * 3));
+    expect(hp()).toBe(before);
+    await user.keyboard("wec");
+    expect(screen.getByTestId("player").style.top).toBe("33%");
+    expect(screen.queryByRole("dialog", { name: /CODEX/ })).toBeNull();
+    expect(screen.queryByText("River scan: unstable ice, thermal damage.")).toBeNull();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog", { name: "< LEAVE GAME? >" })).toBeNull();
   });
 });

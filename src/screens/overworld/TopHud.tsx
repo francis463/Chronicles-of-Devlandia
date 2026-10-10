@@ -8,6 +8,7 @@ export function TopHud({
   stamina,
   minutes,
   onMenu,
+  onCodex,
   teamLabel,
   reconnecting,
   region,
@@ -17,6 +18,7 @@ export function TopHud({
   stamina: number;
   minutes: number;
   onMenu: () => void;
+  onCodex: () => void;
   /** Team mode: "ROOM KQZM · 3 online". */
   teamLabel?: string;
   reconnecting?: boolean;
@@ -43,6 +45,9 @@ export function TopHud({
         <span className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">
           {`${phaseOf(minutes)} / ${formatTime(minutes)}`}
         </span>
+        <Button variant="ghost" className="mr-4 px-2 py-1 text-[10px]" onClick={onCodex}>
+          [C] Codex
+        </Button>
         <Button variant="ghost" className="px-2 py-1 text-[10px]" onClick={onMenu}>
           [=] Menu
         </Button>

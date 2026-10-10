@@ -6,11 +6,16 @@ export function QuestList({
   questComplete,
   artifactFound,
   towerPowered,
+  badges,
+  team,
   className = "",
 }: {
   questComplete: boolean;
   artifactFound: boolean;
   towerPowered: boolean;
+  /** How many of the 10 badges you have (badges are personal, even in a team). */
+  badges: number;
+  team: boolean;
   className?: string;
 }) {
   return (
@@ -28,6 +33,7 @@ export function QuestList({
         <span className={towerPowered ? "font-bold" : ""}>
           {`Tower: Power the signal tower (${towerPowered ? "1/1 Online" : "0/1"})`}
         </span>
+        <span className={badges === 10 ? "font-bold" : ""}>{`${team ? "Your badges" : "Badges"}: ${badges}/10`}</span>
       </div>
     </section>
   );

@@ -184,6 +184,14 @@ describe("Overworld badges with a stub session", () => {
     ...over,
   });
 
+  it("in a team, the quest line reads Your badges and the Codex is YOUR CODEX", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} team={stub()} />);
+    expect(screen.getByText("Your badges: 0/10")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "[C] Codex" }));
+    expect(screen.getByRole("dialog", { name: "< YOUR CODEX: 0/10 BADGES >" })).toBeInTheDocument();
+  });
+
   it("each badge in state is published once", () => {
     const session = stub();
     const { rerender } = render(<Overworld onMenu={() => {}} team={session} initial={{ badges: ["chest-html"] }} />);

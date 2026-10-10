@@ -19,14 +19,26 @@ function isTextField(target: EventTarget | null): boolean {
   return target.isContentEditable || target.tagName === "INPUT" || target.tagName === "TEXTAREA";
 }
 
-export function useKeyboardControls(state: GameState, dispatch: Dispatch<GameAction>): void {
+/** `paused`: a dialog outside the game state (the leave confirmation) owns the keys, Esc included. */
+export function useKeyboardControls(state: GameState, dispatch: Dispatch<GameAction>, paused = false): void {
   const stateRef = useRef(state);
   stateRef.current = state;
+  const pausedRef = useRef(paused);
+  pausedRef.current = paused;
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (pausedRef.current) return;
       const current = stateRef.current;
       const key = event.key.toLowerCase();
+      // C toggles the Codex: plain presses only, never a held key's repeats.
+      const codexKey = key === "c" && !event.ctrlKey && !event.metaKey && !event.altKey;
+      if (codexKey && event.repeat) return;
+      if (codexKey && current.codexOpen) {
+        event.preventDefault();
+        dispatch({ type: "toggleCodex" });
+        return;
+      }
 
       if (key === "escape") {
         if (isModalOpen(current)) {
@@ -42,6 +54,12 @@ export function useKeyboardControls(state: GameState, dispatch: Dispatch<GameAct
       if (dir) {
         event.preventDefault();
         dispatch({ type: "move", dir });
+        return;
+      }
+
+      if (codexKey) {
+        event.preventDefault();
+        dispatch({ type: "toggleCodex" });
         return;
       }
 

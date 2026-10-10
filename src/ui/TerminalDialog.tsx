@@ -19,6 +19,7 @@ export function TerminalDialog({
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const outerRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
 
   // While open, everything else on the page is inert: siblings at every level up to <body>.
   // Uses the attribute (not the property, which jsdom doesn't reflect) and restores only what it set.
@@ -37,7 +38,8 @@ export function TerminalDialog({
 
   useEffect(() => {
     // The first text box (its text selected so typing replaces it), else the control marked data-autofocus.
-    const target = dialogRef.current?.querySelector<HTMLElement>("input, [data-autofocus]");
+    // With neither, [X] CLOSE (an empty Codex).
+    const target = dialogRef.current?.querySelector<HTMLElement>("input, [data-autofocus]") ?? closeRef.current;
     target?.focus();
     if (target instanceof HTMLInputElement) target.select();
   }, []);
@@ -76,6 +78,7 @@ export function TerminalDialog({
             {title}
           </h2>
           <button
+            ref={closeRef}
             type="button"
             onClick={onClose}
             className="cursor-pointer rounded px-2 py-1 text-sm font-bold tracking-widest whitespace-nowrap hover:bg-[var(--accent-border)] focus-visible:outline-2 focus-visible:outline-[var(--bg)]"

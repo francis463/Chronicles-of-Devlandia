@@ -92,6 +92,10 @@ describe("App navigation from the overworld", () => {
     await user.click(screen.getByRole("button", { name: "[X] Supply Cache" }));
     expect(screen.getByRole("button", { name: "[X] Empty Cache" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "[=] Menu" }));
+    // The opened gate is an unlock, so the game asks before leaving.
+    expect(screen.getByRole("dialog", { name: "< LEAVE GAME? >" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "[ STAY ]" })).toHaveFocus();
+    await user.click(screen.getByRole("button", { name: "[ LEAVE ]" }));
     await user.click(screen.getByRole("button", { name: /solo quest/i }));
     expect(screen.getByRole("button", { name: "[X] Supply Cache" })).toBeInTheDocument();
   });

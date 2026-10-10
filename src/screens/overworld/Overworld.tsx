@@ -16,6 +16,8 @@ import { useGameTimers } from "../../hooks/useGameTimers";
 import { useKeyboardControls } from "../../hooks/useKeyboardControls";
 import { Panel } from "../../ui/Panel";
 import { ChallengeTerminal } from "../ChallengeTerminal";
+import { Codex } from "../Codex";
+import { LeaveConfirm } from "./LeaveConfirm";
 import { LogicModal } from "../LogicModal";
 import { BottomHud } from "./BottomHud";
 import { EventLog } from "./EventLog";
@@ -43,8 +45,11 @@ export function Overworld({
   }));
   // Type or Blocks: kept while terminals open and close, reset by a new game (which remounts this).
   const [mode, setMode] = useState<BlankMode>("type");
-  useGameTimers(state, dispatch);
-  useKeyboardControls(state, dispatch);
+  // [=] Menu with progress asks first; while it asks, play pauses and it owns the keys.
+  const [leaving, setLeaving] = useState(false);
+  const hasProgress = state.badges.length > 0 || state.matcherSolved || Object.values(flagsOf(state)).some(Boolean);
+  useGameTimers(state, dispatch, leaving);
+  useKeyboardControls(state, dispatch, leaving);
   const downed = isDowned(state);
 
   // ── Team mode ──
@@ -105,7 +110,8 @@ export function Overworld({
         hp={state.hp}
         stamina={state.stamina}
         minutes={minutes}
-        onMenu={onMenu}
+        onMenu={() => (hasProgress ? setLeaving(true) : onMenu())}
+        onCodex={() => dispatch({ type: "toggleCodex" })}
         teamLabel={teamLabel}
         reconnecting={team?.status === "reconnecting"}
         region={ZONES[state.zone].name}
@@ -140,7 +146,7 @@ export function Overworld({
           card={cardFor(state)}
         />
         <TouchControls
-          disabled={downed || isModalOpen(state)}
+          disabled={downed || leaving || isModalOpen(state)}
           inRange={inRange}
           label={inRange ? interactLabel(state, inRange) : null}
           onMove={(dir) => dispatch({ type: "move", dir })}
@@ -160,7 +166,19 @@ export function Overworld({
         questComplete={state.questComplete}
         artifactFound={state.artifactFound}
         towerPowered={state.towerPowered}
+        badges={state.badges.length}
+        team={team !== undefined}
       />
+      {state.codexOpen && (
+        <Codex
+          badges={state.badges}
+          answered={state.answered}
+          picks={state.picks}
+          team={team !== undefined}
+          onClose={() => dispatch({ type: "toggleCodex" })}
+        />
+      )}
+      {leaving && <LeaveConfirm onStay={() => setLeaving(false)} onLeave={onMenu} />}
       {state.challenge && (
         <ChallengeTerminal
           key={state.challenge.target}

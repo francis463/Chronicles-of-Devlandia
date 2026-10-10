@@ -132,3 +132,56 @@ describe("useKeyboardControls: signal tower lock", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 });
+
+describe("useKeyboardControls: the Codex (Review Focus 3)", () => {
+  const codex = () => screen.queryByRole("dialog", { name: /CODEX/ });
+
+  it("C opens the Codex only without modifiers and only with no terminal open", async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(<Overworld onMenu={noop} />);
+    await user.keyboard("{Control>}c{/Control}");
+    expect(codex()).toBeNull();
+    await user.keyboard("{Alt>}c{/Alt}");
+    expect(codex()).toBeNull();
+    await user.keyboard("c");
+    expect(codex()).toBeInTheDocument();
+    unmount();
+    render(<Overworld onMenu={noop} initial={{ challenge: { target: "gate", error: null, wrongTries: 0, solved: false, lastWrong: null } }} />);
+    screen.getByRole("button", { name: "[ USE HINT ITEM ]" }).focus();
+    await user.keyboard("c");
+    expect(codex()).toBeNull();
+  });
+
+  it("Esc closes the Codex and it stays closed; C closes it and it stays closed (one toggleCodex per press)", async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(<Overworld onMenu={noop} initial={{ codexOpen: true }} />);
+    expect(codex()).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    expect(codex()).toBeNull();
+    unmount();
+    render(<Overworld onMenu={noop} initial={{ codexOpen: true }} />);
+    await user.keyboard("c");
+    expect(codex()).toBeNull();
+  });
+
+  it("a held C (repeat) dispatches nothing; with the logic lock open, C dispatches nothing", () => {
+    const { unmount } = render(<Overworld onMenu={noop} />);
+    fireEvent.keyDown(window, { key: "c", repeat: true });
+    expect(codex()).toBeNull();
+    unmount();
+    render(<Overworld onMenu={noop} initial={{ logicOpen: true }} />);
+    fireEvent.keyDown(document.body, { key: "c" });
+    expect(codex()).toBeNull();
+    expect(screen.getByRole("dialog", { name: "< SIGNAL TOWER: LOGIC LOCK >" })).toBeInTheDocument();
+  });
+
+  it("typing w a s d e c into a terminal input neither moves, interacts nor opens the Codex", async () => {
+    const user = userEvent.setup();
+    render(<Overworld onMenu={noop} initial={{ player: { x: 50, y: 58 } }} />);
+    await user.keyboard("e");
+    await user.type(screen.getByRole("textbox", { name: "display value" }), "wasdec");
+    expect(player().style.top).toBe("58%");
+    expect(player().style.left).toBe("50%");
+    expect(codex()).toBeNull();
+  });
+});
