@@ -17,6 +17,7 @@ import {
   type TeamMessage,
 } from "../game/team";
 import type { ZoneId } from "../game/zones";
+import type { ChestId } from "../learn/types";
 import type { TeamMode, TeamStatus, TeamTransport } from "../net/transport";
 
 export type TeamErrorKind = "unreachable" | "no-room" | "full";
@@ -39,7 +40,11 @@ export type TeamSession = {
   retry(): void;
   publishPosition(x: number, y: number, zone: ZoneId): void;
   publishFlags(flags: TeamFlags): void;
+  /** Tells teammates you earned a badge (best effort: one sent while reconnecting is lost). */
+  publishBadge(chest: ChestId): void;
   onProgress(cb: (flags: TeamFlags, by: string) => void): () => void;
+  /** A teammate earned a badge; each (teammate, chest) is reported once. */
+  onBadge(cb: (name: string, chest: ChestId) => void): () => void;
   onRoster(cb: (joined: string[], left: string[]) => void): () => void;
   /** A teammate's position updates moved them from one known zone to another (never their first sighting). */
   onZoneChange(cb: (name: string, zone: ZoneId) => void): () => void;
@@ -108,6 +113,9 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
   const progressCbs = useRef(new Set<(flags: TeamFlags, by: string) => void>());
   const rosterCbs = useRef(new Set<(joined: string[], left: string[]) => void>());
   const zoneCbs = useRef(new Set<(name: string, zone: ZoneId) => void>());
+  const badgeCbs = useRef(new Set<(name: string, chest: ChestId) => void>());
+  /** `${senderId}:${chest}` for every teammate badge already reported. */
+  const seenBadges = useRef(new Set<string>());
   /** Each teammate's zone as their last pos said; presence zones never count (they can be stale). */
   const lastPosZone = useRef(new Map<string, ZoneId | null>());
   // What we know of each teammate's progress; replayed to listeners that subscribe later.
@@ -128,6 +136,7 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
     lastFlags.current.clear();
     knownNames.current = null;
     lastPosZone.current.clear();
+    seenBadges.current.clear();
     seenOthers.current = false;
     return t;
   }, []);
@@ -198,6 +207,12 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
             }
           } else if (msg.type === "progress") {
             if (msg.id !== myId) noteFlags(msg.id, msg.name, msg.flags);
+          } else if (msg.type === "badge") {
+            const key = `${msg.id}:${msg.chest}`;
+            if (msg.id !== myId && !seenBadges.current.has(key)) {
+              seenBadges.current.add(key);
+              badgeCbs.current.forEach((cb) => cb(msg.name, msg.chest));
+            }
           } else {
             adoptStart(msg.startedAt);
             dispatch({ type: "started", startedAt: msg.startedAt });
@@ -322,6 +337,17 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
     t.send({ type: "progress", id: current.id, name: current.name, flags: merged });
   }, []);
 
+  const publishBadge = useCallback((chest: ChestId) => {
+    const current = me.current;
+    if (!current) return;
+    transport.current?.send({ type: "badge", id: current.id, name: current.name, chest });
+  }, []);
+
+  const onBadge = useCallback((cb: (name: string, chest: ChestId) => void) => {
+    badgeCbs.current.add(cb);
+    return () => void badgeCbs.current.delete(cb);
+  }, []);
+
   const onProgress = useCallback((cb: (flags: TeamFlags, by: string) => void) => {
     progressCbs.current.add(cb);
     // A listener that arrives late (the map mounting after a mid-game join) still learns the team's progress.
@@ -367,7 +393,9 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
     retry,
     publishPosition,
     publishFlags,
+    publishBadge,
     onProgress,
+    onBadge,
     onRoster,
     onZoneChange,
   };

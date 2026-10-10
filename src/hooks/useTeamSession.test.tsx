@@ -171,6 +171,33 @@ describe("useTeamSession: in game", () => {
     expect(got).toHaveBeenCalledTimes(1);
   });
 
+  it("publishBadge reaches teammates once; a repeat from the same sender is ignored; your own is not reported", async () => {
+    const { ana, kai, hub } = await startedPair();
+    const kaiGot = vi.fn();
+    const anaGot = vi.fn();
+    kai.result.current.onBadge(kaiGot);
+    ana.result.current.onBadge(anaGot);
+    act(() => ana.result.current.publishBadge("chest-sql"));
+    act(() => ana.result.current.publishBadge("chest-sql"));
+    await settle();
+    expect(kaiGot).toHaveBeenCalledTimes(1);
+    expect(kaiGot).toHaveBeenCalledWith("Ana", "chest-sql");
+    act(() => hub.inject(ana.result.current.room!, { type: "badge", id: ana.result.current.me!.id, name: "Ana", chest: "chest-php" }));
+    expect(anaGot).not.toHaveBeenCalled();
+    act(() => ana.result.current.publishBadge("chest-php"));
+    expect(kaiGot).toHaveBeenLastCalledWith("Ana", "chest-php");
+  });
+
+  it("onBadge listeners are removed by their unsubscribe", async () => {
+    const { ana, kai } = await startedPair();
+    const got = vi.fn();
+    const off = kai.result.current.onBadge(got);
+    off();
+    act(() => ana.result.current.publishBadge("chest-html"));
+    await settle();
+    expect(got).not.toHaveBeenCalled();
+  });
+
   it("replays teammates' progress to listeners that subscribe later (a map opening after joining)", async () => {
     const { ana, kai } = await startedPair();
     act(() => ana.result.current.publishFlags({ ...NO_FLAGS, gateUnlocked: true }));
@@ -243,6 +270,20 @@ describe("useTeamSession: in game", () => {
     pos(94, "village");
     expect(seen).toHaveBeenCalledTimes(1);
     expect(seen).toHaveBeenCalledWith("Gil", "village");
+  });
+
+  it("a mixed room: an older client's progress without archiveOpen and a badge for an unknown chest are handled without errors", async () => {
+    const { kai, hub } = await withGil();
+    const room = kai.result.current.room!;
+    const progress = vi.fn();
+    const badges = vi.fn();
+    kai.result.current.onProgress(progress);
+    kai.result.current.onBadge(badges);
+    const { archiveOpen: _, ...older } = NO_FLAGS;
+    act(() => hub.inject(room, { type: "progress", id: "gil", name: "Gil", flags: { ...older, gateUnlocked: true } }));
+    expect(progress).toHaveBeenCalledWith({ ...NO_FLAGS, gateUnlocked: true }, "Gil");
+    expect(() => act(() => hub.inject(room, { type: "badge", id: "gil", name: "Gil", chest: "chest-rust" }))).not.toThrow();
+    expect(badges).not.toHaveBeenCalled();
   });
 
   it("a change to or from an unknown zone reports nothing", async () => {

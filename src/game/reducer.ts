@@ -321,7 +321,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const added = newlySet(before, mergeFlags(before, action.flags));
       if (added.length === 0) return state;
       const merged = { ...state, ...Object.fromEntries(added.map((k) => [k, true])) };
-      return added.reduce((s, key) => pushLog(s, teammateLog(action.by, key)), merged);
+      // A teammate finished what your open terminal is for: it closes, and only their line is logged.
+      const target = state.challenge?.target;
+      const stale =
+        (target === "gate" && merged.gateUnlocked) ||
+        (target === "cipher" && merged.clueDecoded) ||
+        (target === "archive" && merged.archiveOpen);
+      const synced = stale ? { ...merged, challenge: null } : merged;
+      return added.reduce((s, key) => pushLog(s, teammateLog(action.by, key)), synced);
     }
     case "note":
       return pushLog(state, action.text);

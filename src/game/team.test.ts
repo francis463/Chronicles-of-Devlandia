@@ -17,7 +17,7 @@ import {
   teammateLog,
   type PresenceMeta,
 } from "./team";
-import { initialState } from "./reducer";
+import { gameReducer, initialState } from "./reducer";
 
 const NOW = 1_800_000_000_000;
 const meta = (id: string, joinedAt: number, extra: Partial<PresenceMeta> = {}): PresenceMeta => ({
@@ -161,5 +161,38 @@ describe("validation of teammate input", () => {
     expect(parseMessage({ type: "start", startedAt: "soon" }, NOW)).toBeNull();
     expect(parseMessage({ type: "nope" }, NOW)).toBeNull();
     expect(parseMessage(null, NOW)).toBeNull();
+  });
+});
+
+describe("team: the Archive and badges", () => {
+  it("flags parse leniently: a flags object without archiveOpen is accepted as false; with it, true is kept", () => {
+    const { archiveOpen: _, ...older } = NO_FLAGS;
+    expect(parsePresence({ ...meta("a", 1), flags: { ...older, gateUnlocked: true } }, NOW)?.flags).toEqual({
+      ...NO_FLAGS,
+      gateUnlocked: true,
+    });
+    expect(parsePresence({ ...meta("a", 1), flags: { ...NO_FLAGS, archiveOpen: true } }, NOW)?.flags.archiveOpen).toBe(true);
+    expect(parseMessage({ type: "progress", id: "a", name: "Kai", flags: older }, NOW)).toEqual({
+      type: "progress", id: "a", name: "Kai", flags: NO_FLAGS,
+    });
+    expect(parsePresence({ ...meta("a", 1), flags: { ...older, archiveOpen: "yes" } }, NOW)?.flags.archiveOpen).toBe(false);
+    expect(parsePresence({ ...meta("a", 1), flags: { ...NO_FLAGS, hasLoot: undefined } }, NOW)).toBeNull();
+  });
+
+  it("a badge message parses; an unknown chest, a bad name or a missing id is dropped", () => {
+    expect(parseMessage({ type: "badge", id: "a", name: "Kai", chest: "chest-sql" }, NOW)).toEqual({
+      type: "badge", id: "a", name: "Kai", chest: "chest-sql",
+    });
+    expect(parseMessage({ type: "badge", id: "a", name: "Kai", chest: "chest-rust" }, NOW)).toBeNull();
+    expect(parseMessage({ type: "badge", id: "a", name: "<x>", chest: "chest-sql" }, NOW)).toBeNull();
+    expect(parseMessage({ type: "badge", name: "Kai", chest: "chest-sql" }, NOW)).toBeNull();
+  });
+
+  it("archiveOpen merges one-way and logs `Kai unsealed the Archive.`", () => {
+    expect(mergeFlags({ ...NO_FLAGS, archiveOpen: true }, NO_FLAGS).archiveOpen).toBe(true);
+    expect(teammateLog("Kai", "archiveOpen")).toBe("Kai unsealed the Archive.");
+    const s = gameReducer(initialState, { type: "teamSync", flags: { ...NO_FLAGS, archiveOpen: true }, by: "Kai" });
+    expect(s.archiveOpen).toBe(true);
+    expect(s.logs.at(-1)).toBe("Kai unsealed the Archive.");
   });
 });

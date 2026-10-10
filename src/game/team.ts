@@ -1,3 +1,5 @@
+import { CHEST_IDS } from "../learn/chests";
+import type { ChestId } from "../learn/types";
 import { BOUNDS, MINUTES_PER_DAY, START_MINUTES, TICK_MINUTES, TICK_MS } from "./constants";
 import type { GameState } from "./types";
 import type { ZoneId } from "./zones";
@@ -12,6 +14,7 @@ export type TeamFlags = {
   artifactFound: boolean;
   gateUnlocked: boolean;
   towerPowered: boolean;
+  archiveOpen: boolean;
 };
 export type FlagKey = keyof TeamFlags;
 
@@ -30,7 +33,9 @@ export type PresenceMeta = {
 export type TeamMessage =
   | { type: "pos"; id: string; x: number; y: number; zone: ZoneId | null }
   | { type: "progress"; id: string; name: string; flags: TeamFlags }
-  | { type: "start"; startedAt: number };
+  | { type: "start"; startedAt: number }
+  /** Badges are personal: a teammate's badge is news for the log, never shared progress. */
+  | { type: "badge"; id: string; name: string; chest: ChestId };
 
 export type RankedPlayer = PresenceMeta & { rank: number; color: string; isHost: boolean };
 
@@ -47,7 +52,9 @@ export const JOIN_TIMEOUT_MS = 12_000;
 export const POS_INTERVAL_MS = 250;
 const MAX_START_SKEW_MS = 86_400_000;
 
-const FLAG_KEYS: FlagKey[] = ["questComplete", "hasLoot", "clueDecoded", "artifactFound", "gateUnlocked", "towerPowered"];
+const FLAG_KEYS: FlagKey[] = ["questComplete", "hasLoot", "clueDecoded", "artifactFound", "gateUnlocked", "towerPowered", "archiveOpen"];
+/** Every version sends these; newer flags are optional so older clients' messages still parse. */
+const REQUIRED_FLAGS: FlagKey[] = FLAG_KEYS.filter((k) => k !== "archiveOpen");
 
 export const NO_FLAGS: TeamFlags = {
   questComplete: false,
@@ -56,6 +63,7 @@ export const NO_FLAGS: TeamFlags = {
   artifactFound: false,
   gateUnlocked: false,
   towerPowered: false,
+  archiveOpen: false,
 };
 
 const TEAMMATE_LOG: Record<FlagKey, (name: string) => string> = {
@@ -65,6 +73,7 @@ const TEAMMATE_LOG: Record<FlagKey, (name: string) => string> = {
   artifactFound: (n) => `${n} found the Golden Semicolon!`,
   gateUnlocked: (n) => `${n} opened the gate.`,
   towerPowered: (n) => `${n} powered the signal tower. The fog lifts and the bridge returns.`,
+  archiveOpen: (n) => `${n} unsealed the Archive.`,
 };
 
 // ── Flags ─────────────────────────────────────────────────────────────────
@@ -135,9 +144,10 @@ function parseZone(v: unknown): ZoneId | null {
   return v === "peaks" || v === "village" ? v : null;
 }
 
+/** The six original flags must be booleans; `archiveOpen` is read leniently (missing or odd means false). */
 function parseFlags(v: unknown): TeamFlags | null {
-  if (!isObj(v) || !FLAG_KEYS.every((k) => typeof v[k] === "boolean")) return null;
-  return Object.fromEntries(FLAG_KEYS.map((k) => [k, v[k]])) as TeamFlags;
+  if (!isObj(v) || !REQUIRED_FLAGS.every((k) => typeof v[k] === "boolean")) return null;
+  return { ...(Object.fromEntries(REQUIRED_FLAGS.map((k) => [k, v[k]])) as Omit<TeamFlags, "archiveOpen">), archiveOpen: v.archiveOpen === true };
 }
 
 export function parsePresence(raw: unknown, now: number): PresenceMeta | null {
@@ -161,6 +171,11 @@ export function parseMessage(raw: unknown, now: number): TeamMessage | null {
   }
   if (raw.type === "start") {
     return isStart(raw.startedAt, now) ? { type: "start", startedAt: raw.startedAt } : null;
+  }
+  if (raw.type === "badge") {
+    const name = typeof raw.name === "string" ? normalizeNickname(raw.name) : null;
+    const chest = CHEST_IDS.find((id) => id === raw.chest);
+    return isId(raw.id) && name && chest ? { type: "badge", id: raw.id, name, chest } : null;
   }
   return null;
 }

@@ -802,3 +802,25 @@ describe("gameReducer: the Syntax Terminal and the Archive", () => {
     expect(gameReducer(failed, { type: "resetLogic" }).logicError).toBeNull();
   });
 });
+
+describe("gameReducer: teammates close stale terminals (Review Focus 1)", () => {
+  it("a teammate's flags close your open terminal for the same thing, logging only the teammate line", () => {
+    const cases = [
+      { target: "gate", flag: "gateUnlocked", line: "Ana opened the gate." },
+      { target: "cipher", flag: "clueDecoded", line: "Ana decoded the scroll: the artifact rests in the Dense Forest." },
+      { target: "archive", flag: "archiveOpen", line: "Ana unsealed the Archive." },
+    ] as const;
+    for (const { target, flag, line } of cases) {
+      const open: GameState = { ...s0, hasLoot: true, challenge: openOn(target) };
+      const s = gameReducer(open, { type: "teamSync", flags: { ...NO_FLAGS, hasLoot: true, [flag]: true }, by: "Ana" });
+      expect(s.challenge, target).toBeNull();
+      expect(lastLog(s), target).toBe(line);
+      expect(s.logs.length - open.logs.length, target).toBe(1);
+    }
+  });
+
+  it("a teammate's other progress leaves your terminal open", () => {
+    const open: GameState = { ...s0, challenge: openOn("gate") };
+    expect(gameReducer(open, { type: "teamSync", flags: { ...NO_FLAGS, hasLoot: true }, by: "Ana" }).challenge).toEqual(openOn("gate"));
+  });
+});

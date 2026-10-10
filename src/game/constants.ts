@@ -68,6 +68,8 @@ export const LOG = {
   badge: (badge: string) => `Earned the ${badge} Badge.`,
   matcher: (code: string) => `Syntax Terminal: access code ${code}.`,
   archiveUnsealed: "Archive unsealed.",
+  teammateBadge: (name: string, badge: string) => `${name} earned the ${badge} Badge.`,
+  badgesPersonal: "Badges are personal: each explorer opens their own chest.",
 };
 
 /** The landmarks' cards. Ada's shows her current line (village.ts); chests, the terminal and the Archive are in cards.ts. */

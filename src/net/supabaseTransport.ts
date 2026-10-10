@@ -17,7 +17,8 @@ export type RealtimeClientLike = {
   getChannels(): ChannelLike[];
 };
 
-const MESSAGE_TYPES: TeamMessage["type"][] = ["pos", "progress", "start"];
+/** Every message type is subscribed: a record keyed by the type, so a new type that isn't listed fails to compile. */
+const SUBSCRIBED: Record<TeamMessage["type"], true> = { pos: true, progress: true, start: true, badge: true };
 const FAILURE = new Set(["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"]);
 
 /**
@@ -90,7 +91,7 @@ export function createSupabaseTransport(loadClient: () => Promise<RealtimeClient
       const ch = client.channel(roomChannel(room), { config: { presence: { key: meta.id }, broadcast: { self: false } } });
       channel = ch;
       ch.on("presence", { event: "sync" }, emitPresence);
-      for (const type of MESSAGE_TYPES) {
+      for (const type of Object.keys(SUBSCRIBED)) {
         ch.on("broadcast", { event: type }, (arg) => {
           const msg = parseMessage((arg as { payload?: unknown })?.payload, Date.now());
           if (msg) messages.emit(msg);

@@ -161,6 +161,19 @@ describe("Supabase transport", () => {
     expect(f.channel.send).toHaveBeenCalledWith({ type: "broadcast", event: "pos", payload: { type: "pos", id: "a", x: 30, y: 70, zone: "peaks" } });
   });
 
+  it("a badge broadcast reaches the message callback", async () => {
+    const f = fakeClient();
+    const t = createSupabaseTransport(async () => f.client);
+    const got: TeamMessage[] = [];
+    t.onMessage((m) => got.push(m));
+    const joining = t.join("KQZM", meta("a", 1));
+    await vi.waitFor(() => expect(f.raw.channel).toHaveBeenCalled());
+    f.status("SUBSCRIBED");
+    await joining;
+    f.fire("broadcast", "badge", { payload: { type: "badge", id: "b", name: "Kai", chest: "chest-sql" } });
+    expect(got).toEqual([{ type: "badge", id: "b", name: "Kai", chest: "chest-sql" }]);
+  });
+
   it("sends at most 4 presence updates per 31 s (Supabase closes a client's channel after 5 in 30 s), then the latest", async () => {
     vi.useFakeTimers();
     const f = fakeClient();

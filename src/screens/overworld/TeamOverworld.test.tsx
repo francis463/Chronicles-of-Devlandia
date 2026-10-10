@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../../App";
 import { POS_INTERVAL_MS } from "../../game/team";
+import type { TeamSession } from "../../hooks/useTeamSession";
+import type { ChestId } from "../../learn/types";
 import { createMemoryHub } from "../../net/memoryTransport";
 import type { TeamTransport } from "../../net/transport";
 import { Overworld } from "./Overworld";
@@ -154,5 +156,57 @@ describe("Overworld solo mode is unchanged", () => {
     render(<Overworld onMenu={() => {}} />);
     expect(screen.queryByTestId(/^teammate-/)).toBeNull();
     expect(screen.queryByText(/^ROOM /)).toBeNull();
+  });
+});
+
+describe("Overworld badges with a stub session", () => {
+  const stub = (over: Partial<TeamSession> = {}): TeamSession => ({
+    phase: "playing",
+    status: "online",
+    error: null,
+    room: "KQZM",
+    me: null,
+    players: [],
+    startedAt: Date.now(),
+    teammates: [],
+    create: vi.fn(),
+    join: vi.fn(),
+    start: vi.fn(),
+    leave: vi.fn(),
+    retry: vi.fn(),
+    publishPosition: vi.fn(),
+    publishFlags: vi.fn(),
+    publishBadge: vi.fn(),
+    onProgress: vi.fn(() => () => {}),
+    onBadge: vi.fn(() => () => {}),
+    onRoster: vi.fn(() => () => {}),
+    onZoneChange: vi.fn(() => () => {}),
+    ...over,
+  });
+
+  it("each badge in state is published once", () => {
+    const session = stub();
+    const { rerender } = render(<Overworld onMenu={() => {}} team={session} initial={{ badges: ["chest-html"] }} />);
+    expect(session.publishBadge).toHaveBeenCalledTimes(1);
+    expect(session.publishBadge).toHaveBeenCalledWith("chest-html");
+    rerender(<Overworld onMenu={() => {}} team={session} initial={{ badges: ["chest-html"] }} />);
+    expect(session.publishBadge).toHaveBeenCalledTimes(1);
+  });
+
+  it("a teammate's badges log their own lines, and the personal-badges note only the first time", () => {
+    let report: ((name: string, chest: ChestId) => void) | undefined;
+    const session = stub({
+      onBadge: vi.fn((cb: (name: string, chest: ChestId) => void) => {
+        report = cb;
+        return () => {};
+      }),
+    });
+    render(<Overworld onMenu={() => {}} team={session} />);
+    act(() => report!("Kai", "chest-html"));
+    act(() => report!("Kai", "chest-sql"));
+    const text = screen.getByRole("log", { name: "Event log" }).textContent ?? "";
+    const lines = ["Kai earned the HTML Badge.", "Badges are personal: each explorer opens their own chest.", "Kai earned the SQL Badge."];
+    for (const line of lines) expect(countIn(text, line), line).toBe(1);
+    expect(lines.map((l) => text.indexOf(l))).toEqual([...lines.map((l) => text.indexOf(l))].sort((a, b) => a - b));
   });
 });

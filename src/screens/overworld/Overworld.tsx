@@ -1,13 +1,15 @@
-import { useEffect, useReducer } from "react";
+import { useEffect, useReducer, useRef } from "react";
 import { cardFor } from "../../game/cards";
 import { rollGame } from "../../game/roll";
 import { interactLabel, placeInReach, promptText } from "../../game/geometry";
 import { gameReducer, initialState, isDowned, isModalOpen, reachPlaces } from "../../game/reducer";
 import type { GameState } from "../../game/types";
 import type { TeamSession } from "../../hooks/useTeamSession";
-import { TICK_MS } from "../../game/constants";
+import { LOG, TICK_MS } from "../../game/constants";
 import { flagsOf, teamMinutes } from "../../game/team";
 import { ZONES } from "../../game/zones";
+import { chestById } from "../../learn/chests";
+import type { ChestId } from "../../learn/types";
 import { useNow } from "../../hooks/useNow";
 import { useGameTimers } from "../../hooks/useGameTimers";
 import { useKeyboardControls } from "../../hooks/useKeyboardControls";
@@ -49,6 +51,8 @@ export function Overworld({
   const onProgress = team?.onProgress;
   const onRoster = team?.onRoster;
   const onZoneChange = team?.onZoneChange;
+  const publishBadge = team?.publishBadge;
+  const onBadge = team?.onBadge;
   const flags = flagsOf(state);
   const flagKey = JSON.stringify(flags);
   useEffect(() => publishPosition?.(state.player.x, state.player.y, state.zone), [publishPosition, state.player, state.zone]);
@@ -65,6 +69,25 @@ export function Overworld({
   useEffect(
     () => onZoneChange?.((name, zone) => dispatch({ type: "note", text: `${name} went to ${ZONES[zone].name}.` })),
     [onZoneChange],
+  );
+  // Badges are personal: each new one goes out once, and teammates' badges are news for the log.
+  const published = useRef(new Set<ChestId>());
+  useEffect(() => {
+    for (const chest of state.badges) {
+      if (published.current.has(chest) || !publishBadge) continue;
+      published.current.add(chest);
+      publishBadge(chest);
+    }
+  }, [publishBadge, state.badges]);
+  const heardBadge = useRef(false);
+  useEffect(
+    () =>
+      onBadge?.((name, chest) => {
+        dispatch({ type: "note", text: LOG.teammateBadge(name, chestById(chest).badge) });
+        if (!heardBadge.current) dispatch({ type: "note", text: LOG.badgesPersonal });
+        heardBadge.current = true;
+      }),
+    [onBadge],
   );
   const now = useNow(TICK_MS, team?.startedAt != null);
   const minutes = team?.startedAt != null ? teamMinutes(team.startedAt, now) : state.minutes;
