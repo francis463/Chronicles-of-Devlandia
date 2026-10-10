@@ -59,7 +59,7 @@ describe("mini-map terrain", () => {
   });
 
   it("keeps the dots and renders aria-hidden canvases behind them, without the old dashed river", () => {
-    render(<MiniMap zone="peaks" player={{ x: 28, y: 72 }} artifactFound={false} teammates={[{ id: "k", name: "Kai", color: "#a78bfa", x: 60, y: 60, zone: "peaks" }]} />);
+    render(<MiniMap zone="peaks" player={{ x: 28, y: 72 }} artifactFound={false} teammates={[{ id: "k", name: "Kai", color: "#a78bfa", x: 60, y: 60, zone: "peaks" }]} badges={[]} archiveOpen={false} />);
     const box = screen.getByRole("img", { name: "Mini-map" });
     const canvases = [...box.querySelectorAll("canvas")];
     expect(canvases).toHaveLength(2);
@@ -72,7 +72,7 @@ describe("mini-map terrain", () => {
   });
 
   it("draws two cells, Village on the left and Peaks on the right, and outlines yours", () => {
-    render(<MiniMap zone="village" player={{ x: 50, y: 70 }} artifactFound={false} />);
+    render(<MiniMap zone="village" player={{ x: 50, y: 70 }} artifactFound={false} badges={[]} archiveOpen={false} />);
     const village = screen.getByTestId("minimap-cell-village");
     const peaks = screen.getByTestId("minimap-cell-peaks");
     expect(village.style.left).toBe("0px");
@@ -89,7 +89,7 @@ describe("mini-map terrain", () => {
       { id: "m", name: "Mia", color: "#f472b6", x: 40, y: 70, zone: "peaks" as const },
       { id: "z", name: "Zed", color: "#fbbf24", x: 50, y: 50, zone: null },
     ];
-    render(<MiniMap zone="peaks" player={{ x: 28, y: 72 }} artifactFound={false} teammates={teammates} />);
+    render(<MiniMap zone="peaks" player={{ x: 28, y: 72 }} artifactFound={false} teammates={teammates} badges={[]} archiveOpen={false} />);
     const village = screen.getByTestId("minimap-cell-village");
     const peaks = screen.getByTestId("minimap-cell-peaks");
     expect(within(village).getByTestId("minimap-teammate-Kai")).toBeInTheDocument();
@@ -97,5 +97,30 @@ describe("mini-map terrain", () => {
     expect(screen.queryByTestId("minimap-teammate-Zed")).toBeNull();
     expect(within(peaks).getByTestId("minimap-player")).toBeInTheDocument();
     expect(within(village).queryByTestId("minimap-player")).toBeNull();
+  });
+});
+
+describe("mini-map chests", () => {
+  const diamonds = (cell: string) => within(screen.getByTestId(`minimap-cell-${cell}`)).queryAllByTestId(/^minimap-chest-/);
+
+  it("mini-map: one diamond per chest in its zone's cell; earned ones solid; no C# diamond until the Archive opens", () => {
+    const { rerender } = render(<MiniMap zone="peaks" player={{ x: 28, y: 72 }} artifactFound={false} badges={["chest-html"]} archiveOpen={false} />);
+    expect(diamonds("peaks").map((d) => d.dataset.testid)).toEqual([
+      "minimap-chest-chest-cpp-1", "minimap-chest-chest-java", "minimap-chest-chest-cpp-2",
+      "minimap-chest-chest-html", "minimap-chest-chest-css", "minimap-chest-chest-py-1",
+    ]);
+    expect(diamonds("village").map((d) => d.dataset.testid)).toEqual([
+      "minimap-chest-chest-php", "minimap-chest-chest-sql", "minimap-chest-chest-py-2",
+    ]);
+    const html = screen.getByTestId("minimap-chest-chest-html");
+    expect(html).toHaveAttribute("data-earned", "true");
+    expect(html).toHaveClass("rotate-45");
+    expect(html.style.background).toBe("rgb(45, 212, 191)");
+    expect(screen.getByTestId("minimap-chest-chest-css")).not.toHaveAttribute("data-earned");
+    expect(screen.getByTestId("minimap-chest-chest-css").style.background).toBe("rgb(15, 23, 42)");
+    rerender(<MiniMap zone="peaks" player={{ x: 28, y: 72 }} artifactFound={false} badges={[]} archiveOpen />);
+    const cs = within(screen.getByTestId("minimap-cell-village")).getByTestId("minimap-chest-chest-cs");
+    expect(cs.style.left).toBe("55%");
+    expect(cs.style.top).toBe("66%");
   });
 });

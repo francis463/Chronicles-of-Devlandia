@@ -1,3 +1,4 @@
+import { chestPoints } from "../learnPoints";
 import { spriteBox } from "../sprites";
 import type { ArtPoint, Rect } from "../world";
 import { inRect, type Area, type TerrainKind } from "./area";
@@ -63,5 +64,6 @@ export const PEAKS: Area = {
     ...[p.start, p.dig, p.tower, p.chest, p.gate].map((at) => spriteBox("explorer-down", at)),
     MOUTH,
     WEST_PATH,
+    ...chestPoints("peaks").map(({ at }) => spriteBox("code-chest", at)),
   ],
 };

@@ -1,9 +1,11 @@
 import { useEffect, useRef, type ReactNode } from "react";
-import { ADA, HIDDEN_ARTIFACT, POIS, SIGNPOST } from "../../game/constants";
+import { ADA, ARCHIVE, HIDDEN_ARTIFACT, POIS, SIGNPOST } from "../../game/constants";
 import { WALL_Y } from "../../game/wall";
 import type { Poi, Point } from "../../game/types";
 import type { ZoneId } from "../../game/zones";
 import type { Teammate } from "../../hooks/useTeamSession";
+import { CHESTS } from "../../learn/chests";
+import type { ChestId } from "../../learn/types";
 import { AREAS } from "../../render/areas";
 import type { Ctx2D } from "../../render/paint";
 import { terrainAt, type TerrainKind } from "../../render/terrain";
@@ -60,6 +62,21 @@ const CELLS: Array<{ zone: ZoneId; left: number; places: Poi[] }> = [
 
 const at = (p: Point) => ({ left: `${p.x}%`, top: `${p.y}%` });
 
+const CHEST_TEAL = "#2dd4bf";
+const CHEST_DARK = "#0f172a";
+
+/** A chest as a small diamond: solid teal once earned, a dark one with a teal edge until then. */
+function ChestDiamond({ id, point, earned }: { id: ChestId; point: Point; earned: boolean }) {
+  return (
+    <div
+      data-testid={`minimap-chest-${id}`}
+      data-earned={earned ? "true" : undefined}
+      className="absolute h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rotate-45"
+      style={{ ...at(point), background: earned ? CHEST_TEAL : CHEST_DARK, border: `1px solid ${earned ? CHEST_DARK : CHEST_TEAL}` }}
+    />
+  );
+}
+
 function MiniCell({ zone, left, current, children }: { zone: ZoneId; left: number; current: boolean; children: ReactNode }) {
   const terrain = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
@@ -87,11 +104,17 @@ export function MiniMap({
   artifactFound,
   teammates = [],
   playerColor,
+  badges,
+  archiveOpen,
   className = "",
 }: {
   zone: ZoneId;
   player: Point;
   artifactFound: boolean;
+  /** The chests you have opened: their diamonds are solid. */
+  badges: ChestId[];
+  /** The C# chest's diamond shows at the Archive once it is open. */
+  archiveOpen: boolean;
   teammates?: Teammate[];
   playerColor?: string;
   className?: string;
@@ -108,6 +131,10 @@ export function MiniMap({
             {cell.places.map((poi) => (
               <div key={poi.id} className="absolute h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 border border-[var(--accent)]" style={at(poi)} />
             ))}
+            {CHESTS.map((chest) => {
+              const point = chest.at ?? (archiveOpen ? ARCHIVE : null);
+              return chest.zone === cell.zone && point ? <ChestDiamond key={chest.id} id={chest.id} point={point} earned={badges.includes(chest.id)} /> : null;
+            })}
             {cell.zone === "peaks" && artifactFound && (
               <div className="absolute h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-[var(--accent)]" style={at(HIDDEN_ARTIFACT)} />
             )}

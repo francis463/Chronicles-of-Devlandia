@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { HIDDEN_ARTIFACT } from "../../game/constants";
 import type { Card } from "../../game/cards";
+import type { ChestId } from "../../learn/types";
 import type { Poi, PoiId, Point } from "../../game/types";
 import type { ZoneId } from "../../game/zones";
 import type { Teammate } from "../../hooks/useTeamSession";
@@ -171,6 +172,9 @@ export function MapViewport({
   clueDecoded,
   artifactFound,
   towerPowered,
+  badges,
+  matcherSolved,
+  archiveOpen,
   teammates = [],
   playerColor,
   inRange,
@@ -190,6 +194,10 @@ export function MapViewport({
   clueDecoded: boolean;
   artifactFound: boolean;
   towerPowered: boolean;
+  /** The chests you have opened: they draw open. */
+  badges: ChestId[];
+  matcherSolved: boolean;
+  archiveOpen: boolean;
   teammates?: Teammate[];
   playerColor?: string;
   inRange: Poi | null;
@@ -230,6 +238,9 @@ export function MapViewport({
     clueDecoded,
     artifactFound,
     towerPowered,
+    archiveOpen,
+    matcherSolved,
+    earned: badges,
     minutes,
   };
   const me = toArt(player);

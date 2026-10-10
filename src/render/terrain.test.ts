@@ -1,8 +1,10 @@
+import { CHESTS } from "../learn/chests";
+import { TERMINAL } from "../game/constants";
 import { describe, expect, it } from "vitest";
 import { AREAS } from "./areas";
 import { spriteBox } from "./sprites";
 import { LANDMARK_POINTS, WALL_RECT, decorations, onPath, protectedBoxes, terrainAt, wallTiles } from "./terrain";
-import { REACHABLE_RECT, WORLD, grow, intersects, type Rect } from "./world";
+import { REACHABLE_RECT, WORLD, grow, intersects, toArt, type Rect } from "./world";
 
 const WORLD_RECT: Rect = { x: 0, y: 0, w: WORLD.width, h: WORLD.height };
 // A phone-sized view: 90 art px of scenery above and below the world, some to the sides.
@@ -105,6 +107,24 @@ describe("decorations", () => {
     const east = decorations(VIEW, VILLAGE).filter((d) => boxOf(d).x >= WORLD.width);
     expect(east.length).toBeGreaterThan(0);
     for (const d of east) expect(intersects(boxOf(d), VILLAGE.corridor), key(d)).toBe(false);
+  });
+
+  it("the village guards the Archive, the Syntax Terminal and its chests; the Peaks guard theirs", () => {
+    const guarded = (area: typeof VILLAGE) => protectedBoxes(area).map((r) => JSON.stringify(r));
+    const has = (area: typeof VILLAGE, box: Rect) => expect(guarded(area)).toContain(JSON.stringify(box));
+    has(VILLAGE, spriteBox("archive", { x: 176, y: 116 }));
+    has(VILLAGE, spriteBox("code-chest", { x: 176, y: 119 }));
+    has(VILLAGE, spriteBox("syntax-terminal", toArt(TERMINAL)));
+    for (const chest of CHESTS.filter((c) => c.at)) has(chest.zone === "village" ? VILLAGE : PEAKS, spriteBox("code-chest", toArt(chest.at!)));
+    expect(VILLAGE.props.some((p) => p.sprite === "hut" && p.at.x === 176 && p.at.y === 116)).toBe(false);
+  });
+
+  it("Peaks decorations stay clear of the chests", () => {
+    const inside = decorations(REACHABLE_RECT, PEAKS);
+    for (const chest of CHESTS.filter((c) => c.zone === "peaks")) {
+      const box = spriteBox("code-chest", toArt(chest.at!));
+      for (const d of inside) expect(intersects(grow(boxOf(d), 4), box), `${key(d)} vs ${chest.id}`).toBe(false);
+    }
   });
 
   it("village decorations stay clear of its protected boxes, even after the Peaks were computed", () => {

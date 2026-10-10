@@ -18,6 +18,9 @@ const input: SceneInput = {
   artifactFound: false,
   towerPowered: false,
   minutes: 19 * 60,
+  archiveOpen: false,
+  matcherSolved: false,
+  earned: [],
 };
 const world = fitWorld({ width: 600, height: 360, dpr: 1 });
 

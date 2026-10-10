@@ -137,3 +137,42 @@ describe("the north wall and its gate", () => {
       }
   });
 });
+
+describe("learning core sprites", () => {
+  it("sprites: code-chest 16×16 ×2 frames, syntax-terminal 16×24 ×2, archive 32×24 ×2, bottom-anchored", () => {
+    const sizes: Array<[SpriteId, number, number]> = [["code-chest", 16, 16], ["syntax-terminal", 16, 24], ["archive", 32, 24]];
+    for (const [id, w, h] of sizes) {
+      const def = SPRITES[id];
+      expect([def?.w, def?.h, def?.anchor, def?.frames.length], id).toEqual([w, h, "bottom", 2]);
+    }
+  });
+
+  it("the code chest is teal, deep blue and steel, never the cache's amber; its two frames differ", () => {
+    const colours = new Set(Object.values(SPRITES["code-chest"].palette));
+    for (const c of ["#2dd4bf", "#1e3a8a", "#94a3b8", OUTLINE]) expect(colours).toContain(c);
+    expect(colours).not.toContain("#f59e0b");
+    expect(SPRITES["code-chest"].frames[0]).not.toEqual(SPRITES["code-chest"].frames[1]);
+  });
+
+  it("the Syntax Terminal's screen is red unsolved and green solved", () => {
+    const { palette, frames } = SPRITES["syntax-terminal"];
+    const used = (frame: number) => new Set(frames[frame].join("").split("").filter((ch) => ch !== ".").map((ch) => palette[ch]));
+    expect(used(0)).toContain("#ef4444");
+    expect(used(0)).not.toContain("#22c55e");
+    expect(used(1)).toContain("#22c55e");
+    expect(used(1)).not.toContain("#ef4444");
+  });
+
+  it("the Archive is the hut except its door columns, which differ between sealed and open", () => {
+    const hut = SPRITES.hut.frames[0];
+    const [sealed, open] = SPRITES.archive.frames;
+    const DOOR = [13, 14, 15, 16, 17, 18];
+    for (let row = 0; row < 24; row++) {
+      for (let col = 0; col < 32; col++) {
+        if (DOOR.includes(col) && row >= 10 && row <= 20) continue;
+        expect([sealed[row][col], open[row][col]], `${row},${col}`).toEqual([hut[row][col], hut[row][col]]);
+      }
+    }
+    expect(sealed.slice(10, 21).map((r) => r.slice(13, 19))).not.toEqual(open.slice(10, 21).map((r) => r.slice(13, 19)));
+  });
+});

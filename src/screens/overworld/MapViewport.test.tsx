@@ -21,6 +21,9 @@ const props = (over: Partial<Props> = {}): Props => ({
   onRespawn: vi.fn(),
   card: null,
   prompt: "",
+  badges: [],
+  matcherSolved: false,
+  archiveOpen: false,
   ...over,
 });
 

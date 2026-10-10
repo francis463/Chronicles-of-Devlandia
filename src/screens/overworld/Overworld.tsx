@@ -121,6 +121,8 @@ export function Overworld({
         zone={state.zone}
         player={state.player}
         artifactFound={state.artifactFound}
+        badges={state.badges}
+        archiveOpen={state.archiveOpen}
         teammates={team?.teammates}
         playerColor={team?.me?.color}
       />
@@ -135,6 +137,9 @@ export function Overworld({
           clueDecoded={state.clueDecoded}
           artifactFound={state.artifactFound}
           towerPowered={state.towerPowered}
+          badges={state.badges}
+          matcherSolved={state.matcherSolved}
+          archiveOpen={state.archiveOpen}
           teammates={team?.teammates.filter((t) => t.zone === state.zone)}
           playerColor={team?.me?.color}
           inRange={inRange}

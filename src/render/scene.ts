@@ -7,6 +7,8 @@ import { circlePixels, diamondPixels } from "./pixels";
 import { LIGHTS, SPRITES, spriteBox, type SpriteId } from "./sprites";
 import { BRIDGE_RECT, LANDMARK_POINTS, WALL_RECT, decorations, wallTiles } from "./terrain";
 import { REACHABLE_RECT, intersects, type ArtPoint } from "./world";
+import type { ChestId } from "../learn/types";
+import { ARCHIVE_POINT, CS_CHEST_POINT, TERMINAL_POINT, chestPoints } from "./learnPoints";
 
 export const PHASE_TINT: Record<Phase, string> = {
   Night: "rgba(20,20,28,0.25)",
@@ -27,6 +29,10 @@ export type SceneInput = {
   artifactFound: boolean;
   towerPowered: boolean;
   minutes: number;
+  archiveOpen: boolean;
+  matcherSolved: boolean;
+  /** Your badges: their chests draw open. */
+  earned: ChestId[];
 };
 export type Poses = { player: Pose; drone: Pose; teammates: Record<string, Pose> };
 /** x/y is the sprite's top-left in art px; variant picks the palette ("base", a hood colour, or "grey"). */
@@ -94,6 +100,19 @@ const wallTilesInWorld = perZone((zone) => wallTiles(WALL_RECT, AREAS[zone]).map
 /** An area's static uprights (the village's huts, well, fences, signpost and Ada). */
 const props = perZone((zone) => AREAS[zone].props.map((p) => placed(p.sprite, p.at, { variant: p.variant ?? "base" })));
 
+/** A zone's code chests (open once earned), and in the village the Syntax Terminal, the Archive and the C# chest. */
+function learning(input: SceneInput): Drawable[] {
+  const chest = (id: ChestId, at: ArtPoint) => placed("code-chest", at, { frame: input.earned.includes(id) ? 1 : 0 });
+  const chests = chestPoints(input.zone).map((c) => chest(c.id, c.at));
+  if (input.zone !== "village") return chests;
+  return [
+    ...chests,
+    placed("syntax-terminal", TERMINAL_POINT, { frame: input.matcherSolved ? 1 : 0 }),
+    placed("archive", ARCHIVE_POINT, { frame: input.archiveOpen ? 1 : 0 }),
+    ...(input.archiveOpen ? [chest("chest-cs", CS_CHEST_POINT)] : []),
+  ];
+}
+
 const byFeet = (a: Drawable, b: Drawable) => feetRow(a) - feetRow(b) || Number(isExplorer(a)) - Number(isExplorer(b));
 
 export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: boolean): Scene {
@@ -114,7 +133,14 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
   };
 
   if (input.zone !== "peaks") {
-    const upright = [...interiorDecorations(input.zone), ...wallTilesInWorld(input.zone), ...props(input.zone), ...mates, player].sort(byFeet);
+    const upright = [
+      ...interiorDecorations(input.zone),
+      ...wallTilesInWorld(input.zone),
+      ...props(input.zone),
+      ...learning(input),
+      ...mates,
+      player,
+    ].sort(byFeet);
     return { zone: input.zone, glints: [], flat: [], upright, drone, tint: PHASE_TINT[phase], light: [] };
   }
 
@@ -137,6 +163,7 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
     placed(input.hasLoot ? "chest-open" : "chest-closed", P.chest),
     placed("gate", P.gate, { frame: input.gateUnlocked ? 0 : 1 }),
     ...(input.artifactFound ? [placed("semicolon", P.dig)] : []),
+    ...learning(input),
     ...mates,
     player,
   ].sort(byFeet);

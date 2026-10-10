@@ -66,6 +66,9 @@ const input: SceneInput = {
   artifactFound: false,
   towerPowered: true,
   minutes: 23 * 60,
+  archiveOpen: false,
+  matcherSolved: false,
+  earned: [],
 };
 const fullScene = () =>
   buildScene(

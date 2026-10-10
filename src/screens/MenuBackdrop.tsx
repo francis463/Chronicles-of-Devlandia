@@ -17,6 +17,9 @@ const MENU_SCENE: SceneInput = {
   clueDecoded: false,
   artifactFound: false,
   towerPowered: false,
+  archiveOpen: false,
+  matcherSolved: false,
+  earned: [],
   minutes: START_MINUTES,
 };
 

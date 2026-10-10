@@ -537,3 +537,11 @@ describe("Overworld: the Codex and leaving", () => {
     expect(screen.queryByRole("dialog", { name: "< LEAVE GAME? >" })).toBeNull();
   });
 });
+
+describe("Overworld: the mini-map's chests", () => {
+  it("the mini-map shows an earned chest solid from state", () => {
+    render(<Overworld onMenu={() => {}} initial={{ badges: ["chest-html"] }} />);
+    expect(screen.getByTestId("minimap-chest-chest-html")).toHaveAttribute("data-earned", "true");
+    expect(screen.getByTestId("minimap-chest-chest-css")).not.toHaveAttribute("data-earned");
+  });
+});

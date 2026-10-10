@@ -4,6 +4,8 @@ import { PHASE_TINT, buildScene, type Poses, type SceneInput } from "./scene";
 import { LIGHTS, SPRITES, spriteBox, type SpriteId } from "./sprites";
 import { BRIDGE_RECT, LANDMARK_POINTS, decorations } from "./terrain";
 import { REACHABLE_RECT, intersects, toArt } from "./world";
+import { CHESTS } from "../learn/chests";
+import { TERMINAL } from "../game/constants";
 
 const DAY = 12 * 60;
 const DUSK = 19 * 60;
@@ -22,6 +24,9 @@ const base: SceneInput = {
   artifactFound: false,
   towerPowered: false,
   minutes: DUSK,
+  archiveOpen: false,
+  matcherSolved: false,
+  earned: [],
 };
 
 const posesFor = (input: SceneInput): Poses => ({
@@ -125,7 +130,7 @@ describe("scene: zones", () => {
 
   it("the village draws its huts, well, fences, signpost and Ada, and none of the Peaks' landmarks", () => {
     const s = scene(inVillage);
-    expect((["hut", "well", "fence", "signpost", "wall"] as const).map((id) => count(s, id))).toEqual([3, 1, 3, 1, 20]);
+    expect((["hut", "well", "fence", "signpost", "wall"] as const).map((id) => count(s, id))).toEqual([2, 1, 3, 1, 20]);
     expect(s.upright.filter((d) => d.sprite === "explorer-down" && d.variant === "#b45309")).toHaveLength(1);
     for (const id of ["tower", "chest-closed", "chest-open", "gate", "semicolon"]) expect(sprites(s, "upright")).not.toContain(id);
     const busy = scene({ ...inVillage, towerPowered: true, clueDecoded: true });
@@ -250,5 +255,54 @@ describe("scene: the north wall", () => {
     const frame = (s: ReturnType<typeof scene>) => s.upright[gateAt(s)].frame;
     expect(frame(scene())).toBe(1);
     expect(frame(scene({ gateUnlocked: true }))).toBe(0);
+  });
+});
+
+describe("scene: chests, the Syntax Terminal and the Archive", () => {
+  const inVillage: Partial<SceneInput> = { zone: "village", player: { x: 60, y: 70 }, drone: { x: 68, y: 68 } };
+  const of = (s: ReturnType<typeof scene>, id: SpriteId) => s.upright.filter((d) => d.sprite === id);
+  const at = (s: ReturnType<typeof scene>, id: SpriteId, p: { x: number; y: number }) => {
+    const box = spriteBox(id, p);
+    return s.upright.find((d) => d.sprite === id && d.x === box.x && d.y === box.y);
+  };
+  const chestArt = (id: string) => toArt(CHESTS.find((c) => c.id === id)!.at!);
+
+  it("the village scene draws the Archive (sealed frame), the terminal (red frame) and its three chests; no hut at (176,116)", () => {
+    const s = scene(inVillage);
+    expect(at(s, "hut", { x: 176, y: 116 })).toBeUndefined();
+    expect(at(s, "archive", { x: 176, y: 116 })?.frame).toBe(0);
+    expect(at(s, "syntax-terminal", toArt(TERMINAL))?.frame).toBe(0);
+    expect(of(s, "code-chest")).toHaveLength(3);
+    for (const id of ["chest-php", "chest-sql", "chest-py-2"]) expect(at(s, "code-chest", chestArt(id))?.frame, id).toBe(0);
+  });
+
+  it("earned chests draw open; the C# chest appears only once the Archive is open", () => {
+    const earned = scene({ ...inVillage, earned: ["chest-sql"], matcherSolved: true });
+    expect(at(earned, "code-chest", chestArt("chest-sql"))?.frame).toBe(1);
+    expect(at(earned, "code-chest", chestArt("chest-php"))?.frame).toBe(0);
+    expect(at(earned, "syntax-terminal", toArt(TERMINAL))?.frame).toBe(1);
+    expect(at(earned, "code-chest", { x: 176, y: 119 })).toBeUndefined();
+    const open = scene({ ...inVillage, archiveOpen: true });
+    expect(at(open, "archive", { x: 176, y: 116 })?.frame).toBe(1);
+    expect(at(open, "code-chest", { x: 176, y: 119 })?.frame).toBe(0);
+    expect(of(open, "code-chest")).toHaveLength(4);
+    expect(at(scene({ ...inVillage, archiveOpen: true, earned: ["chest-cs"] }), "code-chest", { x: 176, y: 119 })?.frame).toBe(1);
+  });
+
+  it("the Peaks scene draws its six chests; north ones behind the wall's feet row", () => {
+    const s = scene();
+    expect(of(s, "code-chest")).toHaveLength(6);
+    expect(of(scene(inVillage), "syntax-terminal")).toHaveLength(1);
+    expect(of(s, "syntax-terminal")).toHaveLength(0);
+    for (const chest of CHESTS.filter((c) => c.zone === "peaks")) {
+      const d = at(s, "code-chest", toArt(chest.at!))!;
+      expect(d, chest.id).toBeDefined();
+      if (chest.north) {
+        const feet = d.y + SPRITES["code-chest"].h - 1;
+        expect(feet, chest.id).toBeLessThan(89);
+        const wall = s.upright.findIndex((w) => w.sprite === "wall");
+        expect(s.upright.indexOf(d), chest.id).toBeLessThan(wall);
+      }
+    }
   });
 });
