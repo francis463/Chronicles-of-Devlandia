@@ -4,6 +4,9 @@ import type { Point } from "../../game/types";
 import { fitWorld } from "../../render/world";
 import { exitSignBox, landmarkCaptions } from "./mapLayout";
 
+// The exhaustive grid tests check every position on both zones; they take ~3 s alone and more under a loaded suite.
+const GRID_TIMEOUT_MS = 30_000;
+
 const ZONES = ["peaks", "village"] as const;
 // The drone trails the player by up to a step and a bit, from any direction.
 const TRAIL = [[-3, 0], [3, 0], [0, -3], [0, 3], [-1.7, 0], [1.7, 0], [0, -1.7], [0, 1.7]];
@@ -137,7 +140,7 @@ describe("fixed obstacles", () => {
         }
       }
     }
-  });
+  }, GRID_TIMEOUT_MS);
 
   it("at 2× and 3× no label overlaps an exit sign", () => {
     for (const view of [{ width: 668, height: 360, dpr: 1 }, { width: 989, height: 610, dpr: 1 }]) {
@@ -159,7 +162,7 @@ describe("fixed obstacles", () => {
         }
       }
     }
-  });
+  }, GRID_TIMEOUT_MS);
 });
 
 describe("teammate labels", () => {
