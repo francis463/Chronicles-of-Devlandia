@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { ADA, HIDDEN_ARTIFACT, POIS, SIGNPOST } from "./constants";
 import { clampPlayer, distance, interactLabel, isInRiver, nearestPoi, placeInReach, poiInRange, promptText } from "./geometry";
+import { initialState } from "./reducer";
+import type { GameState } from "./types";
+import { ZONES } from "./zones";
 
 describe("geometry", () => {
   it("measures Euclidean distance", () => {
@@ -51,9 +54,24 @@ describe("geometry", () => {
 
   it("interactLabel and promptText name what [E] does", () => {
     const gate = POIS.find((p) => p.id === "gate")!;
-    expect([interactLabel(ADA), promptText(ADA)]).toEqual(["Talk to Ada", "[E] Talk to Ada"]);
-    expect([interactLabel(SIGNPOST), promptText(SIGNPOST)]).toEqual(["Read Signpost", "[E] Read Signpost"]);
-    expect([interactLabel(gate), promptText(gate)]).toEqual(["Terminal Gate", "[E] Inspect Terminal Gate"]);
-    expect([interactLabel(HIDDEN_ARTIFACT), promptText(HIDDEN_ARTIFACT)]).toEqual(["Dig here", "[E] Dig here"]);
+    const s = initialState;
+    expect([interactLabel(s, ADA), promptText(s, ADA)]).toEqual(["Talk to Ada", "[E] Talk to Ada"]);
+    expect([interactLabel(s, SIGNPOST), promptText(s, SIGNPOST)]).toEqual(["Read Signpost", "[E] Read Signpost"]);
+    expect([interactLabel(s, gate), promptText(s, gate)]).toEqual(["Terminal Gate", "[E] Inspect Terminal Gate"]);
+    expect([interactLabel(s, HIDDEN_ARTIFACT), promptText(s, HIDDEN_ARTIFACT)]).toEqual(["Dig here", "[E] Dig here"]);
+  });
+
+  it("labels follow state", () => {
+    const village: GameState = { ...initialState, zone: "village" };
+    const place = (id: string) => ZONES.village.places.find((p) => p.id === id)!;
+    expect(promptText(village, place("chest-sql"))).toBe("[E] Open SQL Chest");
+    expect(interactLabel(village, place("chest-sql"))).toBe("Open SQL Chest");
+    expect(promptText({ ...village, badges: ["chest-sql"] }, place("chest-sql"))).toBe("[E] Review SQL Chest");
+    expect(promptText(village, place("terminal"))).toBe("[E] Use Syntax Terminal");
+    expect(promptText(village, place("archive"))).toBe("[E] Unseal Archive");
+    expect(promptText({ ...village, archiveOpen: true }, place("archive"))).toBe("[E] Open C# Chest");
+    expect(promptText({ ...village, archiveOpen: true, badges: ["chest-cs"] }, place("archive"))).toBe("[E] Review C# Chest");
+    const gate = POIS.find((p) => p.id === "gate")!;
+    expect([promptText(initialState, gate), interactLabel(initialState, gate)]).toEqual(["[E] Inspect Terminal Gate", "Terminal Gate"]);
   });
 });

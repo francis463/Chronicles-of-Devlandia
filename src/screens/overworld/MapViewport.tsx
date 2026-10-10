@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
-import { ADA, HIDDEN_ARTIFACT, INSPECT_COPY, POIS, SIGNPOST } from "../../game/constants";
-import { promptText as promptFor } from "../../game/geometry";
+import { HIDDEN_ARTIFACT } from "../../game/constants";
+import type { Card } from "../../game/cards";
 import type { Poi, PoiId, Point } from "../../game/types";
 import type { ZoneId } from "../../game/zones";
 import type { Teammate } from "../../hooks/useTeamSession";
@@ -166,7 +166,6 @@ export function MapViewport({
   player,
   drone,
   minutes,
-  inspected,
   hasLoot,
   gateUnlocked,
   clueDecoded,
@@ -179,13 +178,13 @@ export function MapViewport({
   onInteract,
   onCloseInspection,
   onRespawn,
-  villagerLine,
+  prompt: promptText,
+  card,
 }: {
   zone: ZoneId;
   player: Point;
   drone: Point;
   minutes: number;
-  inspected: PoiId | null;
   hasLoot: boolean;
   gateUnlocked: boolean;
   clueDecoded: boolean;
@@ -198,8 +197,10 @@ export function MapViewport({
   onInteract: (poi: PoiId) => void;
   onCloseInspection: () => void;
   onRespawn: () => void;
-  /** What Ada says now, shown on her card. */
-  villagerLine: string;
+  /** The [E] prompt for the place in reach (empty when none). */
+  prompt: string;
+  /** The inspection card, if you inspected something here. */
+  card: Card | null;
 }) {
   const [mapRef, size] = useMapSize();
   const world = fitWorld(size);
@@ -215,14 +216,6 @@ export function MapViewport({
   const boxes = labelBoxes(player, drone, worldSize, labels, world.scale);
   const inWorld = (p: Point) => ({ x: (p.x / 100) * world.width, y: (p.y / 100) * world.height });
 
-  const inspectedPoi = [...POIS, HIDDEN_ARTIFACT, ADA, SIGNPOST].find((poi) => poi.id === inspected);
-  const copy = inspected && inspected !== "villager" ? INSPECT_COPY[inspected] : null;
-  const inspectCopy =
-    inspected === "villager"
-      ? villagerLine
-      : !copy
-        ? null
-        : (hasLoot && copy.looted) || (gateUnlocked && copy.opened) || (towerPowered && (copy.bridged ?? copy.powered)) || copy.default;
   const exitSign = EXIT_SIGNS[zone];
 
   const scene: SceneInput = {
@@ -242,7 +235,6 @@ export function MapViewport({
   const me = toArt(player);
   const fogX = world.left + me.x * world.scale;
   const fogY = world.top + (me.y - 8) * world.scale;
-  const promptText = inRange ? promptFor(inRange) : "";
   const prompt = inRange ? promptRect(promptText, me, world, map) : null;
   const P = LANDMARK_POINTS;
   const V = VILLAGE_POINTS;
@@ -353,15 +345,15 @@ export function MapViewport({
         </div>
       )}
 
-      {inspectedPoi && inspectCopy && (
+      {card && (
         <section
           aria-label="POI Inspection"
-          className={`absolute left-3 z-40 w-60 max-w-[calc(100%-1.5rem)] ${inspectedPoi.y > 50 ? "top-3" : "bottom-3"}`}
+          className={`absolute left-3 z-40 w-60 max-w-[calc(100%-1.5rem)] ${card.y > 50 ? "top-3" : "bottom-3"}`}
         >
           <Panel label="POI Inspection" className="p-3 shadow-lg">
             <div className="flex flex-col gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-widest">{inspectedPoi.label}</span>
-              <p className="text-xs text-[var(--text-muted)]">{inspectCopy}</p>
+              <span className="text-[10px] font-bold uppercase tracking-widest">{card.title}</span>
+              <p className="text-xs text-[var(--text-muted)]">{card.text}</p>
               <Button variant="ghost" disabled={downed} className="py-1" onClick={onCloseInspection}>
                 [X] Close
               </Button>

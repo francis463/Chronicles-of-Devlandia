@@ -1,6 +1,5 @@
 import { useEffect, useRef, type MouseEvent } from "react";
 import { TOUCH_REPEAT_MS } from "../../game/constants";
-import { interactLabel } from "../../game/geometry";
 import type { Direction, Poi } from "../../game/types";
 import { Button } from "../../ui/Button";
 
@@ -14,11 +13,14 @@ const PAD: Array<{ dir: Direction; glyph: string; area: string }> = [
 export function TouchControls({
   disabled,
   inRange,
+  label,
   onMove,
   onInteract,
 }: {
   disabled: boolean;
   inRange: Poi | null;
+  /** What [E] does at the place in reach. */
+  label: string | null;
   onMove: (dir: Direction) => void;
   onInteract: (poi: Poi["id"]) => void;
 }) {
@@ -78,7 +80,7 @@ export function TouchControls({
         onClick={() => inRange && onInteract(inRange.id)}
         className="min-h-12 max-w-[50%] px-4 py-3"
       >
-        {inRange ? `[E] ${interactLabel(inRange)}` : "[E] Interact"}
+        {inRange && label ? `[E] ${label}` : "[E] Interact"}
       </Button>
     </div>
   );

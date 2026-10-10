@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { INSPECT_COPY, POIS } from "../../game/constants";
+import { POIS } from "../../game/constants";
 import { MapViewport } from "./MapViewport";
 
 type Props = Parameters<typeof MapViewport>[0];
@@ -9,7 +9,6 @@ const props = (over: Partial<Props> = {}): Props => ({
   player: { x: 28, y: 72 },
   drone: { x: 36, y: 70 },
   minutes: 19 * 60 + 29,
-  inspected: null,
   hasLoot: false,
   gateUnlocked: false,
   clueDecoded: false,
@@ -20,7 +19,8 @@ const props = (over: Partial<Props> = {}): Props => ({
   onInteract: vi.fn(),
   onCloseInspection: vi.fn(),
   onRespawn: vi.fn(),
-  villagerLine: "Hi",
+  card: null,
+  prompt: "",
   ...over,
 });
 
@@ -51,13 +51,15 @@ describe("MapViewport per zone", () => {
     expect(onInteract.mock.calls).toEqual([["villager"], ["signpost"]]);
   });
 
-  it("Ada's card shows her current line; the signpost's shows its text", () => {
-    const { rerender } = render(<MapViewport {...props({ zone: "village", inspected: "villager", villagerLine: "Line X" })} />);
+  it("the inspection card shows the card it is given", () => {
+    const { rerender } = render(
+      <MapViewport {...props({ zone: "village", card: { title: "Ada", text: "Line X", y: 70 } })} />,
+    );
     const card = screen.getByRole("region", { name: "POI Inspection" });
     expect(within(card).getByText("Ada")).toBeInTheDocument();
     expect(within(card).getByText("Line X")).toBeInTheDocument();
-    rerender(<MapViewport {...props({ zone: "village", inspected: "signpost" })} />);
-    expect(within(screen.getByRole("region", { name: "POI Inspection" })).getByText(INSPECT_COPY.signpost.default)).toBeInTheDocument();
+    rerender(<MapViewport {...props({ zone: "village", card: null })} />);
+    expect(screen.queryByRole("region", { name: "POI Inspection" })).toBeNull();
   });
 
   it("the zone fade covers the map under the fog, never takes clicks, and is skipped under reduced motion", () => {
@@ -126,7 +128,7 @@ describe("MapViewport on the canvas", () => {
     ] as const;
     for (const { id } of cases) {
       const poi = POIS.find((p) => p.id === id)!;
-      const { unmount } = render(<MapViewport {...props({ player: { x: poi.x, y: poi.y + 6 }, inRange: poi })} />);
+      const { unmount } = render(<MapViewport {...props({ player: { x: poi.x, y: poi.y + 6 }, inRange: poi, prompt: `[E] Inspect ${poi.label}` })} />);
       for (const other of cases) {
         const caption = within(screen.getByRole("button", { name: other.name })).getByText(other.name);
         if (other.id === id) expect(caption).toHaveClass("opacity-0");

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { gameReducer, initialState, isDowned, isModalOpen, revealedPois, visiblePois } from "./reducer";
+import { gameReducer, initialState, isDowned, isModalOpen, reachPlaces, revealedPois, visiblePois } from "./reducer";
+import { placeInReach } from "./geometry";
 import type { ChallengeState, ChallengeTarget, GameState, Point } from "./types";
 import { NO_FLAGS } from "./team";
 import { HIDDEN_ARTIFACT, INTERACT_RADIUS, LOG, PLAYER_START, POIS } from "./constants";
@@ -529,8 +530,12 @@ describe("gameReducer: places and talking", () => {
   const ADA_GATE_LINE = 'Ada: "Heading north? The gate\'s terminal wants one CSS fix. Get the display right and the wall lets you through."';
 
   it("visiblePois: your zone's places, plus the dig spot in the Peaks once revealed", () => {
-    expect(visiblePois(s0).map((p) => p.id)).toEqual(["gate", "chest", "river", "tower"]);
-    expect(visiblePois({ ...village, clueDecoded: true }).map((p) => p.id)).toEqual(["villager", "signpost"]);
+    expect(visiblePois(s0).map((p) => p.id)).toEqual([
+      "gate", "chest", "river", "tower", "chest-cpp-1", "chest-java", "chest-cpp-2", "chest-html", "chest-css", "chest-py-1",
+    ]);
+    expect(visiblePois({ ...village, clueDecoded: true }).map((p) => p.id)).toEqual([
+      "villager", "signpost", "terminal", "archive", "chest-php", "chest-sql", "chest-py-2",
+    ]);
     expect(visiblePois({ ...s0, clueDecoded: true }).map((p) => p.id).at(-1)).toBe("artifact");
   });
 
@@ -643,5 +648,79 @@ describe("gameReducer: the challenge engine", () => {
     const logic = { ...s0, logicOpen: true };
     expect(gameReducer(logic, { type: "toggleCodex" })).toBe(logic);
     expect(gameReducer({ ...gate, codexOpen: true }, { type: "toggleCodex" }).codexOpen).toBe(false);
+  });
+});
+
+describe("gameReducer: chests", () => {
+  const village: GameState = { ...s0, zone: "village", player: { x: 42, y: 66 } };
+  const sqlOpen: GameState = { ...village, challenge: openOn("chest-sql") };
+
+  it("a south chest opens its picked challenge and sets inspected", () => {
+    const s = gameReducer({ ...s0, player: { x: 14, y: 64 } }, { type: "interact", poi: "chest-html" });
+    expect(s.challenge?.target).toBe("chest-html");
+    expect(s.inspected).toBe("chest-html");
+  });
+
+  it("a north chest before the gate logs LOG.wallLocked, sets inspected and opens nothing; after the gate it opens", () => {
+    const locked = gameReducer(s0, { type: "interact", poi: "chest-java" });
+    expect(locked.challenge).toBeNull();
+    expect(locked.inspected).toBe("chest-java");
+    expect(lastLog(locked)).toBe(LOG.wallLocked);
+    expect(gameReducer(opened, { type: "interact", poi: "chest-java" }).challenge?.target).toBe("chest-java");
+  });
+
+  it("a right answer earns the badge once, records the answer, logs it and shows the success view", () => {
+    const s = gameReducer(sqlOpen, { type: "submitChallenge", value: "from" });
+    expect(s.badges).toEqual(["chest-sql"]);
+    expect(s.answered["chest-sql"]).toBe("from");
+    expect(lastLog(s)).toBe("Earned the SQL Badge.");
+    expect(s.challenge?.solved).toBe(true);
+    expect(gameReducer(s, { type: "submitChallenge", value: "from" })).toBe(s);
+    const closed = gameReducer(s, { type: "closeChallenge" });
+    expect(closed.challenge).toBeNull();
+    const php = gameReducer(closed, { type: "interact", poi: "chest-php" });
+    expect(php.challenge?.target).toBe("chest-php");
+    expect(gameReducer(php, { type: "submitChallenge", value: "echo" }).badges).toEqual(["chest-sql", "chest-php"]);
+  });
+
+  it("a choice is checked by data index and records the option text", () => {
+    const where = { ...sqlOpen, picks: { ...s0.picks, "chest-sql": 1 as const } };
+    const s = gameReducer(where, { type: "submitChallenge", value: 0 });
+    expect(s.badges).toEqual(["chest-sql"]);
+    expect(s.answered["chest-sql"]).toBe("WHERE age > 18");
+  });
+
+  it("a wrong chest answer uses the generic copy and the drone after two tries", () => {
+    const once = gameReducer(sqlOpen, { type: "submitChallenge", value: "INTO" });
+    expect(once.challenge?.error).toBe('Not quite: "INTO" isn\'t the answer. Check the hint or try again.');
+    expect(once.badges).toEqual([]);
+    const twice = gameReducer(once, { type: "submitChallenge", value: "WHERE" });
+    expect(twice.hintsRevealed).toContain("sql-from");
+    expect(twice.challenge?.error?.endsWith(" The drone has a tip below.")).toBe(true);
+  });
+
+  it("an earned chest opens its card, not the challenge", () => {
+    const s = gameReducer({ ...village, badges: ["chest-sql"] }, { type: "interact", poi: "chest-sql" });
+    expect(s.challenge).toBeNull();
+    expect(s.inspected).toBe("chest-sql");
+  });
+
+  it("badges, answers, picks and seed survive respawn", () => {
+    const earned: GameState = {
+      ...village, hp: 0, badges: ["chest-sql"], answered: { "chest-sql": "from" }, seed: 7,
+      picks: { ...s0.picks, "chest-php": 2 },
+    };
+    const s = gameReducer(earned, { type: "respawn" });
+    expect([s.badges, s.answered, s.seed, s.picks]).toEqual([earned.badges, earned.answered, 7, earned.picks]);
+  });
+
+  it("places outside your zone do nothing", () => {
+    expect(gameReducer(s0, { type: "interact", poi: "chest-php" })).toBe(s0);
+  });
+
+  it("south of the locked wall, north chests are out of reach of [E]", () => {
+    const p = { x: 20, y: 50 };
+    expect(placeInReach(p, reachPlaces({ ...s0, player: p }))?.id).toBe("chest-html");
+    expect(placeInReach(p, reachPlaces({ ...opened, player: p }))?.id).toBe("chest-java");
   });
 });

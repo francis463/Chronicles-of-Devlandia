@@ -17,8 +17,8 @@ import {
 import { clampPlayer, isInRiver } from "./geometry";
 import { circuitError } from "./logic";
 import { accessCode } from "../learn/access";
-import { CHEST_IDS } from "../learn/chests";
-import { isCorrectBlank, normalize } from "../learn/check";
+import { CHEST_IDS, CHESTS, chestById } from "../learn/chests";
+import { isCorrectBlank, matchWrongCount, normalize, wrongBlankCopy, wrongChoiceCopy, wrongMatchCopy } from "../learn/check";
 import type { BlankChallenge, Challenge, ChallengeTarget, ChestId, SubmitValue } from "../learn/types";
 import { challengeOf } from "./challenges";
 import { flagsOf, mergeFlags, newlySet, teammateLog } from "./team";
@@ -73,6 +73,12 @@ export const inRiver = (s: GameState): boolean => ZONES[s.zone].river && isInRiv
 
 export const revealedPois = (s: GameState): Poi[] => (s.clueDecoded && !s.artifactFound ? [HIDDEN_ARTIFACT] : []);
 
+const isNorthChest = (id: string) => CHESTS.some((c) => c.id === id && c.north);
+
+/** What [E] can reach: your zone's places, minus north chests while you stand south of the locked wall. */
+export const reachPlaces = (s: GameState): Poi[] =>
+  s.gateUnlocked || isNorthOfWall(s.player) ? visiblePois(s) : visiblePois(s).filter((p) => !isNorthChest(p.id));
+
 const DELTAS: Record<Direction, Point> = {
   up: { x: 0, y: -1 },
   down: { x: 0, y: 1 },
@@ -111,6 +117,40 @@ function missed(state: GameState, open: ChallengeState, c: Challenge, error: str
       error: wrongTries >= 2 ? error + DRONE_NOTE : error,
     },
   };
+}
+
+const isChest = (id: string): id is ChestId => (CHEST_IDS as readonly string[]).includes(id);
+
+/** Judges a value against a challenge: null when the value is of the wrong kind (a crafted action). */
+function judge(c: Challenge, value: SubmitValue): { right: boolean; answer: string; error: string } | null {
+  if (c.kind === "blank") {
+    if (typeof value !== "string") return null;
+    return { right: isCorrectBlank(c, value), answer: value.trim(), error: wrongBlankCopy(value) };
+  }
+  if (c.kind === "choice") {
+    if (typeof value !== "number" || !Number.isInteger(value) || value < 0 || value > 3) return null;
+    return { right: value === c.correct, answer: c.options[value], error: wrongChoiceCopy() };
+  }
+  if (!Array.isArray(value) || value.length !== c.pairs.length) return null;
+  const wrong = matchWrongCount(c, value);
+  return { right: wrong === 0, answer: "", error: wrongMatchCopy(wrong) };
+}
+
+/** A chest: a right answer earns its badge and shows the success view; a wrong one costs a try. */
+function submitChest(state: GameState, open: ChallengeState, chest: ChestId, c: Challenge, value: SubmitValue): GameState {
+  if (state.badges.includes(chest)) return state;
+  const verdict = judge(c, value);
+  if (!verdict) return state;
+  if (!verdict.right) return missed(state, open, c, verdict.error, value);
+  return pushLog(
+    {
+      ...state,
+      badges: [...state.badges, chest],
+      answered: { ...state.answered, [chest]: verdict.answer },
+      challenge: { ...open, solved: true, error: null },
+    },
+    LOG.badge(chestById(chest).badge),
+  );
 }
 
 /** The gate and the cipher: their own effects and logs, closing on success. */
@@ -175,7 +215,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (!visiblePois(state).some((p) => p.id === action.poi)) return state;
       // The map's buttons work from anywhere, but the north landmarks wait for the gate.
       const north = action.poi === "tower" || action.poi === "chest" || action.poi === "river";
-      if (north && !state.gateUnlocked && !isNorthOfWall(state.player)) {
+      if ((north || isNorthChest(action.poi)) && !state.gateUnlocked && !isNorthOfWall(state.player)) {
         return pushLogOnce({ ...state, inspected: action.poi }, LOG.wallLocked);
       }
       if (action.poi === "artifact") {
@@ -184,6 +224,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       }
       if (action.poi === "villager") return pushLogOnce({ ...state, inspected: "villager" }, `Ada: "${adaLine(state)}"`);
       if (action.poi === "signpost") return { ...state, inspected: "signpost" };
+      // The Syntax Terminal and the Archive open their terminals in a later step; for now they show their cards.
+      if (action.poi === "terminal" || action.poi === "archive") return { ...state, inspected: action.poi };
+      if (isChest(action.poi)) {
+        const chest = action.poi;
+        return state.badges.includes(chest)
+          ? { ...state, inspected: chest }
+          : { ...state, inspected: chest, challenge: opened(chest) };
+      }
       const inspected = { ...state, inspected: action.poi };
       if (action.poi === "gate") {
         return state.gateUnlocked
@@ -215,6 +263,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if ((open.target === "gate" || open.target === "cipher") && c.kind === "blank" && typeof action.value === "string") {
         return submitBuiltIn(state, open, c, action.value);
       }
+      if (isChest(open.target)) return submitChest(state, open, open.target, c, action.value);
       return state;
     }
     case "revealChallengeHint": {

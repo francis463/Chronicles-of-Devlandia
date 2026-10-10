@@ -389,6 +389,27 @@ describe("Overworld signal tower", () => {
   });
 });
 
+describe("Overworld language chests", () => {
+  it("walking to the HTML chest shows [E] Open HTML Chest on the prompt and the touch button", () => {
+    render(<Overworld onMenu={() => {}} initial={{ player: { x: 14, y: 64 } }} />);
+    expect(screen.getAllByText("[E] Open HTML Chest")).toHaveLength(2);
+  });
+
+  it("new places show their cards on the map", () => {
+    const card = () => screen.getByRole("region", { name: "POI Inspection" });
+    const { unmount } = render(<Overworld onMenu={() => {}} initial={{ zone: "village", inspected: "chest-sql" }} />);
+    expect(card()).toHaveTextContent("A sealed code chest. Answer its SQL question to earn the SQL Badge.");
+    expect(card().className).toContain("top-3");
+    unmount();
+    const earned = render(<Overworld onMenu={() => {}} initial={{ zone: "village", inspected: "chest-sql", badges: ["chest-sql"] }} />);
+    expect(card()).toHaveTextContent("SQL Badge earned.");
+    earned.unmount();
+    render(<Overworld onMenu={() => {}} initial={{ inspected: "chest-java" }} />);
+    expect(card()).toHaveTextContent("A sealed code chest. Answer its Java question to earn the Java Badge.");
+    expect(card().className).toContain("bottom-3");
+  });
+});
+
 describe("Overworld inspection card placement", () => {
   it("moves the card to the top when the inspected point is in the lower half, so it never covers it", () => {
     const { unmount } = render(<Overworld onMenu={() => {}} initial={{ hasLoot: true, clueDecoded: true, artifactFound: true, inspected: "artifact" }} />);

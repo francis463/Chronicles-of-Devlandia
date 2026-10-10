@@ -1,5 +1,6 @@
-import { ADA, BOUNDS, LOG, POIS, SIGNPOST } from "./constants";
-import type { Poi, Point } from "./types";
+import { CHESTS } from "../learn/chests";
+import { ADA, ARCHIVE, BOUNDS, LOG, POIS, SIGNPOST, TERMINAL } from "./constants";
+import type { Poi, PoiId, Point } from "./types";
 
 export type ZoneId = "peaks" | "village";
 
@@ -12,6 +13,11 @@ export type Exit = { edge: "west" | "east"; minY: number; maxY: number; to: Zone
  */
 export type Zone = { id: ZoneId; name: string; entered: string; exit: Exit; gate: boolean; places: Poi[]; river: boolean };
 
+/** A zone's outdoor language chests as places, labelled `<Badge> Chest`, in the chest table's order. */
+export function chestPlaces(zone: ZoneId): Poi[] {
+  return CHESTS.flatMap((c) => (c.zone === zone && c.at ? [{ id: c.id as PoiId, label: `${c.badge} Chest`, ...c.at }] : []));
+}
+
 export const ZONES: Record<ZoneId, Zone> = {
   peaks: {
     id: "peaks",
@@ -19,7 +25,7 @@ export const ZONES: Record<ZoneId, Zone> = {
     entered: LOG.enteredPeaks,
     exit: { edge: "west", minY: 62, maxY: 78, to: "village" },
     gate: true,
-    places: POIS,
+    places: [...POIS, ...chestPlaces("peaks")],
     river: true,
   },
   village: {
@@ -28,7 +34,7 @@ export const ZONES: Record<ZoneId, Zone> = {
     entered: LOG.enteredVillage,
     exit: { edge: "east", minY: 62, maxY: 78, to: "peaks" },
     gate: false,
-    places: [ADA, SIGNPOST],
+    places: [ADA, SIGNPOST, TERMINAL, ARCHIVE, ...chestPlaces("village")],
     river: false,
   },
 };

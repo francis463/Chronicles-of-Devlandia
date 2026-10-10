@@ -1,6 +1,6 @@
 import { useEffect, useRef, type Dispatch } from "react";
 import { placeInReach } from "../game/geometry";
-import { isDowned, isModalOpen, visiblePois } from "../game/reducer";
+import { isDowned, isModalOpen, reachPlaces } from "../game/reducer";
 import type { Direction, GameAction, GameState } from "../game/types";
 
 const KEY_DIRECTIONS: Record<string, Direction> = {
@@ -46,7 +46,7 @@ export function useKeyboardControls(state: GameState, dispatch: Dispatch<GameAct
       }
 
       if (key === "e") {
-        const poi = placeInReach(current.player, visiblePois(current));
+        const poi = placeInReach(current.player, reachPlaces(current));
         if (poi) {
           event.preventDefault();
           dispatch({ type: "interact", poi: poi.id });

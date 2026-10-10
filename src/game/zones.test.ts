@@ -31,6 +31,13 @@ describe("zones", () => {
     }
   });
 
+  it("village places in order: villager, signpost, terminal, archive, chest-php, chest-sql, chest-py-2", () => {
+    expect(ZONES.village.places.map((p) => p.id)).toEqual([
+      "villager", "signpost", "terminal", "archive", "chest-php", "chest-sql", "chest-py-2",
+    ]);
+    expect(ZONES.village.places.find((p) => p.id === "chest-sql")).toMatchObject({ label: "SQL Chest", x: 12, y: 80 });
+  });
+
   it("exitFor: only a horizontal step off the exit edge inside the span", () => {
     expect(exitFor("peaks", { x: 6, y: 72 }, { x: 2, y: 72 })?.to).toBe("village");
     expect(exitFor("peaks", { x: 8, y: 62 }, { x: 4, y: 62 })?.to).toBe("village");

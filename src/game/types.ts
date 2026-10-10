@@ -5,7 +5,18 @@ import type { ZoneId } from "./zones";
 
 export type Point = { x: number; y: number };
 
-export type PoiId = "gate" | "chest" | "river" | "tower" | "artifact" | "villager" | "signpost";
+/** Every place you can use: the landmarks, the village's, and the outdoor language chests (the C# chest lives in the Archive). */
+export type PoiId =
+  | "gate"
+  | "chest"
+  | "river"
+  | "tower"
+  | "artifact"
+  | "villager"
+  | "signpost"
+  | "terminal"
+  | "archive"
+  | Exclude<ChestId, "chest-cs">;
 
 export type Poi = { id: PoiId; label: string } & Point;
 

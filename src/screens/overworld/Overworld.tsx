@@ -1,11 +1,11 @@
 import { useEffect, useReducer } from "react";
-import { placeInReach } from "../../game/geometry";
-import { gameReducer, initialState, isDowned, isModalOpen, visiblePois } from "../../game/reducer";
+import { cardFor } from "../../game/cards";
+import { interactLabel, placeInReach, promptText } from "../../game/geometry";
+import { gameReducer, initialState, isDowned, isModalOpen, reachPlaces } from "../../game/reducer";
 import type { GameState } from "../../game/types";
 import type { TeamSession } from "../../hooks/useTeamSession";
 import { TICK_MS } from "../../game/constants";
 import { flagsOf, teamMinutes } from "../../game/team";
-import { adaLine } from "../../game/village";
 import { ZONES } from "../../game/zones";
 import { useNow } from "../../hooks/useNow";
 import { useGameTimers } from "../../hooks/useGameTimers";
@@ -64,7 +64,7 @@ export function Overworld({
   const minutes = team?.startedAt != null ? teamMinutes(team.startedAt, now) : state.minutes;
   const teamLabel = team?.room ? `ROOM ${team.room} · ${team.players.length} online` : undefined;
 
-  const inRange = downed ? null : placeInReach(state.player, visiblePois(state));
+  const inRange = downed ? null : placeInReach(state.player, reachPlaces(state));
 
   return (
     <Panel className="mx-auto w-full max-w-screen-2xl overflow-hidden md:grid md:min-h-[calc(100dvh-1rem)] md:grid-cols-[14rem_minmax(0,1fr)] md:grid-rows-[auto_auto_auto_1fr_auto]">
@@ -93,7 +93,6 @@ export function Overworld({
           player={state.player}
           drone={state.drone}
           minutes={minutes}
-          inspected={state.inspected}
           hasLoot={state.hasLoot}
           gateUnlocked={state.gateUnlocked}
           clueDecoded={state.clueDecoded}
@@ -106,11 +105,13 @@ export function Overworld({
           onInteract={(poi) => dispatch({ type: "interact", poi })}
           onCloseInspection={() => dispatch({ type: "closeInspection" })}
           onRespawn={() => dispatch({ type: "respawn" })}
-          villagerLine={adaLine(state)}
+          prompt={inRange ? promptText(state, inRange) : ""}
+          card={cardFor(state)}
         />
         <TouchControls
           disabled={downed || isModalOpen(state)}
           inRange={inRange}
+          label={inRange ? interactLabel(state, inRange) : null}
           onMove={(dir) => dispatch({ type: "move", dir })}
           onInteract={(poi) => dispatch({ type: "interact", poi })}
         />

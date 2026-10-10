@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { EventLog } from "./EventLog";
 
@@ -43,5 +43,18 @@ describe("EventLog", () => {
     const after = rows();
     expect(after[0]).toBe(before[1]);
     expect(after[5]).not.toBe(before[5]);
+  });
+
+  it("badge names in log entries carry their spoken form as hidden text", () => {
+    render(<EventLog logs={["Earned the C++ II Badge.", "Kai earned the C# Badge.", "Earned the SQL Badge."]} logCount={3} />);
+    const [cpp, cs, sql] = rows();
+    for (const [row, written, spoken] of [[cpp, "C++ II", "C++ 2"], [cs, "C#", "C sharp"]] as const) {
+      const hidden = row.querySelectorAll(".sr-only");
+      expect(hidden).toHaveLength(1);
+      expect(hidden[0]).toHaveTextContent(spoken);
+      expect(within(row).getByText(written)).toHaveAttribute("aria-hidden", "true");
+    }
+    expect(sql.querySelectorAll(".sr-only")).toHaveLength(0);
+    expect(screen.getByText("Earned the SQL Badge.")).toBeInTheDocument();
   });
 });

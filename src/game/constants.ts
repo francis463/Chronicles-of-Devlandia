@@ -1,4 +1,4 @@
-import type { Poi, PoiId, Point } from "./types";
+import type { Poi, Point } from "./types";
 
 export const PLAYER_START: Point = { x: 28, y: 72 };
 export const DRONE_START: Point = { x: 36, y: 70 };
@@ -18,6 +18,9 @@ export const HIDDEN_ARTIFACT: Poi = { id: "artifact", label: "Golden Semicolon",
 /** Dev Village's villager and its signpost by the exit to the Peaks. */
 export const ADA: Poi = { id: "villager", label: "Ada", x: 34, y: 70 };
 export const SIGNPOST: Poi = { id: "signpost", label: "Signpost", x: 86, y: 62 };
+/** The village's Syntax Terminal (it prints the Archive's access code) and the Archive (the C# chest is inside). */
+export const TERMINAL: Poi = { id: "terminal", label: "Syntax Terminal", x: 68, y: 60 };
+export const ARCHIVE: Poi = { id: "archive", label: "Archive", x: 55, y: 66 };
 export const RIVER_ZONE = { minX: 24, maxX: 76, minY: 28, maxY: 39 };
 
 export const MAX_HP = 100;
@@ -62,10 +65,11 @@ export const LOG = {
   wallSolid: "The wall is solid here. Go through the gate.",
   enteredPeaks: "Entered C++ Peaks.",
   enteredVillage: "Entered Dev Village.",
+  badge: (badge: string) => `Earned the ${badge} Badge.`,
 };
 
-/** Ada's card shows her current line (village.ts), so she has no fixed copy here. */
-export const INSPECT_COPY: Record<Exclude<PoiId, "villager">, { default: string; looted?: string; opened?: string; bridged?: string; powered?: string }> = {
+/** The landmarks' cards. Ada's shows her current line (village.ts); chests, the terminal and the Archive are in cards.ts. */
+export const INSPECT_COPY: Record<"gate" | "chest" | "river" | "tower" | "signpost" | "artifact", { default: string; looted?: string; opened?: string; bridged?: string; powered?: string }> = {
   gate: {
     default: "A locked compiler gate in the north wall. Its terminal leads to the code puzzle.",
     opened: "The compiler gate stands open. The way north is clear.",
