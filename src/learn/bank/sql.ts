@@ -1,0 +1,40 @@
+import type { ChestQuestion } from "../types";
+
+export const SQL_BANK: readonly [ChestQuestion, ChestQuestion, ChestQuestion] = [
+  {
+    kind: "blank",
+    id: "sql-from",
+    lang: "sql",
+    prompt: "Read every name from the users table.",
+    code: ["SELECT name ___ users;"],
+    answers: ["FROM"],
+    caseSensitive: false,
+    live: { kind: "notLegal", tokens: ["FORM", "FRM"], label: "an SQL keyword" },
+    blocks: ["FROM", "INTO", "FORM", "WHERE"],
+    hint: "You select columns from a table.",
+    explain: "SELECT … FROM table picks columns from that table.",
+  },
+  {
+    kind: "choice",
+    id: "sql-where",
+    lang: "sql",
+    prompt: "Which clause keeps only the rows where age is over 18?",
+    options: ["WHERE age > 18", "ORDER BY age > 18", "FILTER age > 18", "LIMIT 18"],
+    correct: 0,
+    codeOptions: true,
+    hint: "This clause filters rows by a condition.",
+    explain: "WHERE filters rows; ORDER BY sorts them and LIMIT caps how many come back.",
+  },
+  {
+    kind: "choice",
+    id: "sql-max",
+    lang: "sql",
+    prompt: "The scores table's points column holds 7, 3 and 9. What does this return?",
+    code: ["SELECT MAX(points) FROM scores;"],
+    options: ["9", "3", "19", "7"],
+    correct: 0,
+    codeOptions: true,
+    hint: "MAX picks one value.",
+    explain: "MAX returns the largest value in the column: 9.",
+  },
+];

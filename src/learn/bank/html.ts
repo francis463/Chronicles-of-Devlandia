@@ -1,0 +1,41 @@
+import type { ChestQuestion } from "../types";
+
+export const HTML_BANK: readonly [ChestQuestion, ChestQuestion, ChestQuestion] = [
+  {
+    kind: "blank",
+    id: "html-link",
+    lang: "html",
+    prompt: "Make the link go to the Devlandia site.",
+    code: ['<a ___="https://devlandia.dev">Home</a>'],
+    answers: ["href"],
+    caseSensitive: false,
+    live: { kind: "notLegal", tokens: ["url", "ref", "goto", "hyperlink"], label: "an HTML attribute" },
+    blocks: ["href", "src", "link", "url", "alt"],
+    hint: "The attribute's name is short for 'hypertext reference'.",
+    explain: "href sets where a link goes. src is for images and scripts.",
+  },
+  {
+    kind: "choice",
+    id: "html-heading",
+    lang: "html",
+    prompt: "Which tag makes the largest heading?",
+    options: ["<h1>", "<h6>", "<head>", "<header>"],
+    correct: 0,
+    codeOptions: true,
+    hint: "Headings run from 1 (biggest) to 6 (smallest).",
+    explain: "<h1> is the top heading and <h6> the smallest. <head> holds page metadata, and <header> is a page section.",
+  },
+  {
+    kind: "blank",
+    id: "html-list",
+    lang: "html",
+    prompt: "Finish the list item.",
+    code: ["<ul>", "  <___>Apples</li>", "</ul>"],
+    answers: ["li"],
+    caseSensitive: false,
+    live: { kind: "notLegal", tokens: ["item", "list", "bullet", "listitem"], label: "an HTML tag" },
+    blocks: ["li", "ol", "item", "p"],
+    hint: "The opening tag must match the closing tag.",
+    explain: "Each item in a list sits in an <li> (list item) element.",
+  },
+];
