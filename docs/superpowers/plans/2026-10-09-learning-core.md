@@ -279,7 +279,7 @@
     - "closing resets the tries but keeps a revealed hint": after `closeChallenge`, `challenge === null` and `hintsRevealed` still contains it.
     - "the cipher accepts `dense-forest!` (letters compare), logs the clue line and closes".
     - "crafted submits do nothing": with no challenge open; a number for the gate; an array for the cipher. Each `toBe` its input.
-    - "isModalOpen: a challenge, the logic lock or the Codex"; "toggleCodex opens and closes the Codex, but not while a challenge is open".
+    - "isModalOpen: a challenge, the logic lock or the Codex"; "toggleCodex opens the Codex only while no challenge and no logic lock is open, and always closes it".
   - **`challenges.test.ts`:** "challengeOf maps each target": gate → `GATE_CSS`, cipher → `SCROLL_CIPHER`, archive → `ARCHIVE_LOCK`, matcher → `MATCHER_ROUNDS[s.matcherRound]`, `chest-sql` with pick 1 → `sql-where`.
   - **`useKeyboardControls.test.tsx`:** "Esc closes an open challenge" (seed `challenge` as above; Esc dispatches `closeChallenge`).
   - **`Overworld.test.tsx`:** seed `challenge` in place of `terminalOpen`/`cipherOpen`, and change the gate's alert expectation (today `Compile error: display: flex keeps the gate shut.`) to `Not quite: display: flex doesn't open this lock. Check the hint or try again.`.
@@ -292,7 +292,8 @@
     - from 2 tries on, append ` The drone has a tip below.`.
   - **Ignoring:** a value whose JSON equals `lastWrong` is ignored (the state is returned unchanged).
   - **`revealChallengeHint`** adds the open challenge's id to `hintsRevealed`.
-  - **Esc** dispatches `closeChallenge` when a challenge is open, `closeLogic` for the lock, `toggleCodex` for the Codex.
+  - **Esc** dispatches `closeChallenge` when a challenge is open, `closeLogic` for the lock, `toggleCodex` for the Codex. The `window` hook stays the only owner of Esc: dialogs add no Escape handlers of their own (the one exception, Task 10's `LeaveConfirm`, runs while the hook is `paused`).
+  - **`toggleCodex`** opens only when `challenge === null && !logicOpen`; closing always works.
   - **Temporary shims:** Overworld renders the old modals from `challenge?.target` until Task 7, with `error` from `challenge.error` and `hintRevealed` from `hintsRevealed`. Their `onSubmit` dispatches `submitChallenge`, and `onClose` dispatches `closeChallenge`.
 - [ ] **Step 4: Run** `npm test` and `npx tsc -b`. Expected: all PASS.
 - [ ] **Step 5: Commit** `refactor(game): one challenge engine; the gate and the cipher move onto it`.
@@ -330,6 +331,7 @@
   - `LOG.badge(badge: string)` = `Earned the ${badge} Badge.`.
 
 - [ ] **Step 1: Write the failing tests.**
+  - **Migrate the existing visiblePois test** ("visiblePois: your zone's places, plus the dig spot in the Peaks once revealed"): the Peaks list becomes `["gate", "chest", "river", "tower", "chest-cpp-1", "chest-java", "chest-cpp-2", "chest-html", "chest-css", "chest-py-1"]` and the village one (with `clueDecoded: true`) `["villager", "signpost", "terminal", "archive", "chest-php", "chest-sql", "chest-py-2"]`; the `.at(-1) === "artifact"` line stays.
   - **reducer**, `describe("gameReducer: chests")`:
     - "a south chest opens its picked challenge and sets inspected": `interact chest-html` at (14, 64) → `challenge.target === "chest-html"`, `inspected === "chest-html"`.
     - "a north chest before the gate logs `LOG.wallLocked`, sets `inspected` and opens nothing; after the gate it opens".
@@ -384,9 +386,10 @@
     - accessCode: `accessCode(codeSeed ?? Math.floor(rand() * 2 ** 31))`.
   - Overworld's reducer init: `{ ...initialState, ...rollGame(Math.random, team?.startedAt ?? undefined), ...initial }`.
   - `LOG.matcher(code)` = `Syntax Terminal: access code ${code}.`; `LOG.archiveUnsealed` = `Archive unsealed.`; keypad error `Access denied.`.
+  - `LogicModal` gains the prop `onReset: () => void`. `[ RESET ]` calls it, sets every switch to 0 and sets the last run to null. Overworld passes `onReset={() => dispatch({ type: "resetLogic" })}`.
 
 - [ ] **Step 1: Write the failing tests.**
-  - "using the terminal opens the Matcher; solving it logs the code and shows the success view; using it again reopens the solved view": `submitChallenge` with the right pairing for round 0 → `matcherSolved`, last log `Syntax Terminal: access code ${s.accessCode}.`, `challenge.solved`. Interacting again gives `challenge: { target: "matcher", solved: true }`.
+  - "using the terminal opens the Matcher; solving it logs the code and shows the success view; using it again reopens the solved view": `submitChallenge` with the right pairing for round 0 → `matcherSolved`, last log `Syntax Terminal: access code ${s.accessCode}.`, `challenge.solved`. Then `closeChallenge` → `challenge === null`, and `interact terminal` again → `challenge` matches `{ target: "matcher", solved: true, error: null }`, `matcherSolved` is still true, and the log has no second access-code line. (While the success view is open, `interact` is a no-op under the `isModalOpen` guard, so the test closes it first.)
   - "a wrong pairing reports the count": two labels swapped → error `2 of 5 pairs are wrong.`.
   - "the sealed Archive opens the keypad; a wrong code is denied; the right code (any case, spaces around) unseals it, logs once and closes".
   - "the keypad never unseals on an empty, malformed or crafted value": `""`, `"AB"`, `5` → `archiveOpen` stays false.
@@ -394,7 +397,7 @@
   - "once open, the Archive acts as the C# chest": `interact archive` → `challenge.target === "chest-cs"`; after earning, the card.
   - "resetLogic clears the logic error".
   - **roll:** "rollGame uses the random source in order and the code seed when given": with `rand` cycling `[0.5, 0.9, 0.1, …]`, assert picks and matcherRound. `rollGame(rand, 1234).accessCode === accessCode(1234)`.
-  - **LogicModal:** "[ RESET ] turns every switch off and hides stale outputs": after toggling A and B and running, Reset → every `switch` `aria-checked="false"` and every output shows `?`.
+  - **LogicModal:** "[ RESET ] turns every switch off, forgets the last run and calls onReset": toggle A and B, `[ RUN CIRCUIT ]`, then `[ RESET ]` → `onReset` called once, every `switch` `aria-checked="false"`, every output `?`; then toggling A and B again (the last run's switches) still shows `?` everywhere. The file's existing `renderModal`, `render` and `rerender` calls pass `onReset: vi.fn()` so `tsc -b` stays clean.
 - [ ] **Step 2: Run** `npx vitest run src/game src/screens/LogicModal.test.tsx`. Expected: FAIL.
 - [ ] **Step 3: Implement** per spec §"The Syntax Terminal and the Archive". The keypad check in the reducer: trim, upper-case, `ARCHIVE_LOCK.live.pattern` must match, then compare with `s.accessCode`. A string that fails the pattern changes nothing.
 - [ ] **Step 4: Run** `npm test` and `npx tsc -b`. Expected: PASS.
@@ -474,6 +477,7 @@
     - for `GATE_CSS`: the dialog is named `< TERMINAL GATE LOCK: C++ PEAKS >`; it shows `PUZZLE INSTRUCTIONS:` and `Fix the CSS value below to open the north gate.`; the textbox `display value` holds `none`, is focused, and its text is selected;
     - for `SCROLL_CIPHER`: `SCROLL INSTRUCTIONS:`, the textbox `decoded text` with placeholder `plain text`, the button `[ SUBMIT DECODE ]`.
   - "before the first edit the live line reads `Fill the blank, then submit.` with no aria-invalid".
+  - "phone keyboards can't change what you type": for `PY1_BANK[0]` (`py-print`) the textbox `answer` has `autocapitalize="off"`, `autocorrect="off"`, `spellcheck="false"` and `autocomplete="off"`; `GATE_CSS`'s `display value` has `autocapitalize="off"`; `SCROLL_CIPHER`'s `decoded text` has `autocapitalize="characters"`, `spellcheck="false"` and `autocomplete="off"`.
   - "after typing, the result appears after a 500 ms pause, on blur or on submit, and is announced only when it changes":
     - type `FORM` into the bank's `sql-from` (`SQL_BANK[0]`, notLegal `FORM FRM`); nothing changes before 500 ms; after it, `⚠ 'FORM' is not an SQL keyword.`, `aria-invalid="true"`, and the polite region holds that text;
     - clearing it and typing `FRM` (still invalid, different reason) updates the line and the polite region to `⚠ 'FRM' is not an SQL keyword.` after the pause; retyping `FRM` adds no new announcement;
@@ -481,18 +485,24 @@
   - "a valid entry reads `Syntax OK. Submit to check your answer.` (no ✓)".
   - "SUBMIT is aria-disabled with a visible reason; pressing it or Enter doesn't submit and re-announces the reason":
     - `onSubmit` isn't called, the reason line equals the live reason, and the button has `aria-disabled="true"` and is focusable;
+    - after a not-ready press (fake timers, past the refill tick), a `role="status"` element separate from the visible reason line holds the reason; a second press, or Enter in the input, re-announces it (the element is emptied and refilled, or remounted, between presses);
+    - after a 500 ms live-check change with no press, exactly one live element (`aria-live`, or role `status`/`alert`) contains `⚠ 'FORM' is not an SQL keyword.`;
     - after a wrong submit, the reason becomes `Change your answer to try again.` until the text changes.
   - "the error line is an alert; after two wrong tries the hint panel shows `Drone: stuck? Here's a tip.` and the hint".
   - "a revealed hint shows without the stuck line".
   - "reaching two wrong tries scrolls the hint panel into view, instantly under reduced motion": assign `Element.prototype.scrollIntoView = vi.fn()`; rerendering with `wrongTries` going from 1 to 2 calls it once with `behavior: "smooth"`; a later rerender and a hint revealed by `[ USE HINT ITEM ]` don't call it; under the reduced-motion `matchMedia` mock (as in `useReducedMotion.test.tsx`) the call has `behavior: "auto"`.
-  - "success view": the code block stays with the answer filled in; `✓ SQL Badge earned` appears in a status region with the accessible name `SQL Badge earned`, then the explanation; `[ CONTINUE ]` is focused, and pressing it calls `onClose`.
+  - "success view, solved in place": render the SQL chest unsolved (`success: null`) with the input focused, then rerender the same instance with `solved: true` and `success` set (no key change). The code block stays with the answer filled in; `✓ SQL Badge earned` appears in a status region with the accessible name `SQL Badge earned`, then the explanation; `[ CONTINUE ]` is focused, and pressing it calls `onClose`.
   - "Matcher success shows `ACCESS CODE: K Q Z M`'s visual code, with the spaced-out accessible name"; rendered already solved (a reopened Matcher), `[ CONTINUE ]` is focused.
   - "the keypad shows `Your code: <CODE>` once the Matcher is solved, and its pristine line is `Type the 4-character code.`".
-  - "[X] CLOSE and Esc close"; "Tab stays inside, and the page behind is inert while open".
+  - "[X] CLOSE closes" (Esc stays in `useKeyboardControls`, pinned by Task 3); "Tab stays inside, and the page behind is inert while open".
   - **Overworld:** "pressing E at the gate opens the challenge terminal, `block` opens the gate" (the old flow, now through the new terminal).
 - [ ] **Step 2: Run** `npx vitest run src/screens src/ui`. Expected: FAIL.
 - [ ] **Step 3: Implement** per spec §"The challenge terminal" items 1–3 (blank Type mode only), 5, 6 and 7, and the Focus rules.
   - **Live check:** `useLiveCheck` debounces 500 ms with `setTimeout`; `flush` runs it at once (on blur and submit).
+  - **Input attributes (phone keyboards):** BlankBody's Type-mode input carries `spellCheck={false}`, `autoComplete="off"`, `autoCorrect="off"` and `autoCapitalize={c.upperCase ? "characters" : "off"}`, as today's modals do. The Python, Java, C# and C++ blanks are case-sensitive, so an autocapitalised `Print` would fail rule 5. Playwright's touch emulation never autocapitalises, so only this attribute test pins it.
+  - **Focus on success:** TerminalDialog's mount effect covers only a terminal that opens already solved. When `view.success` turns non-null in a mounted terminal (an in-place solve), an effect in ChallengeTerminal moves focus to `[ CONTINUE ]`.
+  - **Submit row (spec item 6):** the visible reason line above SUBMIT is not a live region; SUBMIT points at it with `aria-describedby`. A not-ready press, or Enter, writes the reason into a separate visually hidden `role="status"` element, cleared and refilled on the next tick (or remounted with a counter `key`), so identical text is spoken again. The live-check line stays the only region that speaks on live-check changes.
+  - **Esc:** TerminalDialog gains no Escape handler; Esc stays in `useKeyboardControls` (Task 3).
   - **Hint panel (spec §Hints):** when `view.wrongTries` reaches 2, an effect calls `scrollIntoView({ block: "nearest", behavior: reduced ? "auto" : "smooth" })` on the panel, with `reduced` from `useReducedMotion()`. It runs once per opening. jsdom has no `scrollIntoView`, so `vitest.setup.ts` assigns a no-op `Element.prototype.scrollIntoView` next to the `getContext` stub.
   - **Inert:** `TerminalDialog` renders in place, with no portal. While mounted, an effect walks from its outer element up to `document.body` and sets the `inert` attribute on every sibling, at each level, that doesn't already have it. On unmount it removes the attribute from exactly the elements it set. Use `hasAttribute`/`setAttribute("inert", "")`/`removeAttribute`, never the `inert` property: jsdom 29 doesn't reflect it, so the test (`toHaveAttribute("inert")` on a sibling, gone after unmount) would not see it. Its focusable list becomes `button:not([disabled]), input:not([disabled]), [tabindex="0"], [data-autofocus]`.
   - **Mode:** Overworld holds `const [mode, setMode] = useState<BlankMode>("type")` and passes it as `mode`/`onModeChange`. Task 8 adds the toggle that uses it.
@@ -533,14 +543,18 @@
       - no textbox exists;
       - focus is on the first tile;
     - "tap, Enter or Space places a tile; a new tile replaces it; pressing the filled slot empties it";
-    - "mouse drag places a tile; a touch press shorter than 300 ms doesn't start a drag" (fire `pointerdown`/`pointermove`/`pointerup` with `pointerType`);
+    - "mouse drag places a tile" (fire `pointerdown`/`pointermove`/`pointerup` with `pointerType: "mouse"`);
+    - "touch drag" (fake timers): after a 300 ms touch hold, moving onto the slot and lifting places the tile; during that drag `fireEvent.touchMove(tile)` returns false (default prevented); a press shorter than 300 ms, or a move of more than 8 px before 300 ms, starts no drag and its `touchmove` is not prevented; a `pointercancel` mid-drag leaves the slot unchanged;
     - "switching modes keeps the value";
     - "switching modes ends a typing run" (fake timers): type `a`, switch to Blocks and back to Type, type `b` within a second; one Undo leaves `a`;
     - "the live line in Blocks mode updates at once, and an empty slot reads `⚠ Place a block first.` after an edit";
     - "Undo after Reset restores the tile; Undo and Reset are unavailable with nothing to do, and focus moves to the blank when the focused one becomes unavailable";
     - "Ctrl+Z outside the text box runs Undo".
 - [ ] **Step 2: Run** `npx vitest run src/screens`. Expected: FAIL.
-- [ ] **Step 3: Implement** per spec §"The challenge terminal" items 3 (Blocks) and 4. Dragging uses Pointer Events: a mouse or pen starts dragging on move; touch starts only after a 300 ms hold without moving more than 8 px. Drop on the slot places the tile.
+- [ ] **Step 3: Implement** per spec §"The challenge terminal" items 3 (Blocks) and 4. Drop on the slot places the tile.
+  - **Mouse and pen** drag with Pointer Events and start on move.
+  - **Touch:** tiles keep the default `touch-action`, so swipes scroll. A touch drag starts after a 300 ms hold with at most 8 px of movement; moving more first cancels the hold and lets the page scroll. On mount, `BlockTray` adds a native `touchmove` listener to its root with `{ passive: false }` that calls `preventDefault()` only while a touch drag is active. (Pointer Events can't stop a pan once it starts, a mid-gesture `touch-action` change has no effect, and React's `onTouchMove` is passive.)
+  - **Cancels and long-press:** `pointercancel` and `touchcancel` end any drag without placing a tile and clear the drag visuals. Tiles get `select-none [-webkit-touch-callout:none]` and `onContextMenu` → `preventDefault`, so a long press opens no callout or menu.
 - [ ] **Step 4: Run** `npm test` and `npx tsc -b`. Expected: PASS.
 - [ ] **Step 5: Commit** `feat(screens): Blocks mode with drag, tap and keys, plus Undo and Reset`.
 
@@ -590,16 +604,19 @@
   - `Codex(props: { badges: ChestId[]; answered: Partial<Record<ChestId, string>>; picks: Record<ChestId, 0|1|2>; team: boolean; onClose(): void })`;
   - `TopHud` gains `onCodex(): void`;
   - `QuestList` gains `badges: number` and `team: boolean`.
+  - **One owner per key:** the Codex adds no key handlers. In `useKeyboardControls`, C without Ctrl, Meta or Alt and not `event.repeat` dispatches `toggleCodex` when `codexOpen` (checked before the `isModalOpen` guard), or when no modal is open and the target isn't a text field. Esc dispatches `toggleCodex` for the Codex, as in Task 3.
   - `useKeyboardControls(state, dispatch, paused = false)` and `useGameTimers(state, dispatch, paused = false)`. Overworld passes `true` while the leave confirmation is open, and adds it to `TouchControls`' `disabled`. While `paused`, the keyboard hook ignores every key, Esc included (`LeaveConfirm` handles its own Esc as `[ STAY ]`), and the timers treat it like `isModalOpen`: no `tick`, no `riverDamage`. `isModalOpen` stays as the spec defines it.
 
 - [ ] **Step 1: Write the failing tests.**
   - **Codex:**
     - "titled `< CODEX: 2/10 BADGES >` (team: `< YOUR CODEX: 2/10 BADGES >`), one list in table order with each chest's place";
     - "an earned entry is a button with aria-expanded that shows the question, your answer and the explanation; several can be open; an unearned entry ends `· not earned yet`";
-    - "focus starts on the first earned entry, else `[X] CLOSE`; Esc, `[X] CLOSE` and C close it";
+    - "focus starts on the first earned entry, else `[X] CLOSE`; `[X] CLOSE` closes it" (the Codex adds no key handlers; Esc and C are the hook's, below);
     - "accessible names use the spoken forms (`C sharp`, `C++ 1`)".
   - **Keys**, Review Focus 3:
     - "C opens the Codex only without modifiers and only with no terminal open";
+    - rendering `<Overworld initial={{ codexOpen: true }}>`: "Esc closes the Codex and it stays closed; C closes it and it stays closed (one `toggleCodex` per press)";
+    - "a held C (`repeat: true`) dispatches nothing; with the logic lock open, C dispatches nothing";
     - "typing `w a s d e c` into a terminal input neither moves, interacts nor opens the Codex".
   - **Overworld:**
     - "the top bar has `[C] Codex` at least 16 px from `[=] Menu`" (assert the class providing the gap, e.g. `ml-4`);
@@ -715,7 +732,7 @@
     - open another chest and answer with Blocks (tap a tile), using Undo and Reset;
     - walk to the village; solve the Matcher (read the round from the DOM order); unseal the Archive with the printed code; earn the C# badge;
     - the gate: `flex` gives the new error, `block` opens it.
-  - **390 × 844, touch, DPR 3:** a chest with Blocks by tapping; a second chest answered by typing in the input (the submit row still reachable); the success view shows the earned badge; open the Codex with the `[C] Codex` top-bar button (not overlapping `[=] Menu`), see the badge, close it; captions hidden at 1× and shown in reach; the terminal stacks with the submit row under the live line; a match keeps two columns.
+  - **390 × 844, touch, DPR 3:** a chest with Blocks by tapping; then hold-drag a tile onto the slot with real touch input via CDP `Input.dispatchTouchEvent` (touchStart, wait 400 ms, several touchMoves to the slot's centre, touchEnd), and the slot shows the tile, while a quick swipe on the tray still scrolls the terminal; a second chest answered by typing in the input (the submit row still reachable); the success view shows the earned badge; open the Codex with the `[C] Codex` top-bar button (not overlapping `[=] Menu`), see the badge, close it; captions hidden at 1× and shown in reach; the terminal stacks with the submit row under the live line; a match keeps two columns.
   - **Team, Same computer, two pages:** Kai earns a badge, and Ana's log shows the two lines once; Ana unseals the Archive with her code, and Kai's map shows it open with Kai's log line `Ana unsealed the Archive.`. Then, if the supabase.co WebSocket connects, repeat the badge and Archive steps in Online mode; otherwise print `SKIP Online: network blocked`.
   - **No console errors** (the blocked supabase.co WebSocket excepted, only when Online was skipped).
 - [ ] **Step 4: Run** `npm test`, `npx tsc -b` and `npm run build`. Expected: all PASS.
