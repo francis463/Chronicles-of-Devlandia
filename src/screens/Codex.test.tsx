@@ -49,6 +49,17 @@ describe("Codex", () => {
     expect(html.textContent).toMatch(/· not earned yet$/);
   });
 
+  it("an earned chest with a late pick shows that question and its explanation (Review Focus 4)", async () => {
+    const user = userEvent.setup();
+    const late: Picks = { ...picks, "chest-sql": 5 };
+    render(<Codex badges={["chest-sql"]} answered={{ "chest-sql": "x" }} picks={late} team={false} onClose={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: /^SQL Badge/ }));
+    const question = chestChallenge(late, "chest-sql");
+    expect(question.id).toBe("sql-insert");
+    expect(screen.getByText(question.prompt)).toBeInTheDocument();
+    expect(screen.getByText(question.explain)).toBeInTheDocument();
+  });
+
   it("focus starts on the first earned entry, else `[X] CLOSE`; `[X] CLOSE` closes it", async () => {
     const user = userEvent.setup();
     const { onClose } = renderCodex(["chest-sql", "chest-java"]);

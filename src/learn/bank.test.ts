@@ -22,13 +22,26 @@ describe("the question bank and the chest table", () => {
       "chest-cpp-1", "chest-java", "chest-cpp-2", "chest-html", "chest-css",
       "chest-py-1", "chest-php", "chest-sql", "chest-py-2", "chest-cs",
     ]);
-    for (const chest of CHESTS) expect(chest.bank.length, chest.id).toBeGreaterThanOrEqual(BANK_SIZE);
+    for (const chest of CHESTS) expect(chest.bank.length, chest.id).toBe(BANK_SIZE);
     expect(new Set(bankItems.map((c) => c.lang))).toEqual(
       new Set(["html", "css", "php", "sql", "python", "java", "csharp", "cpp"]),
     );
     expect(MATCHER_ROUNDS).toHaveLength(3);
     for (const round of MATCHER_ROUNDS) expect(round.pairs, round.id).toHaveLength(5);
     expect(new Set(bankItems.map((c) => c.id)).size).toBe(bankItems.length);
+  });
+
+  it("six questions per chest, 60 distinct ids, and every pick resolves with the chest's title", () => {
+    expect(BANK_SIZE).toBe(6);
+    expect(bankItems).toHaveLength(60);
+    expect(new Set(bankItems.map((c) => c.id)).size).toBe(60);
+    for (const chest of CHESTS) {
+      for (let pick = 0; pick < BANK_SIZE; pick++) {
+        const challenge = chestChallenge({ ...allZero, [chest.id]: pick }, chest.id);
+        expect(challenge.id, `${chest.id} #${pick}`).toBe(chest.bank[pick].id);
+        expect(challenge.title, chest.id).toBe(`< CODE CHEST: ${chest.badge.toUpperCase()} >`);
+      }
+    }
   });
 
   it("each blank: one gap, one kind of live data, answers pass their own check", () => {

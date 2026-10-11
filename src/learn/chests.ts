@@ -28,7 +28,7 @@ export type Chest = {
 };
 
 /** How many questions each chest holds; each game rolls one of them per chest. */
-export const BANK_SIZE = 3;
+export const BANK_SIZE = 6;
 /** Each chest's rolled question, by index into its bank. */
 export type Picks = Record<ChestId, number>;
 
