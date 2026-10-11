@@ -7,7 +7,7 @@ export const JS_BANK: readonly ChestQuestion[] = [
     lang: "javascript",
     prompt: "Print Hello to the console with its everyday, general-purpose method (not one of the special warning or error ones).",
     code: ['console.___("Hello");'],
-    answers: ["log"],
+    answers: ["log", "info", "debug"],
     caseSensitive: true,
     // Every method on the console object in Node 22 and current browsers.
     live: {
@@ -20,7 +20,7 @@ export const JS_BANK: readonly ChestQuestion[] = [
     },
     blocks: ["log", "warn", "error", "print", "echo"],
     hint: "It shares its name with a ship's diary.",
-    explain: "console.log writes a message to the console. warn and error also print, but they mark the message as a warning or an error; print and echo are not console methods.",
+    explain: "console.log writes a message to the console. warn and error also print, but they mark the message as a warning or an error; print and echo are not console methods. info and debug also print Hello, but log is the standard everyday choice.",
   },
   {
     kind: "blank",

@@ -110,7 +110,8 @@ describe("the question bank and the chest table", () => {
     expect([chest.zone, chest.at, chest.caption, chest.north, chest.where]).toEqual(["forest", { x: 18, y: 78 }, "above", false, "Dense Forest"]);
     expect(chestChallenge({ ...allZero, "chest-js": 0 }, "chest-js").title).toBe("< CODE CHEST: JAVASCRIPT >");
     expect(accepts(byId("js-console-log"), "log")).toBe(true);
-    expect(accepts(byId("js-console-log"), "info")).toBe(false);
+    for (const m of ["info", "debug"]) expect(accepts(byId("js-console-log"), m), m).toBe(true);
+    expect(accepts(byId("js-console-log"), "warn")).toBe(false);
     expect(accepts(byId("js-const"), "const")).toBe(true);
     expect(accepts(byId("js-const"), "let")).toBe(false);
   });
