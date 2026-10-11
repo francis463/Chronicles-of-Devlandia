@@ -60,7 +60,7 @@ From the main menu choose **TEAM LOBBY**, type a nickname and pick a connection:
 - **Online**: players on different devices, over Supabase Realtime (needs internet and a configured project, see below).
 - **Same computer**: browser windows on one device, no internet needed (handy for demos and testing).
 
-One player presses **[ Create Room ]** and reads out the 4-letter room code; the others type it and press **[ Join ]**. The host (the creator) presses **[ Start Expedition ]** once at least 2 players are in. A player who joins after the start drops straight into the game.
+One player presses **[ Create Room ]** and reads out the 4-letter room code; the others type it and press **[ Join ]**. The host (the creator) presses **[ Start Expedition ]** once at least 2 players are in. A player who joins after the start drops straight into the game. 
 
 In the game, teammates appear as colored dots with their names, and the top bar shows `ROOM <CODE> · <N> online`. A teammate in the other zone shows only on the mini-map.
 
