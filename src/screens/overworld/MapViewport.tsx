@@ -5,6 +5,7 @@ import { chestById } from "../../learn/chests";
 import type { ChestId } from "../../learn/types";
 import type { Poi, PoiId, Point } from "../../game/types";
 import type { ZoneId } from "../../game/zones";
+import type { ActivePing } from "../../hooks/usePings";
 import type { Teammate } from "../../hooks/useTeamSession";
 import type { SceneInput } from "../../render/scene";
 import { fitWorld, toArt, type ViewSize, type WorldRect } from "../../render/world";
@@ -99,6 +100,21 @@ function LabelAnchor({
     >
       <span className={`text-outline absolute text-[10px] uppercase tracking-widest whitespace-nowrap ${className}`} style={labelStyle}>
         {label}
+      </span>
+    </div>
+  );
+}
+
+/** A ping: a ring that grows and fades once a second at a point, with the sender's name above it. Decoration only. */
+function PingMarker({ ping }: { ping: ActivePing }) {
+  return (
+    <div data-testid={`ping-${ping.id}`} aria-hidden="true" className="pointer-events-none absolute" style={at(ping)}>
+      <span
+        className="absolute h-7 w-7 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 animate-[ping-ring_1s_ease-out_infinite] motion-reduce:animate-none"
+        style={{ borderColor: ping.color }}
+      />
+      <span className="text-outline absolute -translate-x-1/2 -translate-y-[26px] text-[10px] uppercase tracking-widest whitespace-nowrap" style={{ color: ping.color }}>
+        {ping.name}
       </span>
     </div>
   );
@@ -199,6 +215,7 @@ export function MapViewport({
   matcherSolved,
   archiveOpen,
   teammates = [],
+  pings = [],
   playerColor,
   inRange,
   downed,
@@ -222,6 +239,8 @@ export function MapViewport({
   matcherSolved: boolean;
   archiveOpen: boolean;
   teammates?: Teammate[];
+  /** Team signals in any zone; only this zone's are drawn. */
+  pings?: ActivePing[];
   playerColor?: string;
   inRange: Poi | null;
   downed: boolean;
@@ -385,6 +404,9 @@ export function MapViewport({
             />
           );
         })}
+        {pings.filter((p) => p.zone === zone).map((p) => (
+          <PingMarker key={p.id} ping={p} />
+        ))}
         <LabelAnchor
           testId="drone"
           point={drone}

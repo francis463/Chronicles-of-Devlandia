@@ -56,3 +56,5 @@ body {
 /* Crossing into another zone: the cover over the old map fades out as the new map fades in. */
 @keyframes zone-fade { from { opacity: 1; } to { opacity: 0; } }
 @keyframes zone-in { from { opacity: 0; } to { opacity: 1; } }
+/* A ping ring: grows and fades once a second, never faster. */
+@keyframes ping-ring { from { scale: 0.4; opacity: 1; } to { scale: 1.6; opacity: 0; } }

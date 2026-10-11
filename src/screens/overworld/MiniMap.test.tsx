@@ -124,3 +124,19 @@ describe("mini-map chests", () => {
     expect(cs.style.top).toBe("66%");
   });
 });
+
+describe("mini-map pings", () => {
+  it("draws a ring in its zone's cell at its point, in the sender's colour", () => {
+    const pings = [{ id: "k", name: "Kai", color: "#a78bfa", zone: "village" as const, x: 30, y: 70 }];
+    render(<MiniMap zone="peaks" player={{ x: 28, y: 72 }} artifactFound={false} badges={[]} archiveOpen={false} pings={pings} />);
+    const ring = within(screen.getByTestId("minimap-cell-village")).getByTestId("minimap-ping-k");
+    expect(ring).toHaveStyle({ left: "30%", top: "70%", borderColor: "#a78bfa" });
+    expect(ring.className).toContain("motion-reduce:animate-none");
+    expect(within(screen.getByTestId("minimap-cell-peaks")).queryByTestId("minimap-ping-k")).toBeNull();
+  });
+
+  it("draws none by default", () => {
+    render(<MiniMap zone="peaks" player={{ x: 28, y: 72 }} artifactFound={false} badges={[]} archiveOpen={false} />);
+    expect(screen.queryByTestId(/^minimap-ping-/)).toBeNull();
+  });
+});

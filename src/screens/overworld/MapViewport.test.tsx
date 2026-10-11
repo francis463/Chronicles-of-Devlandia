@@ -298,3 +298,37 @@ describe("MapViewport chests, the Syntax Terminal and the Archive", () => {
     expect(screen.getByRole("button", { name: "HTML chest" })).toHaveAttribute("aria-label", "HTML chest");
   });
 });
+
+describe("MapViewport pings", () => {
+  const ping = (over = {}) => ({ id: "k", name: "Kai", color: "#a78bfa", zone: "peaks" as const, x: 60, y: 40, ...over });
+
+  it("draws a ring and the sender's name at the point, never taking clicks", () => {
+    render(<MapViewport {...props({ pings: [ping()] })} />);
+    const marker = screen.getByTestId("ping-k");
+    expect(marker).toHaveAttribute("aria-hidden", "true");
+    expect(marker.className).toContain("pointer-events-none");
+    expect(marker).toHaveStyle({ left: "60%", top: "40%" });
+    expect(within(marker).getByText("Kai")).toHaveStyle({ color: "#a78bfa" });
+  });
+
+  it("makes the ring grow once a second and stand still under reduced motion", () => {
+    render(<MapViewport {...props({ pings: [ping()] })} />);
+    const ring = screen.getByTestId("ping-k").querySelector(".rounded-full")!;
+    expect(ring.className).toContain("border-2");
+    expect(ring.className).toContain("animate-[ping-ring_1s_ease-out_infinite]");
+    expect(ring.className).toContain("motion-reduce:animate-none");
+    expect(ring).toHaveStyle({ borderColor: "#a78bfa" });
+  });
+
+  it("draws only pings in the zone you are in", () => {
+    const { rerender } = render(<MapViewport {...props({ pings: [ping({ zone: "village" })] })} />);
+    expect(screen.queryByTestId("ping-k")).toBeNull();
+    rerender(<MapViewport {...props({ zone: "village", pings: [ping({ zone: "village" })] })} />);
+    expect(screen.getByTestId("ping-k")).toBeInTheDocument();
+  });
+
+  it("draws no pings by default", () => {
+    render(<MapViewport {...props()} />);
+    expect(screen.queryByTestId(/^ping-/)).toBeNull();
+  });
+});

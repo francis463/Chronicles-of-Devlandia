@@ -3,6 +3,7 @@ import { ADA, ARCHIVE, HIDDEN_ARTIFACT, POIS, SIGNPOST } from "../../game/consta
 import { WALL_Y } from "../../game/wall";
 import type { Poi, Point } from "../../game/types";
 import type { ZoneId } from "../../game/zones";
+import type { ActivePing } from "../../hooks/usePings";
 import type { Teammate } from "../../hooks/useTeamSession";
 import { CHESTS } from "../../learn/chests";
 import type { ChestId } from "../../learn/types";
@@ -103,6 +104,7 @@ export function MiniMap({
   player,
   artifactFound,
   teammates = [],
+  pings = [],
   playerColor,
   badges,
   archiveOpen,
@@ -116,6 +118,7 @@ export function MiniMap({
   /** The C# chest's diamond shows at the Archive once it is open. */
   archiveOpen: boolean;
   teammates?: Teammate[];
+  pings?: ActivePing[];
   playerColor?: string;
   className?: string;
 }) {
@@ -146,6 +149,16 @@ export function MiniMap({
                   data-testid={`minimap-teammate-${t.name}`}
                   className="absolute h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-[250ms] ease-linear"
                   style={{ ...at(t), background: t.color }}
+                />
+              ))}
+            {pings
+              .filter((p) => p.zone === cell.zone)
+              .map((p) => (
+                <div
+                  key={p.id}
+                  data-testid={`minimap-ping-${p.id}`}
+                  className="absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border animate-[ping-ring_1s_ease-out_infinite] motion-reduce:animate-none"
+                  style={{ ...at(p), borderColor: p.color }}
                 />
               ))}
             {cell.zone === zone && (
