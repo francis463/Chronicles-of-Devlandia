@@ -103,10 +103,31 @@ describe("decorations", () => {
   it("no scenery stands in the corridor beyond an exit", () => {
     const west = decorations(VIEW, PEAKS).filter((d) => boxOf(d).x + boxOf(d).w <= 0);
     expect(west.length).toBeGreaterThan(0);
-    for (const d of west) expect(intersects(boxOf(d), PEAKS.corridor), key(d)).toBe(false);
+    for (const d of west) expect(PEAKS.corridors.some((c) => intersects(boxOf(d), c)), key(d)).toBe(false);
     const east = decorations(VIEW, VILLAGE).filter((d) => boxOf(d).x >= WORLD.width);
     expect(east.length).toBeGreaterThan(0);
-    for (const d of east) expect(intersects(boxOf(d), VILLAGE.corridor), key(d)).toBe(false);
+    for (const d of east) expect(VILLAGE.corridors.some((c) => intersects(boxOf(d), c)), key(d)).toBe(false);
+  });
+
+  it("an area with a second, bottom exit leaves a gap in the bottom hedge and no scenery in its corridor", () => {
+    const mouth: Rect = { x: 192, y: 148, w: 64, h: 32 };
+    const corridor: Rect = { x: 192, y: 180, w: 64, h: 1000 };
+    // A copy of the Peaks under a new id, so its memo is its own.
+    const south = { ...PEAKS, id: "village" as const, mouths: [...PEAKS.mouths, mouth], corridors: [...PEAKS.corridors, corridor] };
+    const plain = { ...PEAKS, id: "village" as const };
+    const bottomRow = (area: typeof PEAKS) =>
+      decorations(VIEW, area).filter((d) => intersects(boxOf(d), WORLD_RECT) && !intersects(boxOf(d), REACHABLE_RECT) && d.at.y === WORLD.height - 1);
+    const withGap = bottomRow(south);
+    const without = bottomRow(plain);
+    expect(without.length).toBeGreaterThan(withGap.length);
+    for (const d of withGap) expect(intersects(boxOf(d), mouth), key(d)).toBe(false);
+    expect(without.some((d) => intersects(boxOf(d), mouth))).toBe(true);
+    // Pieces away from the mouth are untouched.
+    const away = (list: typeof withGap) => list.filter((d) => !intersects(boxOf(d), mouth)).map(key);
+    expect(away(withGap)).toEqual(away(without));
+    const below = decorations(VIEW, south).filter((d) => boxOf(d).y >= WORLD.height);
+    expect(below.length).toBeGreaterThan(0);
+    for (const d of below) expect(intersects(boxOf(d), corridor), key(d)).toBe(false);
   });
 
   it("the village guards the Archive, the Syntax Terminal and its chests; the Peaks guard theirs", () => {

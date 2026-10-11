@@ -10,4 +10,11 @@ describe("areas", () => {
     expect(VILLAGE_POINTS.signpost).toEqual(toArt(SIGNPOST));
     expect(AREAS.peaks.id).toBe("peaks");
   });
+
+  it("every area lists its exit mouths and corridors, each with the same count", () => {
+    for (const area of Object.values(AREAS)) {
+      expect(area.mouths.length, area.id).toBeGreaterThan(0);
+      expect(area.corridors, area.id).toHaveLength(area.mouths.length);
+    }
+  });
 });

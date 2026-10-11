@@ -8,16 +8,16 @@ export type TerrainKind = "ice" | "mountains" | "snow" | "forest" | "meadow";
 export type Prop = { sprite: SpriteId; at: ArtPoint; variant?: string };
 
 /**
- * One zone's art. `mouth`: the gap in the edge hedge at its exit; `corridor`: the open ground
- * beyond it, kept clear of scenery; `gateBox`: where the wall leaves room for the gate;
+ * One zone's art. `mouths`: the gaps in the edge hedge at its exits; `corridors`: the open ground
+ * beyond each, kept clear of scenery (one per mouth, in the same order); `gateBox`: where the wall leaves room for the gate;
  * `protected`: what decorations inside the reachable area must stay clear of.
  */
 export type Area = {
   id: ZoneId;
   terrainAt(x: number, y: number): TerrainKind;
   paths: Rect[];
-  mouth: Rect;
-  corridor: Rect;
+  mouths: Rect[];
+  corridors: Rect[];
   gateBox: Rect | null;
   ice: Rect | null;
   props: Prop[];
