@@ -47,10 +47,10 @@ describe("App", () => {
     expect(screen.getByText("v1.0 | Online Network")).toBeInTheDocument();
   });
 
-  it("enables Team Lobby and keeps Settings as coming soon", async () => {
+  it("enables Team Lobby and keeps Leaderboards as coming soon", async () => {
     const user = userEvent.setup();
     render(<App />);
-    expect(screen.getByRole("button", { name: /settings/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /leaderboards/i })).toBeDisabled();
     expect(screen.getAllByText(/coming soon/i)).toHaveLength(1);
     await user.click(screen.getByRole("button", { name: /team lobby/i }));
     expect(screen.getByRole("heading", { name: "TEAM LOBBY" })).toBeInTheDocument();
@@ -73,10 +73,10 @@ describe("App", () => {
     expect(main().className.split(/\s+/)).toContain("md:p-2");
   });
 
-  it("the main menu offers Solo Quest, Team Lobby and Settings, with no Exit Game", () => {
+  it("the main menu offers Solo Quest, Team Lobby and Leaderboards, with no Exit Game", () => {
     render(<App />);
     const menu = within(screen.getByRole("navigation", { name: "Main menu" }));
-    expect(menu.getAllByRole("button").map((b) => b.textContent)).toEqual(["Solo Quest", "Team Lobby", "SettingsComing soon"]);
+    expect(menu.getAllByRole("button").map((b) => b.textContent)).toEqual(["Solo Quest", "Team Lobby", "LeaderboardsComing soon"]);
     expect(screen.queryByRole("button", { name: /exit game/i })).toBeNull();
   });
 });

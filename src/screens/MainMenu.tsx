@@ -40,7 +40,7 @@ export function MainMenu({
           <Button className="w-full" onClick={onTeamLobby}>
             Team Lobby
           </Button>
-          <ComingSoon label="Settings" />
+          <ComingSoon label="Leaderboards" />
         </nav>
 
         <footer className="mt-12 flex w-full flex-wrap justify-between gap-2 text-xs text-[var(--text-muted)]">
