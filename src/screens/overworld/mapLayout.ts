@@ -166,6 +166,9 @@ export const MAP_CAPTIONS = [
   { id: "village", zone: "village", at: { x: 40, y: 4 }, align: "centre" },
   { id: "west-exit", zone: "peaks", at: { x: 1, y: 88 }, align: "left-centre" },
   { id: "east-exit", zone: "village", at: { x: 99, y: 88 }, align: "right-centre" },
+  { id: "south-exit", zone: "peaks", at: { x: 50, y: 99 }, align: "right-bottom" },
+  { id: "dense-forest", zone: "forest", at: { x: 40, y: 4 }, align: "centre" },
+  { id: "north-exit", zone: "forest", at: { x: 70, y: 18 }, align: "centre" },
 ] as const satisfies ReadonlyArray<{ id: string; zone: ZoneId; at: Point; align: "centre" | "right-bottom" | "left-centre" | "right-centre" }>;
 export type MapCaptionId = (typeof MAP_CAPTIONS)[number]["id"];
 
@@ -187,16 +190,18 @@ export function mapCaptionRect(id: MapCaptionId, text: string, world: WorldRect)
 }
 
 /** Each zone's exit sign: which caption it is and what it says. */
-export const EXIT_SIGNS: Record<ZoneId, { id: MapCaptionId; text: string }> = {
-  peaks: { id: "west-exit", text: "← Dev Village" },
-  village: { id: "east-exit", text: "C++ Peaks →" },
+export const EXIT_SIGNS: Record<ZoneId, ReadonlyArray<{ id: MapCaptionId; text: string }>> = {
+  peaks: [
+    { id: "west-exit", text: "← Dev Village" },
+    { id: "south-exit", text: "Forest ↓" },
+  ],
+  village: [{ id: "east-exit", text: "C++ Peaks →" }],
+  forest: [{ id: "north-exit", text: "↑ C++ Peaks" }],
 };
 
-/** A zone's exit sign as world-layer edges, for labelLayout to avoid. */
-export const exitSignBox = (world: WorldRect, zone: ZoneId): Edges => {
-  const sign = EXIT_SIGNS[zone];
-  return toEdges(mapCaptionRect(sign.id, sign.text, world), world);
-};
+/** A zone's exit signs as world-layer edges, for labelLayout to avoid. */
+export const exitSignBox = (world: WorldRect, zone: ZoneId): Edges[] =>
+  EXIT_SIGNS[zone].map((sign) => toEdges(mapCaptionRect(sign.id, sign.text, world), world));
 
 /** The [E] prompt: 4 px above your head, or 4 px below your feet when there is no room above. */
 export function promptRect(text: string, player: ArtPoint, world: WorldRect, map: MapArea): CssRect & { below: boolean } {

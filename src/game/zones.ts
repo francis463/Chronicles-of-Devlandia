@@ -2,7 +2,7 @@ import { CHESTS } from "../learn/chests";
 import { ADA, ARCHIVE, BOUNDS, LOG, POIS, SIGNPOST, TERMINAL } from "./constants";
 import type { Poi, PoiId, Point } from "./types";
 
-export type ZoneId = "peaks" | "village";
+export type ZoneId = "peaks" | "village" | "forest";
 
 /**
  * Where a zone's edge opens onto its neighbour. `min`/`max` are the rows (inclusive) a horizontal step
@@ -11,10 +11,10 @@ export type ZoneId = "peaks" | "village";
 export type Exit = { edge: "west" | "east" | "south" | "north"; min: number; max: number; to: ZoneId };
 
 /**
- * One screen of the world. `gate`: the wall there has the gate's opening (otherwise it is solid
- * everywhere); `river`: the frozen river's cold and survey apply there.
+ * One screen of the world. `wall`: the north wall runs across it; `gate`: that wall has the gate's opening
+ * (otherwise it is solid everywhere); `river`: the frozen river's cold and survey apply there.
  */
-export type Zone = { id: ZoneId; name: string; entered: string; exits: Exit[]; gate: boolean; places: Poi[]; river: boolean };
+export type Zone = { id: ZoneId; name: string; entered: string; exits: Exit[]; wall: boolean; gate: boolean; places: Poi[]; river: boolean };
 
 /** A zone's outdoor language chests as places, labelled `<Badge> Chest`, in the chest table's order. */
 export function chestPlaces(zone: ZoneId): Poi[] {
@@ -26,7 +26,11 @@ export const ZONES: Record<ZoneId, Zone> = {
     id: "peaks",
     name: "C++ Peaks",
     entered: LOG.enteredPeaks,
-    exits: [{ edge: "west", min: 62, max: 78, to: "village" }],
+    exits: [
+      { edge: "west", min: 62, max: 78, to: "village" },
+      { edge: "south", min: 62, max: 78, to: "forest" },
+    ],
+    wall: true,
     gate: true,
     places: [...POIS, ...chestPlaces("peaks")],
     river: true,
@@ -36,8 +40,19 @@ export const ZONES: Record<ZoneId, Zone> = {
     name: "Dev Village",
     entered: LOG.enteredVillage,
     exits: [{ edge: "east", min: 62, max: 78, to: "peaks" }],
+    wall: true,
     gate: false,
     places: [ADA, SIGNPOST, TERMINAL, ARCHIVE, ...chestPlaces("village")],
+    river: false,
+  },
+  forest: {
+    id: "forest",
+    name: "Dense Forest",
+    entered: LOG.enteredForest,
+    exits: [{ edge: "north", min: 62, max: 78, to: "peaks" }],
+    wall: false,
+    gate: false,
+    places: [],
     river: false,
   },
 };

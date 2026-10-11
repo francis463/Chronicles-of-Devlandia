@@ -24,7 +24,7 @@ const touchesWall = (r: Rect) => r.y <= WALL_FEET && r.y + r.h - 1 >= WALL_RECT.
 
 /** Art points of the wall tiles whose 16 × 10 boxes intersect `range`: one every 16 px, none over the area's gate. */
 export function wallTiles(range: Rect, area: Area = PEAKS): ArtPoint[] {
-  if (!touchesWall(range)) return [];
+  if (!area.wall || !touchesWall(range)) return [];
   const tiles: ArtPoint[] = [];
   for (let k = Math.floor(range.x / WALL_TILE); k * WALL_TILE <= range.x + range.w - 1; k++) {
     const at = { x: k * WALL_TILE + WALL_TILE / 2, y: WALL_FEET };
@@ -112,7 +112,7 @@ function candidate(cx: number, cy: number, area: Area): Candidate | null {
   const box = spriteBox(sprite, at);
   const r0 = REACHABLE_RECT;
   const insideWalls = box.x >= r0.x && box.x + box.w <= r0.x + r0.w && at.y < r0.y + r0.h;
-  if (!insideWalls || touchesWall(grow(box, 4)) || area.protected.some((p) => intersects(grow(box, 4), p))) return null;
+  if (!insideWalls || (area.wall && touchesWall(grow(box, 4))) || area.protected.some((p) => intersects(grow(box, 4), p))) return null;
   return { sprite, at, priority: r[4], interior: true };
 }
 

@@ -141,6 +141,7 @@ describe("validation of teammate input", () => {
   it("zones are parsed leniently and never drop a teammate", () => {
     expect(parsePresence({ ...meta("a", 1), zone: undefined }, NOW)?.zone).toBe("peaks");
     expect(parsePresence({ ...meta("a", 1), zone: "village" }, NOW)?.zone).toBe("village");
+    expect(parsePresence({ ...meta("a", 1), zone: "forest" }, NOW)?.zone).toBe("forest");
     const future = parsePresence({ ...meta("a", 1), zone: "marsh" }, NOW);
     expect(future).not.toBeNull();
     expect(future?.zone).toBeNull();
@@ -241,5 +242,24 @@ describe("team: chat and ping messages", () => {
   it("older clients' messages are unaffected, and an unknown type is still ignored", () => {
     expect(parseMessage({ type: "chat2", id: "a" }, NOW)).toBeNull();
     expect(parseMessage({ type: "pos", id: "a", x: 40, y: 50, zone: "peaks" }, NOW)).toEqual({ type: "pos", id: "a", x: 40, y: 50, zone: "peaks" });
+  });
+});
+
+describe("the Dense Forest in team messages (Review Focus 2)", () => {
+  it("a pos in the forest is accepted, and a zone we don't know is still null, never a drop", () => {
+    expect(parseMessage({ type: "pos", id: "a", x: 20, y: 20, zone: "forest" }, NOW)).toEqual({ type: "pos", id: "a", x: 20, y: 20, zone: "forest" });
+    expect(parseMessage({ type: "pos", id: "a", x: 20, y: 20, zone: "mars" }, NOW)).toEqual({ type: "pos", id: "a", x: 20, y: 20, zone: null });
+  });
+
+  it("a spot ping in the forest is accepted", () => {
+    expect(parseMessage({ type: "ping", id: "a", name: "Kai", zone: "forest", x: 30, y: 40, place: null }, NOW)).toEqual({
+      type: "ping",
+      id: "a",
+      name: "Kai",
+      zone: "forest",
+      x: 30,
+      y: 40,
+      place: null,
+    });
   });
 });

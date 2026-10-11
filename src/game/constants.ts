@@ -65,6 +65,7 @@ export const LOG = {
   wallSolid: "The wall is solid here. Go through the gate.",
   enteredPeaks: "Entered C++ Peaks.",
   enteredVillage: "Entered Dev Village.",
+  enteredForest: "Entered Dense Forest.",
   badge: (badge: string) => `Earned the ${badge} Badge.`,
   matcher: (code: string) => `Syntax Terminal: access code ${code}.`,
   archiveUnsealed: "Archive unsealed.",

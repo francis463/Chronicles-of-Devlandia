@@ -22,6 +22,10 @@ const PATH_RECTS: Rect[] = PATH.slice(1).map((b, i) => {
 });
 /** The path from the start west, out through the hedge's gap and on to the village. */
 const WEST_PATH: Rect = { x: -1003, y: 127, w: 1096, h: 6 };
+/** The south exit: a gap in the bottom hedge (game columns 62–78), the open ground beyond it, and the path that runs out through it. */
+const SOUTH_MOUTH: Rect = { x: 192, y: 148, w: 64, h: 32 };
+const SOUTH_CORRIDOR: Rect = { x: 192, y: 180, w: 64, h: 1000 };
+const SOUTH_PATH: Rect = { x: 204, y: 112, w: 6, h: 1068 };
 
 /** Art points of the landmarks, the dig spot and the start. */
 export const LANDMARK_POINTS = {
@@ -45,10 +49,11 @@ const p = LANDMARK_POINTS;
 
 export const PEAKS: Area = {
   id: "peaks",
+  wall: true,
   terrainAt,
-  paths: [...PATH_RECTS, WEST_PATH],
-  mouths: [MOUTH],
-  corridors: [{ x: -1000, y: 112, w: 1000, h: 32 }],
+  paths: [...PATH_RECTS, WEST_PATH, SOUTH_PATH],
+  mouths: [MOUTH, SOUTH_MOUTH],
+  corridors: [{ x: -1000, y: 112, w: 1000, h: 32 }, SOUTH_CORRIDOR],
   gateBox: spriteBox("gate", p.gate),
   ice: ICE_RECT,
   props: [],
@@ -64,6 +69,8 @@ export const PEAKS: Area = {
     ...[p.start, p.dig, p.tower, p.chest, p.gate].map((at) => spriteBox("explorer-down", at)),
     MOUTH,
     WEST_PATH,
+    SOUTH_MOUTH,
+    SOUTH_PATH,
     ...chestPoints("peaks").map(({ at }) => spriteBox("code-chest", at)),
   ],
 };

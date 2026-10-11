@@ -11,6 +11,37 @@ describe("areas", () => {
     expect(AREAS.peaks.id).toBe("peaks");
   });
 
+  it("the forest is an area, with a mouth in its top edge and a clear corridor above it", () => {
+    expect(AREAS.forest.id).toBe("forest");
+    expect(AREAS.forest.mouths).toEqual([{ x: 192, y: 0, w: 64, h: 32 }]);
+    expect(AREAS.forest.corridors).toEqual([{ x: 192, y: -1000, w: 64, h: 1000 }]);
+    expect(AREAS.forest.gateBox).toBeNull();
+    expect(AREAS.forest.ice).toBeNull();
+  });
+
+  it("the forest is forest-floor everywhere but a meadow clearing, with no snow and no ice", () => {
+    const { terrainAt } = AREAS.forest;
+    expect(terrainAt(10, 10)).toBe("forest");
+    expect(terrainAt(300, 170)).toBe("forest");
+    expect(terrainAt(170, 120)).toBe("meadow");
+    for (const [x, y] of [[0, 0], [160, 90], [319, 179], [-50, -50], [400, 300]]) expect(["forest", "meadow"]).toContain(terrainAt(x, y));
+  });
+
+  it("the wall flag: the Peaks and the village have a wall, the forest does not", () => {
+    expect([AREAS.peaks.wall, AREAS.village.wall, AREAS.forest.wall]).toEqual([true, true, false]);
+  });
+
+  it("the forest's path runs from its north mouth to the clearing and on to the south-east corner", () => {
+    const on = (x: number, y: number) => AREAS.forest.paths.some((r) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h);
+    for (const [x, y] of [[206, 0], [206, 60], [206, 99], [180, 99], [152, 110], [206, 120], [250, 144], [-0 + 206, -500]]) expect(on(x, y), `${x},${y}`).toBe(true);
+    expect(on(100, 20)).toBe(false);
+  });
+
+  it("every mouth touches the edge of the world it opens onto, and has its corridor beyond it", () => {
+    const touches = (r: { x: number; y: number; w: number; h: number }) => r.x <= 0 || r.y <= 0 || r.x + r.w >= 320 || r.y + r.h >= 180;
+    for (const area of Object.values(AREAS)) for (const m of area.mouths) expect(touches(m), `${area.id} ${JSON.stringify(m)}`).toBe(true);
+  });
+
   it("every area lists its exit mouths and corridors, each with the same count", () => {
     for (const area of Object.values(AREAS)) {
       expect(area.mouths.length, area.id).toBeGreaterThan(0);

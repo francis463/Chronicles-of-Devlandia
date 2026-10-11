@@ -14,6 +14,8 @@ export type Prop = { sprite: SpriteId; at: ArtPoint; variant?: string };
  */
 export type Area = {
   id: ZoneId;
+  /** Whether the north wall runs across this zone. */
+  wall: boolean;
   terrainAt(x: number, y: number): TerrainKind;
   paths: Rect[];
   mouths: Rect[];

@@ -406,6 +406,19 @@ describe("Overworld team chat", () => {
     expect(lines(ana)).not.toHaveTextContent("fuck");
   });
 
+  it("a teammate who walks south into the Dense Forest shows in its mini-map cell, in the log and in /where (Review Focus 2)", async () => {
+    const { user, ana, kai } = await startedPair();
+    for (let i = 0; i < 10; i++) await user.click(kai.getByRole("button", { name: "Move right" }));
+    for (let i = 0; i < 6; i++) await user.click(kai.getByRole("button", { name: "Move down" }));
+    act(() => vi.advanceTimersByTime(POS_INTERVAL_MS * 2));
+    expect(kai.getByText("REGION: DENSE FOREST")).toBeInTheDocument();
+    expect(within(ana.getByTestId("minimap-cell-forest")).getByTestId("minimap-teammate-Kai")).toBeInTheDocument();
+    expect(ana.queryByTestId("teammate-Kai")).toBeNull();
+    expect(countIn(logText(ana), "Kai went to Dense Forest.")).toBe(1);
+    await say(user, ana, "/where");
+    expect(lines(ana)).toHaveTextContent("Kai: Dense Forest");
+  });
+
   it("/where follows a teammate into the village", async () => {
     const { user, ana, kai } = await startedPair();
     for (let i = 0; i < 6; i++) await user.click(kai.getByRole("button", { name: "Move left" }));

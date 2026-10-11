@@ -6,7 +6,7 @@ import { NO_FLAGS } from "./team";
 import { HIDDEN_ARTIFACT, INTERACT_RADIUS, LOG, PLAYER_START, POIS } from "./constants";
 import { cardFor } from "./cards";
 import { isNorthOfWall } from "./wall";
-import type { ZoneId } from "./zones";
+import { ZONES, type ZoneId } from "./zones";
 
 const s0 = initialState;
 /** A freshly opened terminal for a target, as the reducer opens it. */
@@ -428,7 +428,7 @@ describe("gameReducer: the north wall", () => {
         for (const dir of ["up", "down", "left", "right"] as const) {
           const next = gameReducer({ ...s0, gateUnlocked, zone: p.zone, player: p.player }, { type: "move", dir });
           const q: Spot = { zone: next.zone, player: next.player };
-          if (q.zone === p.zone && isNorthOfWall(q.player) !== isNorthOfWall(p.player)) crossings.push(p);
+          if (q.zone === p.zone && ZONES[q.zone].wall && isNorthOfWall(q.player) !== isNorthOfWall(p.player)) crossings.push(p);
           if (!seen.has(key(q))) {
             seen.set(key(q), q);
             queue.push(q);
@@ -444,7 +444,7 @@ describe("gameReducer: the north wall", () => {
     const locked = reachable(false);
     expect([poi("tower"), poi("chest"), poi("river")].map((t) => inReach(locked.peaks, t))).toEqual([false, false, false]);
     expect([poi("gate"), HIDDEN_ARTIFACT].map((t) => inReach(locked.peaks, t))).toEqual([true, true]);
-    expect(locked.spots.some((s) => s.player.y < 49)).toBe(false);
+    expect(locked.spots.some((s) => ZONES[s.zone].wall && s.player.y < 49)).toBe(false);
     expect(locked.spots.some((s) => s.zone === "village")).toBe(true);
 
     const open = reachable(true);
@@ -828,5 +828,50 @@ describe("gameReducer: teammates close stale terminals (Review Focus 1)", () => 
   it("a teammate's other progress leaves your terminal open", () => {
     const open: GameState = { ...s0, challenge: openOn("gate") };
     expect(gameReducer(open, { type: "teamSync", flags: { ...NO_FLAGS, hasLoot: true }, by: "Ana" }).challenge).toEqual(openOn("gate"));
+  });
+});
+
+describe("gameReducer: the Dense Forest (Review Focus 1 and 5)", () => {
+  const down = { type: "move", dir: "down" } as const;
+  const up = { type: "move", dir: "up" } as const;
+
+  it("down from (70, 90) in the Peaks enters the forest at (70, 10) with the drone behind", () => {
+    const s = gameReducer({ ...s0, player: { x: 70, y: 90 } }, down);
+    expect(s.zone).toBe("forest");
+    expect(s.player).toEqual({ x: 70, y: 10 });
+    expect(s.drone).toEqual({ x: 68, y: 18 });
+    expect(s.stamina).toBe(s0.stamina - 1);
+    expect(s.inspected).toBeNull();
+    expect(lastLog(s)).toBe("Entered Dense Forest.");
+  });
+
+  it("up from (70, 10) in the forest returns to the Peaks at (70, 90)", () => {
+    const s = gameReducer({ ...s0, zone: "forest", player: { x: 70, y: 10 } }, up);
+    expect(s.zone).toBe("peaks");
+    expect(s.player).toEqual({ x: 70, y: 90 });
+    expect(lastLog(s)).toBe("Entered C++ Peaks.");
+  });
+
+  it("a column outside the span stays in the Peaks, clamped at the edge", () => {
+    for (const x of [58, 82]) {
+      const s = gameReducer({ ...s0, player: { x, y: 90 } }, down);
+      expect([s.zone, s.player], `x ${x}`).toEqual(["peaks", { x, y: 90 }]);
+    }
+    expect(gameReducer({ ...s0, zone: "forest", player: { x: 58, y: 10 } }, up).zone).toBe("forest");
+  });
+
+  it("the forest has no wall: y 48 and y 52 are one free step apart, with no wall log", () => {
+    const north = gameReducer({ ...s0, zone: "forest", player: { x: 70, y: 52 } }, up);
+    expect(north.player).toEqual({ x: 70, y: 48 });
+    const south = gameReducer(north, down);
+    expect(south.player).toEqual({ x: 70, y: 52 });
+    expect(south.logs).toEqual(s0.logs);
+  });
+
+  it("the river's cold never applies in the forest, and a downed player respawns at the Peaks camp", () => {
+    const onIce: GameState = { ...s0, zone: "forest", player: { x: 50, y: 33 } };
+    expect(gameReducer(onIce, { type: "riverDamage" })).toBe(onIce);
+    const s = gameReducer({ ...s0, zone: "forest", hp: 0, player: { x: 60, y: 70 } }, { type: "respawn" });
+    expect([s.zone, s.player, s.drone]).toEqual(["peaks", { x: 28, y: 72 }, { x: 36, y: 70 }]);
   });
 });

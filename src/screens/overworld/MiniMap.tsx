@@ -32,9 +32,10 @@ export function paintMiniTerrain(ctx: Ctx2D, width: number, height: number, zone
   const wallTop = Math.round((WALL_Y / 100) * height);
   const wallRows = Math.max(1, Math.round(height / 96));
   const gate = area.gateBox;
+  const wall = area.wall;
   for (let y = 0; y < height; y++) {
     const ay = Math.round((y / height) * WORLD.height);
-    const onWall = y >= wallTop && y < wallTop + wallRows;
+    const onWall = wall && y >= wallTop && y < wallTop + wallRows;
     let start = 0;
     let color = "";
     for (let x = 0; x <= width; x++) {
@@ -53,12 +54,14 @@ export function paintMiniTerrain(ctx: Ctx2D, width: number, height: number, zone
   }
 }
 
-const CELL_W = 96; // w-24
-const CELL_H = 54;
-/** The world map, west to east. */
+const CELL_W = 64; // w-16
+const CELL_H = 36; // h-9: 16:9, centred in the box's 54 px (9 px above and below)
+const CELL_TOP = 9;
+/** The world map, west to east. The forest lies south of the Peaks; the cells keep one row to fit the sidebar. */
 const CELLS: Array<{ zone: ZoneId; left: number; places: Poi[] }> = [
   { zone: "village", left: 0, places: [ADA, SIGNPOST] },
   { zone: "peaks", left: CELL_W, places: POIS },
+  { zone: "forest", left: 2 * CELL_W, places: [] },
 ];
 
 const at = (p: Point) => ({ left: `${p.x}%`, top: `${p.y}%` });
@@ -90,7 +93,7 @@ function MiniCell({ zone, left, current, children }: { zone: ZoneId; left: numbe
     paintMiniTerrain(ctx, canvas.width, canvas.height, zone);
   }, [zone]);
   return (
-    <div data-testid={`minimap-cell-${zone}`} data-current={current ? "true" : undefined} className="absolute top-0 h-[54px] w-24" style={{ left }}>
+    <div data-testid={`minimap-cell-${zone}`} data-current={current ? "true" : undefined} className="absolute h-9 w-16" style={{ left, top: CELL_TOP }}>
       <canvas ref={terrain} aria-hidden="true" className="absolute inset-0 h-full w-full" />
       {/* An overlay, not the cell's own shadow: the opaque canvas would paint over that. */}
       {current && <div aria-hidden="true" data-testid="minimap-current" className="pointer-events-none absolute inset-0 shadow-[inset_0_0_0_1px_var(--accent)]" />}

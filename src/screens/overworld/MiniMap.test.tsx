@@ -62,7 +62,7 @@ describe("mini-map terrain", () => {
     render(<MiniMap zone="peaks" player={{ x: 28, y: 72 }} artifactFound={false} teammates={[{ id: "k", name: "Kai", color: "#a78bfa", x: 60, y: 60, zone: "peaks" }]} badges={[]} archiveOpen={false} />);
     const box = screen.getByRole("img", { name: "Mini-map" });
     const canvases = [...box.querySelectorAll("canvas")];
-    expect(canvases).toHaveLength(2);
+    expect(canvases).toHaveLength(3);
     for (const canvas of canvases) {
       expect(canvas).toHaveAttribute("aria-hidden", "true");
       expect(canvas.parentElement!.firstElementChild).toBe(canvas);
@@ -71,14 +71,22 @@ describe("mini-map terrain", () => {
     expect(box.querySelector(".border-dashed")).toBeNull();
   });
 
-  it("draws two cells, Village on the left and Peaks on the right, and outlines yours", () => {
+  it("draws three cells in a row, Village, Peaks and Forest, each 64 × 36 and centred, and outlines yours", () => {
     render(<MiniMap zone="village" player={{ x: 50, y: 70 }} artifactFound={false} badges={[]} archiveOpen={false} />);
     const village = screen.getByTestId("minimap-cell-village");
     const peaks = screen.getByTestId("minimap-cell-peaks");
     expect(village.style.left).toBe("0px");
     expect(village).toHaveAttribute("data-current", "true");
     expect(within(village).getByTestId("minimap-current")).toBeInTheDocument();
-    expect(peaks.style.left).toBe("96px");
+    expect(peaks.style.left).toBe("64px");
+    const forest = screen.getByTestId("minimap-cell-forest");
+    expect(forest.style.left).toBe("128px");
+    for (const cell of [village, peaks, forest]) {
+      expect(cell.className).toContain("w-16");
+      expect(cell.className).toContain("h-9");
+      expect(cell.style.top).toBe("9px");
+    }
+    expect(forest).not.toHaveAttribute("data-current");
     expect(peaks).not.toHaveAttribute("data-current");
     expect(within(peaks).queryByTestId("minimap-current")).toBeNull();
   });
@@ -138,5 +146,28 @@ describe("mini-map pings", () => {
   it("draws none by default", () => {
     render(<MiniMap zone="peaks" player={{ x: 28, y: 72 }} artifactFound={false} badges={[]} archiveOpen={false} />);
     expect(screen.queryByTestId(/^minimap-ping-/)).toBeNull();
+  });
+});
+
+describe("mini-map: the Dense Forest cell", () => {
+  it("shows a teammate and a ping in the forest, and outlines it when you are there", () => {
+    const teammates = [{ id: "k", name: "Kai", color: "#a78bfa", x: 60, y: 60, zone: "forest" as const }];
+    const pings = [{ id: "k", name: "Kai", color: "#a78bfa", zone: "forest" as const, x: 30, y: 70 }];
+    render(<MiniMap zone="forest" player={{ x: 50, y: 20 }} artifactFound={false} badges={[]} archiveOpen={false} teammates={teammates} pings={pings} />);
+    const forest = screen.getByTestId("minimap-cell-forest");
+    expect(forest).toHaveAttribute("data-current", "true");
+    expect(within(forest).getByTestId("minimap-player")).toBeInTheDocument();
+    expect(within(forest).getByTestId("minimap-teammate-Kai")).toBeInTheDocument();
+    expect(within(forest).getByTestId("minimap-ping-k")).toBeInTheDocument();
+    expect(within(screen.getByTestId("minimap-cell-peaks")).queryByTestId("minimap-teammate-Kai")).toBeNull();
+  });
+
+  it("paints the forest from its area: forest floor, a meadow clearing, and no wall line", () => {
+    const calls: Array<{ color: string; y: number }> = [];
+    let color = "";
+    const ctx = { set fillStyle(v: string) { color = v; }, fillRect: (_x: number, y: number) => void calls.push({ color, y }) } as unknown as Ctx2D;
+    paintMiniTerrain(ctx, 64, 36, "forest");
+    const colors = new Set(calls.map((c) => c.color));
+    expect(colors).toEqual(new Set([MINI_COLORS.forest, MINI_COLORS.meadow]));
   });
 });

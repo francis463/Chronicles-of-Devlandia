@@ -197,11 +197,14 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         );
       }
       const player = clampPlayer(target);
-      const block = ZONES[state.zone].gate
-        ? wallBlock(state.player, player, state.gateUnlocked)
-        : crossesWall(state.player, player)
-          ? "solid"
-          : null;
+      const zone = ZONES[state.zone];
+      const block = !zone.wall
+        ? null
+        : zone.gate
+          ? wallBlock(state.player, player, state.gateUnlocked)
+          : crossesWall(state.player, player)
+            ? "solid"
+            : null;
       if (block) return pushLogOnce(state, block === "locked" ? LOG.wallLocked : LOG.wallSolid);
       const next = { ...state, player, stamina: Math.max(0, state.stamina - 1) };
       if (!state.questComplete && inRiver({ ...state, player })) {
