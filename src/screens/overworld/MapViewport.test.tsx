@@ -1,7 +1,23 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { createElement } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POIS } from "../../game/constants";
+import type { SceneInput } from "../../render/scene";
 import { MapViewport } from "./MapViewport";
+
+// The real canvas still renders (other tests query it); this only records what the viewport asks it to draw.
+const drawn = vi.hoisted(() => [] as Array<{ input: SceneInput }>);
+vi.mock("./MapCanvas", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./MapCanvas")>();
+  return {
+    ...actual,
+    MapCanvas: (props: Parameters<typeof actual.MapCanvas>[0]) => {
+      drawn.push(props);
+      return createElement(actual.MapCanvas, props);
+    },
+  };
+});
+beforeEach(() => void (drawn.length = 0));
 
 type Props = Parameters<typeof MapViewport>[0];
 const props = (over: Partial<Props> = {}): Props => ({
@@ -330,5 +346,19 @@ describe("MapViewport pings", () => {
   it("draws no pings by default", () => {
     render(<MapViewport {...props()} />);
     expect(screen.queryByTestId(/^ping-/)).toBeNull();
+  });
+});
+
+describe("MapViewport: your view", () => {
+  it("passes the weather and the light override to the scene", () => {
+    render(<MapViewport {...props({ snow: true, lightMode: "night" })} />);
+    expect(drawn.at(-1)!.input.snow).toBe(true);
+    expect(drawn.at(-1)!.input.lightMode).toBe("night");
+  });
+
+  it("leaves both unset by default", () => {
+    render(<MapViewport {...props()} />);
+    expect(drawn.at(-1)!.input.snow).toBeFalsy();
+    expect(drawn.at(-1)!.input.lightMode ?? "auto").toBe("auto");
   });
 });

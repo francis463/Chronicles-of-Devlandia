@@ -163,4 +163,5 @@ export function paintScene(ctx: Ctx2D, scene: Scene, world: WorldRect, sprites: 
     ctx.setTransform(s, 0, 0, s, ox, oy);
   }
   pixels(scene.light);
+  pixels(scene.snow);
 }

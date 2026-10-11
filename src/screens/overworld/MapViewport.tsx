@@ -216,6 +216,8 @@ export function MapViewport({
   archiveOpen,
   teammates = [],
   pings = [],
+  lightMode,
+  snow,
   playerColor,
   inRange,
   downed,
@@ -241,6 +243,9 @@ export function MapViewport({
   teammates?: Teammate[];
   /** Team signals in any zone; only this zone's are drawn. */
   pings?: ActivePing[];
+  /** Your own view only: lighting override and snowfall (`/light`, `/weather`). */
+  lightMode?: "auto" | "day" | "night";
+  snow?: boolean;
   playerColor?: string;
   inRange: Poi | null;
   downed: boolean;
@@ -286,6 +291,8 @@ export function MapViewport({
     matcherSolved,
     earned: badges,
     minutes,
+    lightMode,
+    snow,
   };
   const me = toArt(player);
   const fogX = world.left + me.x * world.scale;

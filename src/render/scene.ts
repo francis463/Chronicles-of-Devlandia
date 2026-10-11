@@ -6,7 +6,7 @@ import type { Pose } from "./motion";
 import { circlePixels, diamondPixels } from "./pixels";
 import { LIGHTS, SPRITES, spriteBox, type SpriteId } from "./sprites";
 import { BRIDGE_RECT, LANDMARK_POINTS, WALL_RECT, decorations, wallTiles } from "./terrain";
-import { REACHABLE_RECT, intersects, type ArtPoint } from "./world";
+import { REACHABLE_RECT, WORLD, intersects, type ArtPoint } from "./world";
 import type { ChestId } from "../learn/types";
 import { ARCHIVE_POINT, CS_CHEST_POINT, TERMINAL_POINT, chestPoints } from "./learnPoints";
 
@@ -33,13 +33,26 @@ export type SceneInput = {
   matcherSolved: boolean;
   /** Your badges: their chests draw open. */
   earned: ChestId[];
+  /** Your own view's lighting: "day" or "night" draws as that phase whatever the clock says. */
+  lightMode?: "auto" | "day" | "night";
+  /** Your own view's weather: snowfall over the whole world. */
+  snow?: boolean;
 };
 export type Poses = { player: Pose; drone: Pose; teammates: Record<string, Pose> };
 /** x/y is the sprite's top-left in art px; variant picks the palette ("base", a hood colour, or "grey"). */
 export type Drawable = { sprite: SpriteId; frame: number; x: number; y: number; flip: boolean; rotate: boolean; variant: string };
 export type Pixel = { x: number; y: number; color: string; alpha: number };
-/** Painted in this order: glints, flat, upright, drone, tint, light. */
-export type Scene = { zone: ZoneId; glints: Pixel[]; flat: Drawable[]; upright: Drawable[]; drone: Drawable; tint: string; light: Pixel[] };
+/** Painted in this order: glints, flat, upright, drone, tint, light, snow. */
+export type Scene = {
+  zone: ZoneId;
+  glints: Pixel[];
+  flat: Drawable[];
+  upright: Drawable[];
+  drone: Drawable;
+  tint: string;
+  light: Pixel[];
+  snow: Pixel[];
+};
 
 const GREEN = "#4ade80";
 const RED = "#ef4444";
@@ -53,6 +66,24 @@ const ICE_GLINTS: ArtPoint[] = [
 const GLOW_STRENGTH: Record<Phase, number> = { Day: 0, Dusk: 0.5, Night: 1 };
 const SEMICOLON_STEPS = [0.25, 0.5, 0.75, 1, 0.75, 0.5];
 const PLANK_ROWS = BRIDGE_RECT.h / SPRITES.plank.h;
+
+const SNOW_COUNT = 60;
+const SNOW_FALL = 12;
+const SNOW_DRIFT = 2;
+
+/**
+ * The snowfall at time `t` (ms): 60 flakes from fixed start points, each falling 12 art px and drifting 2 right a second,
+ * wrapping at the world's edges. Still when motion is reduced.
+ */
+function snowfall(t: number, reduced: boolean): Pixel[] {
+  const seconds = reduced ? 0 : t / 1000;
+  return Array.from({ length: SNOW_COUNT }, (_, i) => ({
+    x: ((i * 53 + 11) % WORLD.width + Math.floor(SNOW_DRIFT * seconds)) % WORLD.width,
+    y: ((i * 89 + 7) % WORLD.height + Math.floor(SNOW_FALL * seconds)) % WORLD.height,
+    color: WHITE,
+    alpha: 1,
+  }));
+}
 
 const placed = (sprite: SpriteId, at: ArtPoint, extra: Partial<Drawable> = {}): Drawable => {
   const box = spriteBox(sprite, at);
@@ -117,7 +148,8 @@ const byFeet = (a: Drawable, b: Drawable) => feetRow(a) - feetRow(b) || Number(i
 
 export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: boolean): Scene {
   const P = LANDMARK_POINTS;
-  const phase = phaseOf(input.minutes);
+  const phase: Phase = input.lightMode === "day" ? "Day" : input.lightMode === "night" ? "Night" : phaseOf(input.minutes);
+  const snow = input.snow ? snowfall(t, reduced) : [];
   const strength = GLOW_STRENGTH[phase];
 
   const player = input.downed
@@ -141,7 +173,7 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
       ...mates,
       player,
     ].sort(byFeet);
-    return { zone: input.zone, glints: [], flat: [], upright, drone, tint: PHASE_TINT[phase], light: [] };
+    return { zone: input.zone, glints: [], flat: [], upright, drone, tint: PHASE_TINT[phase], light: [], snow };
   }
 
   const glints: Pixel[] = reduced
@@ -188,6 +220,6 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
   }
   if (digging && !reduced && t % 1500 < 250) light.push({ x: P.dig.x + 2, y: P.dig.y - 2, color: WHITE, alpha: 1 });
 
-  return { zone: input.zone, glints, flat, upright, drone, tint: PHASE_TINT[phase], light };
+  return { zone: input.zone, glints, flat, upright, drone, tint: PHASE_TINT[phase], light, snow };
 }
 

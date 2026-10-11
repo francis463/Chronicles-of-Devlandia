@@ -106,7 +106,7 @@ describe("paintScene", () => {
     }
   });
 
-  it("draws ground, glints, flat, upright, drone, tint, light in that order", () => {
+  it("draws ground, glints, flat, upright, drone, tint, light, snow in that order", () => {
     const { sprites, ground } = setup();
     const ctx = recorder();
     const world = fitWorld({ width: 600, height: 360, dpr: 1 });
@@ -118,6 +118,7 @@ describe("paintScene", () => {
       drone: { sprite: "drone", frame: 0, x: 94, y: 82, flip: false, rotate: false, variant: "base" },
       tint: "rgba(20,20,28,0.25)",
       light: [{ x: 45, y: 3, color: "#4ade80", alpha: 0.5 }],
+      snow: [{ x: 10, y: 10, color: "#f1f5f9", alpha: 1 }],
     };
     paintScene(ctx, scene, world, sprites, ground);
     const steps = ctx.log
@@ -127,9 +128,9 @@ describe("paintScene", () => {
           const img = c[1] as FakeImage;
           return img.w === 26 ? "flat" : img.w === 16 && img.h === 32 ? "upright" : img.w === 12 ? "drone" : "ground";
         }
-        return c[1] === "#ffffff" ? "glint" : c[1] === scene.tint ? "tint" : "light";
+        return c[1] === "#ffffff" ? "glint" : c[1] === "#f1f5f9" ? "snow" : c[1] === scene.tint ? "tint" : "light";
       });
-    expect(steps).toEqual(["ground", "glint", "flat", "upright", "drone", "tint", "light"]);
+    expect(steps).toEqual(["ground", "glint", "flat", "upright", "drone", "tint", "light", "snow"]);
   });
 
   it("sprites and pixels land on whole art pixels", () => {

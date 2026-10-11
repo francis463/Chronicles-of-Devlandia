@@ -306,3 +306,69 @@ describe("scene: chests, the Syntax Terminal and the Archive", () => {
     }
   });
 });
+
+describe("scene: your view (weather and light)", () => {
+  it("a night override at daytime tints and glows as night does", () => {
+    const forced = scene({ minutes: DAY, lightMode: "night" });
+    const real = scene({ minutes: NIGHT });
+    expect(forced.tint).toBe(PHASE_TINT.Night);
+    expect(forced.light).toEqual(real.light);
+  });
+
+  it("a day override at night is clear and unlit", () => {
+    const forced = scene({ minutes: NIGHT, lightMode: "day" });
+    const real = scene({ minutes: DAY });
+    expect(forced.tint).toBe("transparent");
+    expect(forced.light).toEqual(real.light);
+  });
+
+  it("auto and no override follow the clock, in both zones", () => {
+    for (const zone of ["peaks", "village"] as const) {
+      const over = { zone, player: { x: 60, y: 70 }, drone: { x: 68, y: 68 } };
+      expect(scene({ ...over, minutes: NIGHT, lightMode: "auto" }).tint).toBe(PHASE_TINT.Night);
+      expect(scene({ ...over, minutes: DAY }).tint).toBe("transparent");
+      expect(scene({ ...over, minutes: DAY, lightMode: "night" }).tint).toBe(PHASE_TINT.Night);
+    }
+  });
+
+  it("snow is 60 white flakes inside the world, in both zones", () => {
+    for (const zone of ["peaks", "village"] as const) {
+      const flakes = scene({ zone, snow: true }, 1234).snow;
+      expect(flakes).toHaveLength(60);
+      for (const f of flakes) {
+        expect(f.color).toBe("#ffffff");
+        expect(f.x >= 0 && f.x < 320 && f.y >= 0 && f.y < 180).toBe(true);
+        expect(Number.isInteger(f.x) && Number.isInteger(f.y)).toBe(true);
+      }
+    }
+  });
+
+  it("no snow unless asked", () => {
+    expect(scene().snow).toEqual([]);
+    expect(scene({ snow: false }, 3000).snow).toEqual([]);
+  });
+
+  it("snow is a fixed function of time, and moves", () => {
+    expect(scene({ snow: true }, 700).snow).toEqual(scene({ snow: true }, 700).snow);
+    expect(scene({ snow: true }, 0).snow).not.toEqual(scene({ snow: true }, 5000).snow);
+  });
+
+  it("each flake falls 12 art px and drifts 2 right in a second, wrapping", () => {
+    const a = scene({ snow: true }, 0).snow;
+    const b = scene({ snow: true }, 1000).snow;
+    a.forEach((f, i) => {
+      expect(b[i].y).toBe((f.y + 12) % 180);
+      expect(b[i].x).toBe((f.x + 2) % 320);
+    });
+  });
+
+  it("flakes start at varied places", () => {
+    const flakes = scene({ snow: true }, 0).snow;
+    expect(new Set(flakes.map((f) => `${f.x},${f.y}`)).size).toBeGreaterThan(50);
+  });
+
+  it("reduced motion always draws the t = 0 flakes", () => {
+    expect(scene({ snow: true }, 4321, true).snow).toEqual(scene({ snow: true }, 0, true).snow);
+    expect(scene({ snow: true }, 4321, true).snow).toEqual(scene({ snow: true }, 0).snow);
+  });
+});
