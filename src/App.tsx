@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useChat } from "./hooks/useChat";
 import { useTeamSession } from "./hooks/useTeamSession";
 import { makeTransport as defaultTransport } from "./net/makeTransport";
 import type { TeamMode, TeamTransport } from "./net/transport";
@@ -19,6 +20,7 @@ export default function App({
   const [screen, setScreen] = useState<Screen>("menu");
   const [gameId, setGameId] = useState(0);
   const team = useTeamSession(makeTransport, teamClock);
+  const chat = useChat(team);
 
   const startSoloQuest = () => {
     setGameId((id) => id + 1);
@@ -42,7 +44,7 @@ export default function App({
         (team.phase === "playing" ? (
           <Overworld key={`team-${team.room}`} team={team} onMenu={leaveTeam} />
         ) : (
-          <TeamLobby session={team} onBack={leaveTeam} />
+          <TeamLobby session={team} onBack={leaveTeam} chat={chat} />
         ))}
     </main>
   );

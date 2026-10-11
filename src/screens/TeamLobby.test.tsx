@@ -2,8 +2,9 @@ import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
-import { NO_FLAGS, type RankedPlayer } from "../game/team";
-import type { TeamSession } from "../hooks/useTeamSession";
+import { NO_FLAGS, rankPlayers, type RankedPlayer } from "../game/team";
+import { useChat, type ChatFeed } from "../hooks/useChat";
+import type { ChatSender, TeamSession } from "../hooks/useTeamSession";
 import { createMemoryHub } from "../net/memoryTransport";
 import { ROOM_VIEW_GUARD_MS, TeamLobby } from "./TeamLobby";
 
@@ -162,5 +163,164 @@ describe("TeamLobby with two players (App + memory hub)", () => {
     act(() => vi.advanceTimersByTime(ROOM_VIEW_GUARD_MS));
     fireEvent.click(screen.getByRole("button", { name: "[ Leave Room ]" }));
     expect(onBack).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("TeamLobby chat", () => {
+  const roster = (...names: string[]) =>
+    rankPlayers(names.map((name, i) => ({ id: `id${i}`, name, joinedAt: i + 1, startedAt: null, flags: NO_FLAGS, x: 28, y: 72, zone: "peaks" as const })));
+
+  function room(names: string[] = ["Ana", "Kai"]) {
+    const players = roster(...names);
+    let onChat: ((from: ChatSender, text: string) => void) | null = null;
+    const session = stub({
+      phase: "lobby",
+      room: "KQZM",
+      me: players[0],
+      players,
+      onChat: vi.fn((cb) => {
+        onChat = cb;
+        return () => {};
+      }),
+    });
+    const hear = (i: number, text: string) => act(() => onChat!({ id: players[i].id, name: players[i].name, color: players[i].color }, text));
+    return { session, players, hear };
+  }
+  function Lobby({ session }: { session: TeamSession }) {
+    const chat = useChat(session);
+    return <TeamLobby session={session} onBack={() => {}} chat={chat} />;
+  }
+  const rowOf = (name: RegExp | string) => screen.getAllByRole("listitem").find((li) => (typeof name === "string" ? li.textContent === name : name.test(li.textContent ?? "")))!;
+
+  it("puts the Team chat region under the players and above the start control", () => {
+    const { session } = room();
+    render(<Lobby session={session} />);
+    const region = screen.getByRole("region", { name: "Team chat" });
+    const players = screen.getByRole("list", { name: "Players" });
+    const start = screen.getByRole("button", { name: "[ Start Expedition ]" });
+    expect(players.compareDocumentPosition(region) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(region.compareDocumentPosition(start) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(region).getByRole("textbox", { name: "Message" })).toBeInTheDocument();
+  });
+
+  it("speaks a teammate's new message through the region's announcer", () => {
+    const { session, hear } = room();
+    render(<Lobby session={session} />);
+    hear(1, "hello team");
+    expect(within(screen.getByRole("region", { name: "Team chat" })).getByRole("status", { name: "Chat announcements" })).toHaveTextContent("Kai says: hello team");
+    expect(screen.getByRole("list", { name: "Team chat" })).toHaveTextContent("Kai: hello team");
+  });
+
+  it("gives every other player a mute button and you none", () => {
+    const { session } = room(["Ana", "Kai", "Mia"]);
+    render(<Lobby session={session} />);
+    expect(screen.getByRole("button", { name: "Mute Kai" })).toHaveTextContent("[ Mute ]");
+    expect(screen.getByRole("button", { name: "Mute Mia" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Mute Ana/ })).toBeNull();
+    expect(screen.getByRole("button", { name: "Mute Kai" })).not.toHaveAttribute("aria-pressed");
+    expect(screen.getByRole("button", { name: "Mute Kai" }).className).toContain("pointer-coarse:min-h-11");
+  });
+
+  it("mutes by raw nickname while names read as displayed", async () => {
+    const user = userEvent.setup();
+    const { session } = room(["Ana", "Kai", "kai"]);
+    const chat: ChatFeed = { lines: [], draft: "", setDraft: vi.fn(), muted: [], mute: vi.fn(), unmute: vi.fn(), post: vi.fn() };
+    render(<TeamLobby session={session} onBack={() => {}} chat={chat} />);
+    await user.click(screen.getByRole("button", { name: "Mute kai (2)" }));
+    expect(chat.mute).toHaveBeenCalledWith("kai");
+    await user.click(screen.getByRole("button", { name: "Mute Kai" }));
+    expect(chat.mute).toHaveBeenLastCalledWith("Kai");
+  });
+
+  it("flips to Unmute and marks the row muted", async () => {
+    const user = userEvent.setup();
+    const { session } = room();
+    render(<Lobby session={session} />);
+    await user.click(screen.getByRole("button", { name: "Mute Kai" }));
+    expect(screen.getByRole("button", { name: "Unmute Kai" })).toHaveTextContent("[ Unmute ]");
+    expect(rowOf(/^Kai/)).toHaveTextContent(/^Kai \(muted\)/);
+    expect(screen.getByRole("button", { name: "Unmute Kai" })).not.toHaveAttribute("aria-pressed");
+    await user.click(screen.getByRole("button", { name: "Unmute Kai" }));
+    expect(screen.getByRole("button", { name: "Mute Kai" })).toBeInTheDocument();
+  });
+
+  it("muting one of two players named Kai mutes both, and drops chats from either", async () => {
+    const user = userEvent.setup();
+    const { session, hear } = room(["Ana", "Kai", "Kai"]);
+    render(<Lobby session={session} />);
+    await user.click(screen.getByRole("button", { name: "Mute Kai (2)" }));
+    expect(screen.getAllByText(/\(muted\)/)).toHaveLength(2);
+    hear(1, "first");
+    hear(2, "second");
+    expect(screen.getByRole("list", { name: "Team chat" })).not.toHaveTextContent(/first|second/);
+  });
+
+  it("shows a rude nickname masked in the player list", () => {
+    const { session } = room(["Ana", "fuck you"]);
+    render(<Lobby session={session} />);
+    expect(rowOf(/\*\*\*/)).toHaveTextContent("*** you");
+    expect(screen.getByRole("button", { name: "Mute *** you" })).toBeInTheDocument();
+  });
+
+  it("renders nothing of this without a chat feed", () => {
+    const { session } = room();
+    render(<TeamLobby session={session} onBack={() => {}} />);
+    expect(screen.queryByRole("region", { name: "Team chat" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Mute/ })).toBeNull();
+  });
+
+  it("refuses a nickname that masking changes, and still connects a clean one", async () => {
+    const user = userEvent.setup();
+    const session = stub();
+    render(<TeamLobby session={session} onBack={() => {}} />);
+    await user.type(screen.getByRole("textbox", { name: "Nickname" }), "fuck you");
+    await user.click(screen.getByRole("button", { name: "[ Create Room ]" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("Pick a different nickname.");
+    expect(session.create).not.toHaveBeenCalled();
+    await user.clear(screen.getByRole("textbox", { name: "Nickname" }));
+    await user.type(screen.getByRole("textbox", { name: "Nickname" }), "Ana");
+    await user.click(screen.getByRole("button", { name: "[ Create Room ]" }));
+    expect(session.create).toHaveBeenCalledWith("Ana", "online");
+    expect(screen.queryByText("Pick a different nickname.")).toBeNull();
+  });
+});
+
+describe("TeamLobby chat between two apps", () => {
+  function twoApps() {
+    const hub = createMemoryHub();
+    const make = vi.fn(() => hub.transport());
+    let t = Date.now();
+    const clock = () => (t += 10);
+    const ana = render(<App makeTransport={make} teamClock={clock} />);
+    const kai = render(<App makeTransport={make} teamClock={clock} />);
+    return { ana: within(ana.container), kai: within(kai.container) };
+  }
+  async function bothInLobby() {
+    const user = userEvent.setup();
+    const { ana, kai } = twoApps();
+    await user.click(ana.getByRole("button", { name: /team lobby/i }));
+    await user.type(ana.getByRole("textbox", { name: "Nickname" }), "Ana");
+    await user.click(ana.getByRole("button", { name: "[ Create Room ]" }));
+    const code = ana.getByRole("heading", { name: /^ROOM [A-HJ-NP-Z]{4}$/ }).textContent!.slice(5);
+    await user.click(kai.getByRole("button", { name: /team lobby/i }));
+    await user.type(kai.getByRole("textbox", { name: "Nickname" }), "Kai");
+    await user.type(kai.getByRole("textbox", { name: "Room code" }), code);
+    await user.click(kai.getByRole("button", { name: "[ Join ]" }));
+    return { user, ana, kai };
+  }
+
+  it("carries a message from Kai to Ana and shows it to both", async () => {
+    const { user, ana, kai } = await bothInLobby();
+    await user.type(kai.getByRole("textbox", { name: "Message" }), "hello team{Enter}");
+    expect(ana.getByRole("list", { name: "Team chat" })).toHaveTextContent("Kai: hello team");
+    expect(kai.getByRole("list", { name: "Team chat" })).toHaveTextContent("Kai: hello team");
+  });
+
+  it("answers /help with the lobby list and /where with the game-only note", async () => {
+    const { user, kai } = await bothInLobby();
+    await user.type(kai.getByRole("textbox", { name: "Message" }), "/help{Enter}");
+    expect(kai.getByRole("list", { name: "Team chat" })).toHaveTextContent("More commands once the expedition starts.");
+    await user.type(kai.getByRole("textbox", { name: "Message" }), "/where{Enter}");
+    expect(kai.getByRole("list", { name: "Team chat" })).toHaveTextContent("Available once the expedition starts.");
   });
 });

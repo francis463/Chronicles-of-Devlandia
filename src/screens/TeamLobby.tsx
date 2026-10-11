@@ -1,9 +1,15 @@
 import { useLayoutEffect, useRef, useState } from "react";
+import { lobbyContext } from "../chat/context";
+import { maskRude } from "../chat/filter";
+import { displayNames, nameKey } from "../chat/names";
 import { normalizeNickname, normalizeRoomCode } from "../game/team";
+import type { ChatFeed } from "../hooks/useChat";
 import type { TeamErrorKind, TeamSession } from "../hooks/useTeamSession";
 import type { TeamMode } from "../net/transport";
 import { Button } from "../ui/Button";
 import { Panel } from "../ui/Panel";
+import { Announcer } from "./chat/Announcer";
+import { ChatPanel } from "./chat/ChatPanel";
 
 const ERROR_COPY: Record<TeamErrorKind, string> = {
   unreachable: "Can't reach the team server. Check your internet connection, or switch to Same computer mode.",
@@ -11,6 +17,7 @@ const ERROR_COPY: Record<TeamErrorKind, string> = {
   full: "This room is full.",
 };
 const NICKNAME_ERROR = "Enter a nickname (1–12 letters, digits, spaces, - or _).";
+const RUDE_NICKNAME_ERROR = "Pick a different nickname.";
 const MODES: Array<{ mode: TeamMode; label: string }> = [
   { mode: "online", label: "Online" },
   { mode: "local", label: "Same computer" },
@@ -25,11 +32,11 @@ export const ROOM_VIEW_GUARD_MS = 500;
 const fieldClass =
   "w-full rounded border-2 border-[var(--panel-border)] bg-[var(--editor-bg)] px-3 py-2 font-mono text-sm text-[var(--text)] outline-none focus:border-[var(--primary-border)]";
 
-export function TeamLobby({ session, onBack }: { session: TeamSession; onBack: () => void }) {
+export function TeamLobby({ session, onBack, chat }: { session: TeamSession; onBack: () => void; chat?: ChatFeed }) {
   const [nickname, setNickname] = useState("");
   const [code, setCode] = useState("");
   const [mode, setMode] = useState<TeamMode>("online");
-  const [nicknameError, setNicknameError] = useState(false);
+  const [nicknameError, setNicknameError] = useState<string | null>(null);
   const connecting = session.phase === "connecting";
   const inRoom = session.phase === "lobby" || session.phase === "playing";
   const roomShownAt = useRef(0);
@@ -42,12 +49,14 @@ export function TeamLobby({ session, onBack }: { session: TeamSession; onBack: (
 
   const withName = (go: (name: string) => void) => {
     const name = normalizeNickname(nickname);
-    setNicknameError(!name);
-    if (name) go(name);
+    // A nickname the chat filter would mask is refused, so nobody can post as a rude word.
+    setNicknameError(!name ? NICKNAME_ERROR : maskRude(name) !== name ? RUDE_NICKNAME_ERROR : null);
+    if (name && maskRude(name) === name) go(name);
   };
 
   if (inRoom) {
     const isHost = session.me?.isHost ?? false;
+    const shown = displayNames(session.players);
     return (
       <Panel className="mx-auto flex w-full max-w-xl flex-col gap-5 px-4 py-8 sm:px-6">
         <h1 className="text-center text-lg font-bold tracking-widest">TEAM LOBBY</h1>
@@ -57,13 +66,30 @@ export function TeamLobby({ session, onBack }: { session: TeamSession; onBack: (
             <li key={p.id} className="flex items-center gap-3 rounded border border-[var(--panel-border)] bg-[var(--bg)] px-3 py-2 text-sm">
               <span aria-hidden="true" className="h-3 w-3 rounded-full" style={{ background: p.color }} />
               <span>
-                {p.name}
+                {shown.get(p.id)}
                 {p.id === session.me?.id ? " (you)" : ""}
                 {p.isHost ? " (host)" : ""}
+                {chat && p.id !== session.me?.id && chat.muted.includes(nameKey(p.name)) ? " (muted)" : ""}
               </span>
+              {chat && p.id !== session.me?.id && (
+                <button
+                  type="button"
+                  aria-label={`${chat.muted.includes(nameKey(p.name)) ? "Unmute" : "Mute"} ${shown.get(p.id)}`}
+                  onClick={() => (chat.muted.includes(nameKey(p.name)) ? chat.unmute(p.name) : chat.mute(p.name))}
+                  className="ml-auto cursor-pointer border-2 border-[var(--panel-border)] px-2 py-1 text-[10px] font-bold uppercase tracking-wide hover:bg-[var(--panel-border)] focus-visible:outline-2 focus-visible:outline-offset-2 pointer-coarse:min-h-11"
+                >
+                  {chat.muted.includes(nameKey(p.name)) ? "[ Unmute ]" : "[ Mute ]"}
+                </button>
+              )}
             </li>
           ))}
         </ul>
+        {chat && (
+          <section aria-label="Team chat" className="flex flex-col gap-2">
+            <ChatPanel feed={chat} where="lobby" getContext={() => lobbyContext(session, chat.muted)} />
+            <Announcer lines={chat.lines} />
+          </section>
+        )}
         {isHost ? (
           <Button variant="success" disabled={session.players.length < 2} onClick={session.start} className="py-3">
             [ Start Expedition ]
@@ -95,7 +121,7 @@ export function TeamLobby({ session, onBack }: { session: TeamSession; onBack: (
       </label>
       {nicknameError && (
         <p role="alert" className="text-xs text-[var(--danger-border)]">
-          {NICKNAME_ERROR}
+          {nicknameError}
         </p>
       )}
 
