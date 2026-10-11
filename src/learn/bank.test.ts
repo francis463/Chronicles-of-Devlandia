@@ -82,6 +82,14 @@ describe("the question bank and the chest table", () => {
     }
   });
 
+  it("C++ and Python chests each have six questions with unique ids", () => {
+    for (const id of ["chest-cpp-1", "chest-cpp-2", "chest-py-1", "chest-py-2"] as const) {
+      const ids = CHESTS.find((c) => c.id === id)!.bank.map((q) => q.id);
+      expect(ids, id).toHaveLength(6);
+      expect(new Set(ids).size, id).toBe(6);
+    }
+  });
+
   it("choices: 4 unique options, correct in range", () => {
     const choices = bankItems.filter((c) => c.kind === "choice");
     expect(choices.length).toBeGreaterThan(0);
@@ -119,6 +127,10 @@ describe("the question bank and the chest table", () => {
       ["sql-order", "GROUP"], ["sql-order", "WHERE"],
       ["java-class", "interface"], ["java-class", "enum"],
       ["cs-if", "else"], ["cs-if", "switch"],
+      ["cpp-include", "define"], ["cpp-include", "pragma"],
+      ["cpp-while", "for"], ["cpp-while", "if"],
+      ["py-input", "print"], ["py-input", "len"],
+      ["py-dict-get", "pop"], ["py-dict-get", "keys"],
     ];
     for (const [id, token] of table) expect(checkBlank(byId(id), token), `${id}: ${token}`).toEqual({ ok: true });
   });
@@ -136,6 +148,7 @@ describe("the question bank and the chest table", () => {
       "sql-order": "ORDER GROUP WHERE HAVING LIMIT SELECT FROM PARTITION",
       "java-class": "class interface enum record abstract final static void",
       "cs-if": "if else switch while for foreach do when",
+      "cpp-while": "while for do if else switch goto break continue",
     };
     for (const [id, names] of Object.entries(reference)) {
       const live = byId(id).live;
