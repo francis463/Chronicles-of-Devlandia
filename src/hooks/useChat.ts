@@ -35,6 +35,8 @@ const PING_GAP_MS = 5000;
 const SLOW = "Slow down: one message a second.";
 const PING_WAIT = "Wait a moment before pinging again.";
 const OFFLINE = "Not sent: reconnecting.";
+/** The notes that mean "that didn't go out"; the announcer speaks each at most once every few seconds. */
+export const REFUSALS: readonly string[] = [SLOW, PING_WAIT, OFFLINE];
 const SOLO_PLAIN = "Solo game: start a command with /, for example /help.";
 const TEAM_WELCOME = "Chat with your team here. Type /help for commands.";
 const SOLO_WELCOME = "Type /help for commands.";

@@ -1,26 +1,5 @@
-import { useLayoutEffect, useRef, type ReactNode } from "react";
-import { CHESTS } from "../../learn/chests";
-
-/** Badges whose written name differs from how it is said (C++ I → "C++ 1", C# → "C sharp"), longest first. */
-const SPOKEN = CHESTS.filter((c) => c.spoken !== c.badge).sort((a, b) => b.badge.length - a.badge.length);
-
-/** A log entry with a badge name read aloud by its spoken form; other text is unchanged. */
-function speak(entry: string): ReactNode {
-  for (const chest of SPOKEN) {
-    const at = entry.indexOf(` the ${chest.badge} Badge`);
-    if (at < 0) continue;
-    const start = at + " the ".length;
-    return (
-      <>
-        {entry.slice(0, start)}
-        <span aria-hidden="true">{chest.badge}</span>
-        <span className="sr-only">{chest.spoken}</span>
-        {entry.slice(start + chest.badge.length)}
-      </>
-    );
-  }
-  return entry;
-}
+import { useLayoutEffect, useRef } from "react";
+import { speak } from "../speak";
 
 /** At md the log fills the rest of the sidebar and scrolls; a new entry scrolls it into view. */
 export function EventLog({ logs, logCount, className = "" }: { logs: string[]; logCount: number; className?: string }) {
