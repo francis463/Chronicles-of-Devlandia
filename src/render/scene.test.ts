@@ -372,3 +372,47 @@ describe("scene: your view (weather and light)", () => {
     expect(scene({ snow: true }, 4321, true).snow).toEqual(scene({ snow: true }, 0).snow);
   });
 });
+
+describe("scene: the Dense Forest", () => {
+  const forest = (over: Partial<SceneInput> = {}, t = 0, reduced = false) =>
+    scene({ zone: "forest", player: { x: 68, y: 20 }, drone: { x: 60, y: 20 }, ...over }, t, reduced);
+  const at = (s: ReturnType<typeof scene>, sprite: SpriteId) => s.upright.filter((d) => d.sprite === sprite);
+
+  it("draws the oak, campfire, signpost and the ranger, with no wall and none of the Peaks' landmarks", () => {
+    const s = forest();
+    for (const id of ["old-oak", "campfire", "signpost"] as SpriteId[]) expect(at(s, id), id).toHaveLength(1);
+    expect(s.upright.filter((d) => d.sprite === "explorer-down" && d.variant === "#be123c")).toHaveLength(1);
+    for (const id of ["wall", "tower", "gate", "chest-closed", "chest-open", "hut", "well"] as SpriteId[]) expect(at(s, id), id).toHaveLength(0);
+    expect(s.flat).toEqual([]);
+  });
+
+  it("the ranger and the explorer are y-sorted together", () => {
+    const s = forest({ player: { x: 60, y: 80 } });
+    const feet = s.upright.map((d) => d.y + SPRITES[d.sprite].h - 1);
+    expect(feet).toEqual([...feet].sort((a, b) => a - b));
+  });
+
+  it("the tint is the forest's own over the phase: exact by day, deeper at night", () => {
+    expect(forest({ lightMode: "day" }).tint).toBe("rgba(10,30,40,0.18)");
+    const night = forest({ lightMode: "night" }).tint;
+    const alpha = Number(night.match(/,([\d.]+)\)$/)?.[1]);
+    expect(night).toMatch(/^rgba\(\d+,\d+,\d+,[\d.]+\)$/);
+    expect(alpha).toBeGreaterThan(0.18);
+    expect(alpha).toBeCloseTo(1 - (1 - 0.18) * (1 - 0.25), 2);
+  });
+
+  it("the campfire glows at night strength, not by day, and flickers every 400 ms even when reduced", () => {
+    const glowAt = (over: Partial<SceneInput>, t = 0, reduced = false) =>
+      forest(over, t, reduced).light.filter((p) => p.color === "#fb923c");
+    expect(glowAt({ lightMode: "day" })).toEqual([]);
+    expect(glowAt({ lightMode: "night" }).length).toBeGreaterThan(0);
+    const peak = (px: { alpha: number }[]) => Math.max(...px.map((p) => p.alpha));
+    expect(peak(glowAt({ lightMode: "night" }, 0))).toBeCloseTo(0.5);
+    expect(peak(glowAt({ minutes: DUSK, lightMode: "auto" }, 0))).toBeCloseTo(0.25);
+    expect(glowAt({ lightMode: "night" }, 0)).not.toEqual(glowAt({ lightMode: "night" }, 400));
+    expect(glowAt({ lightMode: "night" }, 0, true).length).toBeGreaterThan(0);
+    const frames = (t: number) => at(forest({}, t), "campfire")[0].frame;
+    expect([frames(0), frames(400), frames(800)]).toEqual([0, 1, 0]);
+    expect(at(forest({}, 400, true), "campfire")[0].frame).toBe(0);
+  });
+});

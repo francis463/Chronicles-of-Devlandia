@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { ADA, SIGNPOST } from "../../game/constants";
-import { toArt } from "../world";
+import { spriteBox } from "../sprites";
+import { intersects, toArt } from "../world";
 import { AREAS } from ".";
+import { FOREST_POINTS } from "./forest";
 import { VILLAGE_POINTS } from "./village";
 
 describe("areas", () => {
@@ -47,5 +49,19 @@ describe("areas", () => {
       expect(area.mouths.length, area.id).toBeGreaterThan(0);
       expect(area.corridors, area.id).toHaveLength(area.mouths.length);
     }
+  });
+
+  it("the forest's props are inside the world, clear of each other and of the north mouth, and their places are 12 game-% apart", () => {
+    const boxes = AREAS.forest.props.map((p) => spriteBox(p.sprite, p.at));
+    expect(AREAS.forest.props.map((p) => p.sprite).sort()).toEqual(["campfire", "explorer-down", "old-oak", "signpost"]);
+    for (const [i, a] of boxes.entries()) {
+      expect(a.x >= 0 && a.y >= 0 && a.x + a.w <= 320 && a.y + a.h <= 180, `prop ${i} in the world`).toBe(true);
+      expect(intersects(a, AREAS.forest.mouths[0]), `prop ${i} on the mouth`).toBe(false);
+      for (const b of boxes.slice(i + 1)) expect(intersects(a, b), `props ${i} overlap`).toBe(false);
+    }
+    const pts = Object.values(FOREST_POINTS);
+    for (const [i, a] of pts.entries())
+      for (const b of pts.slice(i + 1)) expect(Math.hypot((a.x - b.x) / 3.2, (a.y - b.y) / 1.8)).toBeGreaterThanOrEqual(12);
+    for (const prop of AREAS.forest.props) expect(AREAS.forest.protected).toContainEqual(spriteBox(prop.sprite, prop.at));
   });
 });

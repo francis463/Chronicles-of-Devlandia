@@ -168,7 +168,7 @@ export const MAP_CAPTIONS = [
   { id: "east-exit", zone: "village", at: { x: 99, y: 88 }, align: "right-centre" },
   { id: "south-exit", zone: "peaks", at: { x: 50, y: 99 }, align: "right-bottom" },
   { id: "dense-forest", zone: "forest", at: { x: 40, y: 4 }, align: "centre" },
-  { id: "north-exit", zone: "forest", at: { x: 70, y: 18 }, align: "centre" },
+  { id: "north-exit", zone: "forest", at: { x: 64, y: 18 }, align: "centre" },
 ] as const satisfies ReadonlyArray<{ id: string; zone: ZoneId; at: Point; align: "centre" | "right-bottom" | "left-centre" | "right-centre" }>;
 export type MapCaptionId = (typeof MAP_CAPTIONS)[number]["id"];
 

@@ -1,5 +1,21 @@
-import type { Rect } from "../world";
-import { inRect, type Area, type TerrainKind } from "./area";
+import { spriteBox } from "../sprites";
+import { toArt, type Rect } from "../world";
+import { inRect, type Area, type Prop, type TerrainKind } from "./area";
+
+/** The forest's places in art px (the game's RANGER, CAMPFIRE, OLD_OAK and FOREST_SIGNPOST). */
+export const FOREST_POINTS = {
+  ranger: toArt({ x: 60, y: 62 }),
+  campfire: toArt({ x: 46, y: 66 }),
+  oak: toArt({ x: 24, y: 50 }),
+  signpost: toArt({ x: 84, y: 26 }),
+} as const;
+
+const PROPS: Prop[] = [
+  { sprite: "old-oak", at: FOREST_POINTS.oak },
+  { sprite: "campfire", at: FOREST_POINTS.campfire },
+  { sprite: "signpost", at: FOREST_POINTS.signpost },
+  { sprite: "explorer-down", at: FOREST_POINTS.ranger, variant: "#be123c" },
+];
 
 /** The meadow clearing in the middle of the forest, where the ranger, the campfire and the chest stand. */
 const CLEARING: Rect = { x: 120, y: 90, w: 110, h: 70 };
@@ -30,6 +46,6 @@ export const FOREST: Area = {
   corridors: [CORRIDOR],
   gateBox: null,
   ice: null,
-  props: [],
-  protected: [...PATHS, MOUTH],
+  props: PROPS,
+  protected: [...PATHS, MOUTH, ...PROPS.map((prop) => spriteBox(prop.sprite, prop.at))],
 };

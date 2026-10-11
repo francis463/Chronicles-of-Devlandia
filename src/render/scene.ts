@@ -16,6 +16,19 @@ export const PHASE_TINT: Record<Phase, string> = {
   Day: "transparent",
 };
 
+/** The forest's own shade, laid over whatever the hour does. */
+const FOREST_TINT = { r: 10, g: 30, b: 40, a: 0.18 };
+
+/** The forest tint over a phase tint, as one rgba string. */
+function forestTint(phaseTint: string): string {
+  const m = phaseTint.match(/^rgba\((\d+),(\d+),(\d+),([\d.]+)\)$/);
+  if (!m) return `rgba(${FOREST_TINT.r},${FOREST_TINT.g},${FOREST_TINT.b},${FOREST_TINT.a})`;
+  const [br, bg, bb, ba] = m.slice(1).map(Number);
+  const a = FOREST_TINT.a + ba * (1 - FOREST_TINT.a);
+  const mix = (top: number, bottom: number) => Math.round((top * FOREST_TINT.a + bottom * ba * (1 - FOREST_TINT.a)) / a);
+  return `rgba(${mix(FOREST_TINT.r, br)},${mix(FOREST_TINT.g, bg)},${mix(FOREST_TINT.b, bb)},${Math.round(a * 1000) / 1000})`;
+}
+
 export type SceneInput = {
   zone: ZoneId;
   player: Point;
@@ -58,6 +71,7 @@ const GREEN = "#4ade80";
 const RED = "#ef4444";
 const GOLD = "#fbbf24";
 const WHITE = "#ffffff";
+const CAMPFIRE_GLOW = "#fb923c";
 const ICE_GLINTS: ArtPoint[] = [
   { x: 100, y: 56 },
   { x: 160, y: 62 },
@@ -173,6 +187,13 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
       ...mates,
       player,
     ].sort(byFeet);
+    if (input.zone === "forest") {
+      const flame = reduced ? 0 : Math.floor(t / 400) % 2;
+      const fire = upright.find((d) => d.sprite === "campfire");
+      if (fire) fire.frame = flame;
+      const light = glow(LIGHTS.campfire, CAMPFIRE_GLOW, strength * (flame === 0 ? 1 : 0.8));
+      return { zone: input.zone, glints: [], flat: [], upright, drone, tint: forestTint(PHASE_TINT[phase]), light, snow };
+    }
     return { zone: input.zone, glints: [], flat: [], upright, drone, tint: PHASE_TINT[phase], light: [], snow };
   }
 

@@ -30,12 +30,36 @@ export type SpriteId =
   | "signpost"
   | "code-chest"
   | "syntax-terminal"
-  | "archive";
+  | "archive"
+  | "campfire"
+  | "old-oak";
 /** bottom: bottom-centre on the art point; centre: centred on it; hover: centred 12 px above it. */
 export type SpriteDef = { w: number; h: number; frames: PixelGrid[]; palette: Palette; anchor: "bottom" | "centre" | "hover" };
 export type TextureId = "ice" | "mountains" | "snow" | "forest" | "meadow" | "path" | "bank";
 
 export const OUTLINE = "#0b1020";
+
+/** The old oak's 40 × 48 drawing: a round canopy lit from the top left over a flared trunk, outlined. */
+function oakGrid(): PixelGrid {
+  const W = 40;
+  const H = 48;
+  const canopy = (x: number, y: number) => ((x - 19.5) / 19.5) ** 2 + ((y - 17.5) / 17.5) ** 2 <= 1;
+  const half = (y: number) => 4 + (y >= 43 ? y - 42 : 0);
+  const trunk = (x: number, y: number) => y >= 34 && x >= 20 - half(y) && x <= 19 + half(y);
+  const filled = (x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H && (canopy(x, y) || trunk(x, y));
+  return Array.from({ length: H }, (_, y) =>
+    Array.from({ length: W }, (_, x) => {
+      if (!filled(x, y)) return ".";
+      if (![filled(x - 1, y), filled(x + 1, y), filled(x, y - 1), filled(x, y + 1)].every(Boolean)) return "o";
+      if (canopy(x, y)) {
+        const v = x - 19.5 + (y - 17.5);
+        if ((x * 7 + y * 13) % 11 === 0) return v < 0 ? "L" : "g";
+        return v < -10 ? "L" : v < 8 ? "l" : "g";
+      }
+      return x < 20 ? "t" : "T";
+    }).join(""),
+  );
+}
 
 export const SPRITES: Record<SpriteId, SpriteDef> = {
   "explorer-down": {
@@ -880,6 +904,53 @@ export const SPRITES: Record<SpriteId, SpriteDef> = {
       ],
     ],
   },
+  campfire: {
+    w: 12,
+    h: 14,
+    anchor: "bottom",
+    palette: { o: "#0b1020", r: "#451a03", b: "#78350f", f: "#ea580c", y: "#fbbf24", w: "#fde68a" },
+    frames: [
+      [
+        "............",
+        ".....o......",
+        "....ofo.....",
+        "....offo....",
+        "...ofyfo....",
+        "...ofyyfo...",
+        "..ofyyyyfo..",
+        "..ofyywyfo..",
+        "..ofyywyfo..",
+        "...offyffo..",
+        "..oobbbbboo.",
+        ".obbrbbrbbbo",
+        "obbrrbbrrbbo",
+        ".oooooooooo.",
+      ],
+      [
+        "............",
+        "......o.....",
+        ".....ofo....",
+        "....offo....",
+        "....ofyfo...",
+        "...ofyyfo...",
+        "..ofyyyyfo..",
+        "..ofywyyfo..",
+        "..ofywyyfo..",
+        "..offyyffo..",
+        "..oobbbbboo.",
+        ".obbrbbrbbbo",
+        "obbrrbbrrbbo",
+        ".oooooooooo.",
+      ],
+    ],
+  },
+  "old-oak": {
+    w: 40,
+    h: 48,
+    anchor: "bottom",
+    palette: { o: "#0b1020", g: "#14532d", l: "#166534", L: "#22c55e", t: "#92400e", T: "#78350f" },
+    frames: [oakGrid()],
+  },
 };
 
 export const TEXTURES: Record<TextureId, { grid: PixelGrid; palette: Palette }> = {
@@ -1044,8 +1115,9 @@ export function spriteBox(id: SpriteId, at: ArtPoint): Rect {
   return { x, y: cy - Math.floor(h / 2), w, h };
 }
 
-/** Light sources, in absolute art pixels: the tower's lamp and the gate's terminal cursor. */
-export const LIGHTS: { towerLamp: ArtPoint; gateTerminal: ArtPoint } = {
+/** Light sources, in absolute art pixels: the tower's lamp, the gate's terminal cursor and the forest campfire's flame. */
+export const LIGHTS: { towerLamp: ArtPoint; gateTerminal: ArtPoint; campfire: ArtPoint } = {
   towerLamp: { x: 45, y: 3 },
   gateTerminal: { x: 172, y: 81 },
+  campfire: { x: 147, y: 112 },
 };
