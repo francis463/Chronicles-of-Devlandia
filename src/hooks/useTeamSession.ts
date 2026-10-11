@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
+import { type PingPlace } from "../chat/places";
 import { PLAYER_START } from "../game/constants";
 import {
   makeRoomCode,
@@ -22,6 +23,9 @@ import type { TeamMode, TeamStatus, TeamTransport } from "../net/transport";
 
 export type TeamErrorKind = "unreachable" | "no-room" | "full";
 export type TeamPhase = "idle" | "connecting" | "lobby" | "playing" | "error";
+/** Who a chat line or ping came from: roster id, the nickname as typed, and their colour. */
+export type ChatSender = { id: string; name: string; color: string };
+export type PingNote = { zone: ZoneId; x: number; y: number; place: PingPlace | null };
 export type Teammate = { id: string; name: string; color: string; x: number; y: number; zone: ZoneId | null };
 
 export type TeamSession = {
@@ -44,7 +48,13 @@ export type TeamSession = {
   publishBadge(chest: ChestId): void;
   onProgress(cb: (flags: TeamFlags, by: string) => void): () => void;
   /** A teammate earned a badge; each (teammate, chest) is reported once. */
-  onBadge(cb: (name: string, chest: ChestId) => void): () => void;
+  onBadge(cb: (name: string, chest: ChestId, id: string) => void): () => void;
+  /** Sends a chat line; "offline" when not in a room or while reconnecting (nothing is queued). */
+  sendChat(text: string): "sent" | "offline";
+  sendPing(ping: PingNote): "sent" | "offline";
+  /** Chats from roster teammates that pass the receive rate limit. Subscriptions outlive rooms. */
+  onChat(cb: (from: ChatSender, text: string) => void): () => void;
+  onPing(cb: (from: ChatSender, ping: PingNote) => void): () => void;
   onRoster(cb: (joined: string[], left: string[]) => void): () => void;
   /** A teammate's position updates moved them from one known zone to another (never their first sighting). */
   onZoneChange(cb: (name: string, zone: ZoneId) => void): () => void;
@@ -113,7 +123,12 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
   const progressCbs = useRef(new Set<(flags: TeamFlags, by: string) => void>());
   const rosterCbs = useRef(new Set<(joined: string[], left: string[]) => void>());
   const zoneCbs = useRef(new Set<(name: string, zone: ZoneId) => void>());
-  const badgeCbs = useRef(new Set<(name: string, chest: ChestId) => void>());
+  const badgeCbs = useRef(new Set<(name: string, chest: ChestId, id: string) => void>());
+  const chatCbs = useRef(new Set<(from: ChatSender, text: string) => void>());
+  const pingCbs = useRef(new Set<(from: ChatSender, ping: PingNote) => void>());
+  /** Per sender token bucket for chat (capacity 3, refill 1 a second), by wall time. */
+  const chatBuckets = useRef(new Map<string, { tokens: number; at: number }>());
+  const lastPing = useRef(new Map<string, number>());
   /** `${senderId}:${chest}` for every teammate badge already reported. */
   const seenBadges = useRef(new Set<string>());
   /** Each teammate's zone as their last pos said; presence zones never count (they can be stale). */
@@ -137,6 +152,8 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
     knownNames.current = null;
     lastPosZone.current.clear();
     seenBadges.current.clear();
+    chatBuckets.current.clear();
+    lastPing.current.clear();
     seenOthers.current = false;
     return t;
   }, []);
@@ -211,7 +228,26 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
             const key = `${msg.id}:${msg.chest}`;
             if (msg.id !== myId && !seenBadges.current.has(key)) {
               seenBadges.current.add(key);
-              badgeCbs.current.forEach((cb) => cb(msg.name, msg.chest));
+              badgeCbs.current.forEach((cb) => cb(msg.name, msg.chest, msg.id));
+            }
+          } else if (msg.type === "chat" || msg.type === "ping") {
+            // Only people in the roster can speak; the roster's nickname wins over the message's.
+            const sender = msg.id === myId ? undefined : rankPlayers(stateRef.current.metas).find((p) => p.id === msg.id);
+            if (!sender) return;
+            const from: ChatSender = { id: sender.id, name: sender.name, color: sender.color };
+            const at = Date.now();
+            if (msg.type === "chat") {
+              const bucket = chatBuckets.current.get(sender.id) ?? { tokens: 3, at };
+              const tokens = Math.min(3, bucket.tokens + (at - bucket.at) / 1000);
+              const ok = tokens >= 1;
+              chatBuckets.current.set(sender.id, { tokens: ok ? tokens - 1 : tokens, at });
+              if (ok) chatCbs.current.forEach((cb) => cb(from, msg.text));
+            } else {
+              const last = lastPing.current.get(sender.id);
+              if (last !== undefined && at - last < 4000) return;
+              lastPing.current.set(sender.id, at);
+              const note: PingNote = { zone: msg.zone, x: msg.x, y: msg.y, place: msg.place };
+              pingCbs.current.forEach((cb) => cb(from, note));
             }
           } else if (msg.type === "start") {
             adoptStart(msg.startedAt);
@@ -343,9 +379,36 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
     transport.current?.send({ type: "badge", id: current.id, name: current.name, chest });
   }, []);
 
-  const onBadge = useCallback((cb: (name: string, chest: ChestId) => void) => {
+  const onBadge = useCallback((cb: (name: string, chest: ChestId, id: string) => void) => {
     badgeCbs.current.add(cb);
     return () => void badgeCbs.current.delete(cb);
+  }, []);
+
+  const canSend = () => {
+    const phase = stateRef.current.phase;
+    return !!transport.current && !!me.current && (phase === "lobby" || phase === "playing") && stateRef.current.status !== "reconnecting";
+  };
+
+  const sendChat = useCallback((text: string): "sent" | "offline" => {
+    if (!canSend()) return "offline";
+    transport.current!.send({ type: "chat", id: me.current!.id, name: me.current!.name, text });
+    return "sent";
+  }, []);
+
+  const sendPing = useCallback((ping: PingNote): "sent" | "offline" => {
+    if (!canSend()) return "offline";
+    transport.current!.send({ type: "ping", id: me.current!.id, name: me.current!.name, ...ping });
+    return "sent";
+  }, []);
+
+  const onChat = useCallback((cb: (from: ChatSender, text: string) => void) => {
+    chatCbs.current.add(cb);
+    return () => void chatCbs.current.delete(cb);
+  }, []);
+
+  const onPing = useCallback((cb: (from: ChatSender, ping: PingNote) => void) => {
+    pingCbs.current.add(cb);
+    return () => void pingCbs.current.delete(cb);
   }, []);
 
   const onProgress = useCallback((cb: (flags: TeamFlags, by: string) => void) => {
@@ -396,6 +459,10 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
     publishBadge,
     onProgress,
     onBadge,
+    sendChat,
+    sendPing,
+    onChat,
+    onPing,
     onRoster,
     onZoneChange,
   };

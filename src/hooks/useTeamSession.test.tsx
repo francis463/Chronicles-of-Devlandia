@@ -27,7 +27,7 @@ function world(wrap: (t: TeamTransport) => TeamTransport = (t) => t) {
 
 /** Counts presence updates and position messages going out through the wrapped transports. */
 function counting() {
-  const calls = { presence: 0, pos: 0 };
+  const calls = { presence: 0, pos: 0, chat: 0, ping: 0 };
   const wrap = (t: TeamTransport): TeamTransport => ({
     ...t,
     updatePresence(meta) {
@@ -36,6 +36,8 @@ function counting() {
     },
     send(msg) {
       if (msg.type === "pos") calls.pos++;
+      if (msg.type === "chat") calls.chat++;
+      if (msg.type === "ping") calls.ping++;
       t.send(msg);
     },
   });
@@ -181,11 +183,11 @@ describe("useTeamSession: in game", () => {
     act(() => ana.result.current.publishBadge("chest-sql"));
     await settle();
     expect(kaiGot).toHaveBeenCalledTimes(1);
-    expect(kaiGot).toHaveBeenCalledWith("Ana", "chest-sql");
+    expect(kaiGot).toHaveBeenCalledWith("Ana", "chest-sql", ana.result.current.me!.id);
     act(() => hub.inject(ana.result.current.room!, { type: "badge", id: ana.result.current.me!.id, name: "Ana", chest: "chest-php" }));
     expect(anaGot).not.toHaveBeenCalled();
     act(() => ana.result.current.publishBadge("chest-php"));
-    expect(kaiGot).toHaveBeenLastCalledWith("Ana", "chest-php");
+    expect(kaiGot).toHaveBeenLastCalledWith("Ana", "chest-php", ana.result.current.me!.id);
   });
 
   it("onBadge listeners are removed by their unsubscribe", async () => {
@@ -424,5 +426,161 @@ describe("useTeamSession: roster baseline", () => {
     act(() => ana.result.current.leave());
     kai.unmount();
     ana.unmount();
+  });
+});
+
+describe("useTeamSession: chat and pings", () => {
+  async function chatPair(wrap?: (t: TeamTransport) => TeamTransport) {
+    const w = world(wrap);
+    const ana = w.player();
+    const kai = w.player();
+    return { ...w, ana, kai };
+  }
+  /** Both players in one room, in the lobby. Listeners subscribed before `join`, as App's feed does, can be passed in. */
+  async function inLobby(pair: Awaited<ReturnType<typeof chatPair>>) {
+    act(() => pair.ana.result.current.create("Ana", "local"));
+    await settle();
+    act(() => pair.kai.result.current.join("Kai", pair.ana.result.current.room!, "local"));
+    await settle();
+  }
+  const anaId = (p: Awaited<ReturnType<typeof chatPair>>) => p.ana.result.current.me!.id;
+  const sendFromAna = (p: Awaited<ReturnType<typeof chatPair>>, text = "hi") =>
+    act(() => p.hub.inject(p.ana.result.current.room!, { type: "chat", id: anaId(p), name: "Ana", text }));
+
+  it("sendChat reaches the other player with the roster's name and colour; your own is never reported", async () => {
+    const p = await chatPair();
+    await inLobby(p);
+    const kaiGot = vi.fn();
+    const anaGot = vi.fn();
+    p.kai.result.current.onChat(kaiGot);
+    p.ana.result.current.onChat(anaGot);
+    let result = "";
+    act(() => void (result = p.ana.result.current.sendChat("hello")));
+    expect(result).toBe("sent");
+    expect(kaiGot).toHaveBeenCalledWith({ id: anaId(p), name: "Ana", color: TEAM_COLORS[0] }, "hello");
+    expect(anaGot).not.toHaveBeenCalled();
+  });
+
+  it("sendPing reaches the other player with the ping", async () => {
+    const p = await chatPair();
+    await inLobby(p);
+    const got = vi.fn();
+    p.kai.result.current.onPing(got);
+    act(() => void p.ana.result.current.sendPing({ zone: "peaks", x: 50, y: 50, place: "gate" }));
+    expect(got).toHaveBeenCalledWith({ id: anaId(p), name: "Ana", color: TEAM_COLORS[0] }, { zone: "peaks", x: 50, y: 50, place: "gate" });
+  });
+
+  it("drops a chat from an id that isn't in the room, and shows the roster's name, not the message's", async () => {
+    const p = await chatPair();
+    await inLobby(p);
+    const got = vi.fn();
+    p.kai.result.current.onChat(got);
+    act(() => p.hub.inject(p.ana.result.current.room!, { type: "chat", id: "ghost", name: "Mia", text: "boo" }));
+    expect(got).not.toHaveBeenCalled();
+    act(() => p.hub.inject(p.ana.result.current.room!, { type: "chat", id: anaId(p), name: "Mia", text: "hey" }));
+    expect(got).toHaveBeenCalledTimes(1);
+    expect(got.mock.calls[0][0].name).toBe("Ana");
+  });
+
+  it("a burst: three chats within 50 ms all arrive, the fourth is dropped, and a second later one more is accepted (Review Focus 1)", async () => {
+    vi.useFakeTimers();
+    const p = await chatPair();
+    await inLobby(p);
+    const got = vi.fn();
+    p.kai.result.current.onChat(got);
+    for (let i = 0; i < 3; i++) {
+      sendFromAna(p, `m${i}`);
+      act(() => void vi.advanceTimersByTime(10));
+    }
+    sendFromAna(p, "m3");
+    expect(got.mock.calls.map((c) => c[1])).toEqual(["m0", "m1", "m2"]);
+    act(() => void vi.advanceTimersByTime(1000));
+    sendFromAna(p, "m4");
+    expect(got.mock.calls.map((c) => c[1])).toEqual(["m0", "m1", "m2", "m4"]);
+  });
+
+  it("20 chats 500 ms apart are accepted exactly 12 times (3 at once, then 1 a second)", async () => {
+    vi.useFakeTimers();
+    const p = await chatPair();
+    await inLobby(p);
+    const got = vi.fn();
+    p.kai.result.current.onChat(got);
+    for (let i = 0; i < 20; i++) {
+      sendFromAna(p, `m${i}`);
+      act(() => void vi.advanceTimersByTime(500));
+    }
+    expect(got).toHaveBeenCalledTimes(12);
+  });
+
+  it("a ping 3 s after the last is dropped, one 4 s after is accepted", async () => {
+    vi.useFakeTimers();
+    const p = await chatPair();
+    await inLobby(p);
+    const got = vi.fn();
+    p.kai.result.current.onPing(got);
+    const ping = () => act(() => p.hub.inject(p.ana.result.current.room!, { type: "ping", id: anaId(p), name: "Ana", zone: "peaks", x: 40, y: 50, place: null }));
+    ping();
+    act(() => void vi.advanceTimersByTime(3000));
+    ping();
+    expect(got).toHaveBeenCalledTimes(1);
+    act(() => void vi.advanceTimersByTime(1000));
+    ping();
+    expect(got).toHaveBeenCalledTimes(2);
+  });
+
+  it("is offline before joining and while reconnecting, and sends nothing then", async () => {
+    const { calls, wrap } = counting();
+    const p = await chatPair(wrap);
+    expect(p.ana.result.current.sendChat("early")).toBe("offline");
+    expect(p.ana.result.current.sendPing({ zone: "peaks", x: 40, y: 50, place: null })).toBe("offline");
+    await inLobby(p);
+    act(() => p.hub.drop(p.transports[0]));
+    expect(p.ana.result.current.sendChat("hi")).toBe("offline");
+    expect(p.ana.result.current.sendPing({ zone: "peaks", x: 40, y: 50, place: null })).toBe("offline");
+    expect([calls.chat, calls.ping]).toEqual([0, 0]);
+    act(() => p.hub.restore(p.transports[0]));
+    expect(p.ana.result.current.sendChat("back")).toBe("sent");
+    expect(calls.chat).toBe(1);
+  });
+
+  it("stops at leave(), and the receive buckets start full again in the next room", async () => {
+    vi.useFakeTimers();
+    const p = await chatPair();
+    await inLobby(p);
+    const room = p.ana.result.current.room!;
+    const got = vi.fn();
+    p.kai.result.current.onChat(got);
+    for (let i = 0; i < 4; i++) sendFromAna(p, `a${i}`);
+    expect(got).toHaveBeenCalledTimes(3);
+    act(() => p.kai.result.current.leave());
+    await settle();
+    act(() => p.hub.inject(room, { type: "chat", id: anaId(p), name: "Ana", text: "ignored" }));
+    expect(got).toHaveBeenCalledTimes(3);
+    act(() => p.kai.result.current.join("Kai", room, "local"));
+    await settle();
+    for (let i = 0; i < 4; i++) sendFromAna(p, `b${i}`);
+    expect(got.mock.calls.slice(3).map((c) => c[1])).toEqual(["b0", "b1", "b2"]);
+  });
+
+  it("a listener subscribed before the first join still hears chats in the room, in a second room, and after retry()", async () => {
+    const p = await chatPair();
+    const got = vi.fn();
+    p.kai.result.current.onChat(got); // as App's useChat does, before any room exists
+    await inLobby(p);
+    act(() => void p.ana.result.current.sendChat("one"));
+    expect(got).toHaveBeenCalledTimes(1);
+    act(() => p.kai.result.current.leave());
+    act(() => p.ana.result.current.leave());
+    await settle();
+    act(() => p.ana.result.current.create("Ana", "local"));
+    await settle();
+    act(() => p.kai.result.current.join("Kai", p.ana.result.current.room!, "local"));
+    await settle();
+    act(() => void p.ana.result.current.sendChat("two"));
+    expect(got).toHaveBeenCalledTimes(2);
+    act(() => p.kai.result.current.retry());
+    await settle();
+    act(() => void p.ana.result.current.sendChat("three"));
+    expect(got).toHaveBeenCalledTimes(3);
   });
 });
