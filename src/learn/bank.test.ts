@@ -74,6 +74,14 @@ describe("the question bank and the chest table", () => {
     }
   });
 
+  it("SQL, Java and C# each have six questions with unique ids", () => {
+    for (const id of ["chest-sql", "chest-java", "chest-cs"] as const) {
+      const ids = CHESTS.find((c) => c.id === id)!.bank.map((q) => q.id);
+      expect(ids, id).toHaveLength(6);
+      expect(new Set(ids).size, id).toBe(6);
+    }
+  });
+
   it("choices: 4 unique options, correct in range", () => {
     const choices = bankItems.filter((c) => c.kind === "choice");
     expect(choices.length).toBeGreaterThan(0);
@@ -108,6 +116,9 @@ describe("the question bank and the chest table", () => {
       ["html-img-alt", "title"], ["html-img-alt", "src"],
       ["css-font-size", "font-weight"], ["css-font-size", "line-height"],
       ["php-if", "foreach"], ["php-if", "else"],
+      ["sql-order", "GROUP"], ["sql-order", "WHERE"],
+      ["java-class", "interface"], ["java-class", "enum"],
+      ["cs-if", "else"], ["cs-if", "switch"],
     ];
     for (const [id, token] of table) expect(checkBlank(byId(id), token), `${id}: ${token}`).toEqual({ ok: true });
   });
@@ -122,6 +133,9 @@ describe("the question bank and the chest table", () => {
       "html-img-alt": "alt src title width height loading srcset sizes class id style",
       "css-font-size": "font-size font-weight font-family font line-height width height margin padding",
       "php-if": "if else elseif foreach while for switch match do",
+      "sql-order": "ORDER GROUP WHERE HAVING LIMIT SELECT FROM PARTITION",
+      "java-class": "class interface enum record abstract final static void",
+      "cs-if": "if else switch while for foreach do when",
     };
     for (const [id, names] of Object.entries(reference)) {
       const live = byId(id).live;
