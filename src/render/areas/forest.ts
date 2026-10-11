@@ -9,7 +9,7 @@ export const FOREST_POINTS = {
   ranger: toArt({ x: 60, y: 62 }),
   campfire: toArt({ x: 46, y: 66 }),
   oak: toArt({ x: 24, y: 50 }),
-  signpost: toArt({ x: 84, y: 26 }),
+  signpost: toArt({ x: 72, y: 89 }),
   /** The Golden Semicolon's dig spot, in the south-east corner. */
   dig: toArt(HIDDEN_ARTIFACT),
 } as const;

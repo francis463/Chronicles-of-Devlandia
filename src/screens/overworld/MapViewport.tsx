@@ -348,7 +348,7 @@ export function MapViewport({
             <LandmarkButton hit={hits.ranger} name={caption("ranger")} color="var(--accent-border)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "ranger"} onClick={() => onInteract("ranger")} />
             <LandmarkButton hit={hits.campfire} name={caption("campfire")} color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "campfire"} onClick={() => onInteract("campfire")} />
             <LandmarkButton hit={hits["old-oak"]} name={caption("old-oak")} color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "old-oak"} onClick={() => onInteract("old-oak")} />
-            <LandmarkButton hit={hits["forest-signpost"]} name={caption("forest-signpost")} color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "forest-signpost"} onClick={() => onInteract("forest-signpost")} />
+            <LandmarkButton hit={hits["forest-signpost"]} name={caption("forest-signpost")} color="var(--text)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "forest-signpost"} onClick={() => onInteract("forest-signpost")} />
           </>
         ) : (
           <>

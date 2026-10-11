@@ -114,7 +114,7 @@ export const LANDMARK_CAPTIONS: readonly LandmarkCaption[] = [
   { id: "ranger", zone: "forest", sprite: "explorer-down", point: FOREST_POINTS.ranger, texts: ["[R] Ranger"], prefer: "above" },
   { id: "campfire", zone: "forest", sprite: "campfire", point: FOREST_POINTS.campfire, texts: ["[F] Campfire"], prefer: "below" },
   { id: "old-oak", zone: "forest", sprite: "old-oak", point: FOREST_POINTS.oak, texts: ["[O] Old Oak"], prefer: "above" },
-  { id: "forest-signpost", zone: "forest", sprite: "signpost", point: FOREST_POINTS.signpost, texts: ["[P] Signpost"], prefer: "above" },
+  { id: "forest-signpost", zone: "forest", sprite: "signpost", point: FOREST_POINTS.signpost, texts: ["[P] Signpost"], prefer: "below" },
   { id: "terminal", zone: "village", sprite: "syntax-terminal", point: TERMINAL_POINT, texts: ["Terminal"], prefer: "below" },
   { id: "archive", zone: "village", sprite: "archive", point: ARCHIVE_POINT, texts: ["Archive", "C#", "C# ✓"], prefer: "above" },
   ...CHESTS.flatMap((c): LandmarkCaption[] =>

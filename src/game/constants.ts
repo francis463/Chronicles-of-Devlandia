@@ -22,7 +22,7 @@ export const SIGNPOST: Poi = { id: "signpost", label: "Signpost", x: 86, y: 62 }
 export const RANGER: Poi = { id: "ranger", label: "Ranger", x: 60, y: 62 };
 export const CAMPFIRE: Poi = { id: "campfire", label: "Campfire", x: 46, y: 66 };
 export const OLD_OAK: Poi = { id: "old-oak", label: "Old Oak", x: 24, y: 50 };
-export const FOREST_SIGNPOST: Poi = { id: "forest-signpost", label: "Signpost", x: 84, y: 26 };
+export const FOREST_SIGNPOST: Poi = { id: "forest-signpost", label: "Signpost", x: 72, y: 89 };
 /** The village's Syntax Terminal (it prints the Archive's access code) and the Archive (the C# chest is inside). */
 export const TERMINAL: Poi = { id: "terminal", label: "Syntax Terminal", x: 68, y: 60 };
 export const ARCHIVE: Poi = { id: "archive", label: "Archive", x: 55, y: 66 };
