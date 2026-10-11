@@ -1,4 +1,5 @@
 import type { ChallengeTarget, ChestId, SubmitValue } from "../learn/types";
+import type { Picks } from "../learn/chests";
 import type { Bits } from "./logic";
 import type { TeamFlags } from "./team";
 import type { ZoneId } from "./zones";
@@ -54,7 +55,7 @@ export type GameState = {
   logicError: string | null;
   logicHintRevealed: boolean;
   /** Which bank challenge each chest asks this game. */
-  picks: Record<ChestId, 0 | 1 | 2>;
+  picks: Picks;
   /** The per-game shuffle seed for options, tiles and labels. */
   seed: number;
   /** Earned chests, in earn order. */

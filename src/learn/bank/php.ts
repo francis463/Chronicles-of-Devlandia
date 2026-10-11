@@ -1,6 +1,6 @@
 import type { ChestQuestion } from "../types";
 
-export const PHP_BANK: readonly [ChestQuestion, ChestQuestion, ChestQuestion] = [
+export const PHP_BANK: readonly ChestQuestion[] = [
   {
     kind: "blank",
     id: "php-echo",

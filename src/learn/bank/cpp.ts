@@ -1,6 +1,6 @@
 import type { ChestQuestion } from "../types";
 
-export const CPP1_BANK: readonly [ChestQuestion, ChestQuestion, ChestQuestion] = [
+export const CPP1_BANK: readonly ChestQuestion[] = [
   {
     kind: "blank",
     id: "cpp-cout",
@@ -45,7 +45,7 @@ export const CPP1_BANK: readonly [ChestQuestion, ChestQuestion, ChestQuestion] =
   },
 ];
 
-export const CPP2_BANK: readonly [ChestQuestion, ChestQuestion, ChestQuestion] = [
+export const CPP2_BANK: readonly ChestQuestion[] = [
   {
     kind: "blank",
     id: "cpp-for",

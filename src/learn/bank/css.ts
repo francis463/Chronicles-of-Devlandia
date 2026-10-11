@@ -1,6 +1,6 @@
 import type { ChestQuestion } from "../types";
 
-export const CSS_BANK: readonly [ChestQuestion, ChestQuestion, ChestQuestion] = [
+export const CSS_BANK: readonly ChestQuestion[] = [
   {
     kind: "blank",
     id: "css-color",

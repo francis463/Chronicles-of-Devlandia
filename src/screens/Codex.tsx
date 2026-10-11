@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CHESTS, chestChallenge } from "../learn/chests";
+import { CHESTS, chestChallenge, type Picks } from "../learn/chests";
 import type { ChestId } from "../learn/types";
 import { TerminalDialog } from "../ui/TerminalDialog";
 import { CODE_CLASSES, CodeLines } from "./challenge/BlankBody";
@@ -17,7 +17,7 @@ export function Codex({
 }: {
   badges: ChestId[];
   answered: Partial<Record<ChestId, string>>;
-  picks: Record<ChestId, 0 | 1 | 2>;
+  picks: Picks;
   team: boolean;
   onClose: () => void;
 }) {

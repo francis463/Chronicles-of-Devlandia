@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { ARCHIVE_LOCK, GATE_CSS, SCROLL_CIPHER } from "./bank/builtin";
 import { MATCHER_ROUNDS } from "./bank/matcher";
 import { checkBlank, isCorrectBlank, normalize } from "./check";
-import { CHEST_IDS, CHESTS, chestChallenge } from "./chests";
-import type { BlankChallenge, Challenge, ChestId } from "./types";
+import { BANK_SIZE, CHEST_IDS, CHESTS, chestChallenge, type Picks } from "./chests";
+import type { BlankChallenge, Challenge } from "./types";
 
 const bankItems: Challenge[] = CHESTS.flatMap((c) => [...c.bank]);
 const blanks = [...bankItems, GATE_CSS, SCROLL_CIPHER, ARCHIVE_LOCK].filter((c): c is BlankChallenge => c.kind === "blank");
@@ -14,21 +14,21 @@ const byId = (id: string) => {
 };
 const accepts = (c: BlankChallenge, token: string) =>
   c.answers.some((a) => normalize(a, c.caseSensitive) === normalize(token, c.caseSensitive));
-const allZero = Object.fromEntries(CHEST_IDS.map((id) => [id, 0])) as Record<ChestId, 0 | 1 | 2>;
+const allZero = Object.fromEntries(CHEST_IDS.map((id) => [id, 0])) as Picks;
 
 describe("the question bank and the chest table", () => {
-  it("10 chests in table order, 3 challenges each, every language, 3 matcher rounds of 5 pairs", () => {
+  it("10 chests in table order, a bank each, every language, 3 matcher rounds of 5 pairs", () => {
     expect(CHEST_IDS).toEqual([
       "chest-cpp-1", "chest-java", "chest-cpp-2", "chest-html", "chest-css",
       "chest-py-1", "chest-php", "chest-sql", "chest-py-2", "chest-cs",
     ]);
-    for (const chest of CHESTS) expect(chest.bank, chest.id).toHaveLength(3);
+    for (const chest of CHESTS) expect(chest.bank.length, chest.id).toBeGreaterThanOrEqual(BANK_SIZE);
     expect(new Set(bankItems.map((c) => c.lang))).toEqual(
       new Set(["html", "css", "php", "sql", "python", "java", "csharp", "cpp"]),
     );
     expect(MATCHER_ROUNDS).toHaveLength(3);
     for (const round of MATCHER_ROUNDS) expect(round.pairs, round.id).toHaveLength(5);
-    expect(new Set(bankItems.map((c) => c.id)).size).toBe(30);
+    expect(new Set(bankItems.map((c) => c.id)).size).toBe(bankItems.length);
   });
 
   it("each blank: one gap, one kind of live data, answers pass their own check", () => {

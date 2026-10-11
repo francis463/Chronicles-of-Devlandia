@@ -4,7 +4,7 @@ import type { ChestQuestion } from "../types";
 const CONSOLE =
   "Beep Clear Equals GetCursorPosition GetHashCode GetType MoveBufferArea OpenStandardError OpenStandardInput OpenStandardOutput Read ReadKey ReadLine ReferenceEquals ResetColor SetBufferSize SetCursorPosition SetError SetIn SetOut SetWindowPosition SetWindowSize ToString Write WriteLine";
 
-export const CSHARP_BANK: readonly [ChestQuestion, ChestQuestion, ChestQuestion] = [
+export const CSHARP_BANK: readonly ChestQuestion[] = [
   {
     kind: "blank",
     id: "cs-writeline",

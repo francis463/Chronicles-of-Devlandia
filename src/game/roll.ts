@@ -1,6 +1,5 @@
 import { accessCode } from "../learn/access";
-import { CHEST_IDS } from "../learn/chests";
-import type { ChestId } from "../learn/types";
+import { BANK_SIZE, CHEST_IDS, type Picks } from "../learn/chests";
 import type { GameState } from "./types";
 
 /**
@@ -9,7 +8,7 @@ import type { GameState } from "./types";
  * teammate's code is the same.
  */
 export function rollGame(rand: () => number, codeSeed?: number): Pick<GameState, "picks" | "seed" | "matcherRound" | "accessCode"> {
-  const picks = Object.fromEntries(CHEST_IDS.map((id) => [id, Math.floor(rand() * 3)])) as Record<ChestId, 0 | 1 | 2>;
+  const picks = Object.fromEntries(CHEST_IDS.map((id) => [id, Math.floor(rand() * BANK_SIZE)])) as Picks;
   const seed = Math.floor(rand() * 2 ** 31);
   const matcherRound = Math.floor(rand() * 3) as 0 | 1 | 2;
   return { picks, seed, matcherRound, accessCode: accessCode(codeSeed ?? Math.floor(rand() * 2 ** 31)) };

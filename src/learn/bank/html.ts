@@ -1,6 +1,6 @@
 import type { ChestQuestion } from "../types";
 
-export const HTML_BANK: readonly [ChestQuestion, ChestQuestion, ChestQuestion] = [
+export const HTML_BANK: readonly ChestQuestion[] = [
   {
     kind: "blank",
     id: "html-link",

@@ -1,6 +1,6 @@
 import type { ChestQuestion } from "../types";
 
-export const SQL_BANK: readonly [ChestQuestion, ChestQuestion, ChestQuestion] = [
+export const SQL_BANK: readonly ChestQuestion[] = [
   {
     kind: "blank",
     id: "sql-from",

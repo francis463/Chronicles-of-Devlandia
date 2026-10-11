@@ -1,11 +1,11 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { CHEST_IDS, chestChallenge } from "../learn/chests";
+import { CHEST_IDS, chestChallenge, type Picks } from "../learn/chests";
 import type { ChestId } from "../learn/types";
 import { Codex } from "./Codex";
 
-const picks = Object.fromEntries(CHEST_IDS.map((id) => [id, 0])) as Record<ChestId, 0 | 1 | 2>;
+const picks = Object.fromEntries(CHEST_IDS.map((id) => [id, 0])) as Picks;
 const renderCodex = (badges: ChestId[], over: { team?: boolean; answered?: Partial<Record<ChestId, string>> } = {}) => {
   const onClose = vi.fn();
   render(<Codex badges={badges} answered={over.answered ?? {}} picks={picks} team={over.team ?? false} onClose={onClose} />);

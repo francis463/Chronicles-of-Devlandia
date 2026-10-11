@@ -24,15 +24,18 @@ export type Chest = {
   north: boolean;
   /** Where the Codex says the chest is. */
   where: string;
-  bank: Bank;
+  bank: readonly Challenge[];
 };
 
-type Bank = readonly [Challenge, Challenge, Challenge];
+/** How many questions each chest holds; each game rolls one of them per chest. */
+export const BANK_SIZE = 3;
+/** Each chest's rolled question, by index into its bank. */
+export type Picks = Record<ChestId, number>;
 
-const titled = (badge: string, questions: readonly ChestQuestion[]): Bank =>
-  questions.map((q): Challenge => ({ ...q, title: `< CODE CHEST: ${badge.toUpperCase()} >` })) as unknown as Bank;
+const titled = (badge: string, questions: readonly ChestQuestion[]): readonly Challenge[] =>
+  questions.map((q): Challenge => ({ ...q, title: `< CODE CHEST: ${badge.toUpperCase()} >` }));
 
-type Row = Omit<Chest, "bank" | "where"> & { questions: readonly [ChestQuestion, ChestQuestion, ChestQuestion] };
+type Row = Omit<Chest, "bank" | "where"> & { questions: readonly ChestQuestion[] };
 
 const whereOf = (row: Row) =>
   row.at === null
@@ -68,6 +71,6 @@ export const CHEST_IDS: readonly ChestId[] = CHESTS.map((c) => c.id);
 export const chestById = (id: ChestId): Chest => CHESTS.find((c) => c.id === id)!;
 
 /** The challenge a chest asks in this game, with its chest's title. */
-export function chestChallenge(picks: Record<ChestId, 0 | 1 | 2>, id: ChestId): Challenge {
+export function chestChallenge(picks: Picks, id: ChestId): Challenge {
   return chestById(id).bank[picks[id]];
 }

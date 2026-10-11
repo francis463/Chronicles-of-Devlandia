@@ -4,7 +4,7 @@ import type { ChestQuestion } from "../types";
 const PRINT_STREAM =
   "append charset checkError close equals flush format getClass hashCode notify notifyAll nullOutputStream print printf println toString wait write writeBytes";
 
-export const JAVA_BANK: readonly [ChestQuestion, ChestQuestion, ChestQuestion] = [
+export const JAVA_BANK: readonly ChestQuestion[] = [
   {
     kind: "blank",
     id: "java-println",

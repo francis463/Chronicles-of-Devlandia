@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { accessCode } from "../learn/access";
-import { CHEST_IDS } from "../learn/chests";
+import { BANK_SIZE, CHEST_IDS } from "../learn/chests";
 import { rollGame } from "./roll";
 
 const cycling = (values: number[]) => {
@@ -13,11 +13,16 @@ describe("rollGame", () => {
     const rolled = rollGame(cycling([0.5, 0.9, 0.1]), 1234);
     // 10 picks (0.5, 0.9, 0.1, …), then the seed (11th draw), then the Matcher round (12th).
     const draws = [0.5, 0.9, 0.1, 0.5, 0.9, 0.1, 0.5, 0.9, 0.1, 0.5];
-    expect(CHEST_IDS.map((id) => rolled.picks[id])).toEqual(draws.map((d) => Math.floor(d * 3)));
+    expect(CHEST_IDS.map((id) => rolled.picks[id])).toEqual(draws.map((d) => Math.floor(d * BANK_SIZE)));
     expect(rolled.seed).toBe(Math.floor(0.9 * 2 ** 31));
     expect(rolled.matcherRound).toBe(0);
     expect(rolled.accessCode).toBe(accessCode(1234));
     const fresh = rollGame(cycling([0.25]));
     expect(fresh.accessCode).toBe(accessCode(Math.floor(0.25 * 2 ** 31)));
+  });
+
+  it("a draw of 0.999 picks the last question of every chest", () => {
+    const rolled = rollGame(() => 0.999);
+    for (const id of CHEST_IDS) expect(rolled.picks[id]).toBe(BANK_SIZE - 1);
   });
 });

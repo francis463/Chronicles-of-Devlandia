@@ -18,7 +18,7 @@ import { clampPlayer, isInRiver } from "./geometry";
 import { circuitError } from "./logic";
 import { accessCode } from "../learn/access";
 import { ARCHIVE_LOCK } from "../learn/bank/builtin";
-import { CHEST_IDS, CHESTS, chestById } from "../learn/chests";
+import { CHEST_IDS, CHESTS, chestById, type Picks } from "../learn/chests";
 import { isCorrectBlank, matchWrongCount, normalize, wrongBlankCopy, wrongChoiceCopy, wrongMatchCopy } from "../learn/check";
 import type { BlankChallenge, Challenge, ChallengeTarget, ChestId, SubmitValue } from "../learn/types";
 import { challengeOf } from "./challenges";
@@ -45,7 +45,7 @@ export const initialState: GameState = {
   logicOpen: false,
   logicError: null,
   logicHintRevealed: false,
-  picks: Object.fromEntries(CHEST_IDS.map((id) => [id, 0])) as Record<ChestId, 0 | 1 | 2>,
+  picks: Object.fromEntries(CHEST_IDS.map((id) => [id, 0])) as Picks,
   seed: 0,
   badges: [],
   answered: {},
