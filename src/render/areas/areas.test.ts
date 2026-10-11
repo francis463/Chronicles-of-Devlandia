@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ADA, SIGNPOST } from "../../game/constants";
 import { spriteBox } from "../sprites";
-import { intersects, toArt } from "../world";
+import { intersects, toArt, type Rect } from "../world";
 import { AREAS } from ".";
 import { FOREST_POINTS } from "./forest";
 import { VILLAGE_POINTS } from "./village";
@@ -63,5 +63,20 @@ describe("areas", () => {
     for (const [i, a] of pts.entries())
       for (const b of pts.slice(i + 1)) expect(Math.hypot((a.x - b.x) / 3.2, (a.y - b.y) / 1.8)).toBeGreaterThanOrEqual(12);
     for (const prop of AREAS.forest.props) expect(AREAS.forest.protected).toContainEqual(spriteBox(prop.sprite, prop.at));
+  });
+
+  it("every zone's dirt paths form one connected road (the Peaks' south road joins the camp path)", () => {
+    const touch = (a: Rect, b: Rect) => a.x <= b.x + b.w && b.x <= a.x + a.w && a.y <= b.y + b.h && b.y <= a.y + a.h;
+    for (const [id, area] of Object.entries(AREAS)) {
+      const seen = new Set([0]);
+      const queue = [0];
+      while (queue.length) {
+        const i = queue.pop()!;
+        area.paths.forEach((r, j) => {
+          if (!seen.has(j) && touch(area.paths[i], r)) (seen.add(j), queue.push(j));
+        });
+      }
+      expect(seen.size, `${id}: ${area.paths.length} path pieces`).toBe(area.paths.length);
+    }
   });
 });

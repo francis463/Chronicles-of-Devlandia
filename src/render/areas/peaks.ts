@@ -25,7 +25,9 @@ const WEST_PATH: Rect = { x: -1003, y: 127, w: 1096, h: 6 };
 /** The south exit: a gap in the bottom hedge (game columns 62–78), the open ground beyond it, and the path that runs out through it. */
 const SOUTH_MOUTH: Rect = { x: 192, y: 148, w: 64, h: 32 };
 const SOUTH_CORRIDOR: Rect = { x: 192, y: 180, w: 64, h: 1000 };
-const SOUTH_PATH: Rect = { x: 204, y: 112, w: 6, h: 1068 };
+const SOUTH_PATH: Rect = { x: 204, y: 97, w: 6, h: 1083 };
+/** The branch of the camp path east to the south road, at the camp path's bend. */
+const SOUTH_BRANCH: Rect = { x: 157, y: 97, w: 53, h: 6 };
 
 /** Art points of the landmarks and the start. */
 export const LANDMARK_POINTS = {
@@ -50,7 +52,7 @@ export const PEAKS: Area = {
   id: "peaks",
   wall: true,
   terrainAt,
-  paths: [...PATH_RECTS, WEST_PATH, SOUTH_PATH],
+  paths: [...PATH_RECTS, WEST_PATH, SOUTH_BRANCH, SOUTH_PATH],
   mouths: [MOUTH, SOUTH_MOUTH],
   corridors: [{ x: -1000, y: 112, w: 1000, h: 32 }, SOUTH_CORRIDOR],
   gateBox: spriteBox("gate", p.gate),
@@ -67,6 +69,7 @@ export const PEAKS: Area = {
     MOUTH,
     WEST_PATH,
     SOUTH_MOUTH,
+    SOUTH_BRANCH,
     SOUTH_PATH,
     ...chestPoints("peaks").map(({ at }) => spriteBox("code-chest", at)),
   ],
