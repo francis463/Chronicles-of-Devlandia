@@ -4,7 +4,7 @@
 
 A browser game for an HCI course project. Explore the snowy C++ Peaks with your AI drone, fix a CSS bug at the terminal gate to open the way north, survey the Frozen River, and walk west into Dev Village, where Ada the villager has hints.
 
-Along the way, 10 language treasure chests ask questions in HTML, CSS, PHP, Python, Java, C#, SQL and C++, and each one you answer earns a badge. In the village, the Syntax Matcher at the Syntax Terminal prints an access code that unseals the Archive, and the Codex keeps every badge you've earned with the question behind it. Team games have a chat box, and every game has a small command line.
+Along the way, 11 language treasure chests ask questions in HTML, CSS, PHP, Python, Java, C#, SQL, C++ and JavaScript, and each one you answer earns a badge. In the village, the Syntax Matcher at the Syntax Terminal prints an access code that unseals the Archive, and the Codex keeps every badge you've earned with the question behind it. Team games have a chat box, and every game has a small command line.
 
 Built with Vite, React 19, TypeScript and Tailwind CSS 4. Play with a keyboard on a computer, or with on-screen touch controls on a phone or tablet. The layout fits screens down to 360px wide, and on a desktop the map fills most of the window.
 
@@ -36,7 +36,7 @@ The touch controls only appear on touch screens; keyboard players never see them
 - **Typing or Blocks:** every code blank has a `Type` / `Blocks` switch. In Blocks mode, tap a tile to put it in the blank, drag it there with the mouse, or on a touch screen hold it and drag. `[ UNDO ]` and `[ RESET ]` step back through your edits.
 - **Live syntax check:** as you type, a line under the code says when what's in the blank can't be valid there (an unclosed quote, a word that isn't an SQL keyword…). It never tells you whether the answer is right. `[ SUBMIT CODE ]` waits until the blank passes the check, and after two wrong answers the drone shows its tip.
 - **Syntax Terminal and the Archive:** in Dev Village, use the Syntax Terminal (`Terminal`) and pair 5 snippets with their languages. Solving it prints a 4-character access code; type it at the Archive's keypad to unseal it and reach the C# chest.
-- **Codex:** press `C` (or `[C] Codex`) to see all 10 badges, where each chest is, and for the ones you've earned, the question and its explanation.
+- **Codex:** press `C` (or `[C] Codex`) to see all 11 badges, where each chest is, and for the ones you've earned, the question and its explanation.
 - **Quest:** go through the gate and walk onto the Frozen River to survey it. Until the Signal Tower is powered, the ice drains 8 HP every 1.8 seconds while you stand on it.
 - **Supply Cache:** open it for a Repair Patch.
 - **Hidden artifact:** the Supply Cache also holds an encrypted scroll. Click `[ Decode Scroll ]` in the bottom bar and decode it (it uses ROT13: every letter is shifted 13 places). The decoded clue says where the **Golden Semicolon** is buried; walk there and press `E` (or the touch `[E]` button) to dig it up. The spot stays hidden until you've decoded the scroll.
@@ -84,7 +84,7 @@ If the server can't be reached, Online shows "Can't reach the team server…" an
 
 ```
 src/game/      pure game rules: constants, geometry, clock, cipher, logic, challenges, roll, cards, team, wall, zones, village, reducer
-src/learn/     the challenge engine and question bank: live check, shuffling, access codes, the 10 chests and their questions
+src/learn/     the challenge engine and question bank: live check, shuffling, access codes, the 11 chests and their questions
 src/chat/      chat rules and commands: text cleaning and masking, display names, ping places, the command line
 src/hooks/     keyboard controls, game timers, team session, chat feed, pings
 src/net/       team transports: Supabase (Online), BroadcastChannel (Same computer), in-memory (tests)

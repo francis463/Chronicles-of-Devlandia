@@ -1,3 +1,4 @@
+import { chestPoints } from "../learnPoints";
 import { spriteBox } from "../sprites";
 import { toArt, type Rect } from "../world";
 import { inRect, type Area, type Prop, type TerrainKind } from "./area";
@@ -47,5 +48,5 @@ export const FOREST: Area = {
   gateBox: null,
   ice: null,
   props: PROPS,
-  protected: [...PATHS, MOUTH, ...PROPS.map((prop) => spriteBox(prop.sprite, prop.at))],
+  protected: [...PATHS, MOUTH, ...PROPS.map((prop) => spriteBox(prop.sprite, prop.at)), ...chestPoints("forest").map(({ at }) => spriteBox("code-chest", at))],
 };

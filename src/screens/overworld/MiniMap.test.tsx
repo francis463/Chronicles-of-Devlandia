@@ -120,6 +120,7 @@ describe("mini-map chests", () => {
     expect(diamonds("village").map((d) => d.dataset.testid)).toEqual([
       "minimap-chest-chest-php", "minimap-chest-chest-sql", "minimap-chest-chest-py-2",
     ]);
+    expect(diamonds("forest").map((d) => d.dataset.testid)).toEqual(["minimap-chest-chest-js"]);
     const html = screen.getByTestId("minimap-chest-chest-html");
     expect(html).toHaveAttribute("data-earned", "true");
     expect(html).toHaveClass("rotate-45");

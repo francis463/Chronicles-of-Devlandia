@@ -879,8 +879,8 @@ describe("gameReducer: the Dense Forest (Review Focus 1 and 5)", () => {
 describe("gameReducer: the Dense Forest's places", () => {
   const forest: GameState = { ...s0, zone: "forest" };
 
-  it("the forest's places are the ranger, campfire, oak and signpost", () => {
-    expect(reachPlaces(forest).map((p) => p.id)).toEqual(["ranger", "campfire", "old-oak", "forest-signpost"]);
+  it("the forest's places are the ranger, campfire, oak, signpost and the JavaScript chest", () => {
+    expect(reachPlaces(forest).map((p) => p.id)).toEqual(["ranger", "campfire", "old-oak", "forest-signpost", "chest-js"]);
   });
 
   it("talking to the ranger opens her card and logs her line once", () => {

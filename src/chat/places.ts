@@ -7,7 +7,7 @@ import type { ChestId } from "../learn/types";
 /** Everything `/ping <place>` can point at, in the spec's order. */
 export const PING_PLACE_NAMES = [
   "gate", "tower", "cache", "river", "ada", "signpost", "terminal", "archive",
-  "html", "css", "java", "cpp1", "cpp2", "py1", "php", "sql", "py2", "cs", "ranger", "campfire",
+  "html", "css", "java", "cpp1", "cpp2", "py1", "php", "sql", "py2", "cs", "ranger", "campfire", "js",
 ] as const;
 export type PingPlace = (typeof PING_PLACE_NAMES)[number];
 
@@ -45,6 +45,7 @@ const SPOTS: Record<PingPlace, Spot> = {
   cs: chest("chest-cs"),
   ranger: the(RANGER, "forest"),
   campfire: the(CAMPFIRE, "forest"),
+  js: chest("chest-js"),
 };
 
 /** Where a place is: its zone and its point in game percentages. */

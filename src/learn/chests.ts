@@ -5,6 +5,7 @@ import { CSHARP_BANK } from "./bank/csharp";
 import { CSS_BANK } from "./bank/css";
 import { HTML_BANK } from "./bank/html";
 import { JAVA_BANK } from "./bank/java";
+import { JS_BANK } from "./bank/javascript";
 import { PHP_BANK } from "./bank/php";
 import { PY1_BANK, PY2_BANK } from "./bank/python";
 import { SQL_BANK } from "./bank/sql";
@@ -42,7 +43,9 @@ const whereOf = (row: Row) =>
     ? "Dev Village · in the Archive"
     : row.zone === "village"
       ? "Dev Village"
-      : row.north
+      : row.zone === "forest"
+        ? "Dense Forest"
+        : row.north
         ? "C++ Peaks · north of the wall"
         : "C++ Peaks";
 
@@ -57,9 +60,10 @@ const ROWS: readonly Row[] = [
   { id: "chest-sql", badge: "SQL", spoken: "SQL", language: "SQL", zone: "village", at: { x: 12, y: 80 }, caption: "below", north: false, questions: SQL_BANK },
   { id: "chest-py-2", badge: "Python II", spoken: "Python 2", language: "Python", zone: "village", at: { x: 82, y: 82 }, caption: "above", north: false, questions: PY2_BANK },
   { id: "chest-cs", badge: "C#", spoken: "C sharp", language: "C#", zone: "village", at: null, caption: null, north: false, questions: CSHARP_BANK },
+  { id: "chest-js", badge: "JavaScript", spoken: "JavaScript", language: "JavaScript", zone: "forest", at: { x: 18, y: 78 }, caption: "above", north: false, questions: JS_BANK },
 ];
 
-/** The 10 language chests, in the spec's table order. */
+/** The 11 language chests, in the spec's table order. */
 export const CHESTS: readonly Chest[] = ROWS.map(({ questions, ...row }) => ({
   ...row,
   where: whereOf({ ...row, questions }),

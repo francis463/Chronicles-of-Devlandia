@@ -184,6 +184,7 @@ describe("team: the Archive and badges", () => {
     expect(parseMessage({ type: "badge", id: "a", name: "Kai", chest: "chest-sql" }, NOW)).toEqual({
       type: "badge", id: "a", name: "Kai", chest: "chest-sql",
     });
+    expect(parseMessage({ type: "badge", id: "a", name: "Kai", chest: "chest-js" }, NOW)).toMatchObject({ type: "badge", chest: "chest-js" });
     expect(parseMessage({ type: "badge", id: "a", name: "Kai", chest: "chest-rust" }, NOW)).toBeNull();
     expect(parseMessage({ type: "badge", id: "a", name: "<x>", chest: "chest-sql" }, NOW)).toBeNull();
     expect(parseMessage({ type: "badge", name: "Kai", chest: "chest-sql" }, NOW)).toBeNull();

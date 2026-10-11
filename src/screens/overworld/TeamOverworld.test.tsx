@@ -214,9 +214,9 @@ describe("Overworld badges with a stub session", () => {
   it("in a team, the quest line reads Your badges and the Codex is YOUR CODEX", async () => {
     const user = setup();
     render(<Overworld onMenu={() => {}} team={stub()} />);
-    expect(screen.getByText("Your badges: 0/10")).toBeInTheDocument();
+    expect(screen.getByText("Your badges: 0/11")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "[C] Codex" }));
-    expect(screen.getByRole("dialog", { name: "< YOUR CODEX: 0/10 BADGES >" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "< YOUR CODEX: 0/11 BADGES >" })).toBeInTheDocument();
   });
 
   it("teammates get the same access code for one startedAt, whatever their own dice roll (final review)", async () => {

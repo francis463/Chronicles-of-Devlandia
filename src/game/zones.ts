@@ -52,7 +52,7 @@ export const ZONES: Record<ZoneId, Zone> = {
     exits: [{ edge: "north", min: 62, max: 78, to: "peaks" }],
     wall: false,
     gate: false,
-    places: [RANGER, CAMPFIRE, OLD_OAK, FOREST_SIGNPOST],
+    places: [RANGER, CAMPFIRE, OLD_OAK, FOREST_SIGNPOST, ...chestPlaces("forest")],
     river: false,
   },
 };

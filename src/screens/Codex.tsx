@@ -31,7 +31,7 @@ export function Codex({
     });
 
   return (
-    <TerminalDialog title={`< ${team ? "YOUR " : ""}CODEX: ${badges.length}/10 BADGES >`} onClose={onClose}>
+    <TerminalDialog title={`< ${team ? "YOUR " : ""}CODEX: ${badges.length}/11 BADGES >`} onClose={onClose}>
       <ul className="flex flex-col gap-2 text-xs">
         {CHESTS.map((chest) => {
           const earned = badges.includes(chest.id);

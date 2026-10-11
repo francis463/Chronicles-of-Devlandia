@@ -17,24 +17,24 @@ const accepts = (c: BlankChallenge, token: string) =>
 const allZero = Object.fromEntries(CHEST_IDS.map((id) => [id, 0])) as Picks;
 
 describe("the question bank and the chest table", () => {
-  it("10 chests in table order, a bank each, every language, 3 matcher rounds of 5 pairs", () => {
+  it("11 chests in table order, a bank each, every language, 3 matcher rounds of 5 pairs", () => {
     expect(CHEST_IDS).toEqual([
       "chest-cpp-1", "chest-java", "chest-cpp-2", "chest-html", "chest-css",
-      "chest-py-1", "chest-php", "chest-sql", "chest-py-2", "chest-cs",
+      "chest-py-1", "chest-php", "chest-sql", "chest-py-2", "chest-cs", "chest-js",
     ]);
     for (const chest of CHESTS) expect(chest.bank.length, chest.id).toBe(BANK_SIZE);
     expect(new Set(bankItems.map((c) => c.lang))).toEqual(
-      new Set(["html", "css", "php", "sql", "python", "java", "csharp", "cpp"]),
+      new Set(["html", "css", "php", "sql", "python", "java", "csharp", "cpp", "javascript"]),
     );
     expect(MATCHER_ROUNDS).toHaveLength(3);
     for (const round of MATCHER_ROUNDS) expect(round.pairs, round.id).toHaveLength(5);
     expect(new Set(bankItems.map((c) => c.id)).size).toBe(bankItems.length);
   });
 
-  it("six questions per chest, 60 distinct ids, and every pick resolves with the chest's title", () => {
+  it("six questions per chest, 66 distinct ids, and every pick resolves with the chest's title", () => {
     expect(BANK_SIZE).toBe(6);
-    expect(bankItems).toHaveLength(60);
-    expect(new Set(bankItems.map((c) => c.id)).size).toBe(60);
+    expect(bankItems).toHaveLength(66);
+    expect(new Set(bankItems.map((c) => c.id)).size).toBe(66);
     for (const chest of CHESTS) {
       for (let pick = 0; pick < BANK_SIZE; pick++) {
         const challenge = chestChallenge({ ...allZero, [chest.id]: pick }, chest.id);
@@ -66,7 +66,7 @@ describe("the question bank and the chest table", () => {
 
   it("Blocks tiles: exactly one accepted answer and ≥ 2 wrong tiles that pass the live check", () => {
     const tiled = blanks.filter((c) => c.blocks);
-    expect(tiled.length).toBeGreaterThanOrEqual(11);
+    expect(tiled.length).toBeGreaterThanOrEqual(13);
     for (const c of tiled) {
       const tiles = c.blocks ?? [];
       expect(tiles.length, c.id).toBeGreaterThanOrEqual(4);
@@ -101,6 +101,18 @@ describe("the question bank and the chest table", () => {
       expect(ids, id).toHaveLength(6);
       expect(new Set(ids).size, id).toBe(6);
     }
+  });
+
+  it("the JavaScript chest has six unique questions: two blanks then four choices, titled for its badge", () => {
+    const chest = CHESTS.find((c) => c.id === "chest-js")!;
+    expect(chest.bank.map((q) => q.id)).toEqual(["js-console-log", "js-const", "js-strict-equal", "js-array-length", "js-template", "js-typeof"]);
+    expect(chest.bank.map((q) => q.kind)).toEqual(["blank", "blank", "choice", "choice", "choice", "choice"]);
+    expect([chest.zone, chest.at, chest.caption, chest.north, chest.where]).toEqual(["forest", { x: 18, y: 78 }, "above", false, "Dense Forest"]);
+    expect(chestChallenge({ ...allZero, "chest-js": 0 }, "chest-js").title).toBe("< CODE CHEST: JAVASCRIPT >");
+    expect(accepts(byId("js-console-log"), "log")).toBe(true);
+    expect(accepts(byId("js-console-log"), "info")).toBe(false);
+    expect(accepts(byId("js-const"), "const")).toBe(true);
+    expect(accepts(byId("js-const"), "let")).toBe(false);
   });
 
   it("java-class offers no other type-declaring keyword as a wrong tile (an enum is an enum class)", () => {
@@ -147,6 +159,8 @@ describe("the question bank and the chest table", () => {
       ["cs-if", "else"], ["cs-if", "switch"],
       ["cpp-include", "define"], ["cpp-include", "pragma"],
       ["cpp-while", "for"], ["cpp-while", "if"],
+      ["js-console-log", "warn"], ["js-console-log", "error"],
+      ["js-const", "let"], ["js-const", "var"],
       ["py-input", "print"], ["py-input", "len"],
       ["py-dict-get", "pop"], ["py-dict-get", "keys"],
     ];

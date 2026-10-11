@@ -13,21 +13,22 @@ const renderCodex = (badges: ChestId[], over: { team?: boolean; answered?: Parti
 };
 
 describe("Codex", () => {
-  it("titled `< CODEX: 2/10 BADGES >` (team: `< YOUR CODEX: 2/10 BADGES >`), one list in table order with each chest's place", () => {
+  it("titled `< CODEX: 2/11 BADGES >` (team: `< YOUR CODEX: 2/11 BADGES >`), one list in table order with each chest's place", () => {
     const { unmount } = render(
       <Codex badges={["chest-sql", "chest-cs"]} answered={{}} picks={picks} team={false} onClose={vi.fn()} />,
     );
-    expect(screen.getByRole("dialog", { name: "< CODEX: 2/10 BADGES >" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "< CODEX: 2/11 BADGES >" })).toBeInTheDocument();
     const items = within(screen.getByRole("list")).getAllByRole("listitem");
-    expect(items).toHaveLength(10);
+    expect(items).toHaveLength(11);
     // Entries whose badge has a separate spoken form also carry it as hidden text ("C++ 1").
     expect(items[0]).toHaveTextContent(/^C\+\+ I.*Badge · C\+\+ Peaks · north of the wall/);
     expect(items[3]).toHaveTextContent("HTML Badge · C++ Peaks");
     expect(items[6]).toHaveTextContent("PHP Badge · Dev Village");
     expect(items[9]).toHaveTextContent(/C# Badge · Dev Village · in the Archive/);
+    expect(items[10]).toHaveTextContent("JavaScript Badge · Dense Forest");
     unmount();
     renderCodex(["chest-sql", "chest-cs"], { team: true });
-    expect(screen.getByRole("dialog", { name: "< YOUR CODEX: 2/10 BADGES >" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "< YOUR CODEX: 2/11 BADGES >" })).toBeInTheDocument();
   });
 
   it("an earned entry is a button with aria-expanded that shows the question, your answer and the explanation; several can be open; an unearned entry ends `· not earned yet`", async () => {

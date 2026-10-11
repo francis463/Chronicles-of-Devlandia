@@ -172,13 +172,21 @@ describe("decorations", () => {
     has(VILLAGE, spriteBox("archive", { x: 176, y: 116 }));
     has(VILLAGE, spriteBox("code-chest", { x: 176, y: 119 }));
     has(VILLAGE, spriteBox("syntax-terminal", toArt(TERMINAL)));
-    for (const chest of CHESTS.filter((c) => c.at)) has(chest.zone === "village" ? VILLAGE : PEAKS, spriteBox("code-chest", toArt(chest.at!)));
+    for (const chest of CHESTS.filter((c) => c.at)) has(AREAS[chest.zone], spriteBox("code-chest", toArt(chest.at!)));
     expect(VILLAGE.props.some((p) => p.sprite === "hut" && p.at.x === 176 && p.at.y === 116)).toBe(false);
   });
 
   it("Peaks decorations stay clear of the chests", () => {
     const inside = decorations(REACHABLE_RECT, PEAKS);
     for (const chest of CHESTS.filter((c) => c.zone === "peaks")) {
+      const box = spriteBox("code-chest", toArt(chest.at!));
+      for (const d of inside) expect(intersects(grow(boxOf(d), 4), box), `${key(d)} vs ${chest.id}`).toBe(false);
+    }
+  });
+
+  it("forest decorations stay clear of its chest", () => {
+    const inside = decorations(REACHABLE_RECT, FOREST);
+    for (const chest of CHESTS.filter((c) => c.zone === "forest")) {
       const box = spriteBox("code-chest", toArt(chest.at!));
       for (const d of inside) expect(intersects(grow(boxOf(d), 4), box), `${key(d)} vs ${chest.id}`).toBe(false);
     }

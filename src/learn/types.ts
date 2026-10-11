@@ -1,6 +1,6 @@
 /** The challenge engine's data types: every challenge (chest, gate, cipher, keypad, Matcher) is one of these. */
 
-export type Lang = "html" | "css" | "php" | "python" | "java" | "csharp" | "sql" | "cpp" | "logic";
+export type Lang = "html" | "css" | "php" | "python" | "java" | "csharp" | "sql" | "cpp" | "javascript" | "logic";
 
 export type ChestId =
   | "chest-cpp-1"
@@ -12,7 +12,8 @@ export type ChestId =
   | "chest-php"
   | "chest-sql"
   | "chest-py-2"
-  | "chest-cs";
+  | "chest-cs"
+  | "chest-js";
 
 export type ChallengeTarget = ChestId | "gate" | "cipher" | "matcher" | "archive";
 
