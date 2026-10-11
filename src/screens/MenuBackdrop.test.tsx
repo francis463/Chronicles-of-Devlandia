@@ -1,23 +1,16 @@
-import { render } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
-import { PLAYER_START } from "../game/constants";
-import type { SceneInput } from "../render/scene";
-import { backdropWorld, toArt, type WorldRect } from "../render/world";
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { MenuBackdrop } from "./MenuBackdrop";
 
-const drawn: Array<{ input: SceneInput; world: WorldRect }> = [];
-vi.mock("./overworld/MapCanvas", () => ({
-  MapCanvas: (props: { input: SceneInput; world: WorldRect }) => {
-    drawn.push(props);
-    return null;
-  },
-}));
-
 describe("MenuBackdrop", () => {
-  it("draws the world covering the window, framed on the explorer at camp", () => {
+  it("shows the pixel-art mountain scene covering the window, kept crisp, with a wash for readability", () => {
     render(<MenuBackdrop />);
-    const { input, world } = drawn.at(-1)!;
-    expect(input.player).toEqual(PLAYER_START);
-    expect(world).toEqual(backdropWorld({ width: window.innerWidth, height: window.innerHeight, dpr: 1 }, toArt(PLAYER_START)));
+    const backdrop = screen.getByTestId("menu-backdrop");
+    const art = screen.getByTestId("menu-backdrop-art");
+    expect(backdrop).toHaveAttribute("aria-hidden", "true");
+    expect(art.style.backgroundImage).toMatch(/menu-backdrop.*\.gif/);
+    expect(art.style.backgroundSize).toBe("cover");
+    expect(art.style.imageRendering).toBe("pixelated");
+    expect(backdrop.querySelector(".bg-\\[rgba\\(15\\,23\\,42\\,0\\.45\\)\\]")).not.toBeNull();
   });
 });
