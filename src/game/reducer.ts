@@ -192,7 +192,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const exit = exitFor(state.zone, state.player, target);
       if (exit) {
         return pushLog(
-          { ...state, zone: exit.to, ...arrival(exit, state.player.y), inspected: null, stamina: Math.max(0, state.stamina - 1) },
+          { ...state, zone: exit.to, ...arrival(exit, state.player), inspected: null, stamina: Math.max(0, state.stamina - 1) },
           ZONES[exit.to].entered,
         );
       }
