@@ -103,6 +103,11 @@ describe("the question bank and the chest table", () => {
     }
   });
 
+  it("java-class offers no other type-declaring keyword as a wrong tile (an enum is an enum class)", () => {
+    const tiles = byId("java-class").blocks ?? [];
+    for (const keyword of ["enum", "record"]) expect(tiles).not.toContain(keyword);
+  });
+
   it("choices: 4 unique options, correct in range", () => {
     const choices = bankItems.filter((c) => c.kind === "choice");
     expect(choices.length).toBeGreaterThan(0);
@@ -138,7 +143,7 @@ describe("the question bank and the chest table", () => {
       ["css-font-size", "font-weight"], ["css-font-size", "line-height"],
       ["php-if", "foreach"], ["php-if", "else"],
       ["sql-order", "GROUP"], ["sql-order", "WHERE"],
-      ["java-class", "interface"], ["java-class", "enum"],
+      ["java-class", "interface"], ["java-class", "static"],
       ["cs-if", "else"], ["cs-if", "switch"],
       ["cpp-include", "define"], ["cpp-include", "pragma"],
       ["cpp-while", "for"], ["cpp-while", "if"],

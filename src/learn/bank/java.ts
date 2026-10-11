@@ -50,9 +50,9 @@ export const JAVA_BANK: readonly ChestQuestion[] = [
     answers: ["class"],
     caseSensitive: true,
     live: { kind: "notLegal", tokens: ["def", "object", "struct", "function", "klass"], label: "a Java keyword" },
-    blocks: ["class", "interface", "enum", "def", "void"],
+    blocks: ["class", "interface", "static", "def", "void"],
     hint: "It is the keyword for the blueprint that objects are made from.",
-    explain: "class declares a class. interface and enum declare other kinds of types, def belongs to Python and void is a method's return type.",
+    explain: "class declares a class. interface declares a different kind of type, static is a modifier, def belongs to Python and void is a method's return type.",
   },
   {
     kind: "choice",
