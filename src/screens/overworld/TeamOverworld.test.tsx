@@ -336,6 +336,31 @@ describe("Overworld team chat", () => {
     expect(ana.getByTestId(/^minimap-ping-/)).toBeInTheDocument();
   });
 
+  it("the lobby's history is not unread when the game starts (Review Focus 3)", async () => {
+    const user = setup();
+    const t = team();
+    const ana = t.app();
+    const kai = t.app();
+    await enterLobby(user, ana, "Ana");
+    await user.click(ana.getByRole("button", { name: "[ Create Room ]" }));
+    await flush();
+    const code = ana.getByRole("heading", { name: /^ROOM / }).textContent!.slice(5);
+    await enterLobby(user, kai, "Kai");
+    await user.type(kai.getByRole("textbox", { name: "Room code" }), code);
+    await user.click(kai.getByRole("button", { name: "[ Join ]" }));
+    await flush();
+    for (const text of ["one", "two"]) {
+      await user.type(kai.getByRole("textbox", { name: "Message" }), `${text}{Enter}`);
+      act(() => void vi.advanceTimersByTime(1000));
+    }
+    await user.click(ana.getByRole("button", { name: "[ Start Expedition ]" }));
+    await flush();
+    expect(chatTab(ana)).toHaveTextContent(/^CHAT$/);
+    expect(ana.queryByText(/CHAT \d+$/)).toBeNull();
+    await openChat(user, ana);
+    expect(lines(ana)).toHaveTextContent("Kai: two");
+  });
+
   it("counts unread teammate lines on the CHAT tab and in the top bar until you look", async () => {
     const { user, ana, kai } = await startedPair();
     expect(chatTab(ana)).toHaveTextContent(/^CHAT$/);

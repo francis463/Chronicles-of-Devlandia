@@ -48,6 +48,13 @@ describe("maskRude", () => {
     for (const word of ["fuuuck", "asssss", "pussssy", "b1tch", "$hit", "fúck", "putanginamo", "ulul", "stfu"]) expect(maskRude(word), word).toBe("***");
   });
 
+  it("masks a rude word decorated with combining marks (underline, strikethrough)", () => {
+    const U = String.fromCharCode(0x332), S = String.fromCharCode(0x336);
+    const deco = (w: string, m: string) => [...w].map((c) => c + m).join("");
+    expect(maskRude(cleanChat(deco("fuck", U)))).toBe("***");
+    expect(maskRude(cleanChat(deco("fuck", S) + " you"))).toBe("*** you");
+  });
+
   it("masks every listed word", () => {
     expect(RUDE_WORDS.size).toBeGreaterThan(60);
     for (const word of RUDE_WORDS) expect(maskRude(word), word).toBe("***");

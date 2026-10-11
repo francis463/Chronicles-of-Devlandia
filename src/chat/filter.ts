@@ -45,5 +45,5 @@ function isRude(word: string): boolean {
 
 /** Replaces each rude whole word (a run of letters, digits, @ and $) with `***`. */
 export function maskRude(text: string): string {
-  return text.replace(/[\p{L}\p{N}@$]+/gu, (word) => (isRude(word) ? "***" : word));
+  return text.replace(/[\p{L}\p{M}\p{N}@$]+/gu, (word) => (isRude(word) ? "***" : word));
 }
