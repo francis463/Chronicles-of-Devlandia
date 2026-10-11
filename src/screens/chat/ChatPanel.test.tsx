@@ -190,6 +190,9 @@ describe("layout", () => {
     expect(cls).toContain("max-h-36");
     expect(cls).toContain("md:max-h-64");
     expect(cls).not.toContain("md:max-h-none");
+    // A fixed height, so the lobby page doesn't grow as lines arrive.
+    expect(cls).toContain("h-36");
+    expect(cls).toContain("md:h-64");
   });
 
   it("lets the game list fill the panel at md", () => {

@@ -105,7 +105,7 @@ export function ChatPanel({
 
   const listClass = fill
     ? "flex-1 min-h-0 overflow-y-auto max-h-36 md:max-h-none"
-    : "max-h-36 md:max-h-64 overflow-y-auto";
+    : "h-36 max-h-36 md:h-64 md:max-h-64 overflow-y-auto";
 
   return (
     <div className={`${fill ? "flex h-full min-h-0 flex-col" : "flex flex-col"} gap-1 ${className}`}>
