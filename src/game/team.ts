@@ -1,3 +1,5 @@
+import { RAW_CHAT_MAX, CHAT_MAX, chatLength, cleanChat, maskRude } from "../chat/filter";
+import { isPingPlace, placeSpot, type PingPlace } from "../chat/places";
 import { CHEST_IDS } from "../learn/chests";
 import type { ChestId } from "../learn/types";
 import { BOUNDS, MINUTES_PER_DAY, START_MINUTES, TICK_MINUTES, TICK_MS } from "./constants";
@@ -35,7 +37,11 @@ export type TeamMessage =
   | { type: "progress"; id: string; name: string; flags: TeamFlags }
   | { type: "start"; startedAt: number }
   /** Badges are personal: a teammate's badge is news for the log, never shared progress. */
-  | { type: "badge"; id: string; name: string; chest: ChestId };
+  | { type: "badge"; id: string; name: string; chest: ChestId }
+  /** Chat text arrives cleaned and masked, at most CHAT_MAX characters. */
+  | { type: "chat"; id: string; name: string; text: string }
+  /** A named ping carries the place's own zone and point. */
+  | { type: "ping"; id: string; name: string; zone: ZoneId; x: number; y: number; place: PingPlace | null };
 
 export type RankedPlayer = PresenceMeta & { rank: number; color: string; isHost: boolean };
 
@@ -176,6 +182,20 @@ export function parseMessage(raw: unknown, now: number): TeamMessage | null {
     const name = typeof raw.name === "string" ? normalizeNickname(raw.name) : null;
     const chest = CHEST_IDS.find((id) => id === raw.chest);
     return isId(raw.id) && name && chest ? { type: "badge", id: raw.id, name, chest } : null;
+  }
+  if (raw.type === "chat") {
+    const name = typeof raw.name === "string" ? normalizeNickname(raw.name) : null;
+    // A modified game could send far more than a message may hold: refuse before cleaning.
+    const text = typeof raw.text === "string" && raw.text.length <= RAW_CHAT_MAX ? maskRude(cleanChat(raw.text)) : "";
+    return isId(raw.id) && name && text && chatLength(text) <= CHAT_MAX ? { type: "chat", id: raw.id, name, text } : null;
+  }
+  if (raw.type === "ping") {
+    const name = typeof raw.name === "string" ? normalizeNickname(raw.name) : null;
+    // The zone is strict here (parseZone's lenient default is for older clients' positions).
+    const zone = raw.zone === "peaks" || raw.zone === "village" ? raw.zone : null;
+    const place = raw.place === null ? null : isPingPlace(raw.place) ? raw.place : undefined;
+    if (!isId(raw.id) || !name || !zone || !isX(raw.x) || !isY(raw.y) || place === undefined) return null;
+    return { type: "ping", id: raw.id, name, ...(place ? { ...placeSpot(place), place } : { zone, x: raw.x, y: raw.y, place }) };
   }
   return null;
 }

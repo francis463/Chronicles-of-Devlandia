@@ -213,7 +213,7 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
               seenBadges.current.add(key);
               badgeCbs.current.forEach((cb) => cb(msg.name, msg.chest));
             }
-          } else {
+          } else if (msg.type === "start") {
             adoptStart(msg.startedAt);
             dispatch({ type: "started", startedAt: msg.startedAt });
           }

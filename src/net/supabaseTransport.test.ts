@@ -174,6 +174,22 @@ describe("Supabase transport", () => {
     expect(got).toEqual([{ type: "badge", id: "b", name: "Kai", chest: "chest-sql" }]);
   });
 
+  it("chat and ping broadcasts reach the message callback", async () => {
+    const f = fakeClient();
+    const t = createSupabaseTransport(async () => f.client);
+    const got: TeamMessage[] = [];
+    t.onMessage((m) => got.push(m));
+    const joining = t.join("KQZM", meta("a", 1));
+    await vi.waitFor(() => expect(f.raw.channel).toHaveBeenCalled());
+    f.status("SUBSCRIBED");
+    await joining;
+    f.fire("broadcast", "chat", { payload: { type: "chat", id: "b", name: "Kai", text: "hi" } });
+    f.fire("broadcast", "ping", { payload: { type: "ping", id: "b", name: "Kai", zone: "peaks", x: 40, y: 50, place: null } });
+    expect(got.map((m) => m.type)).toEqual(["chat", "ping"]);
+    t.send({ type: "chat", id: "a", name: "Ana", text: "yo" });
+    expect(f.channel.send).toHaveBeenCalledWith({ type: "broadcast", event: "chat", payload: { type: "chat", id: "a", name: "Ana", text: "yo" } });
+  });
+
   it("sends at most 4 presence updates per 31 s (Supabase closes a client's channel after 5 in 30 s), then the latest", async () => {
     vi.useFakeTimers();
     const f = fakeClient();

@@ -196,3 +196,50 @@ describe("team: the Archive and badges", () => {
     expect(s.logs.at(-1)).toBe("Kai unsealed the Archive.");
   });
 });
+
+describe("team: chat and ping messages", () => {
+  const ZWSP = String.fromCharCode(0x200b);
+  const FILLER = String.fromCharCode(0x3164);
+  const chat = (text: unknown, over: Record<string, unknown> = {}) => parseMessage({ type: "chat", id: "a", name: "Kai", text, ...over }, NOW);
+  const ping = (over: Record<string, unknown> = {}) => parseMessage({ type: "ping", id: "a", name: "Kai", zone: "peaks", x: 40, y: 50, place: null, ...over }, NOW);
+
+  it("a chat parses with its text cleaned and masked", () => {
+    expect(chat("hello   team")).toEqual({ type: "chat", id: "a", name: "Kai", text: "hello team" });
+    expect(chat("fu" + ZWSP + "ck")).toEqual({ type: "chat", id: "a", name: "Kai", text: "***" });
+  });
+
+  it("a chat is dropped when blank, too long (raw 480 UTF-16 units, 120 code points) or malformed", () => {
+    expect(chat(FILLER)).toBeNull();
+    expect(chat("a".repeat(481))).toBeNull();
+    expect(chat("a".repeat(120))).not.toBeNull();
+    expect(chat("a".repeat(121))).toBeNull();
+    expect(chat("😀".repeat(60))).not.toBeNull();
+    expect(chat("😀".repeat(120))).not.toBeNull();
+    expect(chat("😀".repeat(121))).toBeNull();
+    expect(chat("hi", { id: undefined })).toBeNull();
+    expect(chat("hi", { name: "<x>" })).toBeNull();
+    expect(chat(42)).toBeNull();
+  });
+
+  it("a ping parses, with a strict zone, point and place", () => {
+    expect(ping()).toEqual({ type: "ping", id: "a", name: "Kai", zone: "peaks", x: 40, y: 50, place: null });
+    expect(ping({ zone: undefined })).toBeNull();
+    expect(ping({ zone: "moon" })).toBeNull();
+    expect(ping({ x: 5 })).toBeNull();
+    expect(ping({ y: 95 })).toBeNull();
+    expect(ping({ place: "moon" })).toBeNull();
+    expect(ping({ place: undefined })).toBeNull();
+    expect(ping({ place: "gate", zone: "moon" })).toBeNull();
+  });
+
+  it("a named ping takes the place's zone and point, whatever was sent", () => {
+    expect(ping({ place: "gate", zone: "village", x: 10, y: 10 })).toEqual({
+      type: "ping", id: "a", name: "Kai", zone: "peaks", x: 50, y: 50, place: "gate",
+    });
+  });
+
+  it("older clients' messages are unaffected, and an unknown type is still ignored", () => {
+    expect(parseMessage({ type: "chat2", id: "a" }, NOW)).toBeNull();
+    expect(parseMessage({ type: "pos", id: "a", x: 40, y: 50, zone: "peaks" }, NOW)).toEqual({ type: "pos", id: "a", x: 40, y: 50, zone: "peaks" });
+  });
+});

@@ -32,6 +32,19 @@ describe("memory transport", () => {
     expect(sa.presence.at(-1)).toEqual(["a"]);
   });
 
+  it("delivers a chat to the others in the room, never to the sender", async () => {
+    const hub = createMemoryHub();
+    const a = hub.transport();
+    const b = hub.transport();
+    const sa = watch(a);
+    const sb = watch(b);
+    await a.join("KQZM", meta("a", 1));
+    await b.join("KQZM", meta("b", 2));
+    a.send({ type: "chat", id: "a", name: "P-a", text: "hello" });
+    expect(sb.messages).toEqual([{ type: "chat", id: "a", name: "P-a", text: "hello" }]);
+    expect(sa.messages).toEqual([]);
+  });
+
   it("keeps rooms apart", async () => {
     const hub = createMemoryHub();
     const a = hub.transport();

@@ -18,7 +18,7 @@ export type RealtimeClientLike = {
 };
 
 /** Every message type is subscribed: a record keyed by the type, so a new type that isn't listed fails to compile. */
-const SUBSCRIBED: Record<TeamMessage["type"], true> = { pos: true, progress: true, start: true, badge: true };
+const SUBSCRIBED: Record<TeamMessage["type"], true> = { pos: true, progress: true, start: true, badge: true, chat: true, ping: true };
 const FAILURE = new Set(["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"]);
 
 /**
