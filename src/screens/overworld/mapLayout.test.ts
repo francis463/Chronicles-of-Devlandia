@@ -158,6 +158,16 @@ describe("captions", () => {
     }
   });
 
+  it("the south exit sign stands over the gap in the hedge (columns 62-78)", () => {
+    for (const world of [phone, desktop]) {
+      const r = mapCaptionRect("south-exit", "Forest ↓", world);
+      const gapLeft = world.left + 0.62 * world.width;
+      const gapRight = world.left + 0.78 * world.width;
+      expect(r.left + r.width, `right @${world.width}`).toBeGreaterThan(gapLeft);
+      expect(r.left, `left @${world.width}`).toBeLessThan(gapRight);
+    }
+  });
+
   it("exit signs: left-centre and right-centre at y 88", () => {
     const west = mapCaptionRect("west-exit", "← Dev Village", desktop);
     const east = mapCaptionRect("east-exit", "C++ Peaks →", desktop);

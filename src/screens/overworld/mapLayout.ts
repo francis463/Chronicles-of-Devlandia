@@ -171,7 +171,7 @@ export const MAP_CAPTIONS = [
   { id: "village", zone: "village", at: { x: 40, y: 4 }, align: "centre" },
   { id: "west-exit", zone: "peaks", at: { x: 1, y: 88 }, align: "left-centre" },
   { id: "east-exit", zone: "village", at: { x: 99, y: 88 }, align: "right-centre" },
-  { id: "south-exit", zone: "peaks", at: { x: 50, y: 99 }, align: "right-bottom" },
+  { id: "south-exit", zone: "peaks", at: { x: 70, y: 85 }, align: "centre" },
   { id: "dense-forest", zone: "forest", at: { x: 40, y: 4 }, align: "centre" },
   { id: "north-exit", zone: "forest", at: { x: 64, y: 18 }, align: "centre" },
 ] as const satisfies ReadonlyArray<{ id: string; zone: ZoneId; at: Point; align: "centre" | "right-bottom" | "left-centre" | "right-centre" }>;

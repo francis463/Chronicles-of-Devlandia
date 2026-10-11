@@ -13,7 +13,7 @@ describe("rangerLine", () => {
       "That scroll is scrambled. Decode it from your inventory: every letter is shifted 13 places.",
     );
     expect(rangerLine({ ...none, gateUnlocked: true, hasLoot: true, clueDecoded: true })).toBe(
-      "The scroll points here. Look for the X in the south-east corner of the clearing, and dig there.",
+      "The scroll points here. Look for the X in the forest's south-east corner, past the clearing, and dig there.",
     );
   });
 
