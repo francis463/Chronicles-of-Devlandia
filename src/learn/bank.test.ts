@@ -66,6 +66,14 @@ describe("the question bank and the chest table", () => {
     expect(ARCHIVE_LOCK.blocks).toBeUndefined();
   });
 
+  it("HTML, CSS and PHP each have six questions with unique ids", () => {
+    for (const id of ["chest-html", "chest-css", "chest-php"] as const) {
+      const ids = CHESTS.find((c) => c.id === id)!.bank.map((q) => q.id);
+      expect(ids, id).toHaveLength(6);
+      expect(new Set(ids).size, id).toBe(6);
+    }
+  });
+
   it("choices: 4 unique options, correct in range", () => {
     const choices = bankItems.filter((c) => c.kind === "choice");
     expect(choices.length).toBeGreaterThan(0);
@@ -97,6 +105,9 @@ describe("the question bank and the chest table", () => {
       ["html-list", "b"],
       ["sql-from", "SELECT"], ["sql-from", "AS"],
       ["gate-css", "flow-root"],
+      ["html-img-alt", "title"], ["html-img-alt", "src"],
+      ["css-font-size", "font-weight"], ["css-font-size", "line-height"],
+      ["php-if", "foreach"], ["php-if", "else"],
     ];
     for (const [id, token] of table) expect(checkBlank(byId(id), token), `${id}: ${token}`).toEqual({ ok: true });
   });
@@ -108,6 +119,9 @@ describe("the question bank and the chest table", () => {
       "css-color": "color background background-color border-color fill stroke margin font-size outline caret-color accent-color",
       "sql-from": "FROM AS INTO WHERE HAVING LIMIT OFFSET AND OR LIKE SELECT",
       "gate-css": "block inline flex grid none contents table flow-root list-item",
+      "html-img-alt": "alt src title width height loading srcset sizes class id style",
+      "css-font-size": "font-size font-weight font-family font line-height width height margin padding",
+      "php-if": "if else elseif foreach while for switch match do",
     };
     for (const [id, names] of Object.entries(reference)) {
       const live = byId(id).live;
