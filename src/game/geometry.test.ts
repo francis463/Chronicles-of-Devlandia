@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ADA, HIDDEN_ARTIFACT, POIS, SIGNPOST } from "./constants";
+import { ADA, CAMPFIRE, FOREST_SIGNPOST, HIDDEN_ARTIFACT, OLD_OAK, POIS, RANGER, SIGNPOST } from "./constants";
 import { clampPlayer, distance, interactLabel, isInRiver, nearestPoi, placeInReach, poiInRange, promptText } from "./geometry";
 import { initialState } from "./reducer";
 import type { GameState } from "./types";
@@ -57,6 +57,10 @@ describe("geometry", () => {
     const s = initialState;
     expect([interactLabel(s, ADA), promptText(s, ADA)]).toEqual(["Talk to Ada", "[E] Talk to Ada"]);
     expect([interactLabel(s, SIGNPOST), promptText(s, SIGNPOST)]).toEqual(["Read Signpost", "[E] Read Signpost"]);
+    expect([interactLabel(s, RANGER), promptText(s, RANGER)]).toEqual(["Talk to Ranger", "[E] Talk to Ranger"]);
+    expect(promptText(s, CAMPFIRE)).toBe("[E] Inspect Campfire");
+    expect(promptText(s, OLD_OAK)).toBe("[E] Inspect Old Oak");
+    expect([interactLabel(s, FOREST_SIGNPOST), promptText(s, FOREST_SIGNPOST)]).toEqual(["Read Signpost", "[E] Read Signpost"]);
     expect([interactLabel(s, gate), promptText(s, gate)]).toEqual(["Terminal Gate", "[E] Inspect Terminal Gate"]);
     expect([interactLabel(s, HIDDEN_ARTIFACT), promptText(s, HIDDEN_ARTIFACT)]).toEqual(["Dig here", "[E] Dig here"]);
   });

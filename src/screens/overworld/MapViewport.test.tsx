@@ -368,8 +368,18 @@ describe("MapViewport: the Dense Forest", () => {
     render(<MapViewport {...props({ zone: "forest" })} />);
     expect(screen.getByText("(Dense Forest)")).toBeInTheDocument();
     expect(screen.getByText("↑ C++ Peaks")).toBeInTheDocument();
-    for (const name of ["[G] Gate", "[T] Tower", "[X] Supply Cache", "[V] Ada", "[P] Signpost"]) expect(screen.queryByRole("button", { name })).toBeNull();
+    for (const name of ["[G] Gate", "[T] Tower", "[X] Supply Cache", "[V] Ada"]) expect(screen.queryByRole("button", { name })).toBeNull();
     for (const text of ["(Snowy Peaks Biome)", "(Dev Village)", "← Dev Village", "Forest ↓"]) expect(screen.queryByText(text)).toBeNull();
+  });
+
+  it("has four place buttons that call onInteract, and only the forest has them", () => {
+    const onInteract = vi.fn();
+    const { rerender } = render(<MapViewport {...props({ zone: "forest", onInteract })} />);
+    const names = ["[R] Ranger", "[F] Campfire", "[O] Old Oak", "[P] Signpost"];
+    for (const name of names) fireEvent.click(screen.getByRole("button", { name }));
+    expect(onInteract.mock.calls).toEqual([["ranger"], ["campfire"], ["old-oak"], ["forest-signpost"]]);
+    rerender(<MapViewport {...props({ zone: "peaks" })} />);
+    for (const name of ["[R] Ranger", "[F] Campfire", "[O] Old Oak"]) expect(screen.queryByRole("button", { name })).toBeNull();
   });
 
   it("the Peaks show the way south", () => {

@@ -18,6 +18,11 @@ export const HIDDEN_ARTIFACT: Poi = { id: "artifact", label: "Golden Semicolon",
 /** Dev Village's villager and its signpost by the exit to the Peaks. */
 export const ADA: Poi = { id: "villager", label: "Ada", x: 34, y: 70 };
 export const SIGNPOST: Poi = { id: "signpost", label: "Signpost", x: 86, y: 62 };
+/** The Dense Forest's ranger, campfire, old oak and signpost (by the way back to the Peaks). */
+export const RANGER: Poi = { id: "ranger", label: "Ranger", x: 60, y: 62 };
+export const CAMPFIRE: Poi = { id: "campfire", label: "Campfire", x: 46, y: 66 };
+export const OLD_OAK: Poi = { id: "old-oak", label: "Old Oak", x: 24, y: 50 };
+export const FOREST_SIGNPOST: Poi = { id: "forest-signpost", label: "Signpost", x: 84, y: 26 };
 /** The village's Syntax Terminal (it prints the Archive's access code) and the Archive (the C# chest is inside). */
 export const TERMINAL: Poi = { id: "terminal", label: "Syntax Terminal", x: 68, y: 60 };
 export const ARCHIVE: Poi = { id: "archive", label: "Archive", x: 55, y: 66 };
@@ -74,7 +79,7 @@ export const LOG = {
 };
 
 /** The landmarks' cards. Ada's shows her current line (village.ts); chests, the terminal and the Archive are in cards.ts. */
-export const INSPECT_COPY: Record<"gate" | "chest" | "river" | "tower" | "signpost" | "artifact", { default: string; looted?: string; opened?: string; bridged?: string; powered?: string }> = {
+export const INSPECT_COPY: Record<"gate" | "chest" | "river" | "tower" | "signpost" | "artifact" | "campfire" | "old-oak" | "forest-signpost", { default: string; looted?: string; opened?: string; bridged?: string; powered?: string }> = {
   gate: {
     default: "A locked compiler gate in the north wall. Its terminal leads to the code puzzle.",
     opened: "The compiler gate stands open. The way north is clear.",
@@ -92,6 +97,9 @@ export const INSPECT_COPY: Record<"gate" | "chest" | "river" | "tower" | "signpo
     powered: "The signal tower hums. Its beam keeps the fog away and holds the bridge.",
   },
   signpost: { default: "C++ PEAKS → East through the hedge: base camp, the north gate and the frozen river." },
+  campfire: { default: "A campfire crackles in the clearing. Someone left it burning for the next explorer." },
+  "old-oak": { default: "An enormous old oak. Its bark is carved with a thousand tiny semicolons." },
+  "forest-signpost": { default: "C++ PEAKS → North through the trees: base camp, the north gate and the frozen river." },
   artifact: { default: "The Golden Semicolon, Devlandia's lost line-ender. Every statement can finally be completed." },
 };
 

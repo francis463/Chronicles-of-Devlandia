@@ -49,7 +49,7 @@ const MAP_TEXTS: Record<(typeof MAP_CAPTIONS)[number]["id"], string[]> = {
 const GROUPS = {
   peaks: ["tower", "chest", "gate", "peaks", "river", "forest", "west-exit", "south-exit"],
   village: ["villager", "signpost", "terminal", "archive", "village", "east-exit"],
-  forest: ["dense-forest", "north-exit"],
+  forest: ["dense-forest", "north-exit", "ranger", "campfire", "old-oak", "forest-signpost"],
 };
 /** Chest captions show at 2× and larger; on a 1× map only on hover, focus or in reach. */
 const chestGroups = (zone: "peaks" | "village" | "forest") => CHESTS.filter((c) => c.zone === zone && c.at).map((c) => c.id as string);

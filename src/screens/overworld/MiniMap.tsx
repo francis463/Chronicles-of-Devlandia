@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react";
-import { ADA, ARCHIVE, HIDDEN_ARTIFACT, POIS, SIGNPOST } from "../../game/constants";
+import { ADA, ARCHIVE, CAMPFIRE, FOREST_SIGNPOST, HIDDEN_ARTIFACT, OLD_OAK, POIS, RANGER, SIGNPOST } from "../../game/constants";
 import { WALL_Y } from "../../game/wall";
 import type { Poi, Point } from "../../game/types";
 import type { ZoneId } from "../../game/zones";
@@ -61,7 +61,7 @@ const CELL_TOP = 9;
 const CELLS: Array<{ zone: ZoneId; left: number; places: Poi[] }> = [
   { zone: "village", left: 0, places: [ADA, SIGNPOST] },
   { zone: "peaks", left: CELL_W, places: POIS },
-  { zone: "forest", left: 2 * CELL_W, places: [] },
+  { zone: "forest", left: 2 * CELL_W, places: [RANGER, CAMPFIRE, OLD_OAK, FOREST_SIGNPOST] },
 ];
 
 const at = (p: Point) => ({ left: `${p.x}%`, top: `${p.y}%` });

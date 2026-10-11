@@ -97,11 +97,17 @@ function ping(arg: string, c: CommandContext): Result {
   }
   const place = PING_PLACE_NAMES.find((n) => n === nameKey(arg));
   if (!place) {
-    const [first, chests] = [PING_PLACE_NAMES.slice(0, 8), PING_PLACE_NAMES.slice(8)];
+    const [first, chests] = [
+      [...PING_PLACE_NAMES.slice(0, 8), ...FOREST_PLACES],
+      PING_PLACE_NAMES.filter((n, i) => i >= 8 && !FOREST_PLACES.includes(n)),
+    ];
     return say(`No place called "${arg}". Try: ${first.join(", ")}, or a chest: ${chests.join(", ")}.`);
   }
   return { notes: [`Ping sent: ${placeCopy(place)}.`], effect: { kind: "ping", ...placeSpot(place), place } };
 }
+
+/** The forest places chat can ping, listed with the landmarks rather than the chests. */
+const FOREST_PLACES: readonly PingPlace[] = ["ranger", "campfire"];
 
 function weather(arg: string): Result {
   const word = nameKey(arg);

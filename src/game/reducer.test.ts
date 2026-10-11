@@ -875,3 +875,35 @@ describe("gameReducer: the Dense Forest (Review Focus 1 and 5)", () => {
     expect([s.zone, s.player, s.drone]).toEqual(["peaks", { x: 28, y: 72 }, { x: 36, y: 70 }]);
   });
 });
+
+describe("gameReducer: the Dense Forest's places", () => {
+  const forest: GameState = { ...s0, zone: "forest" };
+
+  it("the forest's places are the ranger, campfire, oak and signpost", () => {
+    expect(reachPlaces(forest).map((p) => p.id)).toEqual(["ranger", "campfire", "old-oak", "forest-signpost"]);
+  });
+
+  it("talking to the ranger opens her card and logs her line once", () => {
+    const once = gameReducer(forest, { type: "interact", poi: "ranger" });
+    expect(once.inspected).toBe("ranger");
+    expect(lastLog(once)).toBe(
+      'Ranger: "Welcome to the Dense Forest! Back north, the Supply Cache waits behind the wall. Its gate opens with one CSS fix."',
+    );
+    const twice = gameReducer(once, { type: "interact", poi: "ranger" });
+    expect(twice.logCount).toBe(once.logCount);
+  });
+
+  it("the campfire, the oak and the signpost inspect and log nothing", () => {
+    for (const poi of ["campfire", "old-oak", "forest-signpost"] as const) {
+      const s = gameReducer(forest, { type: "interact", poi });
+      expect(s.inspected, poi).toBe(poi);
+      expect(s.logCount, poi).toBe(forest.logCount);
+    }
+  });
+
+  it("other zones' places do nothing in the forest, and the ranger does nothing elsewhere", () => {
+    for (const poi of ["gate", "villager", "signpost", "terminal"] as const) expect(gameReducer(forest, { type: "interact", poi }), poi).toBe(forest);
+    expect(gameReducer(s0, { type: "interact", poi: "ranger" })).toBe(s0);
+    expect(gameReducer({ ...s0, zone: "village" }, { type: "interact", poi: "campfire" }).inspected).toBeNull();
+  });
+});

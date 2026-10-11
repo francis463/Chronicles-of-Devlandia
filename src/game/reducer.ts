@@ -26,6 +26,7 @@ import { flagsOf, mergeFlags, newlySet, teammateLog } from "./team";
 import type { ChallengeState, Direction, GameAction, GameState, Poi, Point } from "./types";
 import { crossesWall, isNorthOfWall, wallBlock } from "./wall";
 import { ZONES, arrival, exitFor } from "./zones";
+import { rangerLine } from "./forest";
 import { adaLine } from "./village";
 
 export const initialState: GameState = {
@@ -245,7 +246,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         return pushLog({ ...state, artifactFound: true, inspected: "artifact" }, LOG.artifactFound);
       }
       if (action.poi === "villager") return pushLogOnce({ ...state, inspected: "villager" }, `Ada: "${adaLine(state)}"`);
-      if (action.poi === "signpost") return { ...state, inspected: "signpost" };
+      if (action.poi === "ranger") return pushLogOnce({ ...state, inspected: "ranger" }, `Ranger: "${rangerLine(state)}"`);
+      if (action.poi === "signpost" || action.poi === "campfire" || action.poi === "old-oak" || action.poi === "forest-signpost")
+        return { ...state, inspected: action.poi };
       if (action.poi === "terminal") {
         // Once solved, the terminal shows its success view (the code) again, not a new round.
         return { ...state, inspected: "terminal", challenge: { ...opened("matcher"), solved: state.matcherSolved } };

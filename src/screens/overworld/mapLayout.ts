@@ -2,6 +2,7 @@ import type { PoiId, Point } from "../../game/types";
 import type { ZoneId } from "../../game/zones";
 import { CHESTS } from "../../learn/chests";
 import type { ChestId } from "../../learn/types";
+import { FOREST_POINTS } from "../../render/areas/forest";
 import { VILLAGE_POINTS } from "../../render/areas/village";
 import { ARCHIVE_POINT, TERMINAL_POINT } from "../../render/learnPoints";
 import { spriteBox, type SpriteId } from "../../render/sprites";
@@ -110,6 +111,10 @@ export const LANDMARK_CAPTIONS: readonly LandmarkCaption[] = [
   { id: "gate", zone: "peaks", sprite: "gate", point: LANDMARK_POINTS.gate, texts: ["[G] Gate"], prefer: "below" },
   { id: "villager", zone: "village", sprite: "explorer-down", point: VILLAGE_POINTS.villager, texts: ["[V] Ada"], prefer: "above" },
   { id: "signpost", zone: "village", sprite: "signpost", point: VILLAGE_POINTS.signpost, texts: ["[P] Signpost"], prefer: "above" },
+  { id: "ranger", zone: "forest", sprite: "explorer-down", point: FOREST_POINTS.ranger, texts: ["[R] Ranger"], prefer: "above" },
+  { id: "campfire", zone: "forest", sprite: "campfire", point: FOREST_POINTS.campfire, texts: ["[F] Campfire"], prefer: "below" },
+  { id: "old-oak", zone: "forest", sprite: "old-oak", point: FOREST_POINTS.oak, texts: ["[O] Old Oak"], prefer: "above" },
+  { id: "forest-signpost", zone: "forest", sprite: "signpost", point: FOREST_POINTS.signpost, texts: ["[P] Signpost"], prefer: "above" },
   { id: "terminal", zone: "village", sprite: "syntax-terminal", point: TERMINAL_POINT, texts: ["Terminal"], prefer: "below" },
   { id: "archive", zone: "village", sprite: "archive", point: ARCHIVE_POINT, texts: ["Archive", "C#", "C# ✓"], prefer: "above" },
   ...CHESTS.flatMap((c): LandmarkCaption[] =>

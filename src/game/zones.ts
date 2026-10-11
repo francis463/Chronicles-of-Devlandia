@@ -1,5 +1,5 @@
 import { CHESTS } from "../learn/chests";
-import { ADA, ARCHIVE, BOUNDS, LOG, POIS, SIGNPOST, TERMINAL } from "./constants";
+import { ADA, ARCHIVE, BOUNDS, CAMPFIRE, FOREST_SIGNPOST, LOG, OLD_OAK, POIS, RANGER, SIGNPOST, TERMINAL } from "./constants";
 import type { Poi, PoiId, Point } from "./types";
 
 export type ZoneId = "peaks" | "village" | "forest";
@@ -52,7 +52,7 @@ export const ZONES: Record<ZoneId, Zone> = {
     exits: [{ edge: "north", min: 62, max: 78, to: "peaks" }],
     wall: false,
     gate: false,
-    places: [],
+    places: [RANGER, CAMPFIRE, OLD_OAK, FOREST_SIGNPOST],
     river: false,
   },
 };

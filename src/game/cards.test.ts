@@ -3,6 +3,7 @@ import { HIDDEN_ARTIFACT } from "./constants";
 import { cardFor } from "./cards";
 import { initialState } from "./reducer";
 import type { GameState } from "./types";
+import { rangerLine } from "./forest";
 import { adaLine } from "./village";
 
 const village: GameState = { ...initialState, zone: "village" };
@@ -33,6 +34,11 @@ describe("cardFor", () => {
       "Cache recovered. Repair Patch added to inventory.",
     );
     expect(cardFor(village)).toBeNull();
+    const forest = { ...initialState, zone: "forest" as const };
+    expect(cardFor({ ...forest, inspected: "ranger" })).toMatchObject({ title: "Ranger", text: rangerLine(forest) });
+    expect(cardFor({ ...forest, inspected: "campfire" })?.text).toBe("A campfire crackles in the clearing. Someone left it burning for the next explorer.");
+    expect(cardFor({ ...forest, inspected: "old-oak" })?.text).toBe("An enormous old oak. Its bark is carved with a thousand tiny semicolons.");
+    expect(cardFor({ ...forest, inspected: "forest-signpost" })?.text).toBe("C++ PEAKS → North through the trees: base camp, the north gate and the frozen river.");
   });
 
   it("y is the inspected place's", () => {

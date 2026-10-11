@@ -15,6 +15,10 @@ export type PoiId =
   | "artifact"
   | "villager"
   | "signpost"
+  | "ranger"
+  | "campfire"
+  | "old-oak"
+  | "forest-signpost"
   | "terminal"
   | "archive"
   | Exclude<ChestId, "chest-cs">;
