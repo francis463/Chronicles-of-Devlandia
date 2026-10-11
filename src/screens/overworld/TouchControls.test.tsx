@@ -122,7 +122,7 @@ describe("Controls legend", () => {
 describe("TouchControls: hidden artifact", () => {
   it("the [E] button digs at the revealed spot", async () => {
     const user = setup();
-    render(<Overworld onMenu={noop} initial={{ hasLoot: true, clueDecoded: true, player: { x: 72, y: 80 } }} />);
+    render(<Overworld onMenu={noop} initial={{ hasLoot: true, clueDecoded: true, zone: "forest", player: { x: 84, y: 80 } }} />);
     await user.click(screen.getByRole("button", { name: "[E] Dig here" }));
     expect(screen.getByText("Artifact found: the Golden Semicolon!")).toBeInTheDocument();
   });

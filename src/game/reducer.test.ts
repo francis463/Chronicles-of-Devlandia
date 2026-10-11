@@ -227,7 +227,7 @@ describe("gameReducer: hidden artifact side quest", () => {
     const s = gameReducer(open, { type: "submitChallenge", value: "Dense Forest" });
     expect(s.clueDecoded).toBe(true);
     expect(s.challenge).toBeNull();
-    expect(lastLog(s)).toBe("Clue decoded: the artifact rests in the Dense Forest.");
+    expect(lastLog(s)).toBe("Clue decoded: the artifact is buried in the Dense Forest, south of camp.");
   });
 
   it("a wrong decode keeps the cipher open with an error", () => {
@@ -253,11 +253,20 @@ describe("gameReducer: hidden artifact side quest", () => {
   });
 
   it("the artifact cannot be dug up before the clue is decoded", () => {
-    expect(gameReducer(looted, { type: "interact", poi: "artifact" })).toBe(looted);
+    const inForest = { ...looted, zone: "forest" as const };
+    expect(gameReducer(inForest, { type: "interact", poi: "artifact" })).toBe(inForest);
+  });
+
+  it("the dig spot is only in the forest: never visible or usable in the Peaks (Review Focus 3)", () => {
+    const decoded = { ...looted, clueDecoded: true };
+    expect(visiblePois(decoded).map((p) => p.id)).not.toContain("artifact");
+    expect(gameReducer(decoded, { type: "interact", poi: "artifact" })).toBe(decoded);
+    expect(visiblePois({ ...decoded, zone: "forest" }).map((p) => p.id)).toContain("artifact");
+    expect(visiblePois({ ...decoded, zone: "forest", artifactFound: true }).map((p) => p.id)).not.toContain("artifact");
   });
 
   it("digging after decoding finds the artifact once", () => {
-    const decoded = { ...looted, clueDecoded: true };
+    const decoded = { ...looted, zone: "forest" as const, clueDecoded: true };
     const found = gameReducer(decoded, { type: "interact", poi: "artifact" });
     expect(found.artifactFound).toBe(true);
     expect(found.inspected).toBe("artifact");
@@ -443,12 +452,13 @@ describe("gameReducer: the north wall", () => {
 
     const locked = reachable(false);
     expect([poi("tower"), poi("chest"), poi("river")].map((t) => inReach(locked.peaks, t))).toEqual([false, false, false]);
-    expect([poi("gate"), HIDDEN_ARTIFACT].map((t) => inReach(locked.peaks, t))).toEqual([true, true]);
+    expect([poi("gate")].map((t) => inReach(locked.peaks, t))).toEqual([true]);
+    expect(HIDDEN_ARTIFACT).toMatchObject({ x: 86, y: 80 });
     expect(locked.spots.some((s) => ZONES[s.zone].wall && s.player.y < 49)).toBe(false);
     expect(locked.spots.some((s) => s.zone === "village")).toBe(true);
 
     const open = reachable(true);
-    expect([poi("tower"), poi("chest"), poi("river"), poi("gate"), HIDDEN_ARTIFACT].every((t) => inReach(open.peaks, t))).toBe(true);
+    expect([poi("tower"), poi("chest"), poi("river"), poi("gate")].every((t) => inReach(open.peaks, t))).toBe(true);
     expect(open.crossings.length).toBeGreaterThan(0);
     expect(open.crossings.every((c) => c.zone === "peaks")).toBe(true);
     expect(new Set(open.crossings.map((c) => c.player.x))).toEqual(new Set([48, 50, 52]));
@@ -530,14 +540,15 @@ describe("gameReducer: places and talking", () => {
   const village: GameState = { ...s0, zone: "village" };
   const ADA_GATE_LINE = 'Ada: "Heading north? The gate\'s terminal wants one CSS fix. Get the display right and the wall lets you through."';
 
-  it("visiblePois: your zone's places, plus the dig spot in the Peaks once revealed", () => {
+  it("visiblePois: your zone's places, plus the dig spot in the forest once revealed", () => {
     expect(visiblePois(s0).map((p) => p.id)).toEqual([
       "gate", "chest", "river", "tower", "chest-cpp-1", "chest-java", "chest-cpp-2", "chest-html", "chest-css", "chest-py-1",
     ]);
     expect(visiblePois({ ...village, clueDecoded: true }).map((p) => p.id)).toEqual([
       "villager", "signpost", "terminal", "archive", "chest-php", "chest-sql", "chest-py-2",
     ]);
-    expect(visiblePois({ ...s0, clueDecoded: true }).map((p) => p.id).at(-1)).toBe("artifact");
+    expect(visiblePois({ ...s0, clueDecoded: true }).map((p) => p.id)).not.toContain("artifact");
+    expect(visiblePois({ ...s0, zone: "forest", clueDecoded: true }).map((p) => p.id).at(-1)).toBe("artifact");
   });
 
   it("places outside your zone do nothing", () => {
@@ -624,7 +635,7 @@ describe("gameReducer: the challenge engine", () => {
     const s = gameReducer(cipher, { type: "submitChallenge", value: "dense-forest!" });
     expect(s.clueDecoded).toBe(true);
     expect(s.challenge).toBeNull();
-    expect(lastLog(s)).toBe("Clue decoded: the artifact rests in the Dense Forest.");
+    expect(lastLog(s)).toBe("Clue decoded: the artifact is buried in the Dense Forest, south of camp.");
   });
 
   it("crafted submits do nothing", () => {
@@ -813,7 +824,7 @@ describe("gameReducer: teammates close stale terminals (Review Focus 1)", () => 
   it("a teammate's flags close your open terminal for the same thing, logging only the teammate line", () => {
     const cases = [
       { target: "gate", flag: "gateUnlocked", line: "Ana opened the gate." },
-      { target: "cipher", flag: "clueDecoded", line: "Ana decoded the scroll: the artifact rests in the Dense Forest." },
+      { target: "cipher", flag: "clueDecoded", line: "Ana decoded the scroll: the artifact is buried in the Dense Forest, south of camp." },
       { target: "archive", flag: "archiveOpen", line: "Ana unsealed the Archive." },
     ] as const;
     for (const { target, flag, line } of cases) {

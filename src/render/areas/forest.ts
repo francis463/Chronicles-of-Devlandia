@@ -1,5 +1,6 @@
 import { chestPoints } from "../learnPoints";
 import { spriteBox } from "../sprites";
+import { HIDDEN_ARTIFACT } from "../../game/constants";
 import { toArt, type Rect } from "../world";
 import { inRect, type Area, type Prop, type TerrainKind } from "./area";
 
@@ -9,6 +10,8 @@ export const FOREST_POINTS = {
   campfire: toArt({ x: 46, y: 66 }),
   oak: toArt({ x: 24, y: 50 }),
   signpost: toArt({ x: 84, y: 26 }),
+  /** The Golden Semicolon's dig spot, in the south-east corner. */
+  dig: toArt(HIDDEN_ARTIFACT),
 } as const;
 
 const PROPS: Prop[] = [
@@ -48,5 +51,8 @@ export const FOREST: Area = {
   gateBox: null,
   ice: null,
   props: PROPS,
-  protected: [...PATHS, MOUTH, ...PROPS.map((prop) => spriteBox(prop.sprite, prop.at)), ...chestPoints("forest").map(({ at }) => spriteBox("code-chest", at))],
+  protected: [...PATHS, MOUTH, ...PROPS.map((prop) => spriteBox(prop.sprite, prop.at)), ...chestPoints("forest").map(({ at }) => spriteBox("code-chest", at)),
+    spriteBox("x-mark", FOREST_POINTS.dig),
+    spriteBox("semicolon", FOREST_POINTS.dig),
+  ],
 };

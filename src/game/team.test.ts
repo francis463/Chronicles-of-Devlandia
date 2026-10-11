@@ -55,7 +55,7 @@ describe("team flags", () => {
   it("writes the teammate log lines from the spec", () => {
     expect(teammateLog("Kai", "questComplete")).toBe("Kai surveyed the Frozen River.");
     expect(teammateLog("Kai", "hasLoot")).toBe("Kai opened the Supply Cache.");
-    expect(teammateLog("Kai", "clueDecoded")).toBe("Kai decoded the scroll: the artifact rests in the Dense Forest.");
+    expect(teammateLog("Kai", "clueDecoded")).toBe("Kai decoded the scroll: the artifact is buried in the Dense Forest, south of camp.");
     expect(teammateLog("Kai", "artifactFound")).toBe("Kai found the Golden Semicolon!");
     expect(teammateLog("Kai", "gateUnlocked")).toBe("Kai opened the gate.");
     expect(teammateLog("Kai", "towerPowered")).toBe("Kai powered the signal tower. The fog lifts and the bridge returns.");

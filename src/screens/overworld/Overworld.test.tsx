@@ -330,7 +330,7 @@ describe("Overworld hidden artifact", () => {
     await user.clear(input);
     await user.type(input, "dense forest{Enter}");
     expect(screen.queryByRole("dialog")).toBeNull();
-    expect(screen.getByText("Clue decoded: the artifact rests in the Dense Forest.")).toBeInTheDocument();
+    expect(screen.getByText("Clue decoded: the artifact is buried in the Dense Forest, south of camp.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "[ Decode Scroll ]" })).toBeNull();
   });
 
@@ -341,15 +341,21 @@ describe("Overworld hidden artifact", () => {
   });
 
   it("keeps the dig spot hidden until the clue is decoded", () => {
-    render(<Overworld onMenu={() => {}} initial={{ hasLoot: true, player: { x: 72, y: 80 } }} />);
+    render(<Overworld onMenu={() => {}} initial={{ hasLoot: true, zone: "forest", player: { x: 84, y: 80 } }} />);
     expect(screen.queryByText("[E] Dig here")).toBeNull();
     fireEvent.keyDown(window, { key: "e" });
     expect(screen.queryByText("Artifact found: the Golden Semicolon!")).toBeNull();
     expect(screen.queryByTestId("artifact")).toBeNull();
   });
 
+  it("after decoding, the Peaks show no dig spot and no [E] Dig here", () => {
+    render(<Overworld onMenu={() => {}} initial={{ hasLoot: true, clueDecoded: true, player: { x: 72, y: 84 } }} />);
+    expect(screen.queryByText("[E] Dig here")).toBeNull();
+    expect(screen.queryByTestId("dig-spot")).toBeNull();
+  });
+
   it("after decoding, [E] digs up the Golden Semicolon", () => {
-    render(<Overworld onMenu={() => {}} initial={{ hasLoot: true, clueDecoded: true, player: { x: 72, y: 80 } }} />);
+    render(<Overworld onMenu={() => {}} initial={{ hasLoot: true, clueDecoded: true, zone: "forest", player: { x: 84, y: 80 } }} />);
     // map prompt + touch [E] button (CSS-hidden on desktop)
     expect(screen.getAllByText("[E] Dig here")).toHaveLength(2);
     fireEvent.keyDown(window, { key: "e" });

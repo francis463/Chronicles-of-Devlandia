@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CHESTS } from "../../learn/chests";
 import { AREAS } from "../../render/areas";
+import { FOREST_POINTS } from "../../render/areas/forest";
 import { ARCHIVE_POINT, TERMINAL_POINT, chestPoints } from "../../render/learnPoints";
 import { spriteBox } from "../../render/sprites";
 import { LANDMARK_POINTS } from "../../render/terrain";
@@ -134,8 +135,6 @@ describe("captions", () => {
           zone === "peaks"
             ? [
                 ...LANDMARKS.map(({ box }) => box),
-                spriteBox("x-mark", P.dig),
-                spriteBox("semicolon", P.dig),
                 ...chestPoints("peaks").map((c) => spriteBox("code-chest", c.at)),
               ]
             : zone === "village"
@@ -145,7 +144,7 @@ describe("captions", () => {
                   spriteBox("syntax-terminal", TERMINAL_POINT),
                   ...chestPoints("village").map((c) => spriteBox("code-chest", c.at)),
                 ]
-              : [...AREAS.forest.props.map((p) => spriteBox(p.sprite, p.at)), ...chestPoints("forest").map((c) => spriteBox("code-chest", c.at))];
+              : [spriteBox("x-mark", FOREST_POINTS.dig), spriteBox("semicolon", FOREST_POINTS.dig), ...AREAS.forest.props.map((p) => spriteBox(p.sprite, p.at)), ...chestPoints("forest").map((c) => spriteBox("code-chest", c.at))];
         const blockers = sprites.map((box) => ({ id: "", rect: spriteCss(box, world) }));
         const areas = Object.entries(hits).map(([id, rect]) => ({ id, rect }));
         for (const a of captions) {
@@ -215,7 +214,7 @@ describe("the [E] prompt", () => {
   it("never covers your sprite", () => {
     const texts = ["[E] Inspect Gate", "[E] Inspect Signal Tower", "[E] Inspect Supply Cache", "[E] Dig here"];
     for (const world of [phone, desktop]) {
-      for (const at of [P.gate, P.tower, P.chest, P.dig, P.start]) {
+      for (const at of [P.gate, P.tower, P.chest, FOREST_POINTS.dig, P.start]) {
         for (const text of texts) {
           const rect = promptRect(text, at, world, mapOf(world));
           expect(hit(rect, spriteCss(spriteBox("explorer-down", at), world)), `${text} at ${JSON.stringify(at)}`).toBe(false);

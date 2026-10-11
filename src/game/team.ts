@@ -75,7 +75,7 @@ export const NO_FLAGS: TeamFlags = {
 const TEAMMATE_LOG: Record<FlagKey, (name: string) => string> = {
   questComplete: (n) => `${n} surveyed the Frozen River.`,
   hasLoot: (n) => `${n} opened the Supply Cache.`,
-  clueDecoded: (n) => `${n} decoded the scroll: the artifact rests in the Dense Forest.`,
+  clueDecoded: (n) => `${n} decoded the scroll: the artifact is buried in the Dense Forest, south of camp.`,
   artifactFound: (n) => `${n} found the Golden Semicolon!`,
   gateUnlocked: (n) => `${n} opened the gate.`,
   towerPowered: (n) => `${n} powered the signal tower. The fog lifts and the bridge returns.`,

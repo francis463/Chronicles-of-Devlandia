@@ -2,6 +2,7 @@ import { phaseOf } from "../game/clock";
 import type { Phase, Point } from "../game/types";
 import type { ZoneId } from "../game/zones";
 import { AREAS } from "./areas";
+import { FOREST_POINTS } from "./areas/forest";
 import type { Pose } from "./motion";
 import { circlePixels, diamondPixels } from "./pixels";
 import { LIGHTS, SPRITES, spriteBox, type SpriteId } from "./sprites";
@@ -192,7 +193,18 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
       const fire = upright.find((d) => d.sprite === "campfire");
       if (fire) fire.frame = flame;
       const light = glow(LIGHTS.campfire, CAMPFIRE_GLOW, strength * (flame === 0 ? 1 : 0.8));
-      return { zone: input.zone, glints: [], flat: [], upright, drone, tint: forestTint(PHASE_TINT[phase]), light, snow };
+      const dig = FOREST_POINTS.dig;
+      const digging = input.clueDecoded && !input.artifactFound;
+      const flat: Drawable[] = digging ? [placed("x-mark", dig)] : [];
+      if (input.artifactFound) {
+        upright.push(placed("semicolon", dig));
+        upright.sort(byFeet);
+        const box = spriteBox("semicolon", dig);
+        const centre = { x: box.x + box.w / 2, y: box.y + Math.floor(box.h / 2) - 1 };
+        light.push(...glow(centre, GOLD, reduced ? 1 : SEMICOLON_STEPS[Math.floor(t / 267) % SEMICOLON_STEPS.length]));
+      }
+      if (digging && !reduced && t % 1500 < 250) light.push({ x: dig.x + 2, y: dig.y - 2, color: WHITE, alpha: 1 });
+      return { zone: input.zone, glints: [], flat, upright, drone, tint: forestTint(PHASE_TINT[phase]), light, snow };
     }
     return { zone: input.zone, glints: [], flat: [], upright, drone, tint: PHASE_TINT[phase], light: [], snow };
   }
@@ -206,8 +218,6 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
   const flat: Drawable[] = [];
   if (input.towerPowered)
     for (let i = 0; i < PLANK_ROWS; i++) flat.push(placed("plank", { x: BRIDGE_RECT.x + 13, y: BRIDGE_RECT.y + (i + 1) * 3 - 1 }));
-  const digging = input.clueDecoded && !input.artifactFound;
-  if (digging) flat.push(placed("x-mark", P.dig));
 
   const upright = [
     ...interiorDecorations(input.zone),
@@ -215,7 +225,6 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
     placed("tower", P.tower),
     placed(input.hasLoot ? "chest-open" : "chest-closed", P.chest),
     placed("gate", P.gate, { frame: input.gateUnlocked ? 0 : 1 }),
-    ...(input.artifactFound ? [placed("semicolon", P.dig)] : []),
     ...learning(input),
     ...mates,
     player,
@@ -234,12 +243,6 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
       light.push(...circlePixels(4 + Math.floor(24 * p)).map((o) => ({ x: P.tower.x + o.x, y: P.tower.y + o.y, color: GREEN, alpha })));
     }
   }
-  if (input.artifactFound) {
-    const box = spriteBox("semicolon", P.dig);
-    const centre = { x: box.x + box.w / 2, y: box.y + Math.floor(box.h / 2) - 1 };
-    light.push(...glow(centre, GOLD, reduced ? 1 : SEMICOLON_STEPS[Math.floor(t / 267) % SEMICOLON_STEPS.length]));
-  }
-  if (digging && !reduced && t % 1500 < 250) light.push({ x: P.dig.x + 2, y: P.dig.y - 2, color: WHITE, alpha: 1 });
 
   return { zone: input.zone, glints, flat, upright, drone, tint: PHASE_TINT[phase], light, snow };
 }

@@ -27,12 +27,11 @@ const SOUTH_MOUTH: Rect = { x: 192, y: 148, w: 64, h: 32 };
 const SOUTH_CORRIDOR: Rect = { x: 192, y: 180, w: 64, h: 1000 };
 const SOUTH_PATH: Rect = { x: 204, y: 112, w: 6, h: 1068 };
 
-/** Art points of the landmarks, the dig spot and the start. */
+/** Art points of the landmarks and the start. */
 export const LANDMARK_POINTS = {
   tower: { x: 45, y: 32 },
   chest: { x: 262, y: 32 },
   gate: { x: 160, y: 90 },
-  dig: { x: 230, y: 151 },
   start: { x: 90, y: 130 },
 } as const;
 
@@ -64,9 +63,7 @@ export const PEAKS: Area = {
     spriteBox("tower", p.tower),
     spriteBox("chest-closed", p.chest),
     spriteBox("gate", p.gate),
-    spriteBox("semicolon", p.dig),
-    spriteBox("x-mark", p.dig),
-    ...[p.start, p.dig, p.tower, p.chest, p.gate].map((at) => spriteBox("explorer-down", at)),
+    ...[p.start, p.tower, p.chest, p.gate].map((at) => spriteBox("explorer-down", at)),
     MOUTH,
     WEST_PATH,
     SOUTH_MOUTH,

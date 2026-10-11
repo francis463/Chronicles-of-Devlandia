@@ -68,7 +68,7 @@ export const isModalOpen = (s: GameState) => s.challenge !== null || s.logicOpen
 
 /** Hidden points of interest that are currently diggable: the artifact, after decoding, until found. */
 /** What you can use in your zone: its places, plus the dig spot in the Peaks once revealed. */
-export const visiblePois = (s: GameState): Poi[] => [...ZONES[s.zone].places, ...(s.zone === "peaks" ? revealedPois(s) : [])];
+export const visiblePois = (s: GameState): Poi[] => [...ZONES[s.zone].places, ...(s.zone === "forest" ? revealedPois(s) : [])];
 
 /** On the frozen river's ice, in a zone that has the river. */
 export const inRiver = (s: GameState): boolean => ZONES[s.zone].river && isInRiver(s.player);

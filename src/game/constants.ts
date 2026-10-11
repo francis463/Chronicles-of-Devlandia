@@ -13,8 +13,8 @@ export const POIS: Poi[] = [
   { id: "tower", label: "Signal Tower", x: 14, y: 18 },
 ];
 export const INTERACT_RADIUS = 13;
-/** Buried in the Dense Forests; not on the map until the scroll is decoded. */
-export const HIDDEN_ARTIFACT: Poi = { id: "artifact", label: "Golden Semicolon", x: 72, y: 84 };
+/** Buried in the Dense Forest; not on the map until the scroll is decoded. */
+export const HIDDEN_ARTIFACT: Poi = { id: "artifact", label: "Golden Semicolon", x: 86, y: 80 };
 /** Dev Village's villager and its signpost by the exit to the Peaks. */
 export const ADA: Poi = { id: "villager", label: "Ada", x: 34, y: 70 };
 export const SIGNPOST: Poi = { id: "signpost", label: "Signpost", x: 86, y: 62 };
@@ -61,7 +61,7 @@ export const LOG = {
   gateOpen: "Gate open. The way north is clear.",
   downed: "You are downed. Press Respawn.",
   scrollFound: "Found an encrypted scroll: QRAFR SBERFG",
-  clueDecoded: "Clue decoded: the artifact rests in the Dense Forest.",
+  clueDecoded: "Clue decoded: the artifact is buried in the Dense Forest, south of camp.",
   artifactFound: "Artifact found: the Golden Semicolon!",
   tower: "Signal tower terminal ready. Logic lock found.",
   towerOnline: "Signal tower online. The beam holds.",

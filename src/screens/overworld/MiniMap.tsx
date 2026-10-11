@@ -144,7 +144,7 @@ export function MiniMap({
               const point = chest.at ?? (archiveOpen ? ARCHIVE : null);
               return chest.zone === cell.zone && point ? <ChestDiamond key={chest.id} id={chest.id} point={point} earned={badges.includes(chest.id)} /> : null;
             })}
-            {cell.zone === "peaks" && artifactFound && (
+            {cell.zone === "forest" && artifactFound && (
               <div className="absolute h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-[var(--accent)]" style={at(HIDDEN_ARTIFACT)} />
             )}
             {teammates
