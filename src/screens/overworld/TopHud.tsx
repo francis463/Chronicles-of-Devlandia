@@ -10,6 +10,7 @@ export function TopHud({
   onMenu,
   onCodex,
   teamLabel,
+  chatUnread = 0,
   reconnecting,
   region,
   className = "",
@@ -21,6 +22,8 @@ export function TopHud({
   onCodex: () => void;
   /** Team mode: "ROOM KQZM · 3 online". */
   teamLabel?: string;
+  /** Unread team chat; on phones the chat panel can be out of view, so the top bar says so. */
+  chatUnread?: number;
   reconnecting?: boolean;
   /** The zone you are in: "C++ Peaks". */
   region: string;
@@ -36,7 +39,12 @@ export function TopHud({
         {`REGION: ${region.toUpperCase()}`}
       </h2>
       <div className="flex flex-wrap items-center gap-3">
-        {teamLabel && <span className="text-[10px] font-bold tracking-widest text-[var(--accent)]">{teamLabel}</span>}
+        {teamLabel && (
+          <span className="text-[10px] font-bold tracking-widest text-[var(--accent)]">
+            {teamLabel}
+            {chatUnread > 0 && <span className="md:hidden">{` · CHAT ${chatUnread}`}</span>}
+          </span>
+        )}
         {reconnecting && (
           <span role="status" className="text-[10px] tracking-widest text-[var(--danger-border)]">
             Reconnecting…

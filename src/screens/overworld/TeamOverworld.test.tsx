@@ -2,7 +2,7 @@ import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../../App";
-import { POS_INTERVAL_MS } from "../../game/team";
+import { NO_FLAGS, POS_INTERVAL_MS } from "../../game/team";
 import type { TeamSession } from "../../hooks/useTeamSession";
 import type { ChestId } from "../../learn/types";
 import { createMemoryHub } from "../../net/memoryTransport";
@@ -261,5 +261,146 @@ describe("Overworld badges with a stub session", () => {
     const lines = ["Kai earned the HTML Badge.", "Badges are personal: each explorer opens their own chest.", "Kai earned the SQL Badge."];
     for (const line of lines) expect(countIn(text, line), line).toBe(1);
     expect(lines.map((l) => text.indexOf(l))).toEqual([...lines.map((l) => text.indexOf(l))].sort((a, b) => a - b));
+  });
+});
+
+describe("Overworld team chat", () => {
+  const chatTab = (app: App) => app.getByRole("tab", { name: /^CHAT/ });
+  const openChat = async (user: ReturnType<typeof setup>, app: App) => {
+    if (chatTab(app).getAttribute("aria-selected") !== "true") await user.click(chatTab(app));
+  };
+  const lines = (app: App) => app.getByRole("list", { name: "Team chat", hidden: true });
+  const say = async (user: ReturnType<typeof setup>, app: App, text: string) => {
+    await openChat(user, app);
+    await user.type(app.getByRole("textbox", { name: "Message" }), `${text}{Enter}`);
+    act(() => void vi.advanceTimersByTime(1000));
+  };
+
+  it("carries a message and a quick reply, and the legend says Chat: [Enter]", async () => {
+    const { user, ana, kai } = await startedPair();
+    expect(ana.getByText("Chat: [Enter]")).toBeInTheDocument();
+    await say(user, kai, "hello");
+    expect(lines(ana)).toHaveTextContent("Kai: hello");
+    expect(lines(kai)).toHaveTextContent("Kai: hello");
+    await user.click(kai.getByRole("button", { name: "Need help" }));
+    expect(lines(ana)).toHaveTextContent("Kai: Need help");
+  });
+
+  it("/ping gate rings on both maps, writes the lines, and the next ping within 5 s waits", async () => {
+    const { user, ana, kai } = await startedPair();
+    await say(user, kai, "/ping gate");
+    expect(ana.getByTestId(/^minimap-ping-/)).toBeInTheDocument();
+    expect(ana.getByTestId(/^ping-/)).toHaveTextContent("Kai");
+    expect(lines(ana)).toHaveTextContent("Kai pinged the Terminal Gate.");
+    expect(lines(kai)).toHaveTextContent("Ping sent: the Terminal Gate.");
+    expect(kai.getByTestId(/^ping-/)).toHaveTextContent("Kai");
+    await say(user, kai, "/ping");
+    expect(lines(kai)).toHaveTextContent("Wait a moment before pinging again.");
+  });
+
+  it("a muted teammate's ring still draws but writes no line, and carries over from the lobby", async () => {
+    const user = setup();
+    const t = team();
+    const ana = t.app();
+    const kai = t.app();
+    await enterLobby(user, ana, "Ana");
+    await user.click(ana.getByRole("button", { name: "[ Create Room ]" }));
+    await flush();
+    const code = ana.getByRole("heading", { name: /^ROOM / }).textContent!.slice(5);
+    await enterLobby(user, kai, "Kai");
+    await user.type(kai.getByRole("textbox", { name: "Room code" }), code);
+    await user.click(kai.getByRole("button", { name: "[ Join ]" }));
+    await flush();
+
+    // In the lobby: Kai talks, Ana half-types and mutes nobody yet.
+    await user.type(kai.getByRole("textbox", { name: "Message" }), "from the lobby{Enter}");
+    act(() => void vi.advanceTimersByTime(1000));
+    expect(ana.getByRole("list", { name: "Team chat" })).toHaveTextContent("Kai: from the lobby");
+    await user.type(ana.getByRole("textbox", { name: "Message" }), "half");
+    await user.click(ana.getByRole("button", { name: "Mute Kai" }));
+    await user.click(ana.getByRole("button", { name: "[ Start Expedition ]" }));
+    await flush();
+
+    // In the game: the lobby line, the draft and the mute all carried over; nothing is unread.
+    expect(chatTab(ana)).toHaveTextContent(/^CHAT$/);
+    await openChat(user, ana);
+    expect(ana.getByRole("textbox", { name: "Message" })).toHaveValue("half");
+    expect(lines(ana)).not.toHaveTextContent("from the lobby");
+    await user.click(ana.getByRole("tab", { name: "LOG" }));
+
+    await say(user, kai, "muted hello");
+    await say(user, kai, "/ping gate");
+    expect(lines(ana)).not.toHaveTextContent(/muted hello|pinged/);
+    expect(chatTab(ana)).toHaveTextContent(/^CHAT$/);
+    expect(ana.getByTestId(/^ping-/)).toHaveTextContent("Kai");
+    expect(ana.getByTestId(/^minimap-ping-/)).toBeInTheDocument();
+  });
+
+  it("counts unread teammate lines on the CHAT tab and in the top bar until you look", async () => {
+    const { user, ana, kai } = await startedPair();
+    expect(chatTab(ana)).toHaveTextContent(/^CHAT$/);
+    await say(user, kai, "psst");
+    expect(chatTab(ana)).toHaveTextContent("CHAT (1)");
+    expect(chatTab(ana)).toHaveAccessibleName("CHAT, 1 new");
+    expect(ana.getByText(/CHAT 1$/)).toBeInTheDocument();
+    await user.click(chatTab(ana));
+    expect(chatTab(ana)).toHaveTextContent(/^CHAT$/);
+    expect(ana.queryByText(/CHAT 1$/)).toBeNull();
+  });
+
+  it("shows two players named Kai as Kai and Kai (2), in lines and /where", async () => {
+    const { user, app, ana, kai, code } = await startedPair();
+    const kai2 = app();
+    await enterLobby(user, kai2, "Kai");
+    await user.type(kai2.getByRole("textbox", { name: "Room code" }), code);
+    await user.click(kai2.getByRole("button", { name: "[ Join ]" }));
+    await flush();
+    await say(user, kai, "first");
+    await say(user, kai2, "second");
+    expect(lines(ana)).toHaveTextContent("Kai: first");
+    expect(lines(ana)).toHaveTextContent("Kai (2): second");
+    await say(user, ana, "/where");
+    expect(lines(ana)).toHaveTextContent("Kai: C++ Peaks · Kai (2): C++ Peaks");
+  });
+
+  it("shows a rude nickname masked in the line, /where and the ring label", async () => {
+    const { user, hub, ana, code } = await startedPair();
+    const raw = hub.transport();
+    await act(async () => {
+      await raw.join(code, { id: "rude1", name: "fuck you", joinedAt: Date.now() + 1_000_000, startedAt: null, flags: NO_FLAGS, x: 28, y: 72, zone: "peaks" });
+    });
+    act(() => {
+      raw.send({ type: "chat", id: "rude1", name: "fuck you", text: "hi there" });
+      raw.send({ type: "ping", id: "rude1", name: "fuck you", zone: "peaks", x: 40, y: 40, place: null });
+    });
+    await openChat(user, ana);
+    expect(lines(ana)).toHaveTextContent("*** you: hi there");
+    expect(ana.getByTestId("ping-rude1")).toHaveTextContent("*** you");
+    await say(user, ana, "/where");
+    expect(lines(ana)).toHaveTextContent("*** you: C++ Peaks");
+    expect(lines(ana)).not.toHaveTextContent("fuck");
+  });
+
+  it("/where follows a teammate into the village", async () => {
+    const { user, ana, kai } = await startedPair();
+    for (let i = 0; i < 6; i++) await user.click(kai.getByRole("button", { name: "Move left" }));
+    act(() => vi.advanceTimersByTime(POS_INTERVAL_MS * 2));
+    await say(user, ana, "/where");
+    expect(lines(ana)).toHaveTextContent("Kai: Dev Village");
+  });
+
+  it("/badges Kai reports a badge you heard about", async () => {
+    const random = vi.spyOn(Math, "random").mockReturnValue(0);
+    try {
+      const { user, ana, kai } = await startedPair();
+      await user.click(kai.getByRole("button", { name: "HTML chest" }));
+      await user.type(kai.getByRole("textbox", { name: "answer" }), "href");
+      await user.click(kai.getByRole("button", { name: "[ SUBMIT CODE ]" }));
+      await flush();
+      await say(user, ana, "/badges Kai");
+      expect(lines(ana)).toHaveTextContent("Kai has earned 1 that you know of: HTML.");
+    } finally {
+      random.mockRestore();
+    }
   });
 });

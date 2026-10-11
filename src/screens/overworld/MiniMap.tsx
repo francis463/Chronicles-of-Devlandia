@@ -108,6 +108,7 @@ export function MiniMap({
   playerColor,
   badges,
   archiveOpen,
+  chatHint,
   className = "",
 }: {
   zone: ZoneId;
@@ -120,6 +121,8 @@ export function MiniMap({
   teammates?: Teammate[];
   pings?: ActivePing[];
   playerColor?: string;
+  /** The key hint for the chat or command line: `Chat: [Enter]` or `Commands: [/]`. */
+  chatHint?: string;
   className?: string;
 }) {
   return (
@@ -178,6 +181,7 @@ export function MiniMap({
         <span className="hidden pointer-coarse:inline">Move: D-pad</span>
         <span className="hidden pointer-coarse:inline">Interact: [E] button</span>
         <span>Codex: [C]</span>
+        {chatHint && <span className="pointer-coarse:hidden">{chatHint}</span>}
       </div>
     </div>
   );

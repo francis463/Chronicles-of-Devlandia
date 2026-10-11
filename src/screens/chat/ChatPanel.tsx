@@ -85,6 +85,8 @@ export function ChatPanel({
   }, [active]);
 
   const game = where === "game";
+  /** A game's panel (team or solo) fills the sidebar slot; the lobby's list is bounded instead. */
+  const fill = where !== "lobby";
   const length = chatLength(feed.draft);
   const showCounter = length > CHAT_MAX - 20;
   const status = length === CHAT_MAX ? `Limit reached: ${CHAT_MAX} characters` : length === CHAT_MAX - 10 ? "10 characters left" : "";
@@ -101,13 +103,13 @@ export function ChatPanel({
     if (send(feed.draft).status !== "refused") feed.setDraft("");
   };
 
-  const listClass = game
+  const listClass = fill
     ? "flex-1 min-h-0 overflow-y-auto max-h-36 md:max-h-none"
     : "max-h-36 md:max-h-64 overflow-y-auto";
 
   return (
-    <div className={`${game ? "flex h-full min-h-0 flex-col" : "flex flex-col"} gap-2 ${className}`}>
-      <ol ref={scroller} aria-label="Team chat" className={`${listClass} flex flex-col gap-1`}>
+    <div className={`${fill ? "flex h-full min-h-0 flex-col" : "flex flex-col"} gap-1 ${className}`}>
+      <ol ref={scroller} aria-label="Team chat" className={`${listClass} flex flex-col gap-1 md:gap-0.5`}>
         {feed.lines.map((line) => (
           <Line key={line.seq} line={line} />
         ))}
@@ -116,7 +118,7 @@ export function ChatPanel({
       {replies.length > 0 && (
         <>
           {game && (
-            <button type="button" aria-expanded={open} onMouseDown={keepFocus} onClick={() => setOpen((v) => !v)} className={`hidden md:inline-flex ${BUTTON}`}>
+            <button type="button" aria-expanded={open} onMouseDown={keepFocus} onClick={() => setOpen((v) => !v)} className={`hidden md:inline-flex ${BUTTON} md:self-start md:border-0 md:bg-transparent md:px-0 md:py-0 md:underline`}>
               [ Quick replies ]
             </button>
           )}
@@ -139,7 +141,7 @@ export function ChatPanel({
         </>
       )}
 
-      <form onSubmit={submit} className={`flex gap-2 ${game ? "md:flex-col" : ""}`}>
+      <form onSubmit={submit} className={`flex gap-2 ${fill ? "md:flex-col" : ""}`}>
         <input
           ref={inputRef}
           type="text"
@@ -154,9 +156,9 @@ export function ChatPanel({
           onKeyDown={(e) => {
             if (e.key === "Escape") e.currentTarget.blur();
           }}
-          className={`min-w-0 flex-1 border-2 border-[var(--panel-border)] bg-[var(--bg)] px-2 py-1 text-[11px] pointer-coarse:text-base ${TOUCH}`}
+          className={`min-w-0 flex-1 border-2 border-[var(--panel-border)] bg-[var(--bg)] px-2 py-1 text-[11px] md:py-0.5 pointer-coarse:text-base ${TOUCH}`}
         />
-        <button type="submit" onMouseDown={keepFocus} className={BUTTON}>
+        <button type="submit" onMouseDown={keepFocus} className={`${BUTTON} md:py-0.5`}>
           [ SEND ]
         </button>
       </form>

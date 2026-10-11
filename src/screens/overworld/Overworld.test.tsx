@@ -1,13 +1,29 @@
+import { createElement } from "react";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RIVER_DAMAGE_MS } from "../../game/constants";
+import type { SceneInput } from "../../render/scene";
 import { Overworld } from "./Overworld";
+
+// The real canvas still renders; this only records what the game asks it to draw.
+const drawn = vi.hoisted(() => [] as Array<{ input: SceneInput }>);
+vi.mock("./MapCanvas", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./MapCanvas")>();
+  return {
+    ...actual,
+    MapCanvas: (props: Parameters<typeof actual.MapCanvas>[0]) => {
+      drawn.push(props);
+      return createElement(actual.MapCanvas, props);
+    },
+  };
+});
 
 const setup = () => userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
 beforeEach(() => {
   vi.useFakeTimers();
+  drawn.length = 0;
 });
 
 afterEach(() => {
@@ -548,5 +564,109 @@ describe("Overworld: the mini-map's chests", () => {
     render(<Overworld onMenu={() => {}} initial={{ badges: ["chest-html"] }} />);
     expect(screen.getByTestId("minimap-chest-chest-html")).toHaveAttribute("data-earned", "true");
     expect(screen.getByTestId("minimap-chest-chest-css")).not.toHaveAttribute("data-earned");
+  });
+});
+
+describe("Overworld commands (solo)", () => {
+  const input = () => screen.getByRole("textbox", { name: "Message" }) as HTMLInputElement;
+  const tab = (name: string | RegExp) => screen.getByRole("tab", { name });
+  const player = () => screen.getByTestId("player");
+  const say = async (user: ReturnType<typeof setup>, text: string) => {
+    await user.click(tab("COMMANDS"));
+    await user.type(input(), `${text}{Enter}`);
+  };
+
+  it("has LOG and COMMANDS tabs, and a Commands legend", () => {
+    render(<Overworld onMenu={() => {}} />);
+    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["LOG", "COMMANDS"]);
+    expect(tab("LOG")).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText("Commands: [/]")).toBeInTheDocument();
+  });
+
+  it("/ from the page selects COMMANDS and focuses the input with just a slash", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} />);
+    await user.keyboard("/");
+    expect(tab("COMMANDS")).toHaveAttribute("aria-selected", "true");
+    expect(input()).toHaveFocus();
+    expect(input()).toHaveValue("/");
+  });
+
+  it("Enter from the page keeps the draft and puts the caret at its end", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} />);
+    await user.click(tab("COMMANDS"));
+    await user.type(input(), "abc{Escape}");
+    await user.click(tab("LOG"));
+    await user.keyboard("{Enter}");
+    expect(tab("COMMANDS")).toHaveAttribute("aria-selected", "true");
+    expect(input()).toHaveFocus();
+    expect(input()).toHaveValue("abc");
+    expect(input().selectionStart).toBe(3);
+  });
+
+  it("Enter on a focused chest button still opens its terminal and leaves the tab alone", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} initial={{ player: { x: 10, y: 60 } }} />);
+    screen.getByRole("button", { name: "HTML chest" }).focus();
+    await user.keyboard("{Enter}");
+    expect(screen.getByText(/CODE CHEST: HTML/i)).toBeInTheDocument();
+    expect(tab("LOG")).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("an arrow on a tab moves the tab, not the explorer", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} />);
+    const before = player().style.left;
+    tab("LOG").focus();
+    await user.keyboard("{ArrowRight}");
+    expect(tab("COMMANDS")).toHaveAttribute("aria-selected", "true");
+    expect(player().style.left).toBe(before);
+  });
+
+  it("Esc in the input blurs it and keeps the tab", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} />);
+    await user.keyboard("/");
+    await user.keyboard("{Escape}");
+    expect(input()).not.toHaveFocus();
+    expect(tab("COMMANDS")).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("/help lists the four solo commands", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} />);
+    await say(user, "/help");
+    const list = screen.getByRole("list", { name: "Team chat" });
+    for (const line of ["/time — the game clock", "/badges — your badges", "/weather snow|clear — snowfall on your map", "/light day|night|auto — your map's lighting"]) {
+      expect(list).toHaveTextContent(line);
+    }
+    expect(list).not.toHaveTextContent("/ping");
+  });
+
+  it("/weather and /light change only your scene", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} />);
+    await say(user, "/weather snow");
+    expect(drawn.at(-1)!.input.snow).toBe(true);
+    await user.type(input(), "/weather clear{Enter}");
+    expect(drawn.at(-1)!.input.snow).toBe(false);
+    await user.type(input(), "/light night{Enter}");
+    expect(drawn.at(-1)!.input.lightMode).toBe("night");
+    expect(screen.getByText("Dusk / 19:29")).toBeInTheDocument();
+  });
+
+  it("answers plain text with a hint", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} />);
+    await say(user, "hello");
+    expect(screen.getByRole("list", { name: "Team chat" })).toHaveTextContent("Solo game: start a command with /, for example /help.");
+  });
+
+  it("/time reads the clock", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} />);
+    await say(user, "/time");
+    expect(screen.getByRole("list", { name: "Team chat" })).toHaveTextContent("Dusk, 19:29.");
   });
 });

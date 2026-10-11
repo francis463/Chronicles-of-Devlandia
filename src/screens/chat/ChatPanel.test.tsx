@@ -199,6 +199,15 @@ describe("layout", () => {
   });
 });
 
+describe("layout in a solo game", () => {
+  it("fills the panel like the game does, without quick replies", () => {
+    render(<Harness where="solo" />);
+    const cls = screen.getByRole("list", { name: "Team chat" }).className;
+    for (const c of ["flex-1", "min-h-0", "md:max-h-none"]) expect(cls).toContain(c);
+    expect(screen.queryByRole("group", { name: "Quick replies" })).toBeNull();
+  });
+});
+
 describe("focus", () => {
   it("a quick-reply click posts, keeps focus in the input and leaves the draft", async () => {
     const user = userEvent.setup();

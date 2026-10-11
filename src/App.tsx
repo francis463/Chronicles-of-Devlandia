@@ -42,7 +42,7 @@ export default function App({
       {screen === "overworld" && <Overworld key={gameId} onMenu={() => setScreen("menu")} />}
       {screen === "lobby" &&
         (team.phase === "playing" ? (
-          <Overworld key={`team-${team.room}`} team={team} onMenu={leaveTeam} />
+          <Overworld key={`team-${team.room}`} team={team} chat={chat} onMenu={leaveTeam} />
         ) : (
           <TeamLobby session={team} onBack={leaveTeam} chat={chat} />
         ))}

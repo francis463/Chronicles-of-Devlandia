@@ -1,10 +1,16 @@
-import { useEffect, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import type { CommandContext, CommandEffect } from "../../chat/commands";
+import { chatRoster } from "../../chat/context";
+import { maskRude } from "../../chat/filter";
+import { displayNames } from "../../chat/names";
 import { cardFor } from "../../game/cards";
 import { challengeOf, challengeView } from "../../game/challenges";
 import { rollGame } from "../../game/roll";
 import { interactLabel, placeInReach, promptText } from "../../game/geometry";
 import { gameReducer, initialState, isDowned, isModalOpen, reachPlaces } from "../../game/reducer";
 import type { GameState } from "../../game/types";
+import { countUnread, lastSeq, useChat, type ChatFeed } from "../../hooks/useChat";
+import { usePings } from "../../hooks/usePings";
 import type { TeamSession } from "../../hooks/useTeamSession";
 import { LOG, TICK_MS } from "../../game/constants";
 import { flagsOf, teamMinutes } from "../../game/team";
@@ -16,11 +22,12 @@ import { useGameTimers } from "../../hooks/useGameTimers";
 import { useKeyboardControls } from "../../hooks/useKeyboardControls";
 import { Panel } from "../../ui/Panel";
 import { ChallengeTerminal } from "../ChallengeTerminal";
+import { ChatPanel } from "../chat/ChatPanel";
 import { Codex } from "../Codex";
 import { LeaveConfirm } from "./LeaveConfirm";
 import { LogicModal } from "../LogicModal";
 import { BottomHud } from "./BottomHud";
-import { EventLog } from "./EventLog";
+import { EventLog, type SideTab } from "./EventLog";
 import { MapViewport } from "./MapViewport";
 import { MiniMap } from "./MiniMap";
 import { QuestList } from "./QuestList";
@@ -31,11 +38,14 @@ export function Overworld({
   onMenu,
   initial,
   team,
+  chat,
 }: {
   onMenu: () => void;
   initial?: Partial<GameState>;
   /** Team mode: shared progress, teammates on the map and the team clock. */
   team?: TeamSession;
+  /** The team's conversation, when the lobby already started one; without it the game keeps its own. */
+  chat?: ChatFeed;
 }) {
   // Each game rolls its questions, shuffle seed, Matcher round and access code once, at mount; a team shares the code.
   const [state, dispatch] = useReducer(gameReducer, undefined, () => ({
@@ -49,8 +59,39 @@ export function Overworld({
   const [leaving, setLeaving] = useState(false);
   const hasProgress = state.badges.length > 0 || state.matcherSolved || Object.values(flagsOf(state)).some(Boolean);
   useGameTimers(state, dispatch, leaving);
-  useKeyboardControls(state, dispatch, leaving);
   const downed = isDowned(state);
+
+  // ── Chat, commands and your own view ──
+  const own = useChat(chat ? null : (team ?? null));
+  const feed = chat ?? own;
+  const { setDraft } = feed;
+  const [tab, setTab] = useState<SideTab>("log");
+  const [seen, setSeen] = useState(() => lastSeq(feed.lines));
+  useEffect(() => {
+    if (tab === "chat") setSeen(lastSeq(feed.lines));
+  }, [tab, feed.lines]);
+  const unread = tab === "chat" ? 0 : countUnread(feed.lines, seen);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const draftRef = useRef(feed.draft);
+  draftRef.current = feed.draft;
+  const [focusRequest, setFocusRequest] = useState({ n: 0, slash: false });
+  const onChatKey = useCallback((slash: boolean) => {
+    setTab("chat");
+    setFocusRequest((r) => ({ n: r.n + 1, slash }));
+  }, []);
+  useEffect(() => {
+    const input = inputRef.current;
+    if (focusRequest.n === 0 || !input) return;
+    input.focus();
+    if (focusRequest.slash && draftRef.current === "") {
+      setDraft("/");
+      return;
+    }
+    input.setSelectionRange(input.value.length, input.value.length);
+  }, [focusRequest, setDraft]);
+  useKeyboardControls(state, dispatch, leaving, onChatKey);
+  const [view, setView] = useState<{ snow: boolean; light: "auto" | "day" | "night" }>({ snow: false, light: "auto" });
+  const { pings, add: addPing } = usePings();
 
   // ── Team mode ──
   const publishPosition = team?.publishPosition;
@@ -60,6 +101,12 @@ export function Overworld({
   const onZoneChange = team?.onZoneChange;
   const publishBadge = team?.publishBadge;
   const onBadge = team?.onBadge;
+  const onPing = team?.onPing;
+  const players = team?.players;
+  const playersRef = useRef(players);
+  playersRef.current = players;
+  /** The badges teammates have told us about, by their id. */
+  const known = useRef(new Map<string, ChestId[]>());
   const flags = flagsOf(state);
   const flagKey = JSON.stringify(flags);
   useEffect(() => publishPosition?.(state.player.x, state.player.y, state.zone), [publishPosition, state.player, state.zone]);
@@ -89,18 +136,43 @@ export function Overworld({
   const heardBadge = useRef(false);
   useEffect(
     () =>
-      onBadge?.((name, chest) => {
+      onBadge?.((name, chest, id) => {
+        known.current.set(id, [...(known.current.get(id) ?? []), chest]);
         dispatch({ type: "note", text: LOG.teammateBadge(name, chestById(chest).badge) });
         if (!heardBadge.current) dispatch({ type: "note", text: LOG.badgesPersonal });
         heardBadge.current = true;
       }),
     [onBadge],
   );
+  // A teammate's ping rings on your map whether or not you muted them; the chat line is the feed's business.
+  useEffect(
+    () =>
+      onPing?.((from, ping) =>
+        addPing({ id: from.id, name: displayNames(playersRef.current ?? []).get(from.id) ?? maskRude(from.name), color: from.color, ...ping }),
+      ),
+    [onPing, addPing],
+  );
   const now = useNow(TICK_MS, team?.startedAt != null);
   const minutes = team?.startedAt != null ? teamMinutes(team.startedAt, now) : state.minutes;
   const teamLabel = team?.room ? `ROOM ${team.room} · ${team.players.length} online` : undefined;
 
   const inRange = downed ? null : placeInReach(state.player, reachPlaces(state));
+
+  const getContext = (): CommandContext => ({
+    where: team ? "game" : "solo",
+    minutes,
+    badges: state.badges,
+    me: { id: team?.me?.id ?? null, name: team?.me?.name ?? null, zone: state.zone, x: state.player.x, y: state.player.y },
+    roster: team ? chatRoster(team) : [],
+    known: Object.fromEntries(known.current),
+    muted: feed.muted,
+  });
+  const onEffect = (effect: CommandEffect) => {
+    if (effect.kind === "ping" && team?.me) {
+      addPing({ id: team.me.id, name: maskRude(team.me.name), color: team.me.color, zone: effect.zone, x: effect.x, y: effect.y });
+    } else if (effect.kind === "weather") setView((v) => ({ ...v, snow: effect.snow }));
+    else if (effect.kind === "light") setView((v) => ({ ...v, light: effect.light }));
+  };
 
   return (
     <Panel className="mx-auto w-full max-w-screen-2xl overflow-hidden md:grid md:min-h-[calc(100dvh-1rem)] md:grid-cols-[14rem_minmax(0,1fr)] md:grid-rows-[auto_auto_auto_1fr_auto]">
@@ -113,6 +185,7 @@ export function Overworld({
         onMenu={() => (hasProgress ? setLeaving(true) : onMenu())}
         onCodex={() => dispatch({ type: "toggleCodex" })}
         teamLabel={teamLabel}
+        chatUnread={team ? unread : 0}
         reconnecting={team?.status === "reconnecting"}
         region={ZONES[state.zone].name}
       />
@@ -124,7 +197,9 @@ export function Overworld({
         badges={state.badges}
         archiveOpen={state.archiveOpen}
         teammates={team?.teammates}
+        pings={pings}
         playerColor={team?.me?.color}
+        chatHint={team ? "Chat: [Enter]" : "Commands: [/]"}
       />
       <div className="flex min-w-0 flex-col md:col-start-2 md:row-start-2 md:row-span-3">
         <MapViewport
@@ -141,6 +216,9 @@ export function Overworld({
           matcherSolved={state.matcherSolved}
           archiveOpen={state.archiveOpen}
           teammates={team?.teammates.filter((t) => t.zone === state.zone)}
+          pings={pings}
+          lightMode={view.light}
+          snow={view.snow}
           playerColor={team?.me?.color}
           inRange={inRange}
           downed={downed}
@@ -158,7 +236,21 @@ export function Overworld({
           onInteract={(poi) => dispatch({ type: "interact", poi })}
         />
       </div>
-      <EventLog className="md:col-start-1 md:row-start-4" logs={state.logs} logCount={state.logCount} />
+      <EventLog
+        className="md:col-start-1 md:row-start-4"
+        logs={state.logs}
+        logCount={state.logCount}
+        chat={{
+          tab,
+          onTab: setTab,
+          label: team ? "CHAT" : "COMMANDS",
+          unread,
+          lines: feed.lines,
+          panel: (
+            <ChatPanel feed={feed} where={team ? "game" : "solo"} getContext={getContext} onEffect={onEffect} inputRef={inputRef} active={tab === "chat"} />
+          ),
+        }}
+      />
       <BottomHud
         className="md:col-span-2 md:row-start-5"
         hasLoot={state.hasLoot}
