@@ -1,6 +1,6 @@
 import type { ChestQuestion } from "../types";
 
-export const SQL_BANK: readonly [ChestQuestion, ChestQuestion, ChestQuestion] = [
+export const SQL_BANK: readonly ChestQuestion[] = [
   {
     kind: "blank",
     id: "sql-from",
@@ -36,5 +36,41 @@ export const SQL_BANK: readonly [ChestQuestion, ChestQuestion, ChestQuestion] = 
     codeOptions: true,
     hint: "MAX picks one value.",
     explain: "MAX returns the largest value in the column: 9.",
+  },
+  {
+    kind: "blank",
+    id: "sql-order",
+    lang: "sql",
+    prompt: "List the users from the youngest to the oldest.",
+    code: ["SELECT name FROM users ___ BY age;"],
+    answers: ["ORDER"],
+    caseSensitive: false,
+    live: { kind: "notLegal", tokens: ["SORT", "ARRANGE", "ORDERED", "RANK"], label: "an SQL keyword" },
+    blocks: ["ORDER", "GROUP", "SORT", "WHERE"],
+    hint: "It is the clause that puts the rows in a sequence.",
+    explain: "ORDER BY sorts the rows, smallest first unless you add DESC. GROUP BY collects rows into groups and WHERE filters them.",
+  },
+  {
+    kind: "choice",
+    id: "sql-count",
+    lang: "sql",
+    prompt: "The users table has 4 rows. What does this return?",
+    code: ["SELECT COUNT(*) FROM users;"],
+    options: ["4", "1", "*", "The names of the users"],
+    correct: 0,
+    codeOptions: true,
+    hint: "COUNT answers 'how many?'.",
+    explain: "COUNT(*) returns how many rows there are: 4, as one number.",
+  },
+  {
+    kind: "choice",
+    id: "sql-insert",
+    lang: "sql",
+    prompt: "Which statement adds a new row to the users table?",
+    options: ["INSERT INTO users VALUES (5, 'Ana');", "ADD INTO users VALUES (5, 'Ana');", "UPDATE users VALUES (5, 'Ana');", "APPEND users VALUES (5, 'Ana');"],
+    correct: 0,
+    codeOptions: true,
+    hint: "The statement's first word is the verb for putting something in.",
+    explain: "INSERT INTO adds a row. UPDATE changes rows that already exist, and ADD and APPEND are not SQL statements for this.",
   },
 ];

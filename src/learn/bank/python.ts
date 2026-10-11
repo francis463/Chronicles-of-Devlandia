@@ -8,7 +8,11 @@ const BUILTINS =
 const LIST_NAMES =
   "__add__ __class__ __class_getitem__ __contains__ __delattr__ __delitem__ __dir__ __doc__ __eq__ __format__ __ge__ __getattribute__ __getitem__ __getstate__ __gt__ __hash__ __iadd__ __imul__ __init__ __init_subclass__ __iter__ __le__ __len__ __lt__ __mul__ __ne__ __new__ __reduce__ __reduce_ex__ __repr__ __reversed__ __rmul__ __setattr__ __setitem__ __sizeof__ __str__ __subclasshook__ append clear copy count extend index insert pop remove reverse sort";
 
-export const PY1_BANK: readonly [ChestQuestion, ChestQuestion, ChestQuestion] = [
+/** `dir(dict)` as Python 3.13 prints it. */
+const DICT_NAMES =
+  "__class__ __class_getitem__ __contains__ __delattr__ __delitem__ __dir__ __doc__ __eq__ __format__ __ge__ __getattribute__ __getitem__ __getstate__ __gt__ __hash__ __init__ __init_subclass__ __ior__ __iter__ __le__ __len__ __lt__ __ne__ __new__ __or__ __reduce__ __reduce_ex__ __repr__ __reversed__ __ror__ __setattr__ __setitem__ __sizeof__ __str__ __subclasshook__ clear copy fromkeys get items keys pop popitem setdefault update values";
+
+export const PY1_BANK: readonly ChestQuestion[] = [
   {
     kind: "blank",
     id: "py-print",
@@ -45,9 +49,45 @@ export const PY1_BANK: readonly [ChestQuestion, ChestQuestion, ChestQuestion] = 
     hint: "Python's keyword is short for 'define'.",
     explain: "def starts a function, and the colon begins its indented body.",
   },
+  {
+    kind: "blank",
+    id: "py-input",
+    lang: "python",
+    prompt: "Ask the player for their name and store the answer.",
+    code: ['name = ___("Name? ")'],
+    answers: ["input"],
+    caseSensitive: true,
+    live: { kind: "legal", tokens: BUILTINS.split(" "), label: "a Python built-in function" },
+    blocks: ["input", "print", "len", "raw_input", "ask"],
+    hint: "It is the opposite of print: it takes something in.",
+    explain: "input() shows its text, waits for the player to type, and returns what they typed. print() only shows text, and raw_input was Python 2's name.",
+  },
+  {
+    kind: "choice",
+    id: "py-comment",
+    lang: "python",
+    prompt: "Which symbol starts a comment in Python?",
+    options: ["#", "//", "--", "/*"],
+    correct: 0,
+    codeOptions: true,
+    hint: "On a keyboard it is often called the hash sign.",
+    explain: "# starts a comment that runs to the end of the line. // is a comment in C-like languages (in Python it means integer division), -- is SQL's, and /* … */ is C's.",
+  },
+  {
+    kind: "choice",
+    id: "py-type",
+    lang: "python",
+    prompt: "What does this print?",
+    code: ["print(type(3.5))"],
+    options: ["<class 'float'>", "<class 'int'>", "<class 'str'>", "3.5"],
+    correct: 0,
+    codeOptions: true,
+    hint: "3.5 has a decimal point.",
+    explain: "Numbers with a decimal point are floats, and type() reports the class of a value.",
+  },
 ];
 
-export const PY2_BANK: readonly [ChestQuestion, ChestQuestion, ChestQuestion] = [
+export const PY2_BANK: readonly ChestQuestion[] = [
   {
     kind: "blank",
     id: "py-append",
@@ -84,5 +124,42 @@ export const PY2_BANK: readonly [ChestQuestion, ChestQuestion, ChestQuestion] = 
     codeOptions: true,
     hint: "Is 7 greater than 5?",
     explain: "The condition is true, so only the if branch runs.",
+  },
+  {
+    kind: "blank",
+    id: "py-dict-get",
+    lang: "python",
+    prompt: "Read Ana's age without changing the dictionary, giving 0 if she isn't in it.",
+    code: ['ages = {"Ana": 12}', 'print(ages.___("Ana", 0))'],
+    answers: ["get"],
+    caseSensitive: true,
+    live: { kind: "legal", tokens: DICT_NAMES.split(" "), label: "a dictionary method" },
+    blocks: ["get", "pop", "keys", "values", "add"],
+    hint: "The method's name means 'fetch it'.",
+    explain: "get() reads a key and returns the default (here 0) when it is missing, leaving the dictionary alone. pop() also returns the value but removes the key, keys() and values() list everything, and add is for sets.",
+  },
+  {
+    kind: "choice",
+    id: "py-slice",
+    lang: "python",
+    prompt: "What does this print?",
+    code: ['print("devland"[0:3])'],
+    options: ["dev", "devl", "eva", "land"],
+    correct: 0,
+    codeOptions: true,
+    hint: "The end index is not included.",
+    explain: "The slice [0:3] takes indexes 0, 1 and 2: d, e, v.",
+  },
+  {
+    kind: "choice",
+    id: "py-in",
+    lang: "python",
+    prompt: "What does this print?",
+    code: ["print(3 in [1, 2, 3])"],
+    options: ["True", "False", "3", "Error"],
+    correct: 0,
+    codeOptions: true,
+    hint: "in asks whether a list contains a value.",
+    explain: "in checks membership: 3 is in the list, so the result is True.",
   },
 ];

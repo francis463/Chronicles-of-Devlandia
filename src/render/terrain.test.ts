@@ -11,7 +11,7 @@ const WORLD_RECT: Rect = { x: 0, y: 0, w: WORLD.width, h: WORLD.height };
 const VIEW: Rect = { x: -40, y: -96, w: 400, h: 372 };
 const boxOf = (d: ReturnType<typeof decorations>[number]) => spriteBox(d.sprite, d.at);
 const key = (d: ReturnType<typeof decorations>[number]) => `${d.sprite}@${d.at.x},${d.at.y}`;
-const { peaks: PEAKS, village: VILLAGE } = AREAS;
+const { peaks: PEAKS, village: VILLAGE, forest: FOREST } = AREAS;
 
 describe("terrain", () => {
   it("regions by art pixel, inside and outside the world", () => {
@@ -88,25 +88,82 @@ describe("decorations", () => {
   it.each([
     ["peaks", 9, 311],
     ["village", 311, 9],
+    ["forest", null, 9],
   ] as const)("barrier decorations lie outside REACHABLE_RECT, and the barrier closes the sides and bottom (%s: open at its exit)", (id, exitX, otherX) => {
     const area = AREAS[id];
     const touching = decorations(VIEW, area).filter((d) => intersects(boxOf(d), WORLD_RECT) && !intersects(boxOf(d), REACHABLE_RECT));
-    for (const d of touching) expect(["bush", "rock", "snow-rock"], key(d)).toContain(d.sprite);
+    // The forest has no hedge on top: trees from the scenery above reach into its top rows.
+    for (const d of touching) expect(["bush", "rock", "snow-rock", ...(id === "forest" ? ["tree"] : [])], key(d)).toContain(d.sprite);
     const covers = (x: number, y: number) => touching.some((d) => intersects(boxOf(d), { x, y, w: 1, h: 1 }));
-    for (let x = 0; x < WORLD.width; x += 4) expect(covers(x, 172), `bottom at ${x}`).toBe(true);
+    // The Peaks' bottom hedge is open at its south exit (art x 192–255); everywhere clear of it the hedge is closed.
+    for (let x = 0; x < WORLD.width; x += 4) {
+      const gap = id === "peaks" && x >= 192 && x < 256;
+      const nearGap = id === "peaks" && x >= 176 && x < 272;
+      if (gap) expect(covers(x, 172), `south mouth at ${x}`).toBe(false);
+      else if (!nearGap) expect(covers(x, 172), `bottom at ${x}`).toBe(true);
+    }
     for (let y = 24; y < 170; y += 4) {
-      expect(covers(exitX, y), `exit side at ${y}`).toBe(y < 112 || y > 143);
+      if (exitX !== null) expect(covers(exitX, y), `exit side at ${y}`).toBe(y < 112 || y > 143);
       expect(covers(otherX, y), `other side at ${y}`).toBe(true);
     }
+    if (exitX === null) for (let y = 24; y < 170; y += 4) expect(covers(311, y), `east side at ${y}`).toBe(true);
   });
 
   it("no scenery stands in the corridor beyond an exit", () => {
     const west = decorations(VIEW, PEAKS).filter((d) => boxOf(d).x + boxOf(d).w <= 0);
     expect(west.length).toBeGreaterThan(0);
-    for (const d of west) expect(intersects(boxOf(d), PEAKS.corridor), key(d)).toBe(false);
+    for (const d of west) expect(PEAKS.corridors.some((c) => intersects(boxOf(d), c)), key(d)).toBe(false);
     const east = decorations(VIEW, VILLAGE).filter((d) => boxOf(d).x >= WORLD.width);
     expect(east.length).toBeGreaterThan(0);
-    for (const d of east) expect(intersects(boxOf(d), VILLAGE.corridor), key(d)).toBe(false);
+    for (const d of east) expect(VILLAGE.corridors.some((c) => intersects(boxOf(d), c)), key(d)).toBe(false);
+  });
+
+  it("an area with a second, bottom exit leaves a gap in the bottom hedge and no scenery in its corridor", () => {
+    const mouth: Rect = { x: 192, y: 148, w: 64, h: 32 };
+    const corridor: Rect = { x: 192, y: 180, w: 64, h: 1000 };
+    // The village has no south exit; a copy of it with one is compared with a plain copy.
+    const south = { ...VILLAGE, mouths: [...VILLAGE.mouths, mouth], corridors: [...VILLAGE.corridors, corridor] };
+    const plain = { ...VILLAGE };
+    const bottomRow = (area: typeof PEAKS) =>
+      decorations(VIEW, area).filter((d) => intersects(boxOf(d), WORLD_RECT) && !intersects(boxOf(d), REACHABLE_RECT) && d.at.y === WORLD.height - 1);
+    const withGap = bottomRow(south);
+    const without = bottomRow(plain);
+    expect(without.length).toBeGreaterThan(withGap.length);
+    for (const d of withGap) expect(intersects(boxOf(d), mouth), key(d)).toBe(false);
+    expect(without.some((d) => intersects(boxOf(d), mouth))).toBe(true);
+    // Pieces away from the mouth are untouched.
+    const away = (list: typeof withGap) => list.filter((d) => !intersects(boxOf(d), mouth)).map(key);
+    expect(away(withGap)).toEqual(away(without));
+    const below = decorations(VIEW, south).filter((d) => boxOf(d).y >= WORLD.height);
+    expect(below.length).toBeGreaterThan(0);
+    for (const d of below) expect(intersects(boxOf(d), corridor), key(d)).toBe(false);
+  });
+
+  it("the forest's decorations stay clear of its protected boxes, its mouth, and trees fill the scenery above its north mouth except its corridor", () => {
+    const inside = decorations(VIEW, FOREST).filter((d) => intersects(boxOf(d), REACHABLE_RECT));
+    expect(inside.length).toBeGreaterThan(12);
+    // No wall runs here, so trees stand in the rows where the other zones keep a bare strip (art rows 80–89).
+    expect(inside.some((d) => d.at.y >= 80 && d.at.y <= 89)).toBe(true);
+    for (const d of inside) {
+      for (const p of protectedBoxes(FOREST)) expect(intersects(grow(boxOf(d), 4), p), `${key(d)} vs ${JSON.stringify(p)}`).toBe(false);
+      for (const m of FOREST.mouths) expect(intersects(boxOf(d), m), key(d)).toBe(false);
+    }
+    const above = decorations(VIEW, FOREST).filter((d) => boxOf(d).y + boxOf(d).h <= 0);
+    expect(above.length).toBeGreaterThan(5);
+    for (const d of above) {
+      expect(d.sprite, key(d)).toBe("tree");
+      expect(FOREST.corridors.some((c) => intersects(boxOf(d), c)), key(d)).toBe(false);
+    }
+  });
+
+  it("the Peaks' south mouth and corridor guard the path out, and the forest has no wall tiles", () => {
+    expect(PEAKS.mouths).toContainEqual({ x: 192, y: 148, w: 64, h: 32 });
+    expect(PEAKS.corridors).toContainEqual({ x: 192, y: 180, w: 64, h: 1000 });
+    expect(onPath(206, 170, PEAKS)).toBe(true);
+    expect(onPath(206, 700, PEAKS)).toBe(true);
+    expect(protectedBoxes(PEAKS)).toContainEqual({ x: 192, y: 148, w: 64, h: 32 });
+    expect(wallTiles(WALL_RECT, FOREST)).toEqual([]);
+    expect(wallTiles(WALL_RECT, PEAKS).length).toBeGreaterThan(0);
   });
 
   it("the village guards the Archive, the Syntax Terminal and its chests; the Peaks guard theirs", () => {
@@ -115,13 +172,21 @@ describe("decorations", () => {
     has(VILLAGE, spriteBox("archive", { x: 176, y: 116 }));
     has(VILLAGE, spriteBox("code-chest", { x: 176, y: 119 }));
     has(VILLAGE, spriteBox("syntax-terminal", toArt(TERMINAL)));
-    for (const chest of CHESTS.filter((c) => c.at)) has(chest.zone === "village" ? VILLAGE : PEAKS, spriteBox("code-chest", toArt(chest.at!)));
+    for (const chest of CHESTS.filter((c) => c.at)) has(AREAS[chest.zone], spriteBox("code-chest", toArt(chest.at!)));
     expect(VILLAGE.props.some((p) => p.sprite === "hut" && p.at.x === 176 && p.at.y === 116)).toBe(false);
   });
 
   it("Peaks decorations stay clear of the chests", () => {
     const inside = decorations(REACHABLE_RECT, PEAKS);
     for (const chest of CHESTS.filter((c) => c.zone === "peaks")) {
+      const box = spriteBox("code-chest", toArt(chest.at!));
+      for (const d of inside) expect(intersects(grow(boxOf(d), 4), box), `${key(d)} vs ${chest.id}`).toBe(false);
+    }
+  });
+
+  it("forest decorations stay clear of its chest", () => {
+    const inside = decorations(REACHABLE_RECT, FOREST);
+    for (const chest of CHESTS.filter((c) => c.zone === "forest")) {
       const box = spriteBox("code-chest", toArt(chest.at!));
       for (const d of inside) expect(intersects(grow(boxOf(d), 4), box), `${key(d)} vs ${chest.id}`).toBe(false);
     }

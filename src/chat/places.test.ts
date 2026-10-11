@@ -21,10 +21,13 @@ const TABLE = [
   ["sql", "village", 12, 80, "the SQL Chest"],
   ["py2", "village", 82, 82, "the Python II Chest"],
   ["cs", "village", 55, 66, "the C# Chest"],
+  ["ranger", "forest", 60, 62, "the Ranger"],
+  ["campfire", "forest", 46, 66, "the Campfire"],
+  ["js", "forest", 18, 78, "the JavaScript Chest"],
 ] as const;
 
 describe("ping places", () => {
-  it("are the 18 names, in the spec's order", () => {
+  it("are the 21 names, in the spec's order", () => {
     expect([...PING_PLACE_NAMES]).toEqual(TABLE.map((row) => row[0]));
   });
 

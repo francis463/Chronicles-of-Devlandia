@@ -55,7 +55,7 @@ describe("team flags", () => {
   it("writes the teammate log lines from the spec", () => {
     expect(teammateLog("Kai", "questComplete")).toBe("Kai surveyed the Frozen River.");
     expect(teammateLog("Kai", "hasLoot")).toBe("Kai opened the Supply Cache.");
-    expect(teammateLog("Kai", "clueDecoded")).toBe("Kai decoded the scroll: the artifact rests in the Dense Forest.");
+    expect(teammateLog("Kai", "clueDecoded")).toBe("Kai decoded the scroll: the artifact is buried in the Dense Forest, south of camp.");
     expect(teammateLog("Kai", "artifactFound")).toBe("Kai found the Golden Semicolon!");
     expect(teammateLog("Kai", "gateUnlocked")).toBe("Kai opened the gate.");
     expect(teammateLog("Kai", "towerPowered")).toBe("Kai powered the signal tower. The fog lifts and the bridge returns.");
@@ -141,6 +141,7 @@ describe("validation of teammate input", () => {
   it("zones are parsed leniently and never drop a teammate", () => {
     expect(parsePresence({ ...meta("a", 1), zone: undefined }, NOW)?.zone).toBe("peaks");
     expect(parsePresence({ ...meta("a", 1), zone: "village" }, NOW)?.zone).toBe("village");
+    expect(parsePresence({ ...meta("a", 1), zone: "forest" }, NOW)?.zone).toBe("forest");
     const future = parsePresence({ ...meta("a", 1), zone: "marsh" }, NOW);
     expect(future).not.toBeNull();
     expect(future?.zone).toBeNull();
@@ -183,6 +184,7 @@ describe("team: the Archive and badges", () => {
     expect(parseMessage({ type: "badge", id: "a", name: "Kai", chest: "chest-sql" }, NOW)).toEqual({
       type: "badge", id: "a", name: "Kai", chest: "chest-sql",
     });
+    expect(parseMessage({ type: "badge", id: "a", name: "Kai", chest: "chest-js" }, NOW)).toMatchObject({ type: "badge", chest: "chest-js" });
     expect(parseMessage({ type: "badge", id: "a", name: "Kai", chest: "chest-rust" }, NOW)).toBeNull();
     expect(parseMessage({ type: "badge", id: "a", name: "<x>", chest: "chest-sql" }, NOW)).toBeNull();
     expect(parseMessage({ type: "badge", name: "Kai", chest: "chest-sql" }, NOW)).toBeNull();
@@ -241,5 +243,24 @@ describe("team: chat and ping messages", () => {
   it("older clients' messages are unaffected, and an unknown type is still ignored", () => {
     expect(parseMessage({ type: "chat2", id: "a" }, NOW)).toBeNull();
     expect(parseMessage({ type: "pos", id: "a", x: 40, y: 50, zone: "peaks" }, NOW)).toEqual({ type: "pos", id: "a", x: 40, y: 50, zone: "peaks" });
+  });
+});
+
+describe("the Dense Forest in team messages (Review Focus 2)", () => {
+  it("a pos in the forest is accepted, and a zone we don't know is still null, never a drop", () => {
+    expect(parseMessage({ type: "pos", id: "a", x: 20, y: 20, zone: "forest" }, NOW)).toEqual({ type: "pos", id: "a", x: 20, y: 20, zone: "forest" });
+    expect(parseMessage({ type: "pos", id: "a", x: 20, y: 20, zone: "mars" }, NOW)).toEqual({ type: "pos", id: "a", x: 20, y: 20, zone: null });
+  });
+
+  it("a spot ping in the forest is accepted", () => {
+    expect(parseMessage({ type: "ping", id: "a", name: "Kai", zone: "forest", x: 30, y: 40, place: null }, NOW)).toEqual({
+      type: "ping",
+      id: "a",
+      name: "Kai",
+      zone: "forest",
+      x: 30,
+      y: 40,
+      place: null,
+    });
   });
 });

@@ -1,6 +1,6 @@
 import type { ChestQuestion } from "../types";
 
-export const CSS_BANK: readonly [ChestQuestion, ChestQuestion, ChestQuestion] = [
+export const CSS_BANK: readonly ChestQuestion[] = [
   {
     kind: "blank",
     id: "css-color",
@@ -40,5 +40,39 @@ export const CSS_BANK: readonly [ChestQuestion, ChestQuestion, ChestQuestion] = 
     codeOptions: true,
     hint: "With two values, the first is top and bottom, the second is left and right.",
     explain: "margin: 10px 20px means 10px top and bottom, 20px left and right.",
+  },
+  {
+    kind: "blank",
+    id: "css-font-size",
+    lang: "css",
+    prompt: "Make the heading text 24 pixels tall.",
+    code: ["h1 {", "  ___: 24px;", "}"],
+    answers: ["font-size"],
+    caseSensitive: false,
+    live: { kind: "notLegal", tokens: ["text-size", "fontsize", "size", "font-height", "text-height"], label: "a CSS property" },
+    blocks: ["font-size", "font-weight", "line-height", "text-size", "width"],
+    hint: "The property name is two words joined by a hyphen.",
+    explain: "font-size sets how big the text is. font-weight sets how bold it is, and line-height sets the space between lines.",
+  },
+  {
+    kind: "choice",
+    id: "css-padding",
+    lang: "css",
+    prompt: "Which property adds space inside an element, between its content and its border?",
+    options: ["padding", "margin", "spacing", "gap"],
+    correct: 0,
+    codeOptions: true,
+    hint: "Margin is the space outside the border.",
+    explain: "padding is the space inside the border. margin is outside it, gap spaces the children of a flex or grid container, and spacing is not a property.",
+  },
+  {
+    kind: "choice",
+    id: "css-display-none",
+    lang: "css",
+    prompt: "What does display: none do to an element?",
+    options: ["Removes it from the page layout", "Hides it but keeps its space", "Makes it half transparent", "Moves it off the screen"],
+    correct: 0,
+    hint: "Compare it with visibility: hidden, which leaves a gap.",
+    explain: "display: none takes the element out of the layout, so nothing is drawn and no space is kept. visibility: hidden hides it but keeps its space, and opacity changes transparency.",
   },
 ];

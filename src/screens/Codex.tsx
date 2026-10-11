@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CHESTS, chestChallenge } from "../learn/chests";
+import { CHESTS, chestChallenge, type Picks } from "../learn/chests";
 import type { ChestId } from "../learn/types";
 import { TerminalDialog } from "../ui/TerminalDialog";
 import { CODE_CLASSES, CodeLines } from "./challenge/BlankBody";
@@ -17,7 +17,7 @@ export function Codex({
 }: {
   badges: ChestId[];
   answered: Partial<Record<ChestId, string>>;
-  picks: Record<ChestId, 0 | 1 | 2>;
+  picks: Picks;
   team: boolean;
   onClose: () => void;
 }) {
@@ -31,7 +31,7 @@ export function Codex({
     });
 
   return (
-    <TerminalDialog title={`< ${team ? "YOUR " : ""}CODEX: ${badges.length}/10 BADGES >`} onClose={onClose}>
+    <TerminalDialog title={`< ${team ? "YOUR " : ""}CODEX: ${badges.length}/11 BADGES >`} onClose={onClose}>
       <ul className="flex flex-col gap-2 text-xs">
         {CHESTS.map((chest) => {
           const earned = badges.includes(chest.id);

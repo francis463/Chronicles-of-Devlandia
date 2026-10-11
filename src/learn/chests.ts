@@ -5,6 +5,7 @@ import { CSHARP_BANK } from "./bank/csharp";
 import { CSS_BANK } from "./bank/css";
 import { HTML_BANK } from "./bank/html";
 import { JAVA_BANK } from "./bank/java";
+import { JS_BANK } from "./bank/javascript";
 import { PHP_BANK } from "./bank/php";
 import { PY1_BANK, PY2_BANK } from "./bank/python";
 import { SQL_BANK } from "./bank/sql";
@@ -24,22 +25,27 @@ export type Chest = {
   north: boolean;
   /** Where the Codex says the chest is. */
   where: string;
-  bank: Bank;
+  bank: readonly Challenge[];
 };
 
-type Bank = readonly [Challenge, Challenge, Challenge];
+/** How many questions each chest holds; each game rolls one of them per chest. */
+export const BANK_SIZE = 6;
+/** Each chest's rolled question, by index into its bank. */
+export type Picks = Record<ChestId, number>;
 
-const titled = (badge: string, questions: readonly ChestQuestion[]): Bank =>
-  questions.map((q): Challenge => ({ ...q, title: `< CODE CHEST: ${badge.toUpperCase()} >` })) as unknown as Bank;
+const titled = (badge: string, questions: readonly ChestQuestion[]): readonly Challenge[] =>
+  questions.map((q): Challenge => ({ ...q, title: `< CODE CHEST: ${badge.toUpperCase()} >` }));
 
-type Row = Omit<Chest, "bank" | "where"> & { questions: readonly [ChestQuestion, ChestQuestion, ChestQuestion] };
+type Row = Omit<Chest, "bank" | "where"> & { questions: readonly ChestQuestion[] };
 
 const whereOf = (row: Row) =>
   row.at === null
     ? "Dev Village · in the Archive"
     : row.zone === "village"
       ? "Dev Village"
-      : row.north
+      : row.zone === "forest"
+        ? "Dense Forest"
+        : row.north
         ? "C++ Peaks · north of the wall"
         : "C++ Peaks";
 
@@ -54,9 +60,10 @@ const ROWS: readonly Row[] = [
   { id: "chest-sql", badge: "SQL", spoken: "SQL", language: "SQL", zone: "village", at: { x: 12, y: 80 }, caption: "below", north: false, questions: SQL_BANK },
   { id: "chest-py-2", badge: "Python II", spoken: "Python 2", language: "Python", zone: "village", at: { x: 82, y: 82 }, caption: "above", north: false, questions: PY2_BANK },
   { id: "chest-cs", badge: "C#", spoken: "C sharp", language: "C#", zone: "village", at: null, caption: null, north: false, questions: CSHARP_BANK },
+  { id: "chest-js", badge: "JavaScript", spoken: "JavaScript", language: "JavaScript", zone: "forest", at: { x: 18, y: 78 }, caption: "above", north: false, questions: JS_BANK },
 ];
 
-/** The 10 language chests, in the spec's table order. */
+/** The 11 language chests, in the spec's table order. */
 export const CHESTS: readonly Chest[] = ROWS.map(({ questions, ...row }) => ({
   ...row,
   where: whereOf({ ...row, questions }),
@@ -68,6 +75,6 @@ export const CHEST_IDS: readonly ChestId[] = CHESTS.map((c) => c.id);
 export const chestById = (id: ChestId): Chest => CHESTS.find((c) => c.id === id)!;
 
 /** The challenge a chest asks in this game, with its chest's title. */
-export function chestChallenge(picks: Record<ChestId, 0 | 1 | 2>, id: ChestId): Challenge {
+export function chestChallenge(picks: Picks, id: ChestId): Challenge {
   return chestById(id).bank[picks[id]];
 }

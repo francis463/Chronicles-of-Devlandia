@@ -13,11 +13,16 @@ export const POIS: Poi[] = [
   { id: "tower", label: "Signal Tower", x: 14, y: 18 },
 ];
 export const INTERACT_RADIUS = 13;
-/** Buried in the Dense Forests; not on the map until the scroll is decoded. */
-export const HIDDEN_ARTIFACT: Poi = { id: "artifact", label: "Golden Semicolon", x: 72, y: 84 };
+/** Buried in the Dense Forest; not on the map until the scroll is decoded. */
+export const HIDDEN_ARTIFACT: Poi = { id: "artifact", label: "Golden Semicolon", x: 86, y: 80 };
 /** Dev Village's villager and its signpost by the exit to the Peaks. */
 export const ADA: Poi = { id: "villager", label: "Ada", x: 34, y: 70 };
 export const SIGNPOST: Poi = { id: "signpost", label: "Signpost", x: 86, y: 62 };
+/** The Dense Forest's ranger, campfire, old oak and signpost (by the way back to the Peaks). */
+export const RANGER: Poi = { id: "ranger", label: "Ranger", x: 60, y: 62 };
+export const CAMPFIRE: Poi = { id: "campfire", label: "Campfire", x: 46, y: 66 };
+export const OLD_OAK: Poi = { id: "old-oak", label: "Old Oak", x: 24, y: 50 };
+export const FOREST_SIGNPOST: Poi = { id: "forest-signpost", label: "Signpost", x: 84, y: 26 };
 /** The village's Syntax Terminal (it prints the Archive's access code) and the Archive (the C# chest is inside). */
 export const TERMINAL: Poi = { id: "terminal", label: "Syntax Terminal", x: 68, y: 60 };
 export const ARCHIVE: Poi = { id: "archive", label: "Archive", x: 55, y: 66 };
@@ -56,7 +61,7 @@ export const LOG = {
   gateOpen: "Gate open. The way north is clear.",
   downed: "You are downed. Press Respawn.",
   scrollFound: "Found an encrypted scroll: QRAFR SBERFG",
-  clueDecoded: "Clue decoded: the artifact rests in the Dense Forest.",
+  clueDecoded: "Clue decoded: the artifact is buried in the Dense Forest, south of camp.",
   artifactFound: "Artifact found: the Golden Semicolon!",
   tower: "Signal tower terminal ready. Logic lock found.",
   towerOnline: "Signal tower online. The beam holds.",
@@ -65,6 +70,7 @@ export const LOG = {
   wallSolid: "The wall is solid here. Go through the gate.",
   enteredPeaks: "Entered C++ Peaks.",
   enteredVillage: "Entered Dev Village.",
+  enteredForest: "Entered Dense Forest.",
   badge: (badge: string) => `Earned the ${badge} Badge.`,
   matcher: (code: string) => `Syntax Terminal: access code ${code}.`,
   archiveUnsealed: "Archive unsealed.",
@@ -73,7 +79,7 @@ export const LOG = {
 };
 
 /** The landmarks' cards. Ada's shows her current line (village.ts); chests, the terminal and the Archive are in cards.ts. */
-export const INSPECT_COPY: Record<"gate" | "chest" | "river" | "tower" | "signpost" | "artifact", { default: string; looted?: string; opened?: string; bridged?: string; powered?: string }> = {
+export const INSPECT_COPY: Record<"gate" | "chest" | "river" | "tower" | "signpost" | "artifact" | "campfire" | "old-oak" | "forest-signpost", { default: string; looted?: string; opened?: string; bridged?: string; powered?: string }> = {
   gate: {
     default: "A locked compiler gate in the north wall. Its terminal leads to the code puzzle.",
     opened: "The compiler gate stands open. The way north is clear.",
@@ -91,6 +97,9 @@ export const INSPECT_COPY: Record<"gate" | "chest" | "river" | "tower" | "signpo
     powered: "The signal tower hums. Its beam keeps the fog away and holds the bridge.",
   },
   signpost: { default: "C++ PEAKS → East through the hedge: base camp, the north gate and the frozen river." },
+  campfire: { default: "A campfire crackles in the clearing. Someone left it burning for the next explorer." },
+  "old-oak": { default: "An enormous old oak. Its bark is carved with a thousand tiny semicolons." },
+  "forest-signpost": { default: "C++ PEAKS → North through the trees: base camp, the north gate and the frozen river." },
   artifact: { default: "The Golden Semicolon, Devlandia's lost line-ender. Every statement can finally be completed." },
 };
 

@@ -23,6 +23,8 @@ const VERBS: Partial<Record<Poi["id"], string>> = {
   artifact: "Dig here",
   villager: "Talk to Ada",
   signpost: "Read Signpost",
+  ranger: "Talk to Ranger",
+  "forest-signpost": "Read Signpost",
   terminal: "Use Syntax Terminal",
 };
 

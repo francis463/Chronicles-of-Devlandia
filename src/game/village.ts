@@ -9,7 +9,7 @@ const STAGES: Array<[keyof Progress, string]> = [
   ["questComplete", "The tower's beam is back and the bridge holds. Walk out onto the frozen river and survey it."],
   ["hasLoot", "Explorers stash supplies in the cache in the north-east snow. Have a look inside."],
   ["clueDecoded", "That scroll from the cache is scrambled. Decode it from your inventory: every letter is shifted."],
-  ["artifactFound", "The Dense Forest, you say? Look for the X south-east of camp and dig there."],
+  ["artifactFound", "The Dense Forest, you say? Take the path south from the Peaks and look for the X in its south-east corner."],
 ];
 const DONE = "You found the Golden Semicolon! Every statement in Devlandia can finally end. Thank you, explorer.";
 

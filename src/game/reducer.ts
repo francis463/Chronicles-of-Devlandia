@@ -18,7 +18,7 @@ import { clampPlayer, isInRiver } from "./geometry";
 import { circuitError } from "./logic";
 import { accessCode } from "../learn/access";
 import { ARCHIVE_LOCK } from "../learn/bank/builtin";
-import { CHEST_IDS, CHESTS, chestById } from "../learn/chests";
+import { CHEST_IDS, CHESTS, chestById, type Picks } from "../learn/chests";
 import { isCorrectBlank, matchWrongCount, normalize, wrongBlankCopy, wrongChoiceCopy, wrongMatchCopy } from "../learn/check";
 import type { BlankChallenge, Challenge, ChallengeTarget, ChestId, SubmitValue } from "../learn/types";
 import { challengeOf } from "./challenges";
@@ -26,6 +26,7 @@ import { flagsOf, mergeFlags, newlySet, teammateLog } from "./team";
 import type { ChallengeState, Direction, GameAction, GameState, Poi, Point } from "./types";
 import { crossesWall, isNorthOfWall, wallBlock } from "./wall";
 import { ZONES, arrival, exitFor } from "./zones";
+import { rangerLine } from "./forest";
 import { adaLine } from "./village";
 
 export const initialState: GameState = {
@@ -45,7 +46,7 @@ export const initialState: GameState = {
   logicOpen: false,
   logicError: null,
   logicHintRevealed: false,
-  picks: Object.fromEntries(CHEST_IDS.map((id) => [id, 0])) as Record<ChestId, 0 | 1 | 2>,
+  picks: Object.fromEntries(CHEST_IDS.map((id) => [id, 0])) as Picks,
   seed: 0,
   badges: [],
   answered: {},
@@ -67,7 +68,7 @@ export const isModalOpen = (s: GameState) => s.challenge !== null || s.logicOpen
 
 /** Hidden points of interest that are currently diggable: the artifact, after decoding, until found. */
 /** What you can use in your zone: its places, plus the dig spot in the Peaks once revealed. */
-export const visiblePois = (s: GameState): Poi[] => [...ZONES[s.zone].places, ...(s.zone === "peaks" ? revealedPois(s) : [])];
+export const visiblePois = (s: GameState): Poi[] => [...ZONES[s.zone].places, ...(s.zone === "forest" ? revealedPois(s) : [])];
 
 /** On the frozen river's ice, in a zone that has the river. */
 export const inRiver = (s: GameState): boolean => ZONES[s.zone].river && isInRiver(s.player);
@@ -192,16 +193,19 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const exit = exitFor(state.zone, state.player, target);
       if (exit) {
         return pushLog(
-          { ...state, zone: exit.to, ...arrival(exit, state.player.y), inspected: null, stamina: Math.max(0, state.stamina - 1) },
+          { ...state, zone: exit.to, ...arrival(exit, state.player), inspected: null, stamina: Math.max(0, state.stamina - 1) },
           ZONES[exit.to].entered,
         );
       }
       const player = clampPlayer(target);
-      const block = ZONES[state.zone].gate
-        ? wallBlock(state.player, player, state.gateUnlocked)
-        : crossesWall(state.player, player)
-          ? "solid"
-          : null;
+      const zone = ZONES[state.zone];
+      const block = !zone.wall
+        ? null
+        : zone.gate
+          ? wallBlock(state.player, player, state.gateUnlocked)
+          : crossesWall(state.player, player)
+            ? "solid"
+            : null;
       if (block) return pushLogOnce(state, block === "locked" ? LOG.wallLocked : LOG.wallSolid);
       const next = { ...state, player, stamina: Math.max(0, state.stamina - 1) };
       if (!state.questComplete && inRiver({ ...state, player })) {
@@ -242,7 +246,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         return pushLog({ ...state, artifactFound: true, inspected: "artifact" }, LOG.artifactFound);
       }
       if (action.poi === "villager") return pushLogOnce({ ...state, inspected: "villager" }, `Ada: "${adaLine(state)}"`);
-      if (action.poi === "signpost") return { ...state, inspected: "signpost" };
+      if (action.poi === "ranger") return pushLogOnce({ ...state, inspected: "ranger" }, `Ranger: "${rangerLine(state)}"`);
+      if (action.poi === "signpost" || action.poi === "campfire" || action.poi === "old-oak" || action.poi === "forest-signpost")
+        return { ...state, inspected: action.poi };
       if (action.poi === "terminal") {
         // Once solved, the terminal shows its success view (the code) again, not a new round.
         return { ...state, inspected: "terminal", challenge: { ...opened("matcher"), solved: state.matcherSolved } };

@@ -20,7 +20,7 @@ const LOBBY = ctx({ where: "lobby", minutes: 0, badges: [], known: {} });
 const notes = (text: string, c: CommandContext = GAME) => runCommand(text, c).notes;
 const effect = (text: string, c: CommandContext = GAME) => runCommand(text, c).effect;
 
-const PLACES = 'No place called "%". Try: gate, tower, cache, river, ada, signpost, terminal, archive, or a chest: html, css, java, cpp1, cpp2, py1, php, sql, py2, cs.';
+const PLACES = 'No place called "%". Try: gate, tower, cache, river, ada, signpost, terminal, archive, ranger, campfire, or a chest: html, css, java, cpp1, cpp2, py1, php, sql, py2, cs, js.';
 
 describe("/help", () => {
   it("in a game lists the eight lines", () => {
@@ -89,11 +89,11 @@ describe("/time", () => {
 
 describe("/badges", () => {
   it("lists yours in chest-table order", () => {
-    expect(notes("/badges")).toEqual(["Your badges: 3/10 (HTML, CSS, SQL)."]);
-    expect(notes("/badges", SOLO)).toEqual(["Your badges: 3/10 (HTML, CSS, SQL)."]);
+    expect(notes("/badges")).toEqual(["Your badges: 3/11 (HTML, CSS, SQL)."]);
+    expect(notes("/badges", SOLO)).toEqual(["Your badges: 3/11 (HTML, CSS, SQL)."]);
   });
-  it("says 0/10 with none", () => {
-    expect(notes("/badges", ctx({ badges: [] }))).toEqual(["Your badges: 0/10."]);
+  it("says 0/11 with none", () => {
+    expect(notes("/badges", ctx({ badges: [] }))).toEqual(["Your badges: 0/11."]);
   });
   it("reports what you know of a teammate", () => {
     expect(notes("/badges Kai")).toEqual(["Kai has earned 2 that you know of: HTML, SQL."]);
@@ -105,7 +105,7 @@ describe("/badges", () => {
   });
   it("answers unknown names, yourself and solo", () => {
     expect(notes("/badges Zed")).toEqual(['No teammate called "Zed".']);
-    expect(notes("/badges ana")).toEqual(["Your badges: 3/10 (HTML, CSS, SQL)."]);
+    expect(notes("/badges ana")).toEqual(["Your badges: 3/11 (HTML, CSS, SQL)."]);
     expect(notes("/badges Kai", SOLO)).toEqual(["Solo game: no teammates."]);
   });
   it("is available in the lobby only as a refusal", () => {

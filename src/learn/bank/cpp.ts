@@ -1,6 +1,6 @@
 import type { ChestQuestion } from "../types";
 
-export const CPP1_BANK: readonly [ChestQuestion, ChestQuestion, ChestQuestion] = [
+export const CPP1_BANK: readonly ChestQuestion[] = [
   {
     kind: "blank",
     id: "cpp-cout",
@@ -43,9 +43,50 @@ export const CPP1_BANK: readonly [ChestQuestion, ChestQuestion, ChestQuestion] =
     hint: "Both numbers are whole numbers.",
     explain: "Dividing two ints drops the remainder, so 7 / 2 is 3.",
   },
+  {
+    kind: "blank",
+    id: "cpp-include",
+    lang: "cpp",
+    prompt: "Bring in the library that provides std::cout.",
+    code: ["#___ <iostream>", "int main() {", '  std::cout << "Hi";', "}"],
+    answers: ["include"],
+    caseSensitive: true,
+    // Every standard preprocessor directive name.
+    live: {
+      kind: "legal",
+      tokens: ["include", "define", "undef", "if", "ifdef", "ifndef", "elif", "elifdef", "elifndef", "else", "endif", "line", "error", "pragma", "warning", "embed"],
+      label: "a preprocessor directive",
+    },
+    blocks: ["include", "define", "pragma", "using", "namespace"],
+    hint: "Think of putting another file's contents into yours.",
+    explain: "#include copies a header into your file. #define makes a macro and #pragma gives the compiler a special instruction. using and namespace are not preprocessor directives.",
+  },
+  {
+    kind: "choice",
+    id: "cpp-main",
+    lang: "cpp",
+    prompt: "Which function does every C++ program start running at?",
+    options: ["main", "start", "run", "init"],
+    correct: 0,
+    codeOptions: true,
+    hint: "Its name means 'principal'.",
+    explain: "Execution begins at main(). start, run and init are ordinary names with no special meaning.",
+  },
+  {
+    kind: "choice",
+    id: "cpp-bool-print",
+    lang: "cpp",
+    prompt: "What does this print?",
+    code: ["std::cout << (5 > 3);"],
+    options: ["1", "true", "5", "0"],
+    correct: 0,
+    codeOptions: true,
+    hint: "Booleans print as numbers unless you ask otherwise.",
+    explain: "5 > 3 is true, and cout prints a true bool as 1 (and false as 0) unless boolalpha is set.",
+  },
 ];
 
-export const CPP2_BANK: readonly [ChestQuestion, ChestQuestion, ChestQuestion] = [
+export const CPP2_BANK: readonly ChestQuestion[] = [
   {
     kind: "blank",
     id: "cpp-for",
@@ -87,5 +128,42 @@ export const CPP2_BANK: readonly [ChestQuestion, ChestQuestion, ChestQuestion] =
     codeOptions: true,
     hint: "r is another name for n.",
     explain: "A reference is an alias: changing r changes n.",
+  },
+  {
+    kind: "blank",
+    id: "cpp-while",
+    lang: "cpp",
+    prompt: "Keep counting while n is below 3.",
+    code: ["int n = 0;", "___ (n < 3) {", "  std::cout << n;", "  n++;", "}"],
+    answers: ["while"],
+    caseSensitive: true,
+    live: { kind: "notLegal", tokens: ["until", "loop", "repeat", "whilst", "foreach"], label: "a C++ keyword" },
+    blocks: ["while", "for", "if", "until", "do"],
+    hint: "It is the loop that checks its condition before every pass.",
+    explain: "while repeats its block as long as the condition is true. if runs it at most once, and do … while checks the condition after the first pass.",
+  },
+  {
+    kind: "choice",
+    id: "cpp-array-index",
+    lang: "cpp",
+    prompt: "What does this print?",
+    code: ["int a[3] = {10, 20, 30};", "std::cout << a[1];"],
+    options: ["20", "10", "30", "1"],
+    correct: 0,
+    codeOptions: true,
+    hint: "Array indexes start at 0.",
+    explain: "a[0] is 10, so a[1] is the second element: 20.",
+  },
+  {
+    kind: "choice",
+    id: "cpp-deref",
+    lang: "cpp",
+    prompt: "What does this print?",
+    code: ["int n = 8;", "int* p = &n;", "std::cout << *p;"],
+    options: ["8", "The address of n", "p", "*p"],
+    correct: 0,
+    codeOptions: true,
+    hint: "*p follows the pointer.",
+    explain: "*p reads the value p points to, which is n's 8. Printing p itself would show an address.",
   },
 ];

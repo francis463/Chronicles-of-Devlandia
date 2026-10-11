@@ -263,17 +263,17 @@ export function MapViewport({
   const worldSize = { width: world.width, height: world.height };
   const inPeaks = zone === "peaks";
   const obstacles = [
-    ...(inPeaks && artifactFound ? [{ ...HIDDEN_ARTIFACT, box: SEMICOLON_BOX }] : []),
+    ...(zone === "forest" && artifactFound ? [{ ...HIDDEN_ARTIFACT, box: SEMICOLON_BOX }] : []),
     ...teammates.map((t) => ({ x: t.x, y: t.y, box: EXPLORER_BOX })),
   ];
   const mapState = { hasLoot, towerPowered, badges, archiveOpen, reach: inRange?.id ?? null };
   const hits = zoneHitAreas(world, zone);
   const fixed = landmarkCaptions(world, map, mapState, zone);
-  const labels = labelLayout(player, drone, worldSize, obstacles, world.scale, fixed, [exitSignBox(world, zone)]);
+  const labels = labelLayout(player, drone, worldSize, obstacles, world.scale, fixed, exitSignBox(world, zone));
   const boxes = labelBoxes(player, drone, worldSize, labels, world.scale);
   const inWorld = (p: Point) => ({ x: (p.x / 100) * world.width, y: (p.y / 100) * world.height });
 
-  const exitSign = EXIT_SIGNS[zone];
+  const exitSigns = EXIT_SIGNS[zone];
 
   const scene: SceneInput = {
     zone,
@@ -315,13 +315,13 @@ export function MapViewport({
         className="pointer-events-none absolute inset-0 z-[5] bg-[var(--panel)] opacity-0 animate-[zone-fade_200ms_ease-out] motion-reduce:hidden"
       />
 
-      {/* Fog of war around the player, as before; the powered signal tower fades it out. */}
+      {/* Fog of war around the player; the powered signal tower fades it out, and the forest has none. */}
       <div
         data-testid="fog"
         className="pointer-events-none absolute inset-0 z-10 transition-opacity duration-1000 ease-linear motion-reduce:transition-none"
         style={{
           background: `radial-gradient(circle farthest-corner at ${fogX}px ${fogY}px, transparent 0%, transparent 15%, rgba(15,23,42,0.35) 32%, rgba(15,23,42,0.7) 62%)`,
-          opacity: towerPowered ? 0 : 1,
+          opacity: towerPowered || zone === "forest" ? 0 : 1,
         }}
       />
 
@@ -340,6 +340,15 @@ export function MapViewport({
             <LandmarkButton hit={hits.tower} name={caption("tower")} color="var(--primary-border)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "tower"} onClick={() => onInteract("tower")} />
             <LandmarkButton hit={hits.chest} name={caption("chest")} color="var(--accent)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "chest"} onClick={() => onInteract("chest")} />
             <LandmarkButton hit={hits.gate} name={caption("gate")} color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "gate"} onClick={() => onInteract("gate")} />
+          </>
+        ) : zone === "forest" ? (
+          <>
+            <MapCaption id="dense-forest" text="(Dense Forest)" world={world} />
+
+            <LandmarkButton hit={hits.ranger} name={caption("ranger")} color="var(--accent-border)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "ranger"} onClick={() => onInteract("ranger")} />
+            <LandmarkButton hit={hits.campfire} name={caption("campfire")} color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "campfire"} onClick={() => onInteract("campfire")} />
+            <LandmarkButton hit={hits["old-oak"]} name={caption("old-oak")} color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "old-oak"} onClick={() => onInteract("old-oak")} />
+            <LandmarkButton hit={hits["forest-signpost"]} name={caption("forest-signpost")} color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "forest-signpost"} onClick={() => onInteract("forest-signpost")} />
           </>
         ) : (
           <>
@@ -382,14 +391,16 @@ export function MapViewport({
             />
           );
         })}
-        <MapCaption id={exitSign.id} text={exitSign.text} world={world} />
+        {exitSigns.map((sign) => (
+          <MapCaption key={sign.id} id={sign.id} text={sign.text} world={world} />
+        ))}
 
-        {inPeaks && clueDecoded && !artifactFound && (
+        {zone === "forest" && clueDecoded && !artifactFound && (
           <div data-testid="dig-spot" className="pointer-events-none absolute" style={at(HIDDEN_ARTIFACT)}>
             <span className="sr-only">Dig spot</span>
           </div>
         )}
-        {inPeaks && artifactFound && (
+        {zone === "forest" && artifactFound && (
           <div data-testid="artifact" title="Golden Semicolon" className="pointer-events-none absolute" style={at(HIDDEN_ARTIFACT)}>
             <span className="sr-only">Golden Semicolon</span>
           </div>

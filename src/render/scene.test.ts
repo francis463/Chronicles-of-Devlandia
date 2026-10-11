@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { AREAS } from "./areas";
+import { FOREST_POINTS } from "./areas/forest";
 import { PHASE_TINT, buildScene, type Poses, type SceneInput } from "./scene";
 import { LIGHTS, SPRITES, spriteBox, type SpriteId } from "./sprites";
-import { BRIDGE_RECT, LANDMARK_POINTS, decorations } from "./terrain";
+import { BRIDGE_RECT, decorations } from "./terrain";
 import { REACHABLE_RECT, intersects, toArt } from "./world";
 import { CHESTS } from "../learn/chests";
 import { TERMINAL } from "../game/constants";
@@ -41,7 +42,7 @@ const scene = (over: Partial<SceneInput> = {}, t = 0, reduced = false) => {
 };
 const sprites = (s: ReturnType<typeof scene>, layer: "flat" | "upright") => s[layer].map((d) => d.sprite);
 const near = (p: { x: number; y: number }, c: { x: number; y: number }, r: number) => Math.abs(p.x - c.x) + Math.abs(p.y - c.y) <= r;
-const SEMI_CENTRE = { x: 230, y: 145 };
+const SEMI_CENTRE = { x: 275, y: 138 };
 // Ring pixels: around the tower's base (45, 32), farther than its 3 px core and within its 28 px reach.
 const aroundTower = (p: { x: number; y: number }) => { const d = Math.hypot(p.x - 45, p.y - 32); return d > 3.5 && d <= 29; };
 
@@ -62,15 +63,25 @@ describe("scene: what is drawn", () => {
   });
 
   it("X only while decoded and not found; semicolon only when found", () => {
-    expect(sprites(scene(), "flat")).not.toContain("x-mark");
-    const decoded = scene({ clueDecoded: true });
-    const xBox = spriteBox("x-mark", LANDMARK_POINTS.dig);
+    const forest = (over: Partial<SceneInput> = {}, t = 0) => scene({ zone: "forest", player: { x: 68, y: 20 }, ...over }, t);
+    expect(sprites(forest(), "flat")).not.toContain("x-mark");
+    const decoded = forest({ clueDecoded: true });
+    const xBox = spriteBox("x-mark", FOREST_POINTS.dig);
     expect(decoded.flat.find((d) => d.sprite === "x-mark")).toMatchObject({ x: xBox.x, y: xBox.y });
     expect(sprites(decoded, "upright")).not.toContain("semicolon");
-    const found = scene({ clueDecoded: true, artifactFound: true });
+    const found = forest({ clueDecoded: true, artifactFound: true });
     expect(sprites(found, "flat")).not.toContain("x-mark");
-    const semiBox = spriteBox("semicolon", LANDMARK_POINTS.dig);
+    const semiBox = spriteBox("semicolon", FOREST_POINTS.dig);
     expect(found.upright.find((d) => d.sprite === "semicolon")).toMatchObject({ x: semiBox.x, y: semiBox.y });
+  });
+
+  it("the Peaks draw neither the X nor the semicolon any more", () => {
+    const peaks = scene({ clueDecoded: true, artifactFound: true });
+    expect([...sprites(peaks, "flat"), ...sprites(peaks, "upright")]).not.toContain("x-mark");
+    expect(sprites(peaks, "upright")).not.toContain("semicolon");
+    expect(AREAS.peaks.protected.some((r) => JSON.stringify(r) === JSON.stringify(spriteBox("x-mark", FOREST_POINTS.dig)))).toBe(false);
+    expect(AREAS.forest.protected).toContainEqual(spriteBox("x-mark", FOREST_POINTS.dig));
+    expect(AREAS.forest.protected).toContainEqual(spriteBox("semicolon", FOREST_POINTS.dig));
   });
 
   it("flat overlays come before every explorer whatever their rows", () => {
@@ -194,7 +205,7 @@ describe("scene: light", () => {
 
   it("semicolon glow steps 0.25, 0.5, 0.75, 1, 0.75, 0.5 every 267 ms", () => {
     const strength = (t: number) => {
-      const inner = scene({ clueDecoded: true, artifactFound: true, minutes: DAY }, t).light.filter(
+      const inner = scene({ zone: "forest", clueDecoded: true, artifactFound: true, minutes: DAY }, t).light.filter(
         (p) => p.color === "#fbbf24" && near(p, SEMI_CENTRE, 2),
       );
       return Math.max(...inner.map((p) => p.alpha)) / 0.5;
@@ -205,19 +216,20 @@ describe("scene: light", () => {
   it("ice glints come and go; the dig X glints", () => {
     expect(scene({}, 0).glints.length).toBeGreaterThan(0);
     expect(scene({}, 300).glints).toHaveLength(0);
-    const xGlint = (t: number) => scene({ clueDecoded: true }, t).light.filter((p) => near(p, LANDMARK_POINTS.dig, 4) && p.color === "#ffffff");
+    const xGlint = (t: number) => scene({ zone: "forest", clueDecoded: true }, t).light.filter((p) => near(p, FOREST_POINTS.dig, 4) && p.color === "#ffffff");
     expect(xGlint(0).length).toBeGreaterThan(0);
     expect(xGlint(300)).toHaveLength(0);
   });
 
   it("reduced motion: steady lamp, no ring, no glints, cursor on, semicolon glow at 1, drone still", () => {
     const at = (t: number) => scene({ clueDecoded: true, artifactFound: true }, t, true);
+    const forestAt = (t: number) => scene({ zone: "forest", clueDecoded: true, artifactFound: true }, t, true);
     expect(lamp(at(500))?.color).toBe("#ef4444");
     const powered = scene({ towerPowered: true, minutes: DAY }, 0, true);
     expect(powered.light.filter((p) => !near(p, LIGHTS.towerLamp, 0) && aroundTower(p))).toHaveLength(0);
     expect(at(0).glints).toHaveLength(0);
     for (const t of [0, 530, 1060]) expect(at(t).light.some((p) => p.x === LIGHTS.gateTerminal.x && p.y === LIGHTS.gateTerminal.y && p.alpha === 1)).toBe(true);
-    const semi = at(0).light.filter((p) => p.color === "#fbbf24" && near(p, SEMI_CENTRE, 2));
+    const semi = forestAt(0).light.filter((p) => p.color === "#fbbf24" && near(p, SEMI_CENTRE, 2));
     expect(Math.max(...semi.map((p) => p.alpha))).toBeCloseTo(0.5);
     expect([at(0).drone.y, at(0).drone.frame]).toEqual([at(400).drone.y, at(400).drone.frame]);
     expect(at(0).drone.frame).toBe(at(125).drone.frame);
@@ -370,5 +382,49 @@ describe("scene: your view (weather and light)", () => {
   it("reduced motion always draws the t = 0 flakes", () => {
     expect(scene({ snow: true }, 4321, true).snow).toEqual(scene({ snow: true }, 0, true).snow);
     expect(scene({ snow: true }, 4321, true).snow).toEqual(scene({ snow: true }, 0).snow);
+  });
+});
+
+describe("scene: the Dense Forest", () => {
+  const forest = (over: Partial<SceneInput> = {}, t = 0, reduced = false) =>
+    scene({ zone: "forest", player: { x: 68, y: 20 }, drone: { x: 60, y: 20 }, ...over }, t, reduced);
+  const at = (s: ReturnType<typeof scene>, sprite: SpriteId) => s.upright.filter((d) => d.sprite === sprite);
+
+  it("draws the oak, campfire, signpost and the ranger, with no wall and none of the Peaks' landmarks", () => {
+    const s = forest();
+    for (const id of ["old-oak", "campfire", "signpost"] as SpriteId[]) expect(at(s, id), id).toHaveLength(1);
+    expect(s.upright.filter((d) => d.sprite === "explorer-down" && d.variant === "#be123c")).toHaveLength(1);
+    for (const id of ["wall", "tower", "gate", "chest-closed", "chest-open", "hut", "well"] as SpriteId[]) expect(at(s, id), id).toHaveLength(0);
+    expect(s.flat).toEqual([]);
+  });
+
+  it("the ranger and the explorer are y-sorted together", () => {
+    const s = forest({ player: { x: 60, y: 80 } });
+    const feet = s.upright.map((d) => d.y + SPRITES[d.sprite].h - 1);
+    expect(feet).toEqual([...feet].sort((a, b) => a - b));
+  });
+
+  it("the tint is the forest's own over the phase: exact by day, deeper at night", () => {
+    expect(forest({ lightMode: "day" }).tint).toBe("rgba(10,30,40,0.18)");
+    const night = forest({ lightMode: "night" }).tint;
+    const alpha = Number(night.match(/,([\d.]+)\)$/)?.[1]);
+    expect(night).toMatch(/^rgba\(\d+,\d+,\d+,[\d.]+\)$/);
+    expect(alpha).toBeGreaterThan(0.18);
+    expect(alpha).toBeCloseTo(1 - (1 - 0.18) * (1 - 0.25), 2);
+  });
+
+  it("the campfire glows at night strength, not by day, and flickers every 400 ms even when reduced", () => {
+    const glowAt = (over: Partial<SceneInput>, t = 0, reduced = false) =>
+      forest(over, t, reduced).light.filter((p) => p.color === "#fb923c");
+    expect(glowAt({ lightMode: "day" })).toEqual([]);
+    expect(glowAt({ lightMode: "night" }).length).toBeGreaterThan(0);
+    const peak = (px: { alpha: number }[]) => Math.max(...px.map((p) => p.alpha));
+    expect(peak(glowAt({ lightMode: "night" }, 0))).toBeCloseTo(0.5);
+    expect(peak(glowAt({ minutes: DUSK, lightMode: "auto" }, 0))).toBeCloseTo(0.25);
+    expect(glowAt({ lightMode: "night" }, 0)).not.toEqual(glowAt({ lightMode: "night" }, 400));
+    expect(glowAt({ lightMode: "night" }, 0, true).length).toBeGreaterThan(0);
+    const frames = (t: number) => at(forest({}, t), "campfire")[0].frame;
+    expect([frames(0), frames(400), frames(800)]).toEqual([0, 1, 0]);
+    expect(at(forest({}, 400, true), "campfire")[0].frame).toBe(0);
   });
 });

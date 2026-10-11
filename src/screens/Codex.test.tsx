@@ -1,11 +1,11 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { CHEST_IDS, chestChallenge } from "../learn/chests";
+import { CHEST_IDS, chestChallenge, type Picks } from "../learn/chests";
 import type { ChestId } from "../learn/types";
 import { Codex } from "./Codex";
 
-const picks = Object.fromEntries(CHEST_IDS.map((id) => [id, 0])) as Record<ChestId, 0 | 1 | 2>;
+const picks = Object.fromEntries(CHEST_IDS.map((id) => [id, 0])) as Picks;
 const renderCodex = (badges: ChestId[], over: { team?: boolean; answered?: Partial<Record<ChestId, string>> } = {}) => {
   const onClose = vi.fn();
   render(<Codex badges={badges} answered={over.answered ?? {}} picks={picks} team={over.team ?? false} onClose={onClose} />);
@@ -13,21 +13,22 @@ const renderCodex = (badges: ChestId[], over: { team?: boolean; answered?: Parti
 };
 
 describe("Codex", () => {
-  it("titled `< CODEX: 2/10 BADGES >` (team: `< YOUR CODEX: 2/10 BADGES >`), one list in table order with each chest's place", () => {
+  it("titled `< CODEX: 2/11 BADGES >` (team: `< YOUR CODEX: 2/11 BADGES >`), one list in table order with each chest's place", () => {
     const { unmount } = render(
       <Codex badges={["chest-sql", "chest-cs"]} answered={{}} picks={picks} team={false} onClose={vi.fn()} />,
     );
-    expect(screen.getByRole("dialog", { name: "< CODEX: 2/10 BADGES >" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "< CODEX: 2/11 BADGES >" })).toBeInTheDocument();
     const items = within(screen.getByRole("list")).getAllByRole("listitem");
-    expect(items).toHaveLength(10);
+    expect(items).toHaveLength(11);
     // Entries whose badge has a separate spoken form also carry it as hidden text ("C++ 1").
     expect(items[0]).toHaveTextContent(/^C\+\+ I.*Badge · C\+\+ Peaks · north of the wall/);
     expect(items[3]).toHaveTextContent("HTML Badge · C++ Peaks");
     expect(items[6]).toHaveTextContent("PHP Badge · Dev Village");
     expect(items[9]).toHaveTextContent(/C# Badge · Dev Village · in the Archive/);
+    expect(items[10]).toHaveTextContent("JavaScript Badge · Dense Forest");
     unmount();
     renderCodex(["chest-sql", "chest-cs"], { team: true });
-    expect(screen.getByRole("dialog", { name: "< YOUR CODEX: 2/10 BADGES >" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "< YOUR CODEX: 2/11 BADGES >" })).toBeInTheDocument();
   });
 
   it("an earned entry is a button with aria-expanded that shows the question, your answer and the explanation; several can be open; an unearned entry ends `· not earned yet`", async () => {
@@ -47,6 +48,17 @@ describe("Codex", () => {
     const html = within(screen.getByRole("list")).getAllByRole("listitem")[3];
     expect(within(html).queryByRole("button")).toBeNull();
     expect(html.textContent).toMatch(/· not earned yet$/);
+  });
+
+  it("an earned chest with a late pick shows that question and its explanation (Review Focus 4)", async () => {
+    const user = userEvent.setup();
+    const late: Picks = { ...picks, "chest-sql": 5 };
+    render(<Codex badges={["chest-sql"]} answered={{ "chest-sql": "x" }} picks={late} team={false} onClose={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: /^SQL Badge/ }));
+    const question = chestChallenge(late, "chest-sql");
+    expect(question.id).toBe("sql-insert");
+    expect(screen.getByText(question.prompt)).toBeInTheDocument();
+    expect(screen.getByText(question.explain)).toBeInTheDocument();
   });
 
   it("focus starts on the first earned entry, else `[X] CLOSE`; `[X] CLOSE` closes it", async () => {

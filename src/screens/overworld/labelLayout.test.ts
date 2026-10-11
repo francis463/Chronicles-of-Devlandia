@@ -8,7 +8,7 @@ import { exitSignBox, landmarkCaptions } from "./mapLayout";
 // The exhaustive grid tests check every position on both zones; they take ~3 s alone and more under a loaded suite.
 const GRID_TIMEOUT_MS = 30_000;
 
-const ZONES = ["peaks", "village"] as const;
+const ZONES = ["peaks", "village", "forest"] as const;
 // The drone trails the player by up to a step and a bit, from any direction.
 const TRAIL = [[-3, 0], [3, 0], [0, -3], [0, 3], [-1.7, 0], [1.7, 0], [0, -1.7], [0, 1.7]];
 /** In the village the wall is solid, so you never stand north of it. */
@@ -139,7 +139,7 @@ describe("fixed obstacles", () => {
           { hasLoot: true, towerPowered: true, badges: CHEST_IDS, archiveOpen: true },
         ]) {
           const fixed = landmarkCaptions(world, view, state, zone);
-          const heavy = [exitSignBox(world, zone)];
+          const heavy = exitSignBox(world, zone);
           for (let px = 6; px <= 94; px += 2) {
             for (let py = firstRow(zone); py <= 90; py += 2) {
               for (const [dx, dy] of TRAIL) {
@@ -165,16 +165,16 @@ describe("fixed obstacles", () => {
       const world = fitWorld(view);
       const map: MapSize = { width: world.width, height: world.height };
       for (const zone of ZONES) {
-        const sign = exitSignBox(world, zone);
+        const signs = exitSignBox(world, zone);
         const fixed = landmarkCaptions(world, view, { hasLoot: false, towerPowered: false, badges: [], archiveOpen: false }, zone);
         for (let px = 6; px <= 94; px += 2) {
           for (let py = firstRow(zone); py <= 90; py += 2) {
             for (const [dx, dy] of TRAIL) {
               const player = { x: px, y: py };
               const drone = { x: px + dx, y: py + dy };
-              const b = labelBoxes(player, drone, map, labelLayout(player, drone, map, [], world.scale, fixed, [sign]), world.scale);
+              const b = labelBoxes(player, drone, map, labelLayout(player, drone, map, [], world.scale, fixed, signs), world.scale);
               const where = `${zone} ${px},${py} ${dx},${dy} @${view.width}`;
-              expect(overlap(b.playerLabel, sign) || overlap(b.droneLabel, sign), `label on the exit sign: ${where}`).toBe(false);
+              for (const sign of signs) expect(overlap(b.playerLabel, sign) || overlap(b.droneLabel, sign), `label on the exit sign: ${where}`).toBe(false);
             }
           }
         }

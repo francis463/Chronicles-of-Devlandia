@@ -4,7 +4,7 @@ import type { ChestQuestion } from "../types";
 const PRINT_STREAM =
   "append charset checkError close equals flush format getClass hashCode notify notifyAll nullOutputStream print printf println toString wait write writeBytes";
 
-export const JAVA_BANK: readonly [ChestQuestion, ChestQuestion, ChestQuestion] = [
+export const JAVA_BANK: readonly ChestQuestion[] = [
   {
     kind: "blank",
     id: "java-println",
@@ -40,5 +40,41 @@ export const JAVA_BANK: readonly [ChestQuestion, ChestQuestion, ChestQuestion] =
     codeOptions: true,
     hint: "x += 5 means x = x + 5.",
     explain: "+= adds to the variable, so x becomes 15.",
+  },
+  {
+    kind: "blank",
+    id: "java-class",
+    lang: "java",
+    prompt: "Declare a class named Game.",
+    code: ["public ___ Game {", "}"],
+    answers: ["class"],
+    caseSensitive: true,
+    live: { kind: "notLegal", tokens: ["def", "object", "struct", "function", "klass"], label: "a Java keyword" },
+    blocks: ["class", "interface", "static", "def", "void"],
+    hint: "It is the keyword for the blueprint that objects are made from.",
+    explain: "class declares a class. interface declares a different kind of type, static is a modifier, def belongs to Python and void is a method's return type.",
+  },
+  {
+    kind: "choice",
+    id: "java-equals",
+    lang: "java",
+    prompt: "How do you check that two Strings, a and b, hold the same text?",
+    options: ["a.equals(b)", "a = b", "a === b", "a.same(b)"],
+    correct: 0,
+    codeOptions: true,
+    hint: "It is a method, not an operator.",
+    explain: "equals compares the text. = assigns, === does not exist in Java, and same is not a String method. (== asks whether both variables point to the same object, which can give the wrong answer for Strings.)",
+  },
+  {
+    kind: "choice",
+    id: "java-array-len",
+    lang: "java",
+    prompt: "What does this print?",
+    code: ["int[] arr = {4, 5, 6};", "System.out.println(arr.length);"],
+    options: ["3", "2", "6", "15"],
+    correct: 0,
+    codeOptions: true,
+    hint: "length counts the elements.",
+    explain: "arr.length is how many elements the array holds: three. It is not their sum and not the last value.",
   },
 ];

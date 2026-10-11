@@ -1,4 +1,3 @@
-import type { ZoneId } from "../game/zones";
 import { inRect, type Area, type TerrainKind } from "./areas/area";
 import { PEAKS } from "./areas/peaks";
 import { spriteBox, type SpriteId } from "./sprites";
@@ -25,7 +24,7 @@ const touchesWall = (r: Rect) => r.y <= WALL_FEET && r.y + r.h - 1 >= WALL_RECT.
 
 /** Art points of the wall tiles whose 16 × 10 boxes intersect `range`: one every 16 px, none over the area's gate. */
 export function wallTiles(range: Rect, area: Area = PEAKS): ArtPoint[] {
-  if (!touchesWall(range)) return [];
+  if (!area.wall || !touchesWall(range)) return [];
   const tiles: ArtPoint[] = [];
   for (let k = Math.floor(range.x / WALL_TILE); k * WALL_TILE <= range.x + range.w - 1; k++) {
     const at = { x: k * WALL_TILE + WALL_TILE / 2, y: WALL_FEET };
@@ -66,7 +65,7 @@ type Candidate = Decoration & { priority: number; interior: boolean };
 function barrier(cx: number, cy: number, r: number[], area: Area): Candidate | "gap" | null {
   const bushOrRock = (at: ArtPoint): Candidate | "gap" => {
     const sprite = area.terrainAt(at.x, at.y) === "snow" ? "snow-rock" : r[3] < 0.75 ? "bush" : "rock";
-    return intersects(spriteBox(sprite, at), area.mouth) ? "gap" : { sprite, at, priority: 0, interior: false };
+    return area.mouths.some((m) => intersects(spriteBox(sprite, at), m)) ? "gap" : { sprite, at, priority: 0, interior: false };
   };
   if (cy === LAST_ROW && cx >= 0 && cx <= LAST_COL) return bushOrRock({ x: cx * CELL + 8, y: WORLD.height - 1 });
   if (cy >= 1 && cy < LAST_ROW && cx === 0) return bushOrRock({ x: 10, y: cy * CELL + 15 });
@@ -94,7 +93,7 @@ function candidate(cx: number, cy: number, area: Area): Candidate | null {
     const sprite = ground === "mountains" ? pick([["snow-rock", 0.3]]) : pick([[ground === "snow" ? "pine" : "tree", 0.8]]);
     if (!sprite) return null;
     const box = spriteBox(sprite, at);
-    if (intersects(box, WORLD_RECT) || intersects(box, area.corridor)) return null;
+    if (intersects(box, WORLD_RECT) || area.corridors.some((c) => intersects(box, c))) return null;
     return { sprite, at, priority: r[4], interior: false };
   }
   if (ground === "mountains") {
@@ -113,16 +112,16 @@ function candidate(cx: number, cy: number, area: Area): Candidate | null {
   const box = spriteBox(sprite, at);
   const r0 = REACHABLE_RECT;
   const insideWalls = box.x >= r0.x && box.x + box.w <= r0.x + r0.w && at.y < r0.y + r0.h;
-  if (!insideWalls || touchesWall(grow(box, 4)) || area.protected.some((p) => intersects(grow(box, 4), p))) return null;
+  if (!insideWalls || (area.wall && touchesWall(grow(box, 4))) || area.protected.some((p) => intersects(grow(box, 4), p))) return null;
   return { sprite, at, priority: r[4], interior: true };
 }
 
-const memos = new Map<ZoneId, Map<string, Decoration | null>>();
+const memos = new WeakMap<Area, Map<string, Decoration | null>>();
 
 /** The decoration of a cell: interior ones give way to a higher-priority neighbour closer than SPACING. */
 function decorationAt(cx: number, cy: number, area: Area): Decoration | null {
-  let memo = memos.get(area.id);
-  if (!memo) memos.set(area.id, (memo = new Map()));
+  let memo = memos.get(area);
+  if (!memo) memos.set(area, (memo = new Map()));
   const key = `${cx},${cy}`;
   if (memo.has(key)) return memo.get(key)!;
   const mine = candidate(cx, cy, area);

@@ -75,7 +75,7 @@ export const NO_FLAGS: TeamFlags = {
 const TEAMMATE_LOG: Record<FlagKey, (name: string) => string> = {
   questComplete: (n) => `${n} surveyed the Frozen River.`,
   hasLoot: (n) => `${n} opened the Supply Cache.`,
-  clueDecoded: (n) => `${n} decoded the scroll: the artifact rests in the Dense Forest.`,
+  clueDecoded: (n) => `${n} decoded the scroll: the artifact is buried in the Dense Forest, south of camp.`,
   artifactFound: (n) => `${n} found the Golden Semicolon!`,
   gateUnlocked: (n) => `${n} opened the gate.`,
   towerPowered: (n) => `${n} powered the signal tower. The fog lifts and the bridge returns.`,
@@ -147,7 +147,7 @@ const isStart = (v: unknown, now: number): v is number => isNum(v) && Math.abs(v
 /** Older clients send no zone (they are in the Peaks); a zone we don't know is "elsewhere", never a reason to drop. */
 function parseZone(v: unknown): ZoneId | null {
   if (v === undefined) return "peaks";
-  return v === "peaks" || v === "village" ? v : null;
+  return v === "peaks" || v === "village" || v === "forest" ? v : null;
 }
 
 /** The six original flags must be booleans; `archiveOpen` is read leniently (missing or odd means false). */
@@ -192,7 +192,7 @@ export function parseMessage(raw: unknown, now: number): TeamMessage | null {
   if (raw.type === "ping") {
     const name = typeof raw.name === "string" ? normalizeNickname(raw.name) : null;
     // The zone is strict here (parseZone's lenient default is for older clients' positions).
-    const zone = raw.zone === "peaks" || raw.zone === "village" ? raw.zone : null;
+    const zone = raw.zone === "peaks" || raw.zone === "village" || raw.zone === "forest" ? raw.zone : null;
     const place = raw.place === null ? null : isPingPlace(raw.place) ? raw.place : undefined;
     if (!isId(raw.id) || !name || !zone || !isX(raw.x) || !isY(raw.y) || place === undefined) return null;
     return { type: "ping", id: raw.id, name, ...(place ? { ...placeSpot(place), place } : { zone, x: raw.x, y: raw.y, place }) };

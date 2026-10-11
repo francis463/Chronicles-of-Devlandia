@@ -184,14 +184,18 @@ describe("MapViewport on the canvas", () => {
   });
 
   it("dig-spot anchor only while the clue is decoded and not found; artifact anchor when found", () => {
-    const { rerender } = render(<MapViewport {...props()} />);
+    const { rerender } = render(<MapViewport {...props({ zone: "forest" })} />);
     expect(screen.queryByTestId("dig-spot")).toBeNull();
-    rerender(<MapViewport {...props({ clueDecoded: true })} />);
+    rerender(<MapViewport {...props({ zone: "forest", clueDecoded: true })} />);
     expect(screen.getByTestId("dig-spot")).toHaveTextContent("Dig spot");
     expect(screen.queryByTestId("artifact")).toBeNull();
-    rerender(<MapViewport {...props({ clueDecoded: true, artifactFound: true })} />);
+    rerender(<MapViewport {...props({ zone: "forest", clueDecoded: true, artifactFound: true })} />);
     expect(screen.queryByTestId("dig-spot")).toBeNull();
     expect(screen.getByTestId("artifact")).toHaveTextContent("Golden Semicolon");
+    rerender(<MapViewport {...props({ zone: "peaks", clueDecoded: true })} />);
+    expect(screen.queryByTestId("dig-spot")).toBeNull();
+    rerender(<MapViewport {...props({ zone: "peaks", clueDecoded: true, artifactFound: true })} />);
+    expect(screen.queryByTestId("artifact")).toBeNull();
   });
 
   it("keeps the map captions, without dashed boxes", () => {
@@ -360,5 +364,49 @@ describe("MapViewport: your view", () => {
     render(<MapViewport {...props()} />);
     expect(drawn.at(-1)!.input.snow).toBeFalsy();
     expect(drawn.at(-1)!.input.lightMode ?? "auto").toBe("auto");
+  });
+});
+
+describe("MapViewport: the Dense Forest", () => {
+  it("shows its own caption and exit sign, and none of the other zones' buttons or captions", () => {
+    render(<MapViewport {...props({ zone: "forest" })} />);
+    expect(screen.getByText("(Dense Forest)")).toBeInTheDocument();
+    expect(screen.getByText("↑ C++ Peaks")).toBeInTheDocument();
+    for (const name of ["[G] Gate", "[T] Tower", "[X] Supply Cache", "[V] Ada"]) expect(screen.queryByRole("button", { name })).toBeNull();
+    for (const text of ["(Snowy Peaks Biome)", "(Dev Village)", "← Dev Village", "Forest ↓"]) expect(screen.queryByText(text)).toBeNull();
+  });
+
+  it("has four place buttons that call onInteract, and only the forest has them", () => {
+    const onInteract = vi.fn();
+    const { rerender } = render(<MapViewport {...props({ zone: "forest", onInteract })} />);
+    const names = ["[R] Ranger", "[F] Campfire", "[O] Old Oak", "[P] Signpost"];
+    for (const name of names) fireEvent.click(screen.getByRole("button", { name }));
+    expect(onInteract.mock.calls).toEqual([["ranger"], ["campfire"], ["old-oak"], ["forest-signpost"]]);
+    rerender(<MapViewport {...props({ zone: "peaks" })} />);
+    for (const name of ["[R] Ranger", "[F] Campfire", "[O] Old Oak"]) expect(screen.queryByRole("button", { name })).toBeNull();
+  });
+
+  it("the Peaks show the way south", () => {
+    render(<MapViewport {...props()} />);
+    expect(screen.getByText("Forest ↓")).toBeInTheDocument();
+    expect(screen.getByText("(Dense Forests Biome)")).toBeInTheDocument();
+  });
+
+  it("the fog is off in the forest even with the tower unpowered, and still on in the village (Review Focus 5)", () => {
+    const { rerender } = render(<MapViewport {...props({ zone: "village" })} />);
+    expect(screen.getByTestId("fog").style.opacity).toBe("1");
+    rerender(<MapViewport {...props({ zone: "forest" })} />);
+    expect(screen.getByTestId("fog").style.opacity).toBe("0");
+    rerender(<MapViewport {...props({ zone: "peaks" })} />);
+    expect(screen.getByTestId("fog").style.opacity).toBe("1");
+  });
+
+  it("crossing into the forest re-keys the fade and the world layer", () => {
+    const { rerender } = render(<MapViewport {...props()} />);
+    const fade = screen.getByTestId("zone-fade");
+    const layer = screen.getByTestId("world-layer");
+    rerender(<MapViewport {...props({ zone: "forest" })} />);
+    expect(screen.getByTestId("zone-fade")).not.toBe(fade);
+    expect(screen.getByTestId("world-layer")).not.toBe(layer);
   });
 });

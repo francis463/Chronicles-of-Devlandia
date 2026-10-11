@@ -33,10 +33,11 @@ const PROPS: Prop[] = [
 
 export const VILLAGE: Area = {
   id: "village",
+  wall: true,
   terrainAt,
   paths: PATHS,
-  mouth: MOUTH,
-  corridor: { x: 320, y: 112, w: 1000, h: 32 },
+  mouths: [MOUTH],
+  corridors: [{ x: 320, y: 112, w: 1000, h: 32 }],
   gateBox: null,
   ice: null,
   props: PROPS,

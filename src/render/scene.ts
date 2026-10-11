@@ -2,6 +2,7 @@ import { phaseOf } from "../game/clock";
 import type { Phase, Point } from "../game/types";
 import type { ZoneId } from "../game/zones";
 import { AREAS } from "./areas";
+import { FOREST_POINTS } from "./areas/forest";
 import type { Pose } from "./motion";
 import { circlePixels, diamondPixels } from "./pixels";
 import { LIGHTS, SPRITES, spriteBox, type SpriteId } from "./sprites";
@@ -15,6 +16,19 @@ export const PHASE_TINT: Record<Phase, string> = {
   Dusk: "rgba(40,40,32,0.12)",
   Day: "transparent",
 };
+
+/** The forest's own shade, laid over whatever the hour does. */
+const FOREST_TINT = { r: 10, g: 30, b: 40, a: 0.18 };
+
+/** The forest tint over a phase tint, as one rgba string. */
+function forestTint(phaseTint: string): string {
+  const m = phaseTint.match(/^rgba\((\d+),(\d+),(\d+),([\d.]+)\)$/);
+  if (!m) return `rgba(${FOREST_TINT.r},${FOREST_TINT.g},${FOREST_TINT.b},${FOREST_TINT.a})`;
+  const [br, bg, bb, ba] = m.slice(1).map(Number);
+  const a = FOREST_TINT.a + ba * (1 - FOREST_TINT.a);
+  const mix = (top: number, bottom: number) => Math.round((top * FOREST_TINT.a + bottom * ba * (1 - FOREST_TINT.a)) / a);
+  return `rgba(${mix(FOREST_TINT.r, br)},${mix(FOREST_TINT.g, bg)},${mix(FOREST_TINT.b, bb)},${Math.round(a * 1000) / 1000})`;
+}
 
 export type SceneInput = {
   zone: ZoneId;
@@ -58,6 +72,7 @@ const GREEN = "#4ade80";
 const RED = "#ef4444";
 const GOLD = "#fbbf24";
 const WHITE = "#ffffff";
+const CAMPFIRE_GLOW = "#fb923c";
 const ICE_GLINTS: ArtPoint[] = [
   { x: 100, y: 56 },
   { x: 160, y: 62 },
@@ -173,6 +188,24 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
       ...mates,
       player,
     ].sort(byFeet);
+    if (input.zone === "forest") {
+      const flame = reduced ? 0 : Math.floor(t / 400) % 2;
+      const fire = upright.find((d) => d.sprite === "campfire");
+      if (fire) fire.frame = flame;
+      const light = glow(LIGHTS.campfire, CAMPFIRE_GLOW, strength * (flame === 0 ? 1 : 0.8));
+      const dig = FOREST_POINTS.dig;
+      const digging = input.clueDecoded && !input.artifactFound;
+      const flat: Drawable[] = digging ? [placed("x-mark", dig)] : [];
+      if (input.artifactFound) {
+        upright.push(placed("semicolon", dig));
+        upright.sort(byFeet);
+        const box = spriteBox("semicolon", dig);
+        const centre = { x: box.x + box.w / 2, y: box.y + Math.floor(box.h / 2) - 1 };
+        light.push(...glow(centre, GOLD, reduced ? 1 : SEMICOLON_STEPS[Math.floor(t / 267) % SEMICOLON_STEPS.length]));
+      }
+      if (digging && !reduced && t % 1500 < 250) light.push({ x: dig.x + 2, y: dig.y - 2, color: WHITE, alpha: 1 });
+      return { zone: input.zone, glints: [], flat, upright, drone, tint: forestTint(PHASE_TINT[phase]), light, snow };
+    }
     return { zone: input.zone, glints: [], flat: [], upright, drone, tint: PHASE_TINT[phase], light: [], snow };
   }
 
@@ -185,8 +218,6 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
   const flat: Drawable[] = [];
   if (input.towerPowered)
     for (let i = 0; i < PLANK_ROWS; i++) flat.push(placed("plank", { x: BRIDGE_RECT.x + 13, y: BRIDGE_RECT.y + (i + 1) * 3 - 1 }));
-  const digging = input.clueDecoded && !input.artifactFound;
-  if (digging) flat.push(placed("x-mark", P.dig));
 
   const upright = [
     ...interiorDecorations(input.zone),
@@ -194,7 +225,6 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
     placed("tower", P.tower),
     placed(input.hasLoot ? "chest-open" : "chest-closed", P.chest),
     placed("gate", P.gate, { frame: input.gateUnlocked ? 0 : 1 }),
-    ...(input.artifactFound ? [placed("semicolon", P.dig)] : []),
     ...learning(input),
     ...mates,
     player,
@@ -213,12 +243,6 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
       light.push(...circlePixels(4 + Math.floor(24 * p)).map((o) => ({ x: P.tower.x + o.x, y: P.tower.y + o.y, color: GREEN, alpha })));
     }
   }
-  if (input.artifactFound) {
-    const box = spriteBox("semicolon", P.dig);
-    const centre = { x: box.x + box.w / 2, y: box.y + Math.floor(box.h / 2) - 1 };
-    light.push(...glow(centre, GOLD, reduced ? 1 : SEMICOLON_STEPS[Math.floor(t / 267) % SEMICOLON_STEPS.length]));
-  }
-  if (digging && !reduced && t % 1500 < 250) light.push({ x: P.dig.x + 2, y: P.dig.y - 2, color: WHITE, alpha: 1 });
 
   return { zone: input.zone, glints, flat, upright, drone, tint: PHASE_TINT[phase], light, snow };
 }

@@ -330,7 +330,7 @@ describe("Overworld hidden artifact", () => {
     await user.clear(input);
     await user.type(input, "dense forest{Enter}");
     expect(screen.queryByRole("dialog")).toBeNull();
-    expect(screen.getByText("Clue decoded: the artifact rests in the Dense Forest.")).toBeInTheDocument();
+    expect(screen.getByText("Clue decoded: the artifact is buried in the Dense Forest, south of camp.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "[ Decode Scroll ]" })).toBeNull();
   });
 
@@ -341,15 +341,21 @@ describe("Overworld hidden artifact", () => {
   });
 
   it("keeps the dig spot hidden until the clue is decoded", () => {
-    render(<Overworld onMenu={() => {}} initial={{ hasLoot: true, player: { x: 72, y: 80 } }} />);
+    render(<Overworld onMenu={() => {}} initial={{ hasLoot: true, zone: "forest", player: { x: 84, y: 80 } }} />);
     expect(screen.queryByText("[E] Dig here")).toBeNull();
     fireEvent.keyDown(window, { key: "e" });
     expect(screen.queryByText("Artifact found: the Golden Semicolon!")).toBeNull();
     expect(screen.queryByTestId("artifact")).toBeNull();
   });
 
+  it("after decoding, the Peaks show no dig spot and no [E] Dig here", () => {
+    render(<Overworld onMenu={() => {}} initial={{ hasLoot: true, clueDecoded: true, player: { x: 72, y: 84 } }} />);
+    expect(screen.queryByText("[E] Dig here")).toBeNull();
+    expect(screen.queryByTestId("dig-spot")).toBeNull();
+  });
+
   it("after decoding, [E] digs up the Golden Semicolon", () => {
-    render(<Overworld onMenu={() => {}} initial={{ hasLoot: true, clueDecoded: true, player: { x: 72, y: 80 } }} />);
+    render(<Overworld onMenu={() => {}} initial={{ hasLoot: true, clueDecoded: true, zone: "forest", player: { x: 84, y: 80 } }} />);
     // map prompt + touch [E] button (CSS-hidden on desktop)
     expect(screen.getAllByText("[E] Dig here")).toHaveLength(2);
     fireEvent.keyDown(window, { key: "e" });
@@ -499,7 +505,7 @@ describe("Overworld: the Codex and leaving", () => {
     expect(codex.nextElementSibling).toBe(menu);
     expect(codex).toHaveClass("mr-4");
     await user.click(codex);
-    expect(screen.getByRole("dialog", { name: "< CODEX: 0/10 BADGES >" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "< CODEX: 0/11 BADGES >" })).toBeInTheDocument();
   });
 
   it("on phones [C] Codex (and [=] Menu beside it) is at least 44 px tall (final review)", () => {
@@ -507,13 +513,13 @@ describe("Overworld: the Codex and leaving", () => {
     for (const name of ["[C] Codex", "[=] Menu"]) expect(screen.getByRole("button", { name })).toHaveClass("pointer-coarse:min-h-11");
   });
 
-  it("Quests show Badges: 0/10, bold at 10/10", () => {
+  it("Quests show Badges: 0/11, bold at 11/11", () => {
     const { unmount } = render(<Overworld onMenu={() => {}} />);
-    expect(screen.getByText("Badges: 0/10")).not.toHaveClass("font-bold");
+    expect(screen.getByText("Badges: 0/11")).not.toHaveClass("font-bold");
     unmount();
-    const all = ["chest-cpp-1", "chest-java", "chest-cpp-2", "chest-html", "chest-css", "chest-py-1", "chest-php", "chest-sql", "chest-py-2", "chest-cs"] as const;
+    const all = ["chest-cpp-1", "chest-java", "chest-cpp-2", "chest-html", "chest-css", "chest-py-1", "chest-php", "chest-sql", "chest-py-2", "chest-cs", "chest-js"] as const;
     render(<Overworld onMenu={() => {}} initial={{ badges: [...all] }} />);
-    expect(screen.getByText("Badges: 10/10")).toHaveClass("font-bold");
+    expect(screen.getByText("Badges: 11/11")).toHaveClass("font-bold");
   });
 
   it("the legend shows Codex: [C]", () => {
@@ -612,6 +618,17 @@ describe("Overworld commands (solo)", () => {
     await user.keyboard("{Enter}");
     expect(screen.getByText(/CODE CHEST: HTML/i)).toBeInTheDocument();
     expect(tab("LOG")).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("walking to the forest chest and pressing E opens the JavaScript terminal; its button exists only in the forest", async () => {
+    const user = setup();
+    const { unmount } = render(<Overworld onMenu={() => {}} />);
+    expect(screen.queryByRole("button", { name: "JavaScript chest" })).toBeNull();
+    unmount();
+    render(<Overworld onMenu={() => {}} initial={{ zone: "forest", player: { x: 18, y: 78 } }} />);
+    expect(screen.getByRole("button", { name: "JavaScript chest" })).toBeInTheDocument();
+    await user.keyboard("e");
+    expect(screen.getByText(/CODE CHEST: JAVASCRIPT/i)).toBeInTheDocument();
   });
 
   it("an arrow on a tab moves the tab, not the explorer", async () => {

@@ -2,6 +2,7 @@ import type { PoiId, Point } from "../../game/types";
 import type { ZoneId } from "../../game/zones";
 import { CHESTS } from "../../learn/chests";
 import type { ChestId } from "../../learn/types";
+import { FOREST_POINTS } from "../../render/areas/forest";
 import { VILLAGE_POINTS } from "../../render/areas/village";
 import { ARCHIVE_POINT, TERMINAL_POINT } from "../../render/learnPoints";
 import { spriteBox, type SpriteId } from "../../render/sprites";
@@ -110,6 +111,10 @@ export const LANDMARK_CAPTIONS: readonly LandmarkCaption[] = [
   { id: "gate", zone: "peaks", sprite: "gate", point: LANDMARK_POINTS.gate, texts: ["[G] Gate"], prefer: "below" },
   { id: "villager", zone: "village", sprite: "explorer-down", point: VILLAGE_POINTS.villager, texts: ["[V] Ada"], prefer: "above" },
   { id: "signpost", zone: "village", sprite: "signpost", point: VILLAGE_POINTS.signpost, texts: ["[P] Signpost"], prefer: "above" },
+  { id: "ranger", zone: "forest", sprite: "explorer-down", point: FOREST_POINTS.ranger, texts: ["[R] Ranger"], prefer: "above" },
+  { id: "campfire", zone: "forest", sprite: "campfire", point: FOREST_POINTS.campfire, texts: ["[F] Campfire"], prefer: "below" },
+  { id: "old-oak", zone: "forest", sprite: "old-oak", point: FOREST_POINTS.oak, texts: ["[O] Old Oak"], prefer: "above" },
+  { id: "forest-signpost", zone: "forest", sprite: "signpost", point: FOREST_POINTS.signpost, texts: ["[P] Signpost"], prefer: "above" },
   { id: "terminal", zone: "village", sprite: "syntax-terminal", point: TERMINAL_POINT, texts: ["Terminal"], prefer: "below" },
   { id: "archive", zone: "village", sprite: "archive", point: ARCHIVE_POINT, texts: ["Archive", "C#", "C# ✓"], prefer: "above" },
   ...CHESTS.flatMap((c): LandmarkCaption[] =>
@@ -166,6 +171,9 @@ export const MAP_CAPTIONS = [
   { id: "village", zone: "village", at: { x: 40, y: 4 }, align: "centre" },
   { id: "west-exit", zone: "peaks", at: { x: 1, y: 88 }, align: "left-centre" },
   { id: "east-exit", zone: "village", at: { x: 99, y: 88 }, align: "right-centre" },
+  { id: "south-exit", zone: "peaks", at: { x: 50, y: 99 }, align: "right-bottom" },
+  { id: "dense-forest", zone: "forest", at: { x: 40, y: 4 }, align: "centre" },
+  { id: "north-exit", zone: "forest", at: { x: 64, y: 18 }, align: "centre" },
 ] as const satisfies ReadonlyArray<{ id: string; zone: ZoneId; at: Point; align: "centre" | "right-bottom" | "left-centre" | "right-centre" }>;
 export type MapCaptionId = (typeof MAP_CAPTIONS)[number]["id"];
 
@@ -187,16 +195,18 @@ export function mapCaptionRect(id: MapCaptionId, text: string, world: WorldRect)
 }
 
 /** Each zone's exit sign: which caption it is and what it says. */
-export const EXIT_SIGNS: Record<ZoneId, { id: MapCaptionId; text: string }> = {
-  peaks: { id: "west-exit", text: "← Dev Village" },
-  village: { id: "east-exit", text: "C++ Peaks →" },
+export const EXIT_SIGNS: Record<ZoneId, ReadonlyArray<{ id: MapCaptionId; text: string }>> = {
+  peaks: [
+    { id: "west-exit", text: "← Dev Village" },
+    { id: "south-exit", text: "Forest ↓" },
+  ],
+  village: [{ id: "east-exit", text: "C++ Peaks →" }],
+  forest: [{ id: "north-exit", text: "↑ C++ Peaks" }],
 };
 
-/** A zone's exit sign as world-layer edges, for labelLayout to avoid. */
-export const exitSignBox = (world: WorldRect, zone: ZoneId): Edges => {
-  const sign = EXIT_SIGNS[zone];
-  return toEdges(mapCaptionRect(sign.id, sign.text, world), world);
-};
+/** A zone's exit signs as world-layer edges, for labelLayout to avoid. */
+export const exitSignBox = (world: WorldRect, zone: ZoneId): Edges[] =>
+  EXIT_SIGNS[zone].map((sign) => toEdges(mapCaptionRect(sign.id, sign.text, world), world));
 
 /** The [E] prompt: 4 px above your head, or 4 px below your feet when there is no room above. */
 export function promptRect(text: string, player: ArtPoint, world: WorldRect, map: MapArea): CssRect & { below: boolean } {

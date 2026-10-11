@@ -1,6 +1,7 @@
 import { chestById, chestChallenge, CHESTS, type Chest } from "../learn/chests";
 import { HIDDEN_ARTIFACT, INSPECT_COPY } from "./constants";
 import type { GameState } from "./types";
+import { rangerLine } from "./forest";
 import { adaLine } from "./village";
 import { ZONES } from "./zones";
 
@@ -32,6 +33,11 @@ export function cardFor(s: GameState): Card | null {
       return card(place.label, "The Archive's door is chained shut. Its keypad wants a 4-character access code.");
     case "villager":
       return card(place.label, adaLine(s));
+    case "ranger":
+      return card(place.label, rangerLine(s));
+    case "campfire":
+    case "old-oak":
+    case "forest-signpost":
     case "gate":
     case "chest":
     case "river":
