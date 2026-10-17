@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react";
-import { ADA, ARCHIVE, CAMPFIRE, FOREST_SIGNPOST, HERMIT, HIDDEN_ARTIFACT, ISLAND_DOCK, ISLAND_FIRE, LIGHTHOUSE, OLD_OAK, POIS, RANGER, RUINS, SIGNPOST } from "../../game/constants";
+import { ADA, ARCHIVE, CAMPFIRE, DESERT_PYRAMID, DESERT_SIGNPOST, FOREST_SIGNPOST, HERMIT, HIDDEN_ARTIFACT, ISLAND_DOCK, ISLAND_FIRE, LIGHTHOUSE, NOMAD, OASIS, OLD_OAK, POIS, RANGER, RUINS, SIGNPOST } from "../../game/constants";
 import { WALL_Y } from "../../game/wall";
 import type { Poi, Point } from "../../game/types";
 import type { ZoneId } from "../../game/zones";
@@ -57,15 +57,16 @@ export function paintMiniTerrain(ctx: Ctx2D, width: number, height: number, zone
   }
 }
 
-const CELL_W = 48; // w-12
-const CELL_H = 28; // h-7: about 16:9, centred in the box's 54 px (13 px above and below)
-const CELL_TOP = 13;
-/** The world map, west to east. The forest lies south of the Peaks and Foggaten Island east of them; the cells keep one row to fit the sidebar. */
+const CELL_W = 38; // five of them fill 190 of the box's 192 inner px
+const CELL_H = 22; // about 16:9, centred in the box's 54 px (16 px above and below)
+const CELL_TOP = 16;
+/** The world map, west to east. The forest lies south of the Peaks, the desert west of the forest and Foggaten Island east of the Peaks; the cells keep one row to fit the sidebar. */
 const CELLS: Array<{ zone: ZoneId; left: number; places: Poi[] }> = [
   { zone: "village", left: 0, places: [ADA, SIGNPOST] },
   { zone: "peaks", left: CELL_W, places: POIS },
-  { zone: "forest", left: 2 * CELL_W, places: [RANGER, CAMPFIRE, OLD_OAK, FOREST_SIGNPOST] },
-  { zone: "foggaten", left: 3 * CELL_W, places: [ISLAND_DOCK, LIGHTHOUSE, HERMIT, ISLAND_FIRE, RUINS] },
+  { zone: "desert", left: 2 * CELL_W, places: [NOMAD, OASIS, DESERT_PYRAMID, DESERT_SIGNPOST] },
+  { zone: "forest", left: 3 * CELL_W, places: [RANGER, CAMPFIRE, OLD_OAK, FOREST_SIGNPOST] },
+  { zone: "foggaten", left: 4 * CELL_W, places: [ISLAND_DOCK, LIGHTHOUSE, HERMIT, ISLAND_FIRE, RUINS] },
 ];
 
 const at = (p: Point) => ({ left: `${p.x}%`, top: `${p.y}%` });
@@ -97,7 +98,7 @@ function MiniCell({ zone, left, current, children }: { zone: ZoneId; left: numbe
     paintMiniTerrain(ctx, canvas.width, canvas.height, zone);
   }, [zone]);
   return (
-    <div data-testid={`minimap-cell-${zone}`} data-current={current ? "true" : undefined} className="absolute h-7 w-12" style={{ left, top: CELL_TOP }}>
+    <div data-testid={`minimap-cell-${zone}`} data-current={current ? "true" : undefined} className="absolute" style={{ left, top: CELL_TOP, width: CELL_W, height: CELL_H }}>
       <canvas ref={terrain} aria-hidden="true" className="absolute inset-0 h-full w-full" />
       {/* An overlay, not the cell's own shadow: the opaque canvas would paint over that. */}
       {current && <div aria-hidden="true" data-testid="minimap-current" className="pointer-events-none absolute inset-0 shadow-[inset_0_0_0_1px_var(--accent)]" />}

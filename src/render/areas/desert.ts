@@ -9,7 +9,7 @@ export const DESERT_POINTS = {
   oasis: toArt(OASIS),
   pyramid: toArt(DESERT_PYRAMID),
   signpost: toArt(DESERT_SIGNPOST),
-  lizardRock: { x: 240, y: 70 },
+  lizardRock: { x: 110, y: 160 },
 } as const;
 
 const PROPS: Prop[] = [

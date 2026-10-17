@@ -4,6 +4,7 @@ import type { Phase, Point } from "../game/types";
 import type { ZoneId } from "../game/zones";
 import { AREAS } from "./areas";
 import { LAMP_POINT } from "./areas/foggaten";
+import { DESERT_POINTS } from "./areas/desert";
 import { FOREST_POINTS } from "./areas/forest";
 import { CAVE_POINT, WILDLIFE, foxPose, goatPose } from "./areas/peaks";
 import { VILLAGE_LIFE, wandererPose } from "./areas/village";
@@ -136,6 +137,41 @@ function forestLeaves(t: number, reduced: boolean, strength: number): Pixel[] {
     Array.from({ length: 20 }, (_, k): Pixel => ({ x: at.x + (k % 5), y: at.y + Math.floor(k / 5), color: DAPPLE, alpha })),
   );
   return [...dapples, ...leaves];
+}
+
+const GRAIN = "#f5d78e";
+const HAZE = "#fff7d6";
+const GRAIN_COUNT = 36;
+const GRAIN_DRIFT = 14;
+
+/**
+ * The desert's air at time `t` (ms): 36 grains of sand blowing slowly right (14 art px a second, wrapping), and eight wavering
+ * strips of heat haze. Both hang still when motion is reduced.
+ */
+function desertAir(t: number, reduced: boolean): Pixel[] {
+  const seconds = reduced ? 0 : t / 1000;
+  const grains = Array.from({ length: GRAIN_COUNT }, (_, i): Pixel => ({
+    x: ((i * 59 + 17) % WORLD.width + Math.floor(GRAIN_DRIFT * seconds)) % WORLD.width,
+    y: (((i * 37 + 9) % WORLD.height) + Math.round(1.5 * Math.sin(seconds * 2 + i)) + WORLD.height) % WORLD.height,
+    color: GRAIN,
+    alpha: 0.75,
+  }));
+  const haze = Array.from({ length: 8 }, (_, k) => k).flatMap((k) =>
+    Array.from({ length: 14 }, (_, j): Pixel => ({
+      x: ((k * 83) % 300) + 4 + j + Math.round(3 * Math.sin(seconds * 1.5 + k)),
+      y: 28 + k * 14 + Math.round(Math.sin(seconds * 2.5 + k * 1.7)),
+      color: HAZE,
+      alpha: 0.16,
+    })),
+  );
+  return [...haze, ...grains];
+}
+
+/** The tumbleweed: it rolls right at 16 art px a second across the south of the map, bouncing; it rests in a fixed spot when motion is reduced. */
+function tumbleweed(t: number, reduced: boolean): Drawable {
+  if (reduced) return placed("tumbleweed", { x: 200, y: 160 });
+  const x = Math.floor(((t / 1000) * 16) % 380) - 30;
+  return placed("tumbleweed", { x, y: 160 - Math.round(3 * Math.abs(Math.sin(t / 300))) }, { frame: Math.floor(t / 250) % 2 });
 }
 
 const LAMPLIGHT = "#fde047";
@@ -401,6 +437,13 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
       const frames: Partial<Record<SpriteId, number>> = reduced ? {} : { windmill: Math.floor(t / 600) % 2, fountain: Math.floor(t / 300) % 2 };
       const animated = upright.map((d) => (frames[d.sprite] === undefined ? d : { ...d, frame: frames[d.sprite]! }));
       return { zone: input.zone, glints: [], flat: [], upright: animated, drone, tint: PHASE_TINT[phase], light: villageLight(t, reduced, strength), snow };
+    }
+    if (input.zone === "desert") {
+      // The lizard sits on its rock (drawn right after it) and flicks its tail; the tumbleweed rolls through.
+      const lizard = placed("lizard", { x: DESERT_POINTS.lizardRock.x, y: DESERT_POINTS.lizardRock.y - 12 }, { frame: reduced ? 0 : Math.floor(t / 700) % 2 });
+      const withWeed = [...upright, tumbleweed(t, reduced)].sort(byFeet);
+      withWeed.splice(withWeed.findIndex((d) => d.sprite === "rock" && d.x === spriteBox("rock", DESERT_POINTS.lizardRock).x) + 1, 0, lizard);
+      return { zone: input.zone, glints: [], flat: [], upright: withWeed, drone, tint: PHASE_TINT[phase], light: desertAir(t, reduced), snow };
     }
     if (input.zone === "foggaten") {
       const lighthouse = upright.find((d) => d.sprite === "lighthouse");

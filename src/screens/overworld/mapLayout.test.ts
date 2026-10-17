@@ -48,20 +48,24 @@ const MAP_TEXTS: Record<(typeof MAP_CAPTIONS)[number]["id"], string[]> = {
   "dense-forest": ["(Dense Forest)"],
   "north-exit": ["↑ C++ Peaks"],
   foggaten: ["(Foggaten Island Biome)"],
+  desert: ["(Sunbaked Desert Biome)"],
+  "desert-east-exit": ["Forest →"],
+  "forest-west-exit": ["← Desert"],
 };
 const GROUPS = {
   peaks: ["tower", "chest", "gate", "dock", "peaks", "river", "forest", "west-exit", "south-exit"],
   village: ["villager", "signpost", "terminal", "archive", "village", "east-exit"],
-  forest: ["dense-forest", "north-exit", "ranger", "campfire", "old-oak", "forest-signpost"],
+  forest: ["dense-forest", "north-exit", "forest-west-exit", "ranger", "campfire", "old-oak", "forest-signpost"],
   foggaten: ["foggaten", "island-dock", "lighthouse", "hermit", "island-fire", "ruins"],
+  desert: ["desert", "desert-east-exit", "nomad", "oasis", "desert-pyramid", "desert-signpost"],
 };
-const quietGroups = (zone: "peaks" | "village" | "forest" | "foggaten") => LANDMARK_CAPTIONS.filter((l) => l.zone === zone && l.quiet).map((l) => l.id as string);
+const quietGroups = (zone: "peaks" | "village" | "forest" | "foggaten" | "desert") => LANDMARK_CAPTIONS.filter((l) => l.zone === zone && l.quiet).map((l) => l.id as string);
 /** Chest captions show at 2× and larger; on a 1× map only on hover, focus or in reach. */
-const chestGroups = (zone: "peaks" | "village" | "forest" | "foggaten") => CHESTS.filter((c) => c.zone === zone && c.at).map((c) => c.id as string);
+const chestGroups = (zone: "peaks" | "village" | "forest" | "foggaten" | "desert") => CHESTS.filter((c) => c.zone === zone && c.at).map((c) => c.id as string);
 const inside = (inner: CssRect, outer: CssRect) =>
   inner.left >= outer.left - 1e-9 && inner.top >= outer.top - 1e-9 && inner.left + inner.width <= outer.left + outer.width + 1e-9 && inner.top + inner.height <= outer.top + outer.height + 1e-9;
 /** Every drawing with a button in the zone, by its button's id. */
-const drawings = (zone: "peaks" | "village" | "forest" | "foggaten") =>
+const drawings = (zone: "peaks" | "village" | "forest" | "foggaten" | "desert") =>
   LANDMARK_CAPTIONS.filter((l) => l.zone === zone).map((l) => ({ id: l.id as string, box: spriteBox(l.sprite, l.point) }));
 
 describe("hit areas", () => {
@@ -79,7 +83,7 @@ describe("hit areas", () => {
   });
 
   it("no two hit areas intersect after the midline cut, and the centre of every drawing lies in its own hit area", () => {
-    for (const zone of ["peaks", "village", "forest", "foggaten"] as const) {
+    for (const zone of ["peaks", "village", "forest", "foggaten", "desert"] as const) {
       for (const world of [phone, desktop]) {
         const hits = zoneHitAreas(world, zone);
         const ids = Object.keys(hits);
@@ -95,7 +99,7 @@ describe("hit areas", () => {
   });
 
   it("hit areas never shrink below their drawing", () => {
-    for (const zone of ["peaks", "village", "forest", "foggaten"] as const) {
+    for (const zone of ["peaks", "village", "forest", "foggaten", "desert"] as const) {
       for (const world of [phone, desktop]) {
         const hits = zoneHitAreas(world, zone);
         for (const { id, box } of drawings(zone)) expect(inside(spriteCss(box, world), hits[id]), `${id} ${zone} @${world.width}`).toBe(true);
@@ -123,7 +127,7 @@ describe("captions", () => {
   // other places' hit areas are checked where every caption shows; at 1× a hidden caption takes no taps, and a
   // showing one sits above the other buttons (MapViewport).
   it("at 320×180 (without chest captions) and 640×360 (with them) no caption box intersects another, a landmark or chest drawing, the dig spot or an exit sign, nor at 640×360 another place's hit area", () => {
-    for (const zone of ["peaks", "village", "forest", "foggaten"] as const) {
+    for (const zone of ["peaks", "village", "forest", "foggaten", "desert"] as const) {
       for (const world of [phone, desktop]) {
         const map = mapOf(world);
         const hits = zoneHitAreas(world, zone);
@@ -149,8 +153,8 @@ describe("captions", () => {
                   spriteBox("syntax-terminal", TERMINAL_POINT),
                   ...chestPoints("village").map((c) => spriteBox("code-chest", c.at)),
                 ]
-              : zone === "foggaten"
-                ? AREAS.foggaten.props.map((p) => spriteBox(p.sprite, p.at))
+              : zone === "foggaten" || zone === "desert"
+                ? AREAS[zone].props.map((p) => spriteBox(p.sprite, p.at))
                 : [spriteBox("x-mark", FOREST_POINTS.dig), spriteBox("semicolon", FOREST_POINTS.dig), ...AREAS.forest.props.map((p) => spriteBox(p.sprite, p.at)), ...chestPoints("forest").map((c) => spriteBox("code-chest", c.at))];
         const blockers = sprites.map((box) => ({ id: "", rect: spriteCss(box, world) }));
         const areas = Object.entries(hits).map(([id, rect]) => ({ id, rect }));
@@ -258,18 +262,22 @@ describe("the [E] prompt", () => {
 });
 
 describe("exit signs per zone", () => {
-  it("the Peaks has two signs, the village and the forest one each", () => {
+  it("the Peaks has two signs, the forest two, the village and the desert one each", () => {
     expect(EXIT_SIGNS.peaks).toEqual([
       { id: "west-exit", text: "← Dev Village" },
       { id: "south-exit", text: "Forest ↓" },
     ]);
     expect(EXIT_SIGNS.village).toEqual([{ id: "east-exit", text: "C++ Peaks →" }]);
-    expect(EXIT_SIGNS.forest).toEqual([{ id: "north-exit", text: "↑ C++ Peaks" }]);
+    expect(EXIT_SIGNS.forest).toEqual([
+      { id: "north-exit", text: "↑ C++ Peaks" },
+      { id: "forest-west-exit", text: "← Desert" },
+    ]);
+    expect(EXIT_SIGNS.desert).toEqual([{ id: "desert-east-exit", text: "Forest →" }]);
   });
 
   it("exitSignBox gives one box per sign, inside the world, and the signs of a zone do not overlap each other or its place name", () => {
     const world = fitWorld({ width: 668, height: 360, dpr: 1 });
-    for (const zone of ["peaks", "village", "forest", "foggaten"] as const) {
+    for (const zone of ["peaks", "village", "forest", "foggaten", "desert"] as const) {
       const boxes = exitSignBox(world, zone);
       expect(boxes, zone).toHaveLength(EXIT_SIGNS[zone].length);
       for (const b of boxes) expect(b.left >= 0 && b.right <= world.width && b.top >= 0 && b.bottom <= world.height, `${zone} ${JSON.stringify(b)}`).toBe(true);

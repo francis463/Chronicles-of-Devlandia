@@ -481,3 +481,24 @@ describe("MapViewport in the Snowy Peaks: the signpost, the weather station and 
     }
   });
 });
+
+describe("MapViewport in the Sunbaked Desert", () => {
+  const desert = (over: Partial<Props> = {}) => props({ zone: "desert", player: { x: 90, y: 70 }, drone: { x: 86, y: 68 }, ...over });
+
+  it("shows the desert's caption and four place buttons, which go to their places", () => {
+    const onInteract = vi.fn();
+    render(<MapViewport {...desert({ onInteract })} />);
+    expect(screen.getByText("(Sunbaked Desert Biome)")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "[N] Nomad" }));
+    fireEvent.click(screen.getByRole("button", { name: "[O] Oasis" }));
+    fireEvent.click(screen.getByRole("button", { name: "Pyramid" }));
+    fireEvent.click(screen.getByRole("button", { name: "Signpost" }));
+    expect(onInteract.mock.calls).toEqual([["nomad"], ["oasis"], ["desert-pyramid"], ["desert-signpost"]]);
+  });
+
+  it("has no fog of war and shows the way back to the forest", () => {
+    render(<MapViewport {...desert()} />);
+    expect(screen.getByTestId("fog").style.opacity).toBe("0");
+    expect(screen.getByText("Forest →")).toBeInTheDocument();
+  });
+});

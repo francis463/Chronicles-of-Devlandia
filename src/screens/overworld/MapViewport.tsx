@@ -354,7 +354,7 @@ export function MapViewport({
         className="pointer-events-none absolute inset-0 z-10 transition-opacity duration-1000 ease-linear motion-reduce:transition-none"
         style={{
           background: `radial-gradient(circle farthest-corner at ${fogX}px ${fogY}px, transparent 0%, transparent 15%, rgba(15,23,42,0.35) 32%, rgba(15,23,42,0.7) 62%)`,
-          opacity: towerPowered || zone === "forest" || zone === "foggaten" ? 0 : 1,
+          opacity: towerPowered || zone === "forest" || zone === "foggaten" || zone === "desert" ? 0 : 1,
         }}
       />
 
@@ -388,6 +388,15 @@ export function MapViewport({
             <LandmarkButton hit={hits.campfire} name={caption("campfire")} color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "campfire"} onClick={() => onInteract("campfire")} />
             <LandmarkButton hit={hits["old-oak"]} name={caption("old-oak")} color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "old-oak"} onClick={() => onInteract("old-oak")} />
             <LandmarkButton hit={hits["forest-signpost"]} name={caption("forest-signpost")} color="var(--text)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "forest-signpost"} onClick={() => onInteract("forest-signpost")} />
+          </>
+        ) : zone === "desert" ? (
+          <>
+            <MapCaption id="desert" text="(Sunbaked Desert Biome)" world={world} />
+
+            <LandmarkButton hit={hits.nomad} name={caption("nomad")} color="var(--accent-border)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "nomad"} onClick={() => onInteract("nomad")} />
+            <LandmarkButton hit={hits.oasis} name={caption("oasis")} color="var(--text)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "oasis"} onClick={() => onInteract("oasis")} />
+            <LandmarkButton hit={hits["desert-pyramid"]} name={caption("desert-pyramid")} label="Pyramid" color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "desert-pyramid"} onClick={() => onInteract("desert-pyramid")} />
+            <LandmarkButton hit={hits["desert-signpost"]} name={caption("desert-signpost")} label="Signpost" color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "desert-signpost"} onClick={() => onInteract("desert-signpost")} />
           </>
         ) : zone === "foggaten" ? (
           <>

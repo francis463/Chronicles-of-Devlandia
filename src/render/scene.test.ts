@@ -784,3 +784,57 @@ describe("scene: the camp signpost, the weather station and the snow cave", () =
     expect(sprites(v, "station")).toEqual([]);
   });
 });
+
+describe("scene: the Sunbaked Desert", () => {
+  const desert = (t = 0, reduced = false, over: Partial<SceneInput> = {}) => scene({ zone: "desert", player: { x: 90, y: 70 }, drone: { x: 86, y: 68 }, minutes: DAY, ...over }, t, reduced);
+  const LIZARD_ROCK = AREAS.desert.props.find((p) => p.sprite === "rock")!.at;
+
+  it("draws the pyramid, oasis, palms, signpost, nomad and the lizard's rock, with no snow, chests or fog", () => {
+    const s = desert();
+    for (const id of ["pyramid", "oasis", "palm", "signpost", "rock", "explorer-down", "tumbleweed", "lizard"] as const) expect(sprites(s, "upright"), id).toContain(id);
+    expect(s.snow).toEqual([]);
+    expect(sprites(s, "upright")).not.toContain("code-chest");
+    expect(s.tint).toBe(PHASE_TINT.Day);
+  });
+
+  it("the lizard sits on top of its rock and flicks its tail", () => {
+    const rock = spriteBox("rock", LIZARD_ROCK);
+    const lizards = [0, 700].map((t) => desert(t).upright.find((d) => d.sprite === "lizard")!);
+    for (const l of lizards) {
+      expect(l.x).toBeGreaterThanOrEqual(rock.x);
+      expect(l.x + SPRITES.lizard.w).toBeLessThanOrEqual(rock.x + rock.w);
+      expect(l.y + SPRITES.lizard.h).toBeLessThanOrEqual(rock.y + 4);
+    }
+    expect(lizards[0].frame).not.toBe(lizards[1].frame);
+  });
+
+  it("the lizard is drawn after its rock", () => {
+    const up = sprites(desert(), "upright");
+    expect(up.indexOf("lizard")).toBeGreaterThan(up.indexOf("rock"));
+  });
+
+  it("blowing sand and heat shimmer move with time", () => {
+    const a = desert(0).light;
+    const b = desert(3000).light;
+    expect(a.length).toBeGreaterThan(20);
+    expect(a).not.toEqual(b);
+    for (const p of [...a, ...b]) expect(p.x >= 0 && p.x < 320 && p.y >= 0 && p.y < 180, `${p.x},${p.y}`).toBe(true);
+  });
+
+  it("the tumbleweed rolls across the sand", () => {
+    const x = (t: number) => desert(t).upright.find((d) => d.sprite === "tumbleweed")!.x;
+    expect(x(4000)).not.toBe(x(0));
+  });
+
+  it("with reduced motion nothing moves: light, tumbleweed and lizard are the same at any time", () => {
+    expect(desert(9000, true)).toEqual(desert(0, true));
+  });
+
+  it("the other zones have no tumbleweed, lizard or sand drift", () => {
+    for (const zone of ["peaks", "village", "forest", "foggaten"] as const) {
+      const s = scene({ zone }, 0);
+      expect(sprites(s, "upright"), zone).not.toContain("tumbleweed");
+      expect(sprites(s, "upright"), zone).not.toContain("lizard");
+    }
+  });
+});
