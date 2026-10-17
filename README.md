@@ -93,6 +93,10 @@ If the server can't be reached, Online shows "Can't reach the team server…" an
 
 Before Solo Quest and before a team game, **Choose your class**: Warrior, Archer, Mage, Assassin, Tank or Healer. A class is a look only (an outfit colour and a small item such as a helm, bow, hat, mask, shield or staff); it changes no stat, speed or puzzle. In a team everyone sees each other's class, two players may pick the same one, and the hood colour still tells teammates apart. A signed-in player's last choice is saved in their account's own profile data and preselected next time (no database change); guests start on Warrior and nothing is saved. A class value that is missing or not one of the six is shown as Warrior.
 
+## Leaderboards
+
+The menu's **Leaderboards** button shows the top 20 players by badges earned (out of 11). Players with the same count share a rank, and the one who earned their latest badge first is listed first. Anyone can open it, guests included. A signed-in player sees their own row (or their rank if they are outside the top 20) and a **Hide me from the leaderboard** switch; a hidden player disappears from the list but still sees their own rank. Only names, ranks and counts leave the database: two read-only functions (`leaderboard_top`, `leaderboard_me`) do the counting, so the badge and profile tables stay private to their owners. It needs `supabase/migrations/20261017010000_leaderboards.sql` applied after the accounts migration (check it locally with `supabase/tests/leaderboard.sql`); until then the screen says "Can't reach the leaderboard." and everything else works as before.
+
 ## Project layout
 
 ```
@@ -102,10 +106,11 @@ src/chat/      chat rules and commands: text cleaning and masking, display names
 src/hooks/     keyboard controls, game timers, team session, chat feed, pings
 src/net/       team transports: Supabase (Online), BroadcastChannel (Same computer), in-memory (tests); the shared Supabase client
 src/auth/      accounts: name and password rules, the auth client (Supabase and in-memory), useAuth, add-email
+src/leaderboard/ the leaderboard: types and parsing, the store (Supabase and in-memory)
 src/progress/  saved badges: the store (Supabase and in-memory), restoring a game from them, the saver
-supabase/      the accounts migration, the `account` Edge Function and the row-rule checks
+supabase/      the accounts and leaderboards migrations, the `account` Edge Function and the SQL checks
 src/render/    the pixel-art map: world geometry, sprites, areas/ (each zone's art), terrain, motion, scene description and painting
-src/screens/   AuthScreen, ChooseName, SetPassword, ClassPicker, MainMenu, TeamLobby, ChallengeTerminal + challenge/* (chests, gate, scroll, Matcher, keypad), Codex, LogicModal (tower), chat/* (chat panel and announcer), overworld/*
+src/screens/   AuthScreen, ChooseName, SetPassword, ClassPicker, Leaderboard, MainMenu, TeamLobby, ChallengeTerminal + challenge/* (chests, gate, scroll, Matcher, keypad), Codex, LogicModal (tower), chat/* (chat panel and announcer), overworld/*
 src/ui/        Panel, Button, Meter, TerminalDialog primitives
 ```
 
