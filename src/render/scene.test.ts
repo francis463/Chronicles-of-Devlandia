@@ -218,7 +218,7 @@ describe("scene: light", () => {
 
   it("ring radius and alpha", () => {
     const ring = (t: number) =>
-      scene({ towerPowered: true, minutes: DAY }, t).light.filter((p) => !near(p, LIGHTS.towerLamp, 0) && aroundTower(p));
+      scene({ towerPowered: true, minutes: DAY }, t).light.filter((p) => p.color === "#4ade80" && !near(p, LIGHTS.towerLamp, 0) && aroundTower(p));
     const r0 = ring(0);
     expect(r0.length).toBeGreaterThan(0);
     expect(r0.every((p) => Math.abs(Math.hypot(p.x - 45, p.y - 32) - 4) < 1 && p.alpha === 1)).toBe(true);
@@ -645,5 +645,64 @@ describe("scene: the village's windmill, fountain and pond", () => {
       expect(shimmer(s)).toEqual([]);
       for (const id of ["windmill", "fountain", "pond", "bench", "fruit-tree"]) expect(s.upright.some((d) => d.sprite === id), `${zone} ${id}`).toBe(false);
     }
+  });
+});
+
+describe("scene: the Peaks' footprints, aurora and cold", () => {
+  const PRINT = "#94a3b8";
+  const GREEN = "#34d399";
+  const PURPLE = "#a78bfa";
+  const BREATH = "#e2e8f0";
+  const GUST = "#f1f5f9";
+  const poses = (prints: Array<{ x: number; y: number; t: number }>): Poses => ({
+    player: { x: 90, y: 130, facing: "down", frame: 0 },
+    drone: { x: 98, y: 128, facing: "down", frame: 0 },
+    teammates: {},
+    prints,
+  });
+  const build = (input: Partial<SceneInput>, prints: Array<{ x: number; y: number; t: number }>, t: number, reduced = false) =>
+    buildScene({ ...base, ...input }, poses(prints), t, reduced);
+
+  it("footprints show where you walked and fade over 6 seconds, under the sprites", () => {
+    const fresh = build({}, [{ x: 100, y: 120, t: 1000 }], 1000).glints.filter((p) => p.color === PRINT);
+    const old = build({}, [{ x: 100, y: 120, t: 1000 }], 5000).glints.filter((p) => p.color === PRINT);
+    expect(fresh.length).toBeGreaterThan(0);
+    expect(old.length).toBe(fresh.length);
+    expect(Math.max(...old.map((p) => p.alpha))).toBeLessThan(Math.min(...fresh.map((p) => p.alpha)));
+    expect(build({}, [{ x: 100, y: 120, t: 1000 }], 7100).glints.filter((p) => p.color === PRINT)).toEqual([]);
+  });
+
+  it("the left and right feet alternate, and there are no footprints under reduced motion or in other zones", () => {
+    const two = build({}, [{ x: 100, y: 120, t: 0 }, { x: 106, y: 120, t: 0 }], 0).glints.filter((p) => p.color === PRINT);
+    expect(new Set(two.map((p) => p.x - (p.x > 103 ? 106 : 100))).size).toBeGreaterThan(1);
+    expect(build({}, [{ x: 100, y: 120, t: 0 }], 0, true).glints.filter((p) => p.color === PRINT)).toEqual([]);
+    expect(build({ zone: "village" }, [{ x: 100, y: 120, t: 0 }], 0).glints.filter((p) => p.color === PRINT)).toEqual([]);
+  });
+
+  it("the aurora ripples across the top at night, fainter at dusk, never by day, still when reduced, only in the Peaks", () => {
+    const ribbons = (s: ReturnType<typeof scene>) => s.light.filter((p) => p.color === GREEN || p.color === PURPLE);
+    const night = scene({ minutes: NIGHT }, 0);
+    expect(ribbons(night).some((p) => p.color === GREEN)).toBe(true);
+    expect(ribbons(night).some((p) => p.color === PURPLE)).toBe(true);
+    for (const p of ribbons(night)) expect(p.y >= 0 && p.y < 16 && p.x >= 0 && p.x < 320).toBe(true);
+    expect(JSON.stringify(ribbons(scene({ minutes: NIGHT }, 0)))).not.toBe(JSON.stringify(ribbons(scene({ minutes: NIGHT }, 3000))));
+    expect(Math.max(...ribbons(scene({ minutes: DUSK }, 0)).map((p) => p.alpha))).toBeLessThan(Math.max(...ribbons(night).map((p) => p.alpha)));
+    expect(ribbons(scene({ minutes: DAY }, 0))).toEqual([]);
+    expect(JSON.stringify(ribbons(scene({ minutes: NIGHT }, 0, true)))).toBe(JSON.stringify(ribbons(scene({ minutes: NIGHT }, 7000, true))));
+    expect(ribbons(scene({ zone: "village", minutes: NIGHT }, 0))).toEqual([]);
+  });
+
+  it("your breath puffs now and then in the cold, and a gust of snow sweeps across every 12 seconds; neither under reduced motion nor elsewhere", () => {
+    const breath = (t: number, reduced = false, zone: SceneInput["zone"] = "peaks") => scene({ zone }, t, reduced).light.filter((p) => p.color === BREATH);
+    expect(breath(100).length).toBeGreaterThan(0);
+    expect(breath(1500)).toEqual([]);
+    expect(breath(100, true)).toEqual([]);
+    expect(breath(100, false, "village")).toEqual([]);
+    const gust = (t: number, reduced = false) => scene({}, t, reduced).light.filter((p) => p.color === GUST);
+    expect(gust(500).length).toBeGreaterThan(0);
+    expect(gust(6000)).toEqual([]);
+    expect(gust(12_500).length).toBeGreaterThan(0);
+    expect(gust(500, true)).toEqual([]);
+    for (const p of gust(900)) expect(p.x >= 0 && p.x < 320 && p.y >= 0 && p.y < 180).toBe(true);
   });
 });

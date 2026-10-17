@@ -59,7 +59,8 @@ export type SceneInput = {
   /** Your own view's weather: snowfall over the whole world. */
   snow?: boolean;
 };
-export type Poses = { player: Pose; drone: Pose; teammates: Record<string, Pose> };
+/** `prints`: the player's recent steps (art px and the frame clock `t` they were made at), for the Peaks' footprints. */
+export type Poses = { player: Pose; drone: Pose; teammates: Record<string, Pose>; prints?: Array<{ x: number; y: number; t: number }> };
 /** x/y is the sprite's top-left in art px; variant picks the palette ("base", a hood colour, or "grey"). */
 export type Drawable = { sprite: SpriteId; frame: number; x: number; y: number; flip: boolean; rotate: boolean; variant: string };
 export type Pixel = { x: number; y: number; color: string; alpha: number };
@@ -155,6 +156,59 @@ function lighthouseLight(t: number, reduced: boolean, strength: number): Pixel[]
     .flat()
     .filter((p) => p.x >= 0 && p.x < WORLD.width);
   return [...glow(LAMP_POINT, LAMPLIGHT, Math.max(0.5, strength)), ...beam];
+}
+
+const PRINT = "#94a3b8";
+const PRINT_LIFE_MS = 6000;
+const AURORA_GREEN = "#34d399";
+const AURORA_PURPLE = "#a78bfa";
+const BREATH = "#e2e8f0";
+const GUST = "#f1f5f9";
+
+/** Footprints in the snow, a left and a right foot in turn, fading over 6 s. None when motion is reduced. */
+function footprints(prints: Array<{ x: number; y: number; t: number }>, t: number, reduced: boolean): Pixel[] {
+  if (reduced) return [];
+  return prints.flatMap((p, i) => {
+    const age = t - p.t;
+    if (age < 0 || age >= PRINT_LIFE_MS) return [];
+    const alpha = Math.round(0.55 * (1 - age / PRINT_LIFE_MS) * 100) / 100;
+    const x = p.x + (i % 2 === 0 ? -1 : 1);
+    return [{ x, y: p.y, color: PRINT, alpha }, { x, y: p.y - 1, color: PRINT, alpha }];
+  });
+}
+
+/** The aurora: two wavy ribbons (green, then purple) across the top strip, full at night and half at dusk; still when motion is reduced. */
+function aurora(t: number, reduced: boolean, strength: number): Pixel[] {
+  if (strength <= 0) return [];
+  const w = reduced ? 0 : t / 1500;
+  const ribbon = (color: string, base: number, wave: (x: number) => number, rows: number): Pixel[] =>
+    Array.from({ length: WORLD.width / 2 }, (_, k) => k * 2).flatMap((x) =>
+      Array.from({ length: rows }, (_, r): Pixel => ({ x, y: base + Math.round(wave(x)) + r, color, alpha: Math.round(0.28 * strength * (1 - r * 0.2) * 100) / 100 })),
+    );
+  return [
+    ...ribbon(AURORA_GREEN, 3, (x) => 3 * Math.sin(x / 21 + w), 4),
+    ...ribbon(AURORA_PURPLE, 8, (x) => 3 * Math.sin(x / 17 - 1.3 * w + 1), 3),
+  ];
+}
+
+/** Your breath puffs for 0.7 s every 2.6 s, and a gust of snow streaks across the whole map for 1.5 s every 12 s. None when motion is reduced. */
+function coldFeel(t: number, reduced: boolean, player: Pose): Pixel[] {
+  if (reduced) return [];
+  const out: Pixel[] = [];
+  const breathAge = (t % 2600) / 700;
+  if (breathAge < 1) {
+    const dx = player.facing === "right" ? 5 : player.facing === "left" ? -5 : 0;
+    for (let k = 0; k < 3; k++) out.push({ x: Math.round(player.x) + dx + k, y: Math.round(player.y) - 13 - Math.round(breathAge * 6) - k, color: BREATH, alpha: Math.round(0.7 * (1 - breathAge) * 100) / 100 });
+  }
+  const gustAge = (t % 12_000) / 1500;
+  if (gustAge < 1) {
+    for (let i = 0; i < 30; i++) {
+      const y = (i * 37 + 11) % WORLD.height;
+      const x = Math.round(((i * 53) % WORLD.width) - 60 + gustAge * 420);
+      for (let k = 0; k < 3; k++) if (x + k >= 0 && x + k < WORLD.width) out.push({ x: x + k, y, color: GUST, alpha: 0.8 });
+    }
+  }
+  return out;
 }
 
 const SPARKLE = "#f8fafc";
@@ -336,7 +390,7 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
     : ICE_GLINTS.flatMap((g, i) =>
         (t + i * 1000) % 3000 < 250 ? [-1, 0, 1].map((dx) => ({ x: g.x + dx, y: g.y, color: WHITE, alpha: 1 })) : [],
       );
-  const glints: Pixel[] = [...iceGlints, ...snowSparkles(t, reduced)];
+  const glints: Pixel[] = [...iceGlints, ...snowSparkles(t, reduced), ...footprints(poses.prints ?? [], t, reduced)];
 
   const flat: Drawable[] = [];
   if (input.towerPowered)
@@ -367,6 +421,8 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
       light.push(...circlePixels(4 + Math.floor(24 * p)).map((o) => ({ x: P.tower.x + o.x, y: P.tower.y + o.y, color: GREEN, alpha })));
     }
   }
+
+  light.push(...aurora(t, reduced, strength), ...coldFeel(t, reduced, poses.player));
 
   return { zone: input.zone, glints, flat, upright, drone, tint: PHASE_TINT[phase], light, snow };
 }

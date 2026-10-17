@@ -42,6 +42,8 @@ export function MapCanvas({ input, world, onScene }: { input: SceneInput; world:
     const sprites = createSpriteCache(makeCanvas);
     const ground = createGroundCache(makeCanvas, sprites);
     const motions = new Map<string, Motion>();
+    const prints: Array<{ x: number; y: number; t: number }> = [];
+    let anchor: { x: number; y: number } | null = null;
     let wasDowned = latest.current.input.downed;
     let lastZone = latest.current.input.zone;
     let raf = 0;
@@ -67,6 +69,20 @@ export function MapCanvas({ input, world, onScene }: { input: SceneInput; world:
         drone: track("drone", "drone", now.drone, t, still, jump),
         teammates: Object.fromEntries(now.teammates.map((m) => [m.id, track(`mate:${m.id}`, "teammate", m, t, still, false)])),
       };
+      // Footprints: one every few art px of walking in the Peaks, gone after the scene stops drawing them (6 s).
+      if (jump || now.zone !== "peaks" || still) {
+        prints.length = 0;
+        anchor = null;
+      } else if (!now.downed) {
+        // The first step only sets where to measure from, so standing still leaves no prints.
+        if (!anchor) anchor = { x: poses.player.x, y: poses.player.y };
+        else if (Math.hypot(poses.player.x - anchor.x, poses.player.y - anchor.y) >= 5) {
+          prints.push({ x: Math.round(poses.player.x), y: Math.round(poses.player.y), t });
+          anchor = { x: poses.player.x, y: poses.player.y };
+        }
+      }
+      while (prints.length && t - prints[0].t > 6000) prints.shift();
+      poses.prints = prints;
       const scene = buildScene(now, poses, t, still);
       report?.(scene);
       paintScene(ctx, scene, rect, sprites, ground);
