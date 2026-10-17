@@ -604,7 +604,8 @@ describe("scene: Dev Village's smoke, windows and wanderers", () => {
   it("no other zone has the village's smoke, wanderers or chicken", () => {
     for (const zone of ["peaks", "forest", "foggaten"] as const) {
       const s = scene({ zone, minutes: DUSK }, 1234);
-      expect(smoke(s)).toEqual([]);
+      // The Peaks have their own lodge smoke; the village's huts are not there.
+      if (zone !== "peaks") expect(smoke(s)).toEqual([]);
       expect(folk(s)).toEqual([]);
       expect(s.upright.some((d) => d.sprite === "chicken" || d.sprite === "lantern" || d.sprite === "stall" || d.sprite === "garden")).toBe(false);
     }
@@ -643,7 +644,8 @@ describe("scene: the village's windmill, fountain and pond", () => {
     for (const zone of ["peaks", "forest", "foggaten"] as const) {
       const s = scene({ zone, minutes: DAY }, 1234);
       expect(shimmer(s)).toEqual([]);
-      for (const id of ["windmill", "fountain", "pond", "bench", "fruit-tree"]) expect(s.upright.some((d) => d.sprite === id), `${zone} ${id}`).toBe(false);
+      // The Peaks have benches of their own at the campfire.
+      for (const id of ["windmill", "fountain", "pond", "fruit-tree", ...(zone === "peaks" ? [] : ["bench"])]) expect(s.upright.some((d) => d.sprite === id), `${zone} ${id}`).toBe(false);
     }
   });
 });
@@ -704,5 +706,56 @@ describe("scene: the Peaks' footprints, aurora and cold", () => {
     expect(gust(12_500).length).toBeGreaterThan(0);
     expect(gust(500, true)).toEqual([]);
     for (const p of gust(900)) expect(p.x >= 0 && p.x < 320 && p.y >= 0 && p.y < 180).toBe(true);
+  });
+});
+
+describe("scene: the Peaks' camp, wildlife and start arrow", () => {
+  const peaks = (over: Partial<SceneInput> = {}, t = 0, reduced = false) => scene({ minutes: DAY, ...over }, t, reduced);
+  const sprites = (s: ReturnType<typeof scene>, id: string) => s.upright.filter((d) => d.sprite === id);
+  const SMOKE = "#cbd5e1";
+  const GLOW = "#fde68a";
+  const FIRE = "#fb923c";
+  const key = (ps: Array<{ x: number; y: number }>) => ps.map((p) => `${p.x},${p.y}`).join(" ");
+
+  it("draws the lodge, campfire, benches, waterfall, caves and trail posts in the Peaks only", () => {
+    const s = peaks();
+    expect(["lodge", "campfire", "bench", "waterfall", "cave-mouth"].map((id) => sprites(s, id).length)).toEqual([1, 1, 2, 1, 2]);
+    expect(sprites(s, "post").length).toBeGreaterThanOrEqual(8);
+    for (const zone of ["village", "forest", "foggaten"] as const) {
+      const o = scene({ zone, minutes: DAY }, 0);
+      for (const id of ["lodge", "waterfall", "cave-mouth", "post", "fox", "goat", "bird", "arrow"]) expect(sprites(o, id), `${zone} ${id}`).toEqual([]);
+    }
+  });
+
+  it("the lodge smokes and the campfire flickers; their lights come on from dusk", () => {
+    expect(peaks().light.filter((p) => p.color === SMOKE)).toHaveLength(16);
+    expect(key(peaks({}, 0).light.filter((p) => p.color === SMOKE))).not.toBe(key(peaks({}, 1500).light.filter((p) => p.color === SMOKE)));
+    expect(key(peaks({}, 0, true).light.filter((p) => p.color === SMOKE))).toBe(key(peaks({}, 9000, true).light.filter((p) => p.color === SMOKE)));
+    expect(new Set([0, 400].map((t) => sprites(peaks({}, t), "campfire")[0].frame)).size).toBe(2);
+    expect(sprites(peaks({}, 400, true), "campfire")[0].frame).toBe(0);
+    const glow = (minutes: number) => peaks({ minutes }).light.filter((p) => p.color === GLOW || p.color === FIRE).reduce((n, p) => n + p.alpha, 0);
+    expect(glow(DAY)).toBe(0);
+    expect(glow(NIGHT)).toBeGreaterThan(glow(DUSK));
+    expect(glow(DUSK)).toBeGreaterThan(0);
+  });
+
+  it("a fox, a goat and three birds live in the sky and snow; the fox backs away from you; all rest when motion is reduced", () => {
+    const s = peaks({ player: { x: 90, y: 70 } });
+    expect([sprites(s, "fox").length, sprites(s, "goat").length, sprites(s, "bird").length]).toEqual([1, 1, 3]);
+    const foxX = (player: { x: number; y: number }) => sprites(peaks({ player }), "fox")[0].x;
+    expect(foxX({ x: 84, y: 52 })).toBeGreaterThan(foxX({ x: 10, y: 10 }) - 20);
+    const still = (t: number) => key([...sprites(peaks({}, t, true), "fox"), ...sprites(peaks({}, t, true), "goat"), ...sprites(peaks({}, t, true), "bird")]);
+    expect(still(0)).toBe(still(60_000));
+    const birds = (t: number) => key(sprites(peaks({}, t), "bird"));
+    expect(birds(0)).not.toBe(birds(3000));
+  });
+
+  it("a bouncing arrow marks the HTML chest until you have earned any badge", () => {
+    expect(sprites(peaks(), "arrow")).toHaveLength(1);
+    expect(sprites(peaks({ earned: ["chest-css"] }), "arrow")).toEqual([]);
+    expect(new Set([0, 400].map((t) => sprites(peaks({}, t), "arrow")[0].y)).size).toBe(2);
+    expect(sprites(peaks({}, 400, true), "arrow")[0].y).toBe(sprites(peaks({}, 0, true), "arrow")[0].y);
+    const arrow = sprites(peaks(), "arrow")[0];
+    expect(Math.abs(arrow.x + 4 - 32)).toBeLessThanOrEqual(1);
   });
 });

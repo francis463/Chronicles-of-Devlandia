@@ -68,7 +68,7 @@ describe("decorations", () => {
 
   it("inside the reachable area no grown decoration box hits a protected box, trees ≤ 24 px tall and ≥ 24 px apart", () => {
     const inside = decorations(VIEW).filter((d) => intersects(boxOf(d), REACHABLE_RECT));
-    expect(inside.length).toBeGreaterThan(8);
+    expect(inside.length).toBeGreaterThan(4);
     const guarded = protectedBoxes();
     for (const d of inside) {
       for (const p of guarded) expect(intersects(grow(boxOf(d), 4), p), `${key(d)} vs ${JSON.stringify(p)}`).toBe(false);

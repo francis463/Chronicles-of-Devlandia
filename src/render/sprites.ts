@@ -36,6 +36,16 @@ export type SpriteId =
   | "old-oak"
   | "dock"
   | "lantern"
+  | "station"
+  | "snow-cave"
+  | "lodge"
+  | "post"
+  | "waterfall"
+  | "cave-mouth"
+  | "fox"
+  | "goat"
+  | "bird"
+  | "arrow"
   | "pond"
   | "bench"
   | "fountain"
@@ -156,6 +166,102 @@ function fruitTreeGrid(): PixelGrid {
     if (y >= 16 && y <= 22 && x >= 6 && x <= 9) return "t";
     if (y === 23 && x >= 5 && x <= 10) return "T";
     return null;
+  });
+}
+
+/** The ski lodge: a snow-capped log cabin with a brick chimney, two lit-able windows and a door. */
+function lodgeGrid(): PixelGrid {
+  return outlined(40, 28, (x, y) => {
+    const roofHalf = 8 + Math.floor(y * 1.2);
+    if (y >= 1 && y <= 6 && x >= 28 && x <= 31) return "b";
+    if (y <= 9 && Math.abs(x - 19.5) <= roofHalf) return y <= 2 ? "w" : y <= 5 ? "W" : y % 2 === 0 ? "r" : "R";
+    if (y < 10 || x < 4 || x > 35) return null;
+    if (y >= 13 && y <= 20 && ((x >= 7 && x <= 13) || (x >= 26 && x <= 32))) return y === 13 || y === 20 || x === 7 || x === 13 || x === 26 || x === 32 ? "k" : "g";
+    if (y >= 18 && x >= 17 && x <= 22) return "d";
+    return Math.floor((y - 10) / 3) % 2 === 0 ? "l" : "L";
+  });
+}
+
+/** A trail marker: a wooden post with a cap of snow. */
+function postGrid(): PixelGrid {
+  return outlined(4, 10, (_x, y) => (y === 0 ? "w" : "p"));
+}
+
+/** The frozen waterfall: a wall of pale ice in streaks, snow on top. */
+function waterfallGrid(): PixelGrid {
+  return outlined(24, 18, (x, y) => {
+    if (y < 3 && (x < 2 || x > 21)) return null;
+    if (y < 3) return "w";
+    return x % 5 === 2 ? "I" : y > 14 && x % 3 === 0 ? "c" : "i";
+  });
+}
+
+/** A cave mouth: a rock dome with a dark opening and snow on top. */
+function caveMouthGrid(): PixelGrid {
+  const dome = (x: number, y: number, rx: number, ry: number) => ((x - 9.5) / rx) ** 2 + ((y - 10) / ry) ** 2 <= 1;
+  return outlined(20, 11, (x, y) => {
+    if (!dome(x, y, 9.5, 10)) return null;
+    if (dome(x, y, 6.2, 6.5)) return "k";
+    return y <= 2 ? "w" : "c";
+  });
+}
+
+/** A fox trotting right: orange with a white tail tip and belly, the legs swapping between frames. */
+function foxGrid(frame: 0 | 1): PixelGrid {
+  const legs = frame === 0 ? [4, 9] : [5, 8];
+  return outlined(14, 9, (x, y) => {
+    if (y === 1 && x === 11) return "f";
+    if (y >= 2 && y <= 5 && x >= 10 && x <= 13) return x === 13 ? "F" : "f";
+    if (y >= 3 && y <= 6 && x >= 3 && x <= 10) return y === 6 && x >= 5 && x <= 8 ? "w" : "f";
+    if (y >= 3 && y <= 5 && x >= 0 && x <= 2) return x === 0 ? "w" : "f";
+    if (y >= 7 && legs.includes(x)) return "F";
+    return null;
+  });
+}
+
+/** A mountain goat standing: off-white with curved horns. */
+function goatGrid(): PixelGrid {
+  return outlined(14, 12, (x, y) => {
+    if (y === 1 && (x === 11 || x === 12)) return "h";
+    if (y >= 2 && y <= 6 && x >= 10 && x <= 13) return "g";
+    if (y >= 4 && y <= 8 && x >= 3 && x <= 10) return y >= 7 ? "G" : "g";
+    if (y >= 9 && [4, 6, 8, 9].includes(x)) return "G";
+    return null;
+  });
+}
+
+/** A distant bird: wings up in one frame, down in the next. */
+function birdGrid(frame: 0 | 1): PixelGrid {
+  const cells = frame === 0 ? ["0,0", "5,0", "1,1", "4,1", "2,2", "3,2"] : ["2,1", "3,1", "1,2", "4,2", "0,3", "5,3"];
+  return outlined(6, 4, (x, y) => (cells.includes(`${x},${y}`) ? "k" : null));
+}
+
+/** A bright down-pointing arrow over the first chest. */
+function arrowGrid(): PixelGrid {
+  return outlined(8, 8, (x, y) => {
+    if (y <= 3) return x >= 2 && x <= 5 ? "y" : null;
+    const half = 4 - (y - 4);
+    return x >= 4 - half && x <= 3 + half ? "y" : null;
+  });
+}
+
+/** The weather station: a white instrument shelter on a mast, with an anemometer whose cups spin between two frames. */
+function stationGrid(frame: 0 | 1): PixelGrid {
+  return outlined(14, 20, (x, y) => {
+    const spin = frame === 0 ? y >= 1 && y <= 3 && x >= 1 && x <= 12 : x >= 5 && x <= 8 && y <= 5;
+    if (spin) return "c";
+    if (y >= 9 && y <= 14 && x >= 2 && x <= 11) return y % 2 === 0 ? "W" : "w";
+    return y >= 4 && x >= 5 && x <= 8 ? "p" : null;
+  });
+}
+
+/** The hidden snow cave: a big rock dome with snow on top, a dark mouth and an ice-blue glow on its floor. */
+function snowCaveGrid(): PixelGrid {
+  const dome = (x: number, y: number, rx: number, ry: number) => ((x - 13.5) / rx) ** 2 + ((y - 19) / ry) ** 2 <= 1;
+  return outlined(28, 20, (x, y) => {
+    if (!dome(x, y, 13.5, 19)) return null;
+    if (dome(x, y, 8.5, 12)) return y >= 15 ? "i" : "k";
+    return y <= 3 ? "w" : "c";
   });
 }
 
@@ -1166,6 +1272,22 @@ export const SPRITES: Record<SpriteId, SpriteDef> = {
     palette: { o: "#0b1020", g: "#1f7a3a", G: "#14532d", L: "#2f9e4f", a: "#ef4444", t: "#6b4423", T: "#4a2f18" },
     frames: [fruitTreeGrid()],
   },
+  lodge: {
+    w: 40,
+    h: 28,
+    anchor: "bottom",
+    palette: { o: "#0b1020", w: "#f1f5f9", W: "#cbd5e1", r: "#7c2d12", R: "#9a3412", b: "#991b1b", l: "#b07a45", L: "#8f5f33", d: "#5b3a1e", g: "#fde68a", k: "#334155" },
+    frames: [lodgeGrid()],
+  },
+  post: { w: 4, h: 10, anchor: "bottom", palette: { o: "#0b1020", w: "#f1f5f9", p: "#9a5f2b" }, frames: [postGrid()] },
+  waterfall: { w: 24, h: 18, anchor: "bottom", palette: { o: "#0b1020", w: "#f1f5f9", i: "#bae6fd", I: "#7dd3fc", c: "#94a3b8" }, frames: [waterfallGrid()] },
+  "cave-mouth": { w: 20, h: 11, anchor: "bottom", palette: { o: "#0b1020", w: "#f1f5f9", c: "#64748b", k: "#0f172a" }, frames: [caveMouthGrid()] },
+  fox: { w: 14, h: 9, anchor: "bottom", palette: { o: "#0b1020", f: "#f97316", F: "#c2410c", w: "#f8fafc" }, frames: [foxGrid(0), foxGrid(1)] },
+  goat: { w: 14, h: 12, anchor: "bottom", palette: { o: "#0b1020", g: "#e2e8f0", G: "#94a3b8", h: "#78716c" }, frames: [goatGrid()] },
+  bird: { w: 6, h: 4, anchor: "bottom", palette: { o: "#0b1020", k: "#334155" }, frames: [birdGrid(0), birdGrid(1)] },
+  arrow: { w: 8, h: 8, anchor: "bottom", palette: { o: "#0b1020", y: "#fde047" }, frames: [arrowGrid()] },
+  station: { w: 14, h: 20, anchor: "bottom", palette: { o: "#0b1020", c: "#e2e8f0", w: "#f1f5f9", W: "#cbd5e1", p: "#7c4a1e" }, frames: [stationGrid(0), stationGrid(1)] },
+  "snow-cave": { w: 28, h: 20, anchor: "bottom", palette: { o: "#0b1020", w: "#f1f5f9", c: "#64748b", k: "#0f172a", i: "#7dd3fc" }, frames: [snowCaveGrid()] },
   lantern: {
     w: 6,
     h: 12,

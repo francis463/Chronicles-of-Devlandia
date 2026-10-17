@@ -5,7 +5,7 @@ import { intersects, toArt, type Rect } from "../world";
 import { AREAS } from ".";
 import { FOREST_POINTS } from "./forest";
 import { FOGGATEN, FOGGATEN_POINTS } from "./foggaten";
-import { DOCK_POINT, PEAKS } from "./peaks";
+import { DOCK_POINT, ICE_RECT, BRIDGE_RECT, LANDMARK_POINTS as PEAKS_POINTS, PEAKS, WILDLIFE, foxPose, goatPose } from "./peaks";
 import { REACHABLE_RECT } from "../world";
 import { DOCK, HERMIT, ISLAND_DOCK, ISLAND_FIRE, LIGHTHOUSE, RUINS } from "../../game/constants";
 import { VILLAGE_LIFE, VILLAGE_POINTS, wandererPose } from "./village";
@@ -282,5 +282,73 @@ describe("Dev Village's north half", () => {
   it("is all walkable meadow with no wall, and the old snow band has no landmarks in it", () => {
     expect(village.wall).toBe(false);
     for (const y of [0, 20, 40, 60, 80, 100, 140]) expect(village.terrainAt(100, y), `y=${y}`).toBe("meadow");
+  });
+});
+
+describe("the Snowy Peaks' lodge, wildlife and trail", () => {
+  const peaks = AREAS.peaks;
+  const boxes = peaks.props.map((p) => ({ id: `${p.sprite}@${p.at.x},${p.at.y}`, sprite: p.sprite, box: spriteBox(p.sprite, p.at) }));
+  const landmarks: Array<[string, Rect]> = [
+    ["tower", spriteBox("tower", PEAKS_POINTS.tower)],
+    ["cache", spriteBox("chest-closed", PEAKS_POINTS.chest)],
+    ["gate", spriteBox("gate", PEAKS_POINTS.gate)],
+    ["start", spriteBox("explorer-down", PEAKS_POINTS.start)],
+    ["dock", spriteBox("dock", DOCK_POINT)],
+    ["ice", ICE_RECT],
+    ["bridge", BRIDGE_RECT],
+    ...chestPoints("peaks").map(({ id, at }): [string, Rect] => [id, spriteBox("code-chest", at)]),
+    ...peaks.mouths.map((m, i): [string, Rect] => [`mouth${i}`, m]),
+    ...peaks.paths.map((r, i): [string, Rect] => [`path${i}`, r]),
+  ];
+
+  it("has a lodge, a campfire with two benches, a frozen waterfall and two cave mouths", () => {
+    const count = (id: string) => boxes.filter((b) => b.sprite === id).length;
+    expect(["lodge", "campfire", "bench", "waterfall", "cave-mouth"].map(count)).toEqual([1, 1, 2, 1, 2]);
+    expect(count("post")).toBeGreaterThanOrEqual(8);
+  });
+
+  it("keeps every prop off every landmark, chest, path, the river, the exits and every other prop", () => {
+    for (const [i, a] of boxes.entries()) {
+      for (const [name, r] of landmarks) expect(intersects(a.box, r), `${a.id} / ${name}`).toBe(false);
+      for (const b of boxes.slice(i + 1)) expect(intersects(a.box, b.box), `${a.id} / ${b.id}`).toBe(false);
+    }
+  });
+
+  it("puts every prop inside the world, and everything but the waterfall and caves inside the walkable area", () => {
+    for (const b of boxes) {
+      expect(b.box.x >= 0 && b.box.y >= 0 && b.box.x + b.box.w <= 320 && b.box.y + b.box.h <= 180, b.id).toBe(true);
+      if (!["waterfall", "cave-mouth"].includes(b.sprite)) {
+        const r = REACHABLE_RECT;
+        expect(b.box.x >= r.x && b.box.y >= r.y && b.box.x + b.box.w <= r.x + r.w && b.box.y + b.box.h <= r.y + r.h, b.id).toBe(true);
+      }
+    }
+  });
+
+  it("guards its props from scenery", () => {
+    for (const b of boxes) expect(peaks.protected, b.id).toContainEqual(b.box);
+  });
+
+  it("the fox and goat stay in their zones and clear of every landmark, whoever is near, at any moment", () => {
+    for (const [name, pose, zone] of [["fox", foxPose, WILDLIFE.fox.zone], ["goat", goatPose, WILDLIFE.goat.zone]] as const) {
+      const sprite = name;
+      for (let t = 0; t < 30_000; t += 2800) {
+        for (let px = 0; px <= 320; px += 24) {
+          for (let py = 0; py <= 180; py += 30) {
+            const at = pose(t, false, { x: px, y: py });
+            expect(at.x >= zone.x && at.x <= zone.x + zone.w && at.y >= zone.y && at.y <= zone.y + zone.h, `${name} zone t=${t} p=${px},${py} at ${at.x},${at.y}`).toBe(true);
+            const box = spriteBox(sprite, at);
+            for (const [lname, r] of landmarks) expect(intersects(box, r), `${name} / ${lname} t=${t} p=${px},${py}`).toBe(false);
+            for (const b of boxes) expect(intersects(box, b.box), `${name} / ${b.id}`).toBe(false);
+          }
+        }
+      }
+    }
+  });
+
+  it("an animal drifts away from you as you get close, and rests when motion is reduced", () => {
+    const far = foxPose(0, false, { x: 20, y: 150 });
+    const near = foxPose(0, false, { x: far.x - 8, y: far.y });
+    expect(near.x).toBeGreaterThan(far.x);
+    expect(foxPose(0, true, { x: near.x - 4, y: near.y })).toEqual(foxPose(90_000, true, { x: 5, y: 5 }));
   });
 });

@@ -357,3 +357,57 @@ describe("the village's pond, bench, fountain, windmill and fruit tree", () => {
     expect(a.slice(30)).toEqual(b.slice(30));
   });
 });
+
+describe("the Peaks' lodge, waterfall, caves, animals, posts and arrow", () => {
+  const NEW = ["lodge", "post", "waterfall", "cave-mouth", "fox", "goat", "bird", "arrow"] as const;
+
+  it("have their declared sizes, anchors and frame counts", () => {
+    for (const [id, w, h, frames] of [
+      ["lodge", 40, 28, 1], ["post", 4, 10, 1], ["waterfall", 24, 18, 1], ["cave-mouth", 20, 11, 1],
+      ["fox", 14, 9, 2], ["goat", 14, 12, 1], ["bird", 6, 4, 2], ["arrow", 8, 8, 1],
+    ] as const) {
+      expect([SPRITES[id].w, SPRITES[id].h, SPRITES[id].anchor, SPRITES[id].frames.length], id).toEqual([w, h, "bottom", frames]);
+    }
+    expect(SPRITES.fox.frames[0]).not.toEqual(SPRITES.fox.frames[1]);
+    expect(SPRITES.bird.frames[0]).not.toEqual(SPRITES.bird.frames[1]);
+  });
+
+  it("every edge of every frame is the shared dark outline", () => {
+    for (const id of NEW) {
+      for (const frame of SPRITES[id].frames) {
+        const solid = (x: number, y: number) => y >= 0 && y < frame.length && x >= 0 && x < frame[y].length && frame[y][x] !== ".";
+        frame.forEach((row, y) =>
+          [...row].forEach((ch, x) => {
+            if (ch === ".") return;
+            const edge = !solid(x - 1, y) || !solid(x + 1, y) || !solid(x, y - 1) || !solid(x, y + 1);
+            if (edge) expect(SPRITES[id].palette[ch], `${id} edge at ${x},${y}`).toBe(OUTLINE);
+          }),
+        );
+      }
+    }
+  });
+
+  it("the lodge has a window to glow, and the waterfall and caves are cold colours", () => {
+    expect(SPRITES.lodge.frames[0].join("")).toContain("g");
+    expect(SPRITES.waterfall.frames[0].join("")).toContain("i");
+  });
+});
+
+describe("the weather station and the snow cave", () => {
+  it("have their declared sizes, anchors and frames, and the dark outline", () => {
+    for (const [id, w, h, frames] of [["station", 14, 20, 2], ["snow-cave", 28, 20, 1]] as const) {
+      expect([SPRITES[id].w, SPRITES[id].h, SPRITES[id].anchor, SPRITES[id].frames.length], id).toEqual([w, h, "bottom", frames]);
+      for (const frame of SPRITES[id].frames) {
+        const solid = (x: number, y: number) => y >= 0 && y < frame.length && x >= 0 && x < frame[y].length && frame[y][x] !== ".";
+        frame.forEach((row, y) =>
+          [...row].forEach((ch, x) => {
+            if (ch === ".") return;
+            const edge = !solid(x - 1, y) || !solid(x + 1, y) || !solid(x, y - 1) || !solid(x, y + 1);
+            if (edge) expect(SPRITES[id].palette[ch], `${id} edge at ${x},${y}`).toBe(OUTLINE);
+          }),
+        );
+      }
+    }
+    expect(SPRITES.station.frames[0]).not.toEqual(SPRITES.station.frames[1]);
+  });
+});

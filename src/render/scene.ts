@@ -5,13 +5,14 @@ import type { ZoneId } from "../game/zones";
 import { AREAS } from "./areas";
 import { LAMP_POINT } from "./areas/foggaten";
 import { FOREST_POINTS } from "./areas/forest";
+import { WILDLIFE, foxPose, goatPose } from "./areas/peaks";
 import { VILLAGE_LIFE, wandererPose } from "./areas/village";
 import { DOCK_POINT } from "./areas/peaks";
 import type { Pose } from "./motion";
 import { circlePixels, diamondPixels } from "./pixels";
 import { LIGHTS, SPRITES, spriteBox, type SpriteId } from "./sprites";
 import { BRIDGE_RECT, LANDMARK_POINTS, WALL_RECT, decorations, wallTiles } from "./terrain";
-import { REACHABLE_RECT, WORLD, intersects, type ArtPoint } from "./world";
+import { REACHABLE_RECT, WORLD, intersects, type ArtPoint, type Rect } from "./world";
 import type { ChestId } from "../learn/types";
 import { ARCHIVE_POINT, CS_CHEST_POINT, TERMINAL_POINT, chestPoints } from "./learnPoints";
 
@@ -183,11 +184,11 @@ function aurora(t: number, reduced: boolean, strength: number): Pixel[] {
   const w = reduced ? 0 : t / 1500;
   const ribbon = (color: string, base: number, wave: (x: number) => number, rows: number): Pixel[] =>
     Array.from({ length: WORLD.width / 2 }, (_, k) => k * 2).flatMap((x) =>
-      Array.from({ length: rows }, (_, r): Pixel => ({ x, y: base + Math.round(wave(x)) + r, color, alpha: Math.round(0.28 * strength * (1 - r * 0.2) * 100) / 100 })),
+      Array.from({ length: rows }, (_, r): Pixel => ({ x, y: base + Math.round(wave(x)) + r, color, alpha: Math.round(0.45 * strength * (1 - r * 0.12) * 100) / 100 })),
     );
   return [
-    ...ribbon(AURORA_GREEN, 3, (x) => 3 * Math.sin(x / 21 + w), 4),
-    ...ribbon(AURORA_PURPLE, 8, (x) => 3 * Math.sin(x / 17 - 1.3 * w + 1), 3),
+    ...ribbon(AURORA_GREEN, 2, (x) => 3 * Math.sin(x / 21 + w), 6),
+    ...ribbon(AURORA_PURPLE, 7, (x) => 3 * Math.sin(x / 17 - 1.3 * w + 1), 5),
   ];
 }
 
@@ -227,30 +228,55 @@ const SMOKE_CYCLE_MS = 3200;
 const WINDOW_LIGHT = "#fde68a";
 const LANTERN_LIGHT = "#fbbf24";
 
+/** Four 2 × 2 puffs of chimney smoke rising and drifting right from a point, fading as they climb; hanging still when motion is reduced. */
+function smokeFrom(x0: number, y0: number, t: number, reduced: boolean): Pixel[] {
+  return Array.from({ length: SMOKE_PUFFS }, (_, j) => {
+    const age = reduced ? (j + 0.5) / SMOKE_PUFFS : (((t / SMOKE_CYCLE_MS + j / SMOKE_PUFFS) % 1) + 1) % 1;
+    const at = { x: x0 + Math.round(age * 7) + (j % 2), y: y0 - Math.round(age * 16) };
+    const alpha = Math.round(0.6 * (1 - age) * 100) / 100;
+    // Each wisp is a 2 × 2 puff, so it reads at 1× scale.
+    return [0, 1, 2, 3].map((k): Pixel => ({ x: at.x + (k % 2), y: at.y + Math.floor(k / 2), color: SMOKE, alpha }));
+  }).flat();
+}
+
+/** A soft glow around every lit-able window ("g" cell) of a drawn sprite, scaled by how dark it is. */
+function windowGlow(sprite: SpriteId, box: Rect, strength: number): Pixel[] {
+  return SPRITES[sprite].frames[0].flatMap((row, y) => [...row].flatMap((ch, x) => (ch === "g" ? diamondPixels(3).map((o) => ({ x: box.x + x + o.x, y: box.y + y + o.y, color: WINDOW_LIGHT, alpha: 0.22 * strength })) : [])));
+}
+
 /** The huts' chimney smoke (four 2 × 2 puffs a hut) and, from dusk, their glowing windows and the well's lantern. Smoke hangs still when motion is reduced. */
 function villageLight(t: number, reduced: boolean, strength: number): Pixel[] {
   const huts = AREAS.village.props.filter((p) => p.sprite === "hut").map((p) => spriteBox("hut", p.at));
-  const smoke = huts.flatMap((box) =>
-    Array.from({ length: SMOKE_PUFFS }, (_, j) => {
-      const age = reduced ? (j + 0.5) / SMOKE_PUFFS : (((t / SMOKE_CYCLE_MS + j / SMOKE_PUFFS) % 1) + 1) % 1;
-      const at = { x: box.x + 21 + Math.round(age * 7) + (j % 2), y: box.y + 3 - Math.round(age * 16) };
-      const alpha = Math.round(0.6 * (1 - age) * 100) / 100;
-      // Each wisp is a 2 × 2 puff, so it reads at 1× scale.
-      return [0, 1, 2, 3].map((k): Pixel => ({ x: at.x + (k % 2), y: at.y + Math.floor(k / 2), color: SMOKE, alpha }));
-    }).flat(),
-  );
+  const smoke = huts.flatMap((box) => smokeFrom(box.x + 21, box.y + 3, t, reduced));
   // The pond glints: six spots that twinkle in turn, all lit and still when motion is reduced.
   const pond = spriteBox("pond", AREAS.village.props.find((p) => p.sprite === "pond")!.at);
   const glints = [[10, 8], [20, 14], [30, 7], [36, 16], [15, 17], [26, 5]].flatMap(([dx, dy], k): Pixel[] =>
     reduced || Math.floor(t / 700 + k) % 3 === 0 ? [{ x: pond.x + dx, y: pond.y + dy, color: SHIMMER, alpha: 0.7 }] : [],
   );
   if (strength <= 0) return [...smoke, ...glints];
-  const windows = huts.flatMap((box) =>
-    SPRITES.hut.frames[0].flatMap((row, y) => [...row].flatMap((ch, x) => (ch === "g" ? diamondPixels(3).map((o) => ({ x: box.x + x + o.x, y: box.y + y + o.y, color: WINDOW_LIGHT, alpha: 0.22 * strength })) : []))),
-  );
+  const windows = huts.flatMap((box) => windowGlow("hut", box, strength));
   const lantern = AREAS.village.props.find((p) => p.sprite === "lantern")!;
   const lampBox = spriteBox("lantern", lantern.at);
   return [...smoke, ...glints, ...windows, ...glow({ x: lampBox.x + 3, y: lampBox.y + 3 }, LANTERN_LIGHT, strength)];
+}
+
+/** The Peaks' camp light: the lodge's smoke and (from dusk) its glowing windows, and the campfire's glow, which flickers with its flame. */
+function campLight(t: number, reduced: boolean, strength: number): Pixel[] {
+  const lodge = spriteBox("lodge", AREAS.peaks.props.find((p) => p.sprite === "lodge")!.at);
+  const fire = spriteBox("campfire", AREAS.peaks.props.find((p) => p.sprite === "campfire")!.at);
+  const smoke = smokeFrom(lodge.x + 28, lodge.y, t, reduced);
+  if (strength <= 0) return smoke;
+  const flicker = reduced || Math.floor(t / 400) % 2 === 0 ? 1 : 0.8;
+  return [...smoke, ...windowGlow("lodge", lodge, strength), ...glow({ x: fire.x + 6, y: fire.y + 5 }, CAMPFIRE_GLOW, strength * flicker)];
+}
+
+/** Three birds crossing the sky (wings beating), or perched in fixed places when motion is reduced. */
+function birds(t: number, reduced: boolean): Drawable[] {
+  return Array.from({ length: WILDLIFE.birds }, (_, i) =>
+    reduced
+      ? placed("bird", { x: 70 + i * 100, y: 12 + i * 3 })
+      : placed("bird", { x: Math.floor(((t / 1000) * 14 + i * 110) % 360) - 20, y: 14 + i * 4 + Math.round(2 * Math.sin(t / 500 + i)) }, { frame: Math.floor(t / 180) % 2 }),
+  );
 }
 
 /** The village's wanderers (pacing the road and square) and its pecking chicken. */
@@ -396,6 +422,13 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
   if (input.towerPowered)
     for (let i = 0; i < PLANK_ROWS; i++) flat.push(placed("plank", { x: BRIDGE_RECT.x + 13, y: BRIDGE_RECT.y + (i + 1) * 3 - 1 }));
 
+  // The fox and goat drift away from you; the arrow over the first chest bounces until you earn a badge.
+  const you = { x: poses.player.x, y: poses.player.y };
+  const fox = foxPose(t, reduced, you);
+  const goat = goatPose(t, reduced, you);
+  const wildlife = [placed("fox", fox, { frame: fox.frame, flip: fox.flip }), placed("goat", goat, { flip: goat.flip }), ...birds(t, reduced)];
+  const startArrow = placed("arrow", { x: 32, y: 91 - (!reduced && Math.floor(t / 400) % 2 === 1 ? 1 : 0) });
+
   const upright = [
     ...interiorDecorations(input.zone),
     ...wallTilesInWorld(input.zone),
@@ -403,6 +436,9 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
     placed(input.hasLoot ? "chest-open" : "chest-closed", P.chest),
     placed("gate", P.gate, { frame: input.gateUnlocked ? 0 : 1 }),
     placed("dock", DOCK_POINT),
+    ...props(input.zone),
+    ...wildlife,
+    ...(input.earned.length === 0 ? [startArrow] : []),
     ...learning(input),
     ...mates,
     player,
@@ -422,8 +458,12 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
     }
   }
 
-  light.push(...aurora(t, reduced, strength), ...coldFeel(t, reduced, poses.player));
+  light.push(...campLight(t, reduced, strength), ...aurora(t, reduced, strength), ...coldFeel(t, reduced, poses.player));
 
-  return { zone: input.zone, glints, flat, upright, drone, tint: PHASE_TINT[phase], light, snow };
+  // The campfire's flame flickers (copies, so the cached drawables are never changed).
+  const flame = reduced ? 0 : Math.floor(t / 400) % 2;
+  const animated = upright.map((d) => (d.sprite === "campfire" ? { ...d, frame: flame } : d));
+
+  return { zone: input.zone, glints, flat, upright: animated, drone, tint: PHASE_TINT[phase], light, snow };
 }
 
