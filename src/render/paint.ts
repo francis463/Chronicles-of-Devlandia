@@ -1,9 +1,10 @@
+import { isClassId, type ClassId } from "../game/classes";
 import type { ZoneId } from "../game/zones";
 import { AREAS } from "./areas";
 import { inRect, type Area } from "./areas/area";
-import { greyscale, gridRuns, mirror, rotate90, type Palette } from "./pixels";
+import { greyscale, gridRuns, mirror, rotate90, type Palette, type PixelGrid } from "./pixels";
 import type { Scene } from "./scene";
-import { SPRITES, TEXTURES, explorerPalette, spriteBox, type SpriteId, type TextureId } from "./sprites";
+import { CLASS_ITEMS, SPRITES, TEXTURES, explorerPalette, spriteBox, type ItemFacing, type SpriteId, type TextureId } from "./sprites";
 import { decorations, onPath, terrainAt, wallTiles } from "./terrain";
 import { REACHABLE_RECT, WORLD, intersects, type ArtPoint, type Rect, type WorldRect } from "./world";
 
@@ -24,9 +25,28 @@ export type GroundCache = { get(world: WorldRect, zone: ZoneId): { image: Canvas
 const DOWNED_HOOD = "#94a3b8";
 const mod = (n: number, m: number) => ((n % m) + m) % m;
 
+/** An explorer variant is the hood colour, optionally followed by ":<class>"; anything else after the colon is ignored. */
+function splitVariant(variant: string): { hood: string; cls: ClassId | undefined } {
+  const at = variant.lastIndexOf(":");
+  if (at < 0) return { hood: variant, cls: undefined };
+  const cls = variant.slice(at + 1);
+  return { hood: variant.slice(0, at), cls: isClassId(cls) ? cls : undefined };
+}
+
 function paletteFor(sprite: SpriteId, variant: string): Palette {
   if (!sprite.startsWith("explorer")) return SPRITES[sprite].palette;
-  return variant === "grey" ? greyscale(explorerPalette(DOWNED_HOOD)) : explorerPalette(variant);
+  const { hood, cls } = splitVariant(variant);
+  return hood === "grey" ? greyscale(explorerPalette(DOWNED_HOOD)) : explorerPalette(hood, cls);
+}
+
+const ITEM_FACING: Partial<Record<SpriteId, ItemFacing>> = { "explorer-down": "down", "explorer-up": "up", "explorer-right": "right" };
+
+/** The class item laid over an explorer, or null for no class, an unknown class or a downed (grey) explorer. */
+function itemFor(sprite: SpriteId, variant: string): { grid: PixelGrid; palette: Palette } | null {
+  const facing = ITEM_FACING[sprite];
+  const { hood, cls } = splitVariant(variant);
+  if (!facing || !cls || hood === "grey") return null;
+  return { grid: CLASS_ITEMS[cls][facing], palette: CLASS_ITEMS[cls].palette };
 }
 
 /** One small canvas per sprite, frame and colour, built the first time it is needed. */
@@ -36,15 +56,17 @@ export function createSpriteCache(make: MakeCanvas): SpriteCache {
     get(sprite, frame, variant, flip, rotate) {
       const key = `${sprite}|${frame}|${variant}|${flip}|${rotate}`;
       if (cache.has(key)) return cache.get(key)!;
-      let grid = SPRITES[sprite].frames[frame] ?? SPRITES[sprite].frames[0];
-      if (flip) grid = mirror(grid);
-      if (rotate) grid = rotate90(grid);
+      const transform = (g: PixelGrid) => (rotate ? rotate90(flip ? mirror(g) : g) : flip ? mirror(g) : g);
+      const grid = transform(SPRITES[sprite].frames[frame] ?? SPRITES[sprite].frames[0]);
+      const item = itemFor(sprite, variant);
       const canvas = make(grid[0].length, grid.length);
       if (canvas) {
-        for (const run of gridRuns(grid, paletteFor(sprite, variant))) {
-          canvas.ctx.fillStyle = run.color;
-          canvas.ctx.fillRect(run.x, run.y, run.w, 1);
-        }
+        const layers = [{ grid, palette: paletteFor(sprite, variant) }, ...(item ? [{ grid: transform(item.grid), palette: item.palette }] : [])];
+        for (const layer of layers)
+          for (const run of gridRuns(layer.grid, layer.palette)) {
+            canvas.ctx.fillStyle = run.color;
+            canvas.ctx.fillRect(run.x, run.y, run.w, 1);
+          }
       }
       const image = canvas?.image ?? null;
       cache.set(key, image);
