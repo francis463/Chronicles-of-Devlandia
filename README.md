@@ -89,10 +89,14 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_your_key
 
 If the server can't be reached, Online shows "Can't reach the team server…" and Same computer still works. The claude.ai preview link blocks outside connections, so there only Same computer works (between windows of the same browser).
 
+## Character classes
+
+Before Solo Quest and before a team game, **Choose your class**: Warrior, Archer, Mage, Assassin, Tank or Healer. A class is a look only (an outfit colour and a small item such as a helm, bow, hat, mask, shield or staff); it changes no stat, speed or puzzle. In a team everyone sees each other's class, two players may pick the same one, and the hood colour still tells teammates apart. A signed-in player's last choice is saved in their account's own profile data and preselected next time (no database change); guests start on Warrior and nothing is saved. A class value that is missing or not one of the six is shown as Warrior.
+
 ## Project layout
 
 ```
-src/game/      pure game rules: constants, geometry, clock, cipher, logic, challenges, roll, cards, team, wall, zones, village, forest, reducer
+src/game/      pure game rules: constants, classes, geometry, clock, cipher, logic, challenges, roll, cards, team, wall, zones, village, forest, reducer
 src/learn/     the challenge engine and question bank: live check, shuffling, access codes, the 11 chests and their questions
 src/chat/      chat rules and commands: text cleaning and masking, display names, ping places, the command line
 src/hooks/     keyboard controls, game timers, team session, chat feed, pings
@@ -101,7 +105,7 @@ src/auth/      accounts: name and password rules, the auth client (Supabase and 
 src/progress/  saved badges: the store (Supabase and in-memory), restoring a game from them, the saver
 supabase/      the accounts migration, the `account` Edge Function and the row-rule checks
 src/render/    the pixel-art map: world geometry, sprites, areas/ (each zone's art), terrain, motion, scene description and painting
-src/screens/   AuthScreen, ChooseName, SetPassword, MainMenu, TeamLobby, ChallengeTerminal + challenge/* (chests, gate, scroll, Matcher, keypad), Codex, LogicModal (tower), chat/* (chat panel and announcer), overworld/*
+src/screens/   AuthScreen, ChooseName, SetPassword, ClassPicker, MainMenu, TeamLobby, ChallengeTerminal + challenge/* (chests, gate, scroll, Matcher, keypad), Codex, LogicModal (tower), chat/* (chat panel and announcer), overworld/*
 src/ui/        Panel, Button, Meter, TerminalDialog primitives
 ```
 
