@@ -85,11 +85,12 @@ describe("decorations", () => {
     ["village", 311, 9],
     ["forest", null, 9],
     ["desert", 311, 9],
+    ["beach", 9, 311],
   ] as const)("barrier decorations lie outside REACHABLE_RECT, and the barrier closes the sides and bottom (%s: open at its exit)", (id, exitX, otherX) => {
     const area = AREAS[id];
     const touching = decorations(VIEW, area).filter((d) => intersects(boxOf(d), WORLD_RECT) && !intersects(boxOf(d), REACHABLE_RECT));
     // The forest has no hedge on top: trees from the scenery above reach into its top rows.
-    for (const d of touching) expect(["bush", "rock", "snow-rock", ...(id === "forest" || id === "village" ? ["tree"] : []), ...(id === "desert" ? ["dry-bush", "cactus"] : [])], key(d)).toContain(d.sprite);
+    for (const d of touching) expect(["bush", "rock", "snow-rock", ...(id === "forest" || id === "village" ? ["tree"] : []), ...(id === "desert" ? ["dry-bush", "cactus"] : []), ...(id === "beach" ? ["palm"] : [])], key(d)).toContain(d.sprite);
     const covers = (x: number, y: number) => touching.some((d) => intersects(boxOf(d), { x, y, w: 1, h: 1 }));
     // The Peaks' bottom hedge is open at its south exit (art x 192–255); everywhere clear of it the hedge is closed.
     for (let x = 0; x < WORLD.width; x += 4) {
@@ -103,7 +104,7 @@ describe("decorations", () => {
       // The forest's west side is open at its exit to the desert (rows 112–143).
       expect(covers(otherX, y), `other side at ${y}`).toBe(!(id === "forest" && y >= 112 && y <= 143));
     }
-    if (exitX === null) for (let y = 24; y < 170; y += 4) expect(covers(311, y), `east side at ${y}`).toBe(true);
+    if (exitX === null) for (let y = 24; y < 170; y += 4) expect(covers(311, y), `east side at ${y}`).toBe(!(id === "forest" && y >= 112 && y <= 143));
   });
 
   it("no scenery stands in the corridor beyond an exit", () => {

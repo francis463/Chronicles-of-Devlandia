@@ -44,7 +44,7 @@ export const OASIS: Poi = { id: "oasis", label: "Oasis", x: 42, y: 52 };
 /** Sunny Beach: a signpost by the way back west, a fisher, a pier into the sea and a shipwreck up the shore. */
 export const BEACH_SIGNPOST: Poi = { id: "beach-signpost", label: "Signpost", x: 14, y: 58 };
 export const FISHER: Poi = { id: "fisher", label: "Fisher", x: 34, y: 72 };
-export const BEACH_PIER: Poi = { id: "beach-pier", label: "Pier", x: 84, y: 62 };
+export const BEACH_PIER: Poi = { id: "beach-pier", label: "Pier", x: 90, y: 62 };
 export const SHIPWRECK: Poi = { id: "shipwreck", label: "Shipwreck", x: 60, y: 30 };
 export const DESERT_PYRAMID: Poi = { id: "desert-pyramid", label: "Pyramid", x: 20, y: 34 };
 /** Where you and the drone land after sailing: a few steps in from the other island's dock. */

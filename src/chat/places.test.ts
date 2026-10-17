@@ -32,7 +32,7 @@ const TABLE = [
   ["oasis", "desert", 42, 52, "the Oasis"],
   ["pyramid", "desert", 20, 34, "the Pyramid"],
   ["fisher", "beach", 34, 72, "the Fisher"],
-  ["jetty", "beach", 84, 62, "the Pier"],
+  ["jetty", "beach", 90, 62, "the Pier"],
   ["shipwreck", "beach", 60, 30, "the Shipwreck"],
 ] as const;
 

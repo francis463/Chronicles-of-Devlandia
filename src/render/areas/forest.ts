@@ -36,6 +36,10 @@ const CORRIDOR: Rect = { x: 192, y: -1000, w: 64, h: 1000 };
 const WEST_MOUTH: Rect = { x: 0, y: 112, w: 32, h: 32 };
 const WEST_CORRIDOR: Rect = { x: -1000, y: 112, w: 1000, h: 32 };
 
+/** The east exit onto the beach road: a gap in the right edge (game rows 62–78) and the open ground beyond it. */
+const EAST_MOUTH: Rect = { x: 288, y: 112, w: 32, h: 32 };
+const EAST_CORRIDOR: Rect = { x: 320, y: 112, w: 1000, h: 32 };
+
 /** The trail from the north mouth: it bends east and back to the fork, then west into the clearing and east and south to the dig corner. */
 const PATHS: Rect[] = [
   { x: 204, y: -1000, w: 6, h: 1040 },
@@ -53,6 +57,7 @@ const PATHS: Rect[] = [
   { x: 222, y: 117, w: 6, h: 30 },
   { x: 222, y: 141, w: 60, h: 6 },
   { x: -1000, y: 116, w: 1166, h: 6 },
+  { x: 222, y: 124, w: 1098, h: 6 },
 ];
 
 export const FOREST: Area = {
@@ -60,12 +65,12 @@ export const FOREST: Area = {
   wall: false,
   terrainAt,
   paths: PATHS,
-  mouths: [MOUTH, WEST_MOUTH],
-  corridors: [CORRIDOR, WEST_CORRIDOR],
+  mouths: [MOUTH, WEST_MOUTH, EAST_MOUTH],
+  corridors: [CORRIDOR, WEST_CORRIDOR, EAST_CORRIDOR],
   gateBox: null,
   ice: null,
   props: PROPS,
-  protected: [...PATHS, MOUTH, WEST_MOUTH, ...PROPS.map((prop) => spriteBox(prop.sprite, prop.at)), ...chestPoints("forest").map(({ at }) => spriteBox("code-chest", at)),
+  protected: [...PATHS, MOUTH, WEST_MOUTH, EAST_MOUTH, ...PROPS.map((prop) => spriteBox(prop.sprite, prop.at)), ...chestPoints("forest").map(({ at }) => spriteBox("code-chest", at)),
     spriteBox("x-mark", FOREST_POINTS.dig),
     spriteBox("semicolon", FOREST_POINTS.dig),
   ],
