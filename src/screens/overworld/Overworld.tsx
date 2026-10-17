@@ -27,6 +27,7 @@ import { ChallengeTerminal } from "../ChallengeTerminal";
 import { ChatPanel } from "../chat/ChatPanel";
 import { Codex } from "../Codex";
 import { LeaveConfirm } from "./LeaveConfirm";
+import { LampModal } from "../LampModal";
 import { LogicModal } from "../LogicModal";
 import { BottomHud } from "./BottomHud";
 import { EventLog, type SideTab } from "./EventLog";
@@ -326,6 +327,16 @@ export function Overworld({
           onClose={() => dispatch({ type: "closeLogic" })}
           onRevealHint={() => dispatch({ type: "revealLogicHint" })}
           onReset={() => dispatch({ type: "resetLogic" })}
+        />
+      )}
+      {state.lampOpen && (
+        <LampModal
+          error={state.lampError}
+          hintRevealed={state.lampHintRevealed}
+          onSubmit={(bits) => dispatch({ type: "submitLamp", bits })}
+          onClose={() => dispatch({ type: "closeLamp" })}
+          onRevealHint={() => dispatch({ type: "revealLampHint" })}
+          onReset={() => dispatch({ type: "resetLamp" })}
         />
       )}
     </Panel>

@@ -59,7 +59,7 @@ export function useKeyboardControls(
       if (key === "escape") {
         if (isModalOpen(current)) {
           event.preventDefault();
-          dispatch({ type: current.challenge ? "closeChallenge" : current.logicOpen ? "closeLogic" : "toggleCodex" });
+          dispatch({ type: current.challenge ? "closeChallenge" : current.logicOpen ? "closeLogic" : current.lampOpen ? "closeLamp" : "toggleCodex" });
         }
         return;
       }

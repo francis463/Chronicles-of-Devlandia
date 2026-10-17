@@ -762,3 +762,42 @@ describe("Overworld Foggaten Island", () => {
     expect(screen.queryByText("(Foggaten Island Biome)")).toBeNull();
   });
 });
+
+describe("Overworld lighthouse lamp", () => {
+  const beside = { zone: "foggaten" as const, gateUnlocked: true, player: { x: 52, y: 46 } };
+  const toggle = async (user: ReturnType<typeof setup>, ...n: number[]) => {
+    for (const i of n) await user.click(screen.getByRole("switch", { name: `Switch ${i}` }));
+  };
+
+  it("E at the lighthouse opens the lamp terminal; a wrong setting names the letter it sent", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} initial={beside} />);
+    await user.click(screen.getByRole("button", { name: "[L] Lighthouse" }));
+    expect(screen.getByRole("dialog", { name: "< LIGHTHOUSE: LAMP LOCK >" })).toBeInTheDocument();
+    await toggle(user, 2, 5, 7, 8);
+    await user.click(screen.getByRole("button", { name: "[ RUN LAMP ]" }));
+    expect(screen.getByRole("alert")).toHaveTextContent('The lamp sent "K". It should send "H".');
+  });
+
+  it("01001000 lights the lighthouse, closes the terminal and logs it", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} initial={beside} />);
+    await user.click(screen.getByRole("button", { name: "[L] Lighthouse" }));
+    await toggle(user, 2, 5);
+    await user.click(screen.getByRole("button", { name: "[ RUN LAMP ]" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByText(LOG.lampLit)).toBeInTheDocument();
+  });
+
+  it("the drone's tip shows after two wrong runs, and Escape closes the terminal", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} initial={beside} />);
+    await user.click(screen.getByRole("button", { name: "[L] Lighthouse" }));
+    await user.click(screen.getByRole("button", { name: "[ RUN LAMP ]" }));
+    await user.click(screen.getByRole("button", { name: "[ RUN LAMP ]" }));
+    expect(screen.getByText(/The drone has a tip below/)).toBeInTheDocument();
+    expect(screen.getByText(/Each switch is worth a power of two/)).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});
