@@ -63,7 +63,7 @@ describe("useKeyboardControls: movement", () => {
 describe("useKeyboardControls: interact", () => {
   it("[E] does nothing out of range", async () => {
     const user = userEvent.setup();
-    render(<Overworld onMenu={noop} />);
+    render(<Overworld onMenu={noop} initial={{ player: { x: 62, y: 90 } }} />);
     await user.keyboard("e");
     expect(screen.queryByText(/Gate terminal ready/)).toBeNull();
     expect(screen.queryByRole("region", { name: "POI Inspection" })).toBeNull();
@@ -311,7 +311,7 @@ describe("useKeyboardControls: with the Overworld", () => {
   it("Enter on a focused chest button still opens its terminal", async () => {
     const user = userEvent.setup();
     render(<Overworld onMenu={noop} initial={{ player: { x: 10, y: 60 } }} />);
-    screen.getByRole("button", { name: "HTML chest" }).focus();
+    screen.getByRole("button", { name: "Ski Lodge, HTML chest" }).focus();
     await user.keyboard("{Enter}");
     expect(screen.getByText(/CODE CHEST: HTML/i)).toBeInTheDocument();
   });

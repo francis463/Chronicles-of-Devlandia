@@ -1,4 +1,6 @@
 import type { ChallengeTarget, ChestId, SubmitValue } from "../learn/types";
+import type { Picks } from "../learn/chests";
+import type { Bits8 } from "./lamp";
 import type { Bits } from "./logic";
 import type { TeamFlags } from "./team";
 import type { ZoneId } from "./zones";
@@ -14,9 +16,43 @@ export type PoiId =
   | "artifact"
   | "villager"
   | "signpost"
+  | "ranger"
+  | "campfire"
+  | "forest-signpost"
   | "terminal"
   | "archive"
+  | "dock"
+  | "peaks-signpost"
+  | "weather-station"
+  | "snow-cave"
+  | "island-dock"
+  | "lighthouse"
+  | "hermit"
+  | "island-fire"
+  | "nomad"
+  | "fisher"
+  | "beach-signpost"
+  | "desert-signpost"
+  | "hunter-cabin"
+  | "forest-well"
+  | "forest-brook"
+  | "fairy-ring"
+  | "hollow-tree"
+  | "sandcastle"
+  | MushroomId
+  | "caravan-camp"
+  | "desert-well"
+  | "temple-door"
+  | "dry-riverbed"
+  | "obelisk"
+  | JarId
   | Exclude<ChestId, "chest-cs">;
+
+/** The ranger's three lost glow mushrooms. */
+export type MushroomId = "mushroom-1" | "mushroom-2" | "mushroom-3";
+
+/** The nomad's three lost water jars. */
+export type JarId = "jar-1" | "jar-2" | "jar-3";
 
 export type Poi = { id: PoiId; label: string } & Point;
 
@@ -41,7 +77,6 @@ export type GameState = {
   player: Point;
   drone: Point;
   hp: number;
-  stamina: number;
   minutes: number;
   inspected: PoiId | null;
   questComplete: boolean;
@@ -53,8 +88,13 @@ export type GameState = {
   logicOpen: boolean;
   logicError: string | null;
   logicHintRevealed: boolean;
+  /** The Lighthouse Lamp terminal: open, its last error, wrong runs so far, and whether the drone's tip shows. */
+  lampOpen: boolean;
+  lampError: string | null;
+  lampTries: number;
+  lampHintRevealed: boolean;
   /** Which bank challenge each chest asks this game. */
-  picks: Record<ChestId, 0 | 1 | 2>;
+  picks: Picks;
   /** The per-game shuffle seed for options, tiles and labels. */
   seed: number;
   /** Earned chests, in earn order. */
@@ -69,7 +109,21 @@ export type GameState = {
   accessCode: string;
   /** Shared with the team. */
   archiveOpen: boolean;
+  lighthouseLit: boolean;
+  /** Which of the ranger's glow mushrooms you have picked, and whether she has cooked them. */
+  mushrooms: MushroomId[];
+  rangerFed: boolean;
+  /** Which of the nomad's water jars you have picked up, and whether she has had her water. */
+  jars: JarId[];
+  nomadServed: boolean;
+  /** The Sunny Beach's sandcastle puzzle, solved: the castle stands finished, with its flag. */
+  sandcastleBuilt: boolean;
   codexOpen: boolean;
+  /** The Master of Devlandia finale: open now, and whether it has been shown this game. */
+  finaleOpen: boolean;
+  finaleSeen: boolean;
+  /** New Game+: questions come from each chest's harder half and a wrong answer costs HP. */
+  hard: boolean;
   logs: string[];
   /** Total entries ever logged; gives each visible entry a stable identity. */
   logCount: number;
@@ -81,6 +135,8 @@ export type GameAction =
   | { type: "riverDamage" }
   | { type: "droneFollow" }
   | { type: "interact"; poi: PoiId }
+  /** Board a boat at the dock you stand by (Peaks ↔ Foggaten Island). */
+  | { type: "sail"; to: ZoneId }
   | { type: "closeInspection" }
   | { type: "openCipher" }
   | { type: "submitChallenge"; value: SubmitValue }
@@ -88,9 +144,17 @@ export type GameAction =
   | { type: "closeChallenge" }
   | { type: "resetLogic" }
   | { type: "toggleCodex" }
+  | { type: "openFinale" }
+  | { type: "closeFinale" }
+  /** The Codex's "Go there": close it and log where the chest is. */
+  | { type: "goTo"; chest: ChestId }
   | { type: "submitLogic"; bits: Bits }
   | { type: "closeLogic" }
   | { type: "revealLogicHint" }
+  | { type: "submitLamp"; bits: Bits8 }
+  | { type: "closeLamp" }
+  | { type: "resetLamp" }
+  | { type: "revealLampHint" }
   | { type: "teamSync"; flags: TeamFlags; by: string }
   | { type: "note"; text: string }
   | { type: "respawn" };

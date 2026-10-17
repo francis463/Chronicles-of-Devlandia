@@ -19,6 +19,7 @@ const input: SceneInput = {
   towerPowered: false,
   minutes: 19 * 60,
   archiveOpen: false,
+  lighthouseLit: false,
   matcherSolved: false,
   earned: [],
 };
@@ -192,7 +193,7 @@ describe("MapCanvas", () => {
     frame();
     frame();
     expect(explorers(scenes.at(-1)!)[0].x).toBe(boxX(a));
-    expect(scenes.at(-1)!.glints).toEqual([]);
+    expect(scenes.at(-1)!.glints.filter((p) => p.color === "#ffffff")).toEqual([]);
     // The setting is switched off mid-game; let the reduced step's glide window pass first.
     act(() => media.set(false));
     act(() => void vi.advanceTimersByTime(400));
@@ -203,5 +204,33 @@ describe("MapCanvas", () => {
     const x = explorers(scenes.at(-1)!)[0].x;
     expect(x).toBeGreaterThan(boxX(a));
     expect(x).toBeLessThan(boxX(b));
+  });
+});
+
+describe("MapCanvas footprints", () => {
+  it("leaves a footprint where you stepped, none in other zones or with reduced motion", () => {
+    fakeContexts();
+    const scenes: Scene[] = [];
+    const prints = () => scenes.at(-1)!.glints.filter((p) => p.color === "#94a3b8");
+    const { rerender } = render(<MapCanvas input={input} world={world} onScene={(s) => scenes.push(s)} />);
+    frame();
+    expect(prints()).toEqual([]);
+    rerender(<MapCanvas input={{ ...input, player: { x: 36, y: 72 } }} world={world} onScene={(s) => scenes.push(s)} />);
+    for (let i = 0; i < 12; i++) frame();
+    expect(prints().length).toBeGreaterThan(0);
+    rerender(<MapCanvas input={{ ...input, zone: "village", player: { x: 44, y: 72 } }} world={world} onScene={(s) => scenes.push(s)} />);
+    for (let i = 0; i < 12; i++) frame();
+    expect(prints()).toEqual([]);
+  });
+
+  it("makes none when the device asks for reduced motion", () => {
+    fakeContexts();
+    fakeMedia(true);
+    const scenes: Scene[] = [];
+    const { rerender } = render(<MapCanvas input={input} world={world} onScene={(s) => scenes.push(s)} />);
+    frame();
+    rerender(<MapCanvas input={{ ...input, player: { x: 36, y: 72 } }} world={world} onScene={(s) => scenes.push(s)} />);
+    for (let i = 0; i < 12; i++) frame();
+    expect(scenes.at(-1)!.glints.filter((p) => p.color === "#94a3b8")).toEqual([]);
   });
 });

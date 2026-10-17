@@ -1,27 +1,41 @@
+import { useState } from "react";
+import { AddEmail } from "../auth/AddEmail";
+import type { Result } from "../auth/authClient";
 import { useOnline } from "../hooks/useOnline";
 import { Button } from "../ui/Button";
 import { Panel } from "../ui/Panel";
+import { Help } from "./Help";
 import { MenuBackdrop } from "./MenuBackdrop";
 
-function ComingSoon({ label }: { label: string }) {
-  return (
-    <Button disabled className="w-full">
-      <span className="block">{label}</span>
-      <span className="block text-[9px] font-medium normal-case tracking-normal text-[var(--text-muted)]">
-        Coming soon
-      </span>
-    </Button>
-  );
-}
+/** Who is playing, as the menu shows it. */
+export type MenuAccount = { kind: "guest" } | { kind: "user"; name: string; hasRealEmail: boolean };
 
 export function MainMenu({
   onSoloQuest,
+  onContinue,
   onTeamLobby,
+  onLeaderboards,
+  account,
+  onLogIn,
+  onLogOut,
+  onAddEmail,
+  busy = false,
 }: {
   onSoloQuest: () => void;
+  /** A solo game saved in this browser: picks it up where it was left. */
+  onContinue?: () => void;
   onTeamLobby: () => void;
+  onLeaderboards: () => void;
+  account: MenuAccount;
+  onLogIn: () => void;
+  onLogOut: () => void;
+  onAddEmail: (email: string) => Promise<Result>;
+  /** True while a signed-in player's saved badges load, so a game can't start without them. */
+  busy?: boolean;
 }) {
   const online = useOnline();
+  const [addingEmail, setAddingEmail] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   return (
     <>
       <MenuBackdrop />
@@ -33,21 +47,55 @@ export function MainMenu({
           "Solve the Map, Break the Code, Find the Treasure."
         </p>
 
-        <nav aria-label="Main menu" className="mt-8 flex w-[200px] flex-col gap-2">
-          <Button className="w-full" onClick={onSoloQuest}>
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs text-[var(--text-muted)]">
+          {account.kind === "guest" ? (
+            <>
+              <span>Guest ·</span>
+              <Button variant="ghost" onClick={onLogIn}>
+                [ Log in ]
+              </Button>
+            </>
+          ) : (
+            <>
+              <span>Signed in as {account.name} ·</span>
+              <Button variant="ghost" onClick={onLogOut}>
+                [ Log out ]
+              </Button>
+              {!account.hasRealEmail && !addingEmail && (
+                <Button variant="ghost" onClick={() => setAddingEmail(true)}>
+                  [ Add email ]
+                </Button>
+              )}
+            </>
+          )}
+        </div>
+        {addingEmail && <AddEmail onAdd={onAddEmail} onClose={() => setAddingEmail(false)} />}
+
+        <nav aria-label="Main menu" className="mt-6 flex w-[200px] flex-col gap-2">
+          {onContinue && (
+            <Button className="w-full" disabled={busy} onClick={onContinue}>
+              Continue
+            </Button>
+          )}
+          <Button className="w-full" disabled={busy} onClick={onSoloQuest}>
             Solo Quest
           </Button>
-          <Button className="w-full" onClick={onTeamLobby}>
+          <Button className="w-full" disabled={busy} onClick={onTeamLobby}>
             Team Lobby
           </Button>
-          <ComingSoon label="Settings" />
+          <Button className="w-full" onClick={onLeaderboards}>
+            Leaderboards
+          </Button>
         </nav>
 
         <footer className="mt-12 flex w-full flex-wrap justify-between gap-2 text-xs text-[var(--text-muted)]">
-          <span>[?] HCI Help / Tutorials</span>
+          <Button variant="ghost" className="px-2 py-1 text-xs pointer-coarse:min-h-11" onClick={() => setHelpOpen(true)}>
+            [?] HCI Help / Tutorials
+          </Button>
           <span>v1.0 | {online ? "Online" : "Offline"} Network</span>
         </footer>
       </Panel>
+      {helpOpen && <Help initial="tutorial" onClose={() => setHelpOpen(false)} />}
     </>
   );
 }

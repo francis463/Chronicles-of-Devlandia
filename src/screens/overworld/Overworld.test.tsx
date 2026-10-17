@@ -1,9 +1,11 @@
 import { createElement } from "react";
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RIVER_DAMAGE_MS } from "../../game/constants";
 import type { SceneInput } from "../../render/scene";
+import { CHEST_IDS, CHESTS } from "../../learn/chests";
+import { LOG } from "../../game/constants";
 import { Overworld } from "./Overworld";
 
 // The real canvas still renders; this only records what the game asks it to draw.
@@ -36,9 +38,8 @@ describe("Overworld HUD", () => {
     render(<Overworld onMenu={() => {}} />);
     expect(screen.getByText("REGION: C++ PEAKS")).toBeInTheDocument();
     expect(screen.getByText("Dusk / 19:29")).toBeInTheDocument();
-    const [hp, sta] = screen.getAllByRole("meter");
+    const [hp] = screen.getAllByRole("meter");
     expect(hp).toHaveAttribute("aria-valuenow", "100");
-    expect(sta).toHaveAttribute("aria-valuenow", "100");
     expect(screen.getByText("Quest: Survey Frozen River (0/1)")).toBeInTheDocument();
     expect(screen.getByText("Entered C++ Peaks.")).toBeInTheDocument();
     expect(screen.getByText("Move: WASD / Arrows")).toBeInTheDocument();
@@ -139,8 +140,8 @@ describe("Overworld map", () => {
   });
 
   it("shows the inspect prompt only near a point of interest", () => {
-    const { unmount } = render(<Overworld onMenu={() => {}} />);
-    expect(screen.queryByText(/\[E\] Inspect/)).toBeNull();
+    const { unmount } = render(<Overworld onMenu={() => {}} initial={{ player: { x: 62, y: 90 } }} />);
+    expect(screen.queryByText(/^\[E\] (Inspect|Read)/)).toBeNull();
     unmount();
     render(<Overworld onMenu={() => {}} initial={{ player: { x: 50, y: 58 } }} />);
     expect(screen.getByText("[E] Inspect Terminal Gate")).toBeInTheDocument();
@@ -330,7 +331,7 @@ describe("Overworld hidden artifact", () => {
     await user.clear(input);
     await user.type(input, "dense forest{Enter}");
     expect(screen.queryByRole("dialog")).toBeNull();
-    expect(screen.getByText("Clue decoded: the artifact rests in the Dense Forest.")).toBeInTheDocument();
+    expect(screen.getByText("Clue decoded: the artifact is buried in the Dense Forest, south of camp.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "[ Decode Scroll ]" })).toBeNull();
   });
 
@@ -341,15 +342,25 @@ describe("Overworld hidden artifact", () => {
   });
 
   it("keeps the dig spot hidden until the clue is decoded", () => {
-    render(<Overworld onMenu={() => {}} initial={{ hasLoot: true, player: { x: 72, y: 80 } }} />);
+    render(<Overworld onMenu={() => {}} initial={{ hasLoot: true, zone: "foggaten", player: { x: 84, y: 80 } }} />);
     expect(screen.queryByText("[E] Dig here")).toBeNull();
     fireEvent.keyDown(window, { key: "e" });
     expect(screen.queryByText("Artifact found: the Golden Semicolon!")).toBeNull();
     expect(screen.queryByTestId("artifact")).toBeNull();
   });
 
+  it("after decoding, the Peaks show no dig spot and no [E] Dig here (and neither does the forest)", () => {
+    render(<Overworld onMenu={() => {}} initial={{ hasLoot: true, clueDecoded: true, player: { x: 72, y: 84 } }} />);
+    expect(screen.queryByText("[E] Dig here")).toBeNull();
+    expect(screen.queryByTestId("dig-spot")).toBeNull();
+    cleanup();
+    render(<Overworld onMenu={() => {}} initial={{ hasLoot: true, clueDecoded: true, zone: "forest", player: { x: 84, y: 80 } }} />);
+    expect(screen.queryByText("[E] Dig here")).toBeNull();
+    expect(screen.queryByTestId("dig-spot")).toBeNull();
+  });
+
   it("after decoding, [E] digs up the Golden Semicolon", () => {
-    render(<Overworld onMenu={() => {}} initial={{ hasLoot: true, clueDecoded: true, player: { x: 72, y: 80 } }} />);
+    render(<Overworld onMenu={() => {}} initial={{ hasLoot: true, clueDecoded: true, zone: "foggaten", player: { x: 84, y: 80 } }} />);
     // map prompt + touch [E] button (CSS-hidden on desktop)
     expect(screen.getAllByText("[E] Dig here")).toHaveLength(2);
     fireEvent.keyDown(window, { key: "e" });
@@ -421,23 +432,23 @@ describe("Overworld challenge terminal", () => {
 });
 
 describe("Overworld language chests", () => {
-  it("walking to the HTML chest shows [E] Open HTML Chest on the prompt and the touch button", () => {
-    render(<Overworld onMenu={() => {}} initial={{ player: { x: 14, y: 64 } }} />);
-    expect(screen.getAllByText("[E] Open HTML Chest")).toHaveLength(2);
+  it("walking to the ski lodge shows [E] Search Ski Lodge on the prompt and the touch button", () => {
+    render(<Overworld onMenu={() => {}} initial={{ player: { x: 20, y: 84 } }} />);
+    expect(screen.getAllByText("[E] Search Ski Lodge")).toHaveLength(2);
   });
 
   it("new places show their cards on the map", () => {
     const card = () => screen.getByRole("region", { name: "POI Inspection" });
     const { unmount } = render(<Overworld onMenu={() => {}} initial={{ zone: "village", inspected: "chest-sql" }} />);
-    expect(card()).toHaveTextContent("A sealed code chest. Answer its SQL question to earn the SQL Badge.");
-    expect(card().className).toContain("top-3");
+    expect(card()).toHaveTextContent("A sealed code chest is hidden in the windmill. Answer its SQL question to earn the SQL Badge.");
+    expect(card().className).toContain("bottom-3");
     unmount();
     const earned = render(<Overworld onMenu={() => {}} initial={{ zone: "village", inspected: "chest-sql", badges: ["chest-sql"] }} />);
     expect(card()).toHaveTextContent("SQL Badge earned.");
     earned.unmount();
-    render(<Overworld onMenu={() => {}} initial={{ inspected: "chest-java" }} />);
-    expect(card()).toHaveTextContent("A sealed code chest. Answer its Java question to earn the Java Badge.");
-    expect(card().className).toContain("bottom-3");
+    render(<Overworld onMenu={() => {}} initial={{ inspected: "chest-html" }} />);
+    expect(card()).toHaveTextContent("A sealed code chest is hidden in the ski lodge. Answer its HTML question to earn the HTML Badge.");
+    expect(card().className).toContain("top-3");
   });
 });
 
@@ -491,6 +502,43 @@ describe("Overworld village", () => {
 });
 
 describe("Overworld: the Codex and leaving", () => {
+  it("[?] Help and the ? key open the help, which pauses the game (no walking, no clock) and closes with Esc", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} />);
+    const player = () => screen.getByTestId("player");
+    const before = player().style.left;
+    const clock = screen.getByText(/^Dusk \/ \d/).textContent;
+    await user.click(screen.getByRole("button", { name: "[?] Help" }));
+    expect(screen.getByRole("dialog", { name: "< HELP & TUTORIAL >" })).toBeInTheDocument();
+    await user.keyboard("{ArrowRight}d");
+    act(() => vi.advanceTimersByTime(10_000));
+    expect(player().style.left).toBe(before);
+    expect(screen.getByText(/^Dusk \/ \d/).textContent).toBe(clock);
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    await user.keyboard("?");
+    expect(screen.getByRole("dialog", { name: "< HELP & TUTORIAL >" })).toBeInTheDocument();
+    await user.keyboard("?");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    await user.keyboard("{ArrowRight}");
+    expect(player().style.left).not.toBe(before);
+  });
+
+  it("the legend shows Help: [?]", () => {
+    render(<Overworld onMenu={() => {}} />);
+    expect(screen.getByText("Help: [?]")).toBeInTheDocument();
+  });
+
+  it("Go there closes the Codex, logs where the chest is and rings it on the map when you are in its zone", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} initial={{ zone: "village" }} />);
+    await user.click(screen.getByRole("button", { name: "[C] Codex" }));
+    await user.click(screen.getByRole("button", { name: /^Go to SQL:/ }));
+    expect(screen.queryByRole("dialog", { name: /CODEX/ })).toBeNull();
+    expect(screen.getByText("Head to the Windmill in Dev Village, west of the Peaks.")).toBeInTheDocument();
+    expect(screen.getByTestId("ping-guide")).toBeInTheDocument();
+  });
+
   it("the top bar has [C] Codex at least 16 px from [=] Menu, and it opens the Codex", async () => {
     const user = setup();
     render(<Overworld onMenu={() => {}} />);
@@ -499,7 +547,7 @@ describe("Overworld: the Codex and leaving", () => {
     expect(codex.nextElementSibling).toBe(menu);
     expect(codex).toHaveClass("mr-4");
     await user.click(codex);
-    expect(screen.getByRole("dialog", { name: "< CODEX: 0/10 BADGES >" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "< CODEX: 0/11 BADGES >" })).toBeInTheDocument();
   });
 
   it("on phones [C] Codex (and [=] Menu beside it) is at least 44 px tall (final review)", () => {
@@ -507,13 +555,13 @@ describe("Overworld: the Codex and leaving", () => {
     for (const name of ["[C] Codex", "[=] Menu"]) expect(screen.getByRole("button", { name })).toHaveClass("pointer-coarse:min-h-11");
   });
 
-  it("Quests show Badges: 0/10, bold at 10/10", () => {
+  it("Quests show Badges: 0/11, bold at 11/11", () => {
     const { unmount } = render(<Overworld onMenu={() => {}} />);
-    expect(screen.getByText("Badges: 0/10")).not.toHaveClass("font-bold");
+    expect(screen.getByText("Badges: 0/11")).not.toHaveClass("font-bold");
     unmount();
-    const all = ["chest-cpp-1", "chest-java", "chest-cpp-2", "chest-html", "chest-css", "chest-py-1", "chest-php", "chest-sql", "chest-py-2", "chest-cs"] as const;
+    const all = ["chest-cpp-1", "chest-java", "chest-cpp-2", "chest-html", "chest-css", "chest-py-1", "chest-php", "chest-sql", "chest-py-2", "chest-cs", "chest-js"] as const;
     render(<Overworld onMenu={() => {}} initial={{ badges: [...all] }} />);
-    expect(screen.getByText("Badges: 10/10")).toHaveClass("font-bold");
+    expect(screen.getByText("Badges: 11/11")).toHaveClass("font-bold");
   });
 
   it("the legend shows Codex: [C]", () => {
@@ -608,10 +656,21 @@ describe("Overworld commands (solo)", () => {
   it("Enter on a focused chest button still opens its terminal and leaves the tab alone", async () => {
     const user = setup();
     render(<Overworld onMenu={() => {}} initial={{ player: { x: 10, y: 60 } }} />);
-    screen.getByRole("button", { name: "HTML chest" }).focus();
+    screen.getByRole("button", { name: "Ski Lodge, HTML chest" }).focus();
     await user.keyboard("{Enter}");
     expect(screen.getByText(/CODE CHEST: HTML/i)).toBeInTheDocument();
     expect(tab("LOG")).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("walking to the forest chest and pressing E opens the JavaScript terminal; its button exists only in the forest", async () => {
+    const user = setup();
+    const { unmount } = render(<Overworld onMenu={() => {}} />);
+    expect(screen.queryByRole("button", { name: "Old Oak, JavaScript chest" })).toBeNull();
+    unmount();
+    render(<Overworld onMenu={() => {}} initial={{ zone: "forest", player: { x: 24, y: 52 } }} />);
+    expect(screen.getByRole("button", { name: "Old Oak, JavaScript chest" })).toBeInTheDocument();
+    await user.keyboard("e");
+    expect(screen.getByText(/CODE CHEST: JAVASCRIPT/i)).toBeInTheDocument();
   });
 
   it("an arrow on a tab moves the tab, not the explorer", async () => {
@@ -668,5 +727,186 @@ describe("Overworld commands (solo)", () => {
     render(<Overworld onMenu={() => {}} />);
     await say(user, "/time");
     expect(screen.getByRole("list", { name: "Team chat" })).toHaveTextContent("Dusk, 19:29.");
+  });
+});
+
+describe("Overworld: saved badges", () => {
+  const sql = CHESTS.find((c) => c.id === "chest-sql")!;
+  const savedSql = { chest: "chest-sql", questionId: sql.bank[3].id, answer: "FROM" } as const;
+
+  it("starts with the saved badges, open chests, and the Codex shows the question that was answered (Review Focus 5)", async () => {
+    const user = setup();
+    vi.spyOn(Math, "random").mockReturnValue(0); // the roll alone would pick question 0 everywhere
+    render(<Overworld onMenu={() => {}} saved={[savedSql]} />);
+    expect(screen.getByText("Badges: 1/11")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "[C] Codex" }));
+    await user.click(screen.getByRole("button", { name: /^SQL Badge/ }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText(sql.bank[3].prompt)).toBeInTheDocument();
+    expect(within(dialog).getByText("Your answer: FROM")).toBeInTheDocument();
+  });
+
+  it("reports a newly earned badge once, with the question id and the answer", async () => {
+    const user = setup();
+    const onBadgeEarned = vi.fn();
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    render(<Overworld onMenu={() => {}} initial={{ player: { x: 20, y: 84 } }} onBadgeEarned={onBadgeEarned} />);
+    await user.keyboard("e");
+    await user.keyboard("href{Enter}");
+    expect(onBadgeEarned).toHaveBeenCalledTimes(1);
+    expect(onBadgeEarned).toHaveBeenCalledWith({ chest: "chest-html", questionId: "html-link", answer: "href" });
+  });
+
+  it("never reports the badges it was seeded with", () => {
+    const onBadgeEarned = vi.fn();
+    render(<Overworld onMenu={() => {}} saved={[savedSql]} onBadgeEarned={onBadgeEarned} />);
+    expect(onBadgeEarned).not.toHaveBeenCalled();
+  });
+
+  it("logs the save failure once each time the saver starts failing", () => {
+    const { rerender } = render(<Overworld onMenu={() => {}} saveFailed={false} />);
+    expect(screen.queryByText(LOG.saveFailed)).toBeNull();
+    rerender(<Overworld onMenu={() => {}} saveFailed />);
+    expect(screen.getAllByText(LOG.saveFailed)).toHaveLength(1);
+    rerender(<Overworld onMenu={() => {}} saveFailed />);
+    expect(screen.getAllByText(LOG.saveFailed)).toHaveLength(1);
+  });
+});
+
+describe("Overworld Foggaten Island", () => {
+  const atDock = { player: { x: 92, y: 74 } };
+
+  it("sailing from the Peaks' dock with the gate open lands on the island", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} initial={{ ...atDock, gateUnlocked: true }} />);
+    await user.click(screen.getByRole("button", { name: "[B] Dock" }));
+    expect(screen.getByText("(Foggaten Island Biome)")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "[H] Hermit" })).toBeInTheDocument();
+    expect(screen.getByText(LOG.sailOut)).toBeInTheDocument();
+  });
+
+  it("sailing back from the island's dock returns to the Peaks", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} initial={{ zone: "foggaten", gateUnlocked: true, player: { x: 10, y: 62 } }} />);
+    await user.click(screen.getByRole("button", { name: "[B] Dock" }));
+    expect(screen.getByText("(Snowy Peaks Biome)")).toBeInTheDocument();
+    expect(screen.getByText(LOG.sailBack)).toBeInTheDocument();
+  });
+
+  it("with the gate closed the dock is locked and the zone does not change", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} initial={atDock} />);
+    await user.click(screen.getByRole("button", { name: "[B] Dock" }));
+    expect(screen.getByText(LOG.dockLocked)).toBeInTheDocument();
+    expect(screen.getByText("(Snowy Peaks Biome)")).toBeInTheDocument();
+    expect(screen.queryByText("(Foggaten Island Biome)")).toBeNull();
+  });
+});
+
+describe("Overworld lighthouse lamp", () => {
+  const beside = { zone: "foggaten" as const, gateUnlocked: true, player: { x: 52, y: 46 } };
+  const toggle = async (user: ReturnType<typeof setup>, ...n: number[]) => {
+    for (const i of n) await user.click(screen.getByRole("switch", { name: `Switch ${i}` }));
+  };
+
+  it("E at the lighthouse opens the lamp terminal; a wrong setting names the letter it sent", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} initial={beside} />);
+    await user.click(screen.getByRole("button", { name: "[L] Lighthouse" }));
+    expect(screen.getByRole("dialog", { name: "< LIGHTHOUSE: LAMP LOCK >" })).toBeInTheDocument();
+    await toggle(user, 2, 5, 7, 8);
+    await user.click(screen.getByRole("button", { name: "[ RUN LAMP ]" }));
+    expect(screen.getByRole("alert")).toHaveTextContent('The lamp sent "K". It should send "H".');
+  });
+
+  it("01001000 lights the lighthouse, closes the terminal and logs it", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} initial={beside} />);
+    await user.click(screen.getByRole("button", { name: "[L] Lighthouse" }));
+    await toggle(user, 2, 5);
+    await user.click(screen.getByRole("button", { name: "[ RUN LAMP ]" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByText(LOG.lampLit)).toBeInTheDocument();
+  });
+
+  it("the drone's tip shows after two wrong runs, and Escape closes the terminal", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} initial={beside} />);
+    await user.click(screen.getByRole("button", { name: "[L] Lighthouse" }));
+    await user.click(screen.getByRole("button", { name: "[ RUN LAMP ]" }));
+    await user.click(screen.getByRole("button", { name: "[ RUN LAMP ]" }));
+    expect(screen.getByText(/The drone has a tip below/)).toBeInTheDocument();
+    expect(screen.getByText(/Each switch is worth a power of two/)).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});
+
+describe("Overworld: the finale, the crown and New Game+", () => {
+  const all = { badges: [...CHEST_IDS], finaleOpen: true, finaleSeen: true };
+
+  it("shows the finale dialog, which Keep exploring closes; the map draws the crown", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} initial={all} />);
+    expect(screen.getByRole("dialog", { name: /master of devlandia/i })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "[ Keep exploring ]" }));
+    expect(screen.queryByRole("dialog", { name: /master of devlandia/i })).toBeNull();
+    expect(drawn[drawn.length - 1].input.master).toBe(true);
+  });
+
+  it("[ NEW GAME+ ] calls for a fresh hard run, and is missing without a handler", async () => {
+    const user = setup();
+    const onNewGamePlus = vi.fn();
+    const { unmount } = render(<Overworld onMenu={() => {}} initial={all} onNewGamePlus={onNewGamePlus} />);
+    await user.click(screen.getByRole("button", { name: "[ NEW GAME+ ]" }));
+    expect(onNewGamePlus).toHaveBeenCalledTimes(1);
+    unmount();
+    render(<Overworld onMenu={() => {}} initial={all} />);
+    expect(screen.queryByRole("button", { name: "[ NEW GAME+ ]" })).toBeNull();
+  });
+
+  it("[ Get certificate ] swaps the finale for the certificate, with the signed-in name, and Back returns", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} initial={all} playerName="Ada" />);
+    await user.click(screen.getByRole("button", { name: "[ Get certificate ]" }));
+    expect(screen.getByRole("dialog", { name: /certificate/i })).toBeInTheDocument();
+    expect(screen.getByLabelText("Name on the certificate")).toHaveValue("Ada");
+    await user.click(screen.getByRole("button", { name: "[ Back ]" }));
+    expect(screen.getByRole("dialog", { name: /master of devlandia/i })).toBeInTheDocument();
+  });
+
+  it("a hard run says so in the top bar", () => {
+    render(<Overworld onMenu={() => {}} hard />);
+    expect(screen.getByText("Hard mode")).toBeInTheDocument();
+    expect(drawn[drawn.length - 1].input.master).toBe(false);
+  });
+
+  it("a normal run has no hard-mode tag", () => {
+    render(<Overworld onMenu={() => {}} />);
+    expect(screen.queryByText("Hard mode")).toBeNull();
+  });
+});
+
+describe("Overworld: the beach's tide tag", () => {
+  it("shows the tide in the top bar on the Sunny Beach only", () => {
+    const { unmount } = render(<Overworld onMenu={() => {}} initial={{ zone: "beach", player: { x: 50, y: 70 } }} />);
+    expect(screen.getByText("· Tide: Low")).toBeInTheDocument();
+    unmount();
+    render(<Overworld onMenu={() => {}} />);
+    expect(screen.queryByText(/Tide:/)).toBeNull();
+  });
+
+  it("the sandcastle's map button opens its puzzle, and the drawn castle is unfinished until it is solved", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} initial={{ zone: "beach", player: { x: 56, y: 80 } }} />);
+    expect(drawn[drawn.length - 1].input.sandcastleBuilt).toBe(false);
+    await user.click(screen.getByRole("button", { name: "Sandcastle" }));
+    expect(screen.getByRole("dialog", { name: /sandcastle/i })).toBeInTheDocument();
+  });
+
+  it("a finished castle is drawn finished and its button says so", () => {
+    render(<Overworld onMenu={() => {}} initial={{ zone: "beach", player: { x: 56, y: 80 }, sandcastleBuilt: true }} />);
+    expect(drawn[drawn.length - 1].input.sandcastleBuilt).toBe(true);
+    expect(screen.getByRole("button", { name: "Sandcastle, finished" })).toBeInTheDocument();
   });
 });

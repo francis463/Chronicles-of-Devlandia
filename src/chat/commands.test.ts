@@ -20,7 +20,7 @@ const LOBBY = ctx({ where: "lobby", minutes: 0, badges: [], known: {} });
 const notes = (text: string, c: CommandContext = GAME) => runCommand(text, c).notes;
 const effect = (text: string, c: CommandContext = GAME) => runCommand(text, c).effect;
 
-const PLACES = 'No place called "%". Try: gate, tower, cache, river, ada, signpost, terminal, archive, or a chest: html, css, java, cpp1, cpp2, py1, php, sql, py2, cs.';
+const PLACES = 'No place called "%". Try: gate, tower, cache, river, ada, signpost, terminal, archive, ranger, campfire, dock, pier, lighthouse, hermit, nomad, fisher, or a chest: html, css, java, cpp1, cpp2, py1, php, sql, py2, cs, js.';
 
 describe("/help", () => {
   it("in a game lists the eight lines", () => {
@@ -67,6 +67,7 @@ describe("/where", () => {
   });
   it("calls an unknown zone somewhere new", () => {
     expect(notes("/where", ctx({ roster: [GAME.roster[0], { id: "p2", name: "Kai", zone: null }] }))).toEqual(["Kai: somewhere new"]);
+    expect(notes("/where", ctx({ roster: [GAME.roster[0], { id: "p2", name: "Kai", zone: "foggaten" }] }))).toEqual(["Kai: Foggaten Island"]);
   });
   it("answers when alone, in solo and in the lobby", () => {
     expect(notes("/where", ctx({ roster: [GAME.roster[0]] }))).toEqual(["No teammates here right now."]);
@@ -89,11 +90,11 @@ describe("/time", () => {
 
 describe("/badges", () => {
   it("lists yours in chest-table order", () => {
-    expect(notes("/badges")).toEqual(["Your badges: 3/10 (HTML, CSS, SQL)."]);
-    expect(notes("/badges", SOLO)).toEqual(["Your badges: 3/10 (HTML, CSS, SQL)."]);
+    expect(notes("/badges")).toEqual(["Your badges: 3/11 (HTML, CSS, SQL)."]);
+    expect(notes("/badges", SOLO)).toEqual(["Your badges: 3/11 (HTML, CSS, SQL)."]);
   });
-  it("says 0/10 with none", () => {
-    expect(notes("/badges", ctx({ badges: [] }))).toEqual(["Your badges: 0/10."]);
+  it("says 0/11 with none", () => {
+    expect(notes("/badges", ctx({ badges: [] }))).toEqual(["Your badges: 0/11."]);
   });
   it("reports what you know of a teammate", () => {
     expect(notes("/badges Kai")).toEqual(["Kai has earned 2 that you know of: HTML, SQL."]);
@@ -105,7 +106,7 @@ describe("/badges", () => {
   });
   it("answers unknown names, yourself and solo", () => {
     expect(notes("/badges Zed")).toEqual(['No teammate called "Zed".']);
-    expect(notes("/badges ana")).toEqual(["Your badges: 3/10 (HTML, CSS, SQL)."]);
+    expect(notes("/badges ana")).toEqual(["Your badges: 3/11 (HTML, CSS, SQL)."]);
     expect(notes("/badges Kai", SOLO)).toEqual(["Solo game: no teammates."]);
   });
   it("is available in the lobby only as a refusal", () => {
@@ -124,6 +125,10 @@ describe("/ping", () => {
     expect(r.notes).toEqual(["Ping sent: the Terminal Gate."]);
     expect(r.effect).toEqual({ kind: "ping", zone: "peaks", x: 50, y: 50, place: "gate" });
     expect(effect("/ping CS")).toMatchObject({ place: "cs", zone: "village" });
+    expect(effect("/ping cpp1")).toMatchObject({ place: "cpp1", zone: "beach", x: 90, y: 62 });
+    expect(effect("/ping py2")).toMatchObject({ place: "py2", zone: "desert", x: 42, y: 52 });
+    expect(effect("/ping lighthouse")).toMatchObject({ place: "lighthouse", zone: "foggaten", x: 50, y: 46 });
+    expect(effect("/ping Dock")).toMatchObject({ place: "dock", zone: "peaks" });
   });
   it("refuses unknown places, whole-argument", () => {
     expect(notes("/ping gate now")).toEqual([PLACES.replace("%", "gate now")]);

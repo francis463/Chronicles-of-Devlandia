@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { BEACH_PIER, DESERT_PYRAMID, OASIS, OLD_OAK, RUINS, SHIPWRECK } from "../game/constants";
 import { ARCHIVE_LOCK, GATE_CSS, SCROLL_CIPHER } from "./bank/builtin";
 import { MATCHER_ROUNDS } from "./bank/matcher";
 import { checkBlank, isCorrectBlank, normalize } from "./check";
-import { CHEST_IDS, CHESTS, chestChallenge } from "./chests";
-import type { BlankChallenge, Challenge, ChestId } from "./types";
+import { BANK_SIZE, CHEST_IDS, CHESTS, chestChallenge, type Picks } from "./chests";
+import type { BlankChallenge, Challenge } from "./types";
 
 const bankItems: Challenge[] = CHESTS.flatMap((c) => [...c.bank]);
 const blanks = [...bankItems, GATE_CSS, SCROLL_CIPHER, ARCHIVE_LOCK].filter((c): c is BlankChallenge => c.kind === "blank");
@@ -14,21 +15,34 @@ const byId = (id: string) => {
 };
 const accepts = (c: BlankChallenge, token: string) =>
   c.answers.some((a) => normalize(a, c.caseSensitive) === normalize(token, c.caseSensitive));
-const allZero = Object.fromEntries(CHEST_IDS.map((id) => [id, 0])) as Record<ChestId, 0 | 1 | 2>;
+const allZero = Object.fromEntries(CHEST_IDS.map((id) => [id, 0])) as Picks;
 
 describe("the question bank and the chest table", () => {
-  it("10 chests in table order, 3 challenges each, every language, 3 matcher rounds of 5 pairs", () => {
+  it("11 chests in table order, a bank each, every language, 3 matcher rounds of 5 pairs", () => {
     expect(CHEST_IDS).toEqual([
       "chest-cpp-1", "chest-java", "chest-cpp-2", "chest-html", "chest-css",
-      "chest-py-1", "chest-php", "chest-sql", "chest-py-2", "chest-cs",
+      "chest-py-1", "chest-php", "chest-sql", "chest-py-2", "chest-cs", "chest-js",
     ]);
-    for (const chest of CHESTS) expect(chest.bank, chest.id).toHaveLength(3);
+    for (const chest of CHESTS) expect(chest.bank.length, chest.id).toBe(BANK_SIZE);
     expect(new Set(bankItems.map((c) => c.lang))).toEqual(
-      new Set(["html", "css", "php", "sql", "python", "java", "csharp", "cpp"]),
+      new Set(["html", "css", "php", "sql", "python", "java", "csharp", "cpp", "javascript"]),
     );
     expect(MATCHER_ROUNDS).toHaveLength(3);
     for (const round of MATCHER_ROUNDS) expect(round.pairs, round.id).toHaveLength(5);
-    expect(new Set(bankItems.map((c) => c.id)).size).toBe(30);
+    expect(new Set(bankItems.map((c) => c.id)).size).toBe(bankItems.length);
+  });
+
+  it("twelve questions per chest, 132 distinct ids, and every pick resolves with the chest's title", () => {
+    expect(BANK_SIZE).toBe(12);
+    expect(bankItems).toHaveLength(132);
+    expect(new Set(bankItems.map((c) => c.id)).size).toBe(132);
+    for (const chest of CHESTS) {
+      for (let pick = 0; pick < BANK_SIZE; pick++) {
+        const challenge = chestChallenge({ ...allZero, [chest.id]: pick }, chest.id);
+        expect(challenge.id, `${chest.id} #${pick}`).toBe(chest.bank[pick].id);
+        expect(challenge.title, chest.id).toBe(`< CODE CHEST: ${chest.badge.toUpperCase()} >`);
+      }
+    }
   });
 
   it("each blank: one gap, one kind of live data, answers pass their own check", () => {
@@ -53,7 +67,7 @@ describe("the question bank and the chest table", () => {
 
   it("Blocks tiles: exactly one accepted answer and ≥ 2 wrong tiles that pass the live check", () => {
     const tiled = blanks.filter((c) => c.blocks);
-    expect(tiled.length).toBeGreaterThanOrEqual(11);
+    expect(tiled.length).toBeGreaterThanOrEqual(13);
     for (const c of tiled) {
       const tiles = c.blocks ?? [];
       expect(tiles.length, c.id).toBeGreaterThanOrEqual(4);
@@ -66,12 +80,62 @@ describe("the question bank and the chest table", () => {
     expect(ARCHIVE_LOCK.blocks).toBeUndefined();
   });
 
-  it("choices: 4 unique options, correct in range", () => {
+  it("HTML, CSS and PHP each have twelve questions with unique ids", () => {
+    for (const id of ["chest-html", "chest-css", "chest-php"] as const) {
+      const ids = CHESTS.find((c) => c.id === id)!.bank.map((q) => q.id);
+      expect(ids, id).toHaveLength(12);
+      expect(new Set(ids).size, id).toBe(12);
+    }
+  });
+
+  it("SQL, Java and C# each have twelve questions with unique ids", () => {
+    for (const id of ["chest-sql", "chest-java", "chest-cs"] as const) {
+      const ids = CHESTS.find((c) => c.id === id)!.bank.map((q) => q.id);
+      expect(ids, id).toHaveLength(12);
+      expect(new Set(ids).size, id).toBe(12);
+    }
+  });
+
+  it("C++ and Python chests each have twelve questions with unique ids", () => {
+    for (const id of ["chest-cpp-1", "chest-cpp-2", "chest-py-1", "chest-py-2"] as const) {
+      const ids = CHESTS.find((c) => c.id === id)!.bank.map((q) => q.id);
+      expect(ids, id).toHaveLength(12);
+      expect(new Set(ids).size, id).toBe(12);
+    }
+  });
+
+  it("the JavaScript chest has twelve unique questions, the first six being two blanks then four choices, titled for its badge", () => {
+    const chest = CHESTS.find((c) => c.id === "chest-js")!;
+    expect(chest.bank.map((q) => q.id).slice(0, 6)).toEqual(["js-console-log", "js-const", "js-strict-equal", "js-array-length", "js-template", "js-typeof"]);
+    expect(chest.bank.map((q) => q.kind).slice(0, 6)).toEqual(["blank", "blank", "choice", "choice", "choice", "choice"]);
+    expect(chest.bank).toHaveLength(12);
+    expect([chest.zone, chest.at, chest.host, chest.north, chest.where]).toEqual(["forest", { x: 24, y: 50 }, "Old Oak", false, "Dense Forest · Old Oak"]);
+    expect(chestChallenge({ ...allZero, "chest-js": 0 }, "chest-js").title).toBe("< CODE CHEST: JAVASCRIPT >");
+    expect(accepts(byId("js-console-log"), "log")).toBe(true);
+    for (const m of ["info", "debug"]) expect(accepts(byId("js-console-log"), m), m).toBe(true);
+    expect(accepts(byId("js-console-log"), "warn")).toBe(false);
+    expect(accepts(byId("js-const"), "const")).toBe(true);
+    expect(accepts(byId("js-const"), "let")).toBe(false);
+  });
+
+  it("java-class offers no other type-declaring keyword as a wrong tile (an enum is an enum class)", () => {
+    const tiles = byId("java-class").blocks ?? [];
+    for (const keyword of ["enum", "record"]) expect(tiles).not.toContain(keyword);
+  });
+
+  it("choices: 4 unique options, or True and False in that order; correct in range", () => {
     const choices = bankItems.filter((c) => c.kind === "choice");
     expect(choices.length).toBeGreaterThan(0);
     for (const c of choices) {
-      expect(new Set(c.options).size, c.id).toBe(4);
-      expect([0, 1, 2, 3], c.id).toContain(c.correct);
+      expect(new Set(c.options).size, c.id).toBe(c.options.length);
+      if (c.options.length === 2) {
+        expect([...c.options], c.id).toEqual(["True", "False"]);
+        expect(c.fixedOrder, c.id).toBe(true);
+        expect([0, 1], c.id).toContain(c.correct);
+      } else {
+        expect(c.fixedOrder, c.id).toBeUndefined();
+        expect([0, 1, 2, 3], c.id).toContain(c.correct);
+      }
     }
   });
 
@@ -97,6 +161,18 @@ describe("the question bank and the chest table", () => {
       ["html-list", "b"],
       ["sql-from", "SELECT"], ["sql-from", "AS"],
       ["gate-css", "flow-root"],
+      ["html-img-alt", "title"], ["html-img-alt", "src"],
+      ["css-font-size", "font-weight"], ["css-font-size", "line-height"],
+      ["php-if", "foreach"], ["php-if", "else"],
+      ["sql-order", "GROUP"], ["sql-order", "WHERE"],
+      ["java-class", "interface"], ["java-class", "static"],
+      ["cs-if", "else"], ["cs-if", "switch"],
+      ["cpp-include", "define"], ["cpp-include", "pragma"],
+      ["cpp-while", "for"], ["cpp-while", "if"],
+      ["js-console-log", "warn"], ["js-console-log", "error"],
+      ["js-const", "let"], ["js-const", "var"],
+      ["py-input", "print"], ["py-input", "len"],
+      ["py-dict-get", "pop"], ["py-dict-get", "keys"],
     ];
     for (const [id, token] of table) expect(checkBlank(byId(id), token), `${id}: ${token}`).toEqual({ ok: true });
   });
@@ -108,6 +184,13 @@ describe("the question bank and the chest table", () => {
       "css-color": "color background background-color border-color fill stroke margin font-size outline caret-color accent-color",
       "sql-from": "FROM AS INTO WHERE HAVING LIMIT OFFSET AND OR LIKE SELECT",
       "gate-css": "block inline flex grid none contents table flow-root list-item",
+      "html-img-alt": "alt src title width height loading srcset sizes class id style",
+      "css-font-size": "font-size font-weight font-family font line-height width height margin padding",
+      "php-if": "if else elseif foreach while for switch match do",
+      "sql-order": "ORDER GROUP WHERE HAVING LIMIT SELECT FROM PARTITION",
+      "java-class": "class interface enum record abstract final static void",
+      "cs-if": "if else switch while for foreach do when",
+      "cpp-while": "while for do if else switch goto break continue",
     };
     for (const [id, names] of Object.entries(reference)) {
       const live = byId(id).live;
@@ -142,5 +225,29 @@ describe("the question bank and the chest table", () => {
     expect(picked.id).toBe("sql-max");
     expect(picked.title).toBe("< CODE CHEST: SQL >");
     expect(chestChallenge(allZero, "chest-cpp-1").title).toBe("< CODE CHEST: C++ I >");
+  });
+});
+
+describe("hosted chests", () => {
+  it("every chest but C# is inside a named landmark with a spot; only the CSS chest waits north of the wall", () => {
+    for (const c of CHESTS) {
+      if (c.id === "chest-cs") expect([c.host, c.at]).toEqual([null, null]);
+      else {
+        expect(c.host, c.id).toBeTruthy();
+        expect(c.at, c.id).not.toBeNull();
+        expect(c.north, c.id).toBe(c.id === "chest-css");
+      }
+    }
+    expect(new Set(CHESTS.flatMap((c) => (c.host ? [`${c.zone}/${c.host}`] : []))).size).toBe(10);
+  });
+
+  it("each chest stands exactly where its landmark's constant says", () => {
+    const at = (id: string) => CHESTS.find((c) => c.id === id)!.at;
+    expect(at("chest-js")).toEqual(OLD_OAK);
+    expect(at("chest-py-1")).toEqual(RUINS);
+    expect(at("chest-py-2")).toEqual(OASIS);
+    expect(at("chest-java")).toEqual(DESERT_PYRAMID);
+    expect(at("chest-cpp-1")).toEqual(BEACH_PIER);
+    expect(at("chest-cpp-2")).toEqual(SHIPWRECK);
   });
 });

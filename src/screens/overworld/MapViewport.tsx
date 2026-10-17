@@ -1,10 +1,13 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import type { ClassId } from "../../game/classes";
 import { HIDDEN_ARTIFACT } from "../../game/constants";
 import type { Card } from "../../game/cards";
-import { chestById } from "../../learn/chests";
+import { CHESTS, chestById } from "../../learn/chests";
 import type { ChestId } from "../../learn/types";
 import type { Poi, PoiId, Point } from "../../game/types";
 import type { ZoneId } from "../../game/zones";
+import { useCrossingFade } from "../../hooks/useCrossingFade";
+import { useReducedMotion } from "../../hooks/useReducedMotion";
 import type { ActivePing } from "../../hooks/usePings";
 import type { Teammate } from "../../hooks/useTeamSession";
 import type { SceneInput } from "../../render/scene";
@@ -16,6 +19,8 @@ import { MapCanvas } from "./MapCanvas";
 import {
   CHEST_CAPTION_SCALE,
   EXIT_SIGNS,
+  DESERT_SCENERY,
+  FOREST_SCENERY,
   LANDMARK_CAPTIONS,
   captionRect,
   captionText,
@@ -27,6 +32,8 @@ import {
   type CssRect,
   type MapCaptionId,
 } from "./mapLayout";
+
+const CHEST_COUNT = CHESTS.length;
 
 const SOLO_COLOR = "#22c55e";
 const at = (p: Point) => ({ left: `${p.x}%`, top: `${p.y}%` });
@@ -212,13 +219,18 @@ export function MapViewport({
   artifactFound,
   towerPowered,
   badges,
+  mushrooms = [],
+  jars = [],
+  sandcastleBuilt = false,
   matcherSolved,
   archiveOpen,
+  lighthouseLit,
   teammates = [],
   pings = [],
   lightMode,
   snow,
   playerColor,
+  playerClass,
   inRange,
   downed,
   onInteract,
@@ -238,8 +250,15 @@ export function MapViewport({
   towerPowered: boolean;
   /** The chests you have opened: they draw open. */
   badges: ChestId[];
+  /** The ranger's glow mushrooms you have picked: they leave the map. */
+  mushrooms?: readonly PoiId[];
+  /** The nomad's water jars you have picked up: they leave the map. */
+  jars?: readonly PoiId[];
+  /** The sandcastle puzzle is solved: the castle draws finished, and its caption gets a tick. */
+  sandcastleBuilt?: boolean;
   matcherSolved: boolean;
   archiveOpen: boolean;
+  lighthouseLit: boolean;
   teammates?: Teammate[];
   /** Team signals in any zone; only this zone's are drawn. */
   pings?: ActivePing[];
@@ -247,6 +266,7 @@ export function MapViewport({
   lightMode?: "auto" | "day" | "night";
   snow?: boolean;
   playerColor?: string;
+  playerClass?: ClassId;
   inRange: Poi | null;
   downed: boolean;
   onInteract: (poi: PoiId) => void;
@@ -258,22 +278,24 @@ export function MapViewport({
   card: Card | null;
 }) {
   const [mapRef, size] = useMapSize();
+  const reduced = useReducedMotion();
+  const { fading } = useCrossingFade(zone, reduced);
   const world = fitWorld(size);
   const map = { width: size.width, height: size.height };
   const worldSize = { width: world.width, height: world.height };
   const inPeaks = zone === "peaks";
   const obstacles = [
-    ...(inPeaks && artifactFound ? [{ ...HIDDEN_ARTIFACT, box: SEMICOLON_BOX }] : []),
+    ...(zone === "foggaten" && artifactFound ? [{ ...HIDDEN_ARTIFACT, box: SEMICOLON_BOX }] : []),
     ...teammates.map((t) => ({ x: t.x, y: t.y, box: EXPLORER_BOX })),
   ];
-  const mapState = { hasLoot, towerPowered, badges, archiveOpen, reach: inRange?.id ?? null };
+  const mapState = { sandcastleBuilt, hasLoot, towerPowered, badges, archiveOpen, reach: inRange?.id ?? null };
   const hits = zoneHitAreas(world, zone);
   const fixed = landmarkCaptions(world, map, mapState, zone);
-  const labels = labelLayout(player, drone, worldSize, obstacles, world.scale, fixed, [exitSignBox(world, zone)]);
+  const labels = labelLayout(player, drone, worldSize, obstacles, world.scale, fixed, exitSignBox(world, zone));
   const boxes = labelBoxes(player, drone, worldSize, labels, world.scale);
   const inWorld = (p: Point) => ({ x: (p.x / 100) * world.width, y: (p.y / 100) * world.height });
 
-  const exitSign = EXIT_SIGNS[zone];
+  const exitSigns = EXIT_SIGNS[zone];
 
   const scene: SceneInput = {
     zone,
@@ -281,6 +303,7 @@ export function MapViewport({
     drone,
     teammates,
     playerColor: playerColor ?? SOLO_COLOR,
+    playerClass,
     downed,
     hasLoot,
     gateUnlocked,
@@ -288,8 +311,13 @@ export function MapViewport({
     artifactFound,
     towerPowered,
     archiveOpen,
+    lighthouseLit,
     matcherSolved,
     earned: badges,
+    mushrooms,
+    jars,
+    sandcastleBuilt,
+    master: badges.length >= CHEST_COUNT,
     minutes,
     lightMode,
     snow,
@@ -315,13 +343,36 @@ export function MapViewport({
         className="pointer-events-none absolute inset-0 z-[5] bg-[var(--panel)] opacity-0 animate-[zone-fade_200ms_ease-out] motion-reduce:hidden"
       />
 
-      {/* Fog of war around the player, as before; the powered signal tower fades it out. */}
+      {/* The boat crossing: the map goes dark for 700 ms between the Peaks and the island. */}
+      <div
+        data-testid="crossing-fade"
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-[40] bg-black transition-opacity duration-300 ease-linear"
+        style={{ opacity: fading ? 1 : 0 }}
+      />
+
+      {/* The island's mist: a slow, pixel-patterned drift over the scene that fades away once the lighthouse is lit. It hides nothing and changes no gameplay. */}
+      {zone === "foggaten" && (
+        <div
+          data-testid="mist"
+          aria-hidden="true"
+          className={`pointer-events-none absolute inset-0 z-[30] transition-opacity duration-1000 ease-linear motion-reduce:transition-none ${reduced ? "" : "animate-[mist-drift_40s_linear_infinite]"}`}
+          style={{
+            backgroundImage: "radial-gradient(rgba(226,232,240,0.5) 40%, transparent 41%)",
+            backgroundSize: "24px 24px",
+            backgroundColor: "rgba(203,213,225,0.22)",
+            opacity: lighthouseLit ? 0 : 1,
+          }}
+        />
+      )}
+
+      {/* Fog of war around the player; the powered signal tower fades it out, and the forest has none. */}
       <div
         data-testid="fog"
         className="pointer-events-none absolute inset-0 z-10 transition-opacity duration-1000 ease-linear motion-reduce:transition-none"
         style={{
           background: `radial-gradient(circle farthest-corner at ${fogX}px ${fogY}px, transparent 0%, transparent 15%, rgba(15,23,42,0.35) 32%, rgba(15,23,42,0.7) 62%)`,
-          opacity: towerPowered ? 0 : 1,
+          opacity: towerPowered || zone === "forest" || zone === "foggaten" || zone === "desert" || zone === "beach" ? 0 : 1,
         }}
       />
 
@@ -336,10 +387,54 @@ export function MapViewport({
             <MapCaption id="peaks" text="(Snowy Peaks Biome)" world={world} />
             <MapCaption id="river" text={towerPowered ? "Bridge" : "Frozen River"} world={world} />
             <MapCaption id="forest" text="(Dense Forests Biome)" world={world} />
+            <LandmarkButton hit={hits["peaks-signpost"]} name={caption("peaks-signpost")} label="Signpost" color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={smallMap && inRange?.id !== "peaks-signpost"} peek passive={smallMap} onClick={() => onInteract("peaks-signpost")} />
+            <LandmarkButton hit={hits["weather-station"]} name={caption("weather-station")} label="Weather Station" color="var(--accent)" world={world} map={map} prefer="above" disabled={downed} hideCaption={smallMap && inRange?.id !== "weather-station"} peek passive={smallMap} onClick={() => onInteract("weather-station")} />
+            {towerPowered && (
+              <LandmarkButton hit={hits["snow-cave"]} name={caption("snow-cave")} label="Snow Cave" color="var(--primary-border)" world={world} map={map} prefer="above" disabled={downed} hideCaption={smallMap && inRange?.id !== "snow-cave"} peek passive={smallMap} onClick={() => onInteract("snow-cave")} />
+            )}
+            <LandmarkButton hit={hits.dock} name={caption("dock")} color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "dock"} onClick={() => onInteract("dock")} />
 
             <LandmarkButton hit={hits.tower} name={caption("tower")} color="var(--primary-border)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "tower"} onClick={() => onInteract("tower")} />
             <LandmarkButton hit={hits.chest} name={caption("chest")} color="var(--accent)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "chest"} onClick={() => onInteract("chest")} />
             <LandmarkButton hit={hits.gate} name={caption("gate")} color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "gate"} onClick={() => onInteract("gate")} />
+          </>
+        ) : zone === "forest" ? (
+          <>
+            <MapCaption id="dense-forest" text="(Dense Forest)" world={world} />
+
+            <LandmarkButton hit={hits.ranger} name={caption("ranger")} color="var(--accent-border)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "ranger"} onClick={() => onInteract("ranger")} />
+            <LandmarkButton hit={hits.campfire} name={caption("campfire")} color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "campfire"} onClick={() => onInteract("campfire")} />
+            <LandmarkButton hit={hits["forest-signpost"]} name={caption("forest-signpost")} color="var(--text)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "forest-signpost"} onClick={() => onInteract("forest-signpost")} />
+            {FOREST_SCENERY.filter((l) => !mushrooms.includes(l.id)).map((l) => (
+              <LandmarkButton key={l.id} hit={hits[l.id]} name={caption(l.id)} label={l.label} color="var(--accent)" world={world} map={map} prefer={l.prefer} disabled={downed} hideCaption={smallMap && inRange?.id !== l.id} peek passive={smallMap} onClick={() => onInteract(l.id)} />
+            ))}
+          </>
+        ) : zone === "beach" ? (
+          <>
+            <MapCaption id="beach" text="(Sunny Beach Biome)" world={world} />
+
+            <LandmarkButton hit={hits.fisher} name={caption("fisher")} color="var(--accent-border)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "fisher"} onClick={() => onInteract("fisher")} />
+            <LandmarkButton hit={hits.sandcastle} name={caption("sandcastle")} label={sandcastleBuilt ? "Sandcastle, finished" : "Sandcastle"} color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "sandcastle"} onClick={() => onInteract("sandcastle")} />
+            <LandmarkButton hit={hits["beach-signpost"]} name={caption("beach-signpost")} label="Signpost" color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "beach-signpost"} onClick={() => onInteract("beach-signpost")} />
+          </>
+        ) : zone === "desert" ? (
+          <>
+            <MapCaption id="desert" text="(Sunbaked Desert Biome)" world={world} />
+
+            <LandmarkButton hit={hits.nomad} name={caption("nomad")} color="var(--accent-border)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "nomad"} onClick={() => onInteract("nomad")} />
+            <LandmarkButton hit={hits["desert-signpost"]} name={caption("desert-signpost")} label="Signpost" color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "desert-signpost"} onClick={() => onInteract("desert-signpost")} />
+            {DESERT_SCENERY.filter((l) => !jars.includes(l.id)).map((l) => (
+              <LandmarkButton key={l.id} hit={hits[l.id]} name={caption(l.id)} label={l.label} color="var(--accent)" world={world} map={map} prefer={l.prefer} disabled={downed} hideCaption={smallMap && inRange?.id !== l.id} peek passive={smallMap} onClick={() => onInteract(l.id)} />
+            ))}
+          </>
+        ) : zone === "foggaten" ? (
+          <>
+            <MapCaption id="foggaten" text="(Foggaten Island Biome)" world={world} />
+
+            <LandmarkButton hit={hits["island-dock"]} name={caption("island-dock")} color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "island-dock"} onClick={() => onInteract("island-dock")} />
+            <LandmarkButton hit={hits.lighthouse} name={caption("lighthouse")} color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "lighthouse"} onClick={() => onInteract("lighthouse")} />
+            <LandmarkButton hit={hits.hermit} name={caption("hermit")} color="var(--accent-border)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "hermit"} onClick={() => onInteract("hermit")} />
+            <LandmarkButton hit={hits["island-fire"]} name={caption("island-fire")} color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "island-fire"} onClick={() => onInteract("island-fire")} />
           </>
         ) : (
           <>
@@ -369,27 +464,27 @@ export function MapViewport({
               key={l.id}
               hit={hits[l.id]}
               name={captionText({ ...l, chest: l.chest.id }, mapState)}
-              label={`${l.chest.spoken} chest${earned ? ", earned" : ""}`}
+              label={`${l.chest.host}, ${l.chest.spoken} chest${earned ? ", earned" : ""}`}
               color="var(--code-chest)"
               world={world}
               map={map}
               prefer={l.prefer}
               disabled={downed}
-              hideCaption={smallMap && inRange?.id !== l.id}
-              peek
-              passive={smallMap}
+              hideCaption={inRange?.id === l.id}
               onClick={() => onInteract(l.id)}
             />
           );
         })}
-        <MapCaption id={exitSign.id} text={exitSign.text} world={world} />
+        {exitSigns.map((sign) => (
+          <MapCaption key={sign.id} id={sign.id} text={sign.text} world={world} />
+        ))}
 
-        {inPeaks && clueDecoded && !artifactFound && (
+        {zone === "foggaten" && clueDecoded && !artifactFound && (
           <div data-testid="dig-spot" className="pointer-events-none absolute" style={at(HIDDEN_ARTIFACT)}>
             <span className="sr-only">Dig spot</span>
           </div>
         )}
-        {inPeaks && artifactFound && (
+        {zone === "foggaten" && artifactFound && (
           <div data-testid="artifact" title="Golden Semicolon" className="pointer-events-none absolute" style={at(HIDDEN_ARTIFACT)}>
             <span className="sr-only">Golden Semicolon</span>
           </div>

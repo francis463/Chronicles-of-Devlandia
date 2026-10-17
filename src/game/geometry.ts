@@ -23,17 +23,36 @@ const VERBS: Partial<Record<Poi["id"], string>> = {
   artifact: "Dig here",
   villager: "Talk to Ada",
   signpost: "Read Signpost",
+  ranger: "Talk to Ranger",
+  "forest-signpost": "Read Signpost",
+  "peaks-signpost": "Read Signpost",
+  "weather-station": "Read Weather Station",
+  "snow-cave": "Enter Snow Cave",
   terminal: "Use Syntax Terminal",
+  dock: "Sail to Foggaten Island",
+  "island-dock": "Sail back to the Peaks",
+  hermit: "Talk to Hermit",
+  nomad: "Talk to Nomad",
+  fisher: "Talk to Fisher",
+  "beach-signpost": "Read Signpost",
+  "desert-signpost": "Read Signpost",
+  "mushroom-1": "Pick Glow Mushroom",
+  "mushroom-2": "Pick Glow Mushroom",
+  "mushroom-3": "Pick Glow Mushroom",
+  "jar-1": "Pick up Water Jar",
+  "jar-2": "Pick up Water Jar",
+  "jar-3": "Pick up Water Jar",
 };
 
-const chestVerb = (s: GameState, id: string, badge: string) =>
-  `${s.badges.some((b) => b === id) ? "Review" : "Open"} ${badge} Chest`;
+const chestVerb = (s: GameState, id: string, host: string, open = "Search") => `${s.badges.some((b) => b === id) ? "Review" : open} ${host}`;
 
 /** The action [E] takes at a place in this state, or null for a landmark you inspect. */
 function verbFor(s: GameState, poi: Poi): string | null {
   const chest = CHESTS.find((c) => c.id === poi.id);
-  if (chest) return chestVerb(s, chest.id, chest.badge);
-  if (poi.id === "archive") return s.archiveOpen ? chestVerb(s, "chest-cs", "C#") : "Unseal Archive";
+  if (chest) return chestVerb(s, chest.id, chest.host!);
+  if (poi.id === "sandcastle") return s.sandcastleBuilt ? null : "Build the Sandcastle";
+  if (poi.id === "lighthouse") return s.lighthouseLit ? null : "Light the Lamp";
+  if (poi.id === "archive") return s.archiveOpen ? chestVerb(s, "chest-cs", "C# Chest", "Open") : "Unseal Archive";
   return VERBS[poi.id] ?? null;
 }
 

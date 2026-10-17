@@ -3,10 +3,12 @@ import { gameReducer, initialState, isDowned, isModalOpen, reachPlaces, revealed
 import { placeInReach } from "./geometry";
 import type { ChallengeState, ChallengeTarget, GameState, Point } from "./types";
 import { NO_FLAGS } from "./team";
-import { HIDDEN_ARTIFACT, INTERACT_RADIUS, LOG, PLAYER_START, POIS } from "./constants";
+import { DOCK, HIDDEN_ARTIFACT, INTERACT_RADIUS, ISLAND_DOCK, LIGHTHOUSE, LOG, PEAKS_SIGNPOST, PLAYER_START, POIS, SAIL_LANDING, SNOW_CAVE, WEATHER_STATION } from "./constants";
+import type { Bits8 } from "./lamp";
 import { cardFor } from "./cards";
+import { hermitLine } from "./island";
 import { isNorthOfWall } from "./wall";
-import type { ZoneId } from "./zones";
+import { ZONES, type ZoneId } from "./zones";
 
 const s0 = initialState;
 /** A freshly opened terminal for a target, as the reducer opens it. */
@@ -19,7 +21,6 @@ describe("gameReducer: initial state", () => {
     expect(s0.player).toEqual({ x: 28, y: 72 });
     expect(s0.drone).toEqual({ x: 36, y: 70 });
     expect(s0.hp).toBe(100);
-    expect(s0.stamina).toBe(100);
     expect(s0.minutes).toBe(1169);
     expect(s0.logs).toEqual([
       "Entered C++ Peaks.",
@@ -31,10 +32,9 @@ describe("gameReducer: initial state", () => {
 });
 
 describe("gameReducer: move", () => {
-  it("moves four units and spends one stamina", () => {
+  it("moves four units", () => {
     const s = gameReducer(s0, { type: "move", dir: "up" });
     expect(s.player).toEqual({ x: 28, y: 68 });
-    expect(s.stamina).toBe(99);
   });
 
   it("moves in all four directions", () => {
@@ -43,11 +43,10 @@ describe("gameReducer: move", () => {
     expect(gameReducer(s0, { type: "move", dir: "right" }).player).toEqual({ x: 32, y: 72 });
   });
 
-  it("stays clamped at a map edge and never drives stamina below 0", () => {
-    const edge = { ...s0, player: { x: 6, y: 50 }, stamina: 0 };
+  it("stays clamped at a map edge", () => {
+    const edge = { ...s0, player: { x: 6, y: 50 } };
     const s = gameReducer(edge, { type: "move", dir: "left" });
     expect(s.player.x).toBe(6);
-    expect(s.stamina).toBe(0);
   });
 
   it("completes the quest once on first entering the river", () => {
@@ -67,11 +66,9 @@ describe("gameReducer: move", () => {
 });
 
 describe("gameReducer: tick", () => {
-  it("advances five minutes and regenerates two stamina capped at 100", () => {
-    const s = gameReducer({ ...s0, stamina: 99 }, { type: "tick" });
+  it("advances five minutes", () => {
+    const s = gameReducer(s0, { type: "tick" });
     expect(s.minutes).toBe(1174);
-    expect(s.stamina).toBe(100);
-    expect(gameReducer({ ...s0, stamina: 50 }, { type: "tick" }).stamina).toBe(52);
   });
 
   it("wraps the clock at midnight", () => {
@@ -227,7 +224,7 @@ describe("gameReducer: hidden artifact side quest", () => {
     const s = gameReducer(open, { type: "submitChallenge", value: "Dense Forest" });
     expect(s.clueDecoded).toBe(true);
     expect(s.challenge).toBeNull();
-    expect(lastLog(s)).toBe("Clue decoded: the artifact rests in the Dense Forest.");
+    expect(lastLog(s)).toBe("Clue decoded: the artifact is buried in the Dense Forest, south of camp.");
   });
 
   it("a wrong decode keeps the cipher open with an error", () => {
@@ -253,11 +250,22 @@ describe("gameReducer: hidden artifact side quest", () => {
   });
 
   it("the artifact cannot be dug up before the clue is decoded", () => {
-    expect(gameReducer(looted, { type: "interact", poi: "artifact" })).toBe(looted);
+    const onIsland = { ...looted, zone: "foggaten" as const };
+    expect(gameReducer(onIsland, { type: "interact", poi: "artifact" })).toBe(onIsland);
+  });
+
+  it("the dig spot is only on Foggaten Island: never visible or usable in the Peaks or the forest (Review Focus 3)", () => {
+    const decoded = { ...looted, clueDecoded: true };
+    expect(visiblePois(decoded).map((p) => p.id)).not.toContain("artifact");
+    expect(gameReducer(decoded, { type: "interact", poi: "artifact" })).toBe(decoded);
+    expect(visiblePois({ ...decoded, zone: "forest" }).map((p) => p.id)).not.toContain("artifact");
+    expect(gameReducer({ ...decoded, zone: "forest" }, { type: "interact", poi: "artifact" })).toEqual({ ...decoded, zone: "forest" });
+    expect(visiblePois({ ...decoded, zone: "foggaten" }).map((p) => p.id)).toContain("artifact");
+    expect(visiblePois({ ...decoded, zone: "foggaten", artifactFound: true }).map((p) => p.id)).not.toContain("artifact");
   });
 
   it("digging after decoding finds the artifact once", () => {
-    const decoded = { ...looted, clueDecoded: true };
+    const decoded = { ...looted, zone: "foggaten" as const, clueDecoded: true };
     const found = gameReducer(decoded, { type: "interact", poi: "artifact" });
     expect(found.artifactFound).toBe(true);
     expect(found.inspected).toBe("artifact");
@@ -361,11 +369,10 @@ describe("gameReducer: teammates", () => {
 describe("gameReducer: the north wall", () => {
   const poi = (id: string) => POIS.find((p) => p.id === id)!;
 
-  it("a step into the locked wall stays put, costs no stamina and logs the locked line", () => {
+  it("a step into the locked wall stays put, logs the locked line", () => {
     const start = { ...s0, player: { x: 30, y: 52 } };
     const s = gameReducer(start, { type: "move", dir: "up" });
     expect(s.player).toEqual({ x: 30, y: 52 });
-    expect(s.stamina).toBe(100);
     expect(lastLog(s)).toBe(LOG.wallLocked);
     expect(s.logCount).toBe(start.logCount + 1);
   });
@@ -380,10 +387,9 @@ describe("gameReducer: the north wall", () => {
     expect(s.logs.filter((l) => l === LOG.wallLocked)).toHaveLength(1);
   });
 
-  it("through the open gate's opening a step moves and costs stamina (guard)", () => {
+  it("through the open gate's opening a step moves (guard)", () => {
     const s = gameReducer({ ...opened, player: { x: 48, y: 52 } }, { type: "move", dir: "up" });
     expect(s.player).toEqual({ x: 48, y: 48 });
-    expect(s.stamina).toBe(99);
   });
 
   it("with the gate open the wall is solid elsewhere, posts included", () => {
@@ -428,7 +434,7 @@ describe("gameReducer: the north wall", () => {
         for (const dir of ["up", "down", "left", "right"] as const) {
           const next = gameReducer({ ...s0, gateUnlocked, zone: p.zone, player: p.player }, { type: "move", dir });
           const q: Spot = { zone: next.zone, player: next.player };
-          if (q.zone === p.zone && isNorthOfWall(q.player) !== isNorthOfWall(p.player)) crossings.push(p);
+          if (q.zone === p.zone && ZONES[q.zone].wall && isNorthOfWall(q.player) !== isNorthOfWall(p.player)) crossings.push(p);
           if (!seen.has(key(q))) {
             seen.set(key(q), q);
             queue.push(q);
@@ -443,16 +449,19 @@ describe("gameReducer: the north wall", () => {
 
     const locked = reachable(false);
     expect([poi("tower"), poi("chest"), poi("river")].map((t) => inReach(locked.peaks, t))).toEqual([false, false, false]);
-    expect([poi("gate"), HIDDEN_ARTIFACT].map((t) => inReach(locked.peaks, t))).toEqual([true, true]);
-    expect(locked.spots.some((s) => s.player.y < 49)).toBe(false);
+    expect([poi("gate")].map((t) => inReach(locked.peaks, t))).toEqual([true]);
+    expect(HIDDEN_ARTIFACT).toMatchObject({ x: 86, y: 80 });
+    expect(locked.spots.some((s) => ZONES[s.zone].wall && s.player.y < 49)).toBe(false);
     expect(locked.spots.some((s) => s.zone === "village")).toBe(true);
 
     const open = reachable(true);
-    expect([poi("tower"), poi("chest"), poi("river"), poi("gate"), HIDDEN_ARTIFACT].every((t) => inReach(open.peaks, t))).toBe(true);
+    expect([poi("tower"), poi("chest"), poi("river"), poi("gate")].every((t) => inReach(open.peaks, t))).toBe(true);
     expect(open.crossings.length).toBeGreaterThan(0);
     expect(open.crossings.every((c) => c.zone === "peaks")).toBe(true);
     expect(new Set(open.crossings.map((c) => c.player.x))).toEqual(new Set([48, 50, 52]));
-    expect(open.spots.some((s) => s.zone === "village" && s.player.y < 49)).toBe(false);
+    // The village has no wall, so its north half is open to walk once you are in it (gate or not).
+    expect(open.spots.some((s) => s.zone === "village" && s.player.y < 49)).toBe(true);
+    expect(locked.spots.some((s) => s.zone === "village" && s.player.y < 49)).toBe(true);
   });
 });
 
@@ -461,11 +470,10 @@ describe("gameReducer: zones", () => {
   const right = { type: "move", dir: "right" } as const;
 
   it("left from (6, 72) in the Peaks enters the village at (94, 72)", () => {
-    const s = gameReducer({ ...s0, player: { x: 6, y: 72 }, inspected: "gate", stamina: 50 }, left);
+    const s = gameReducer({ ...s0, player: { x: 6, y: 72 }, inspected: "gate" }, left);
     expect(s.zone).toBe("village");
     expect(s.player).toEqual({ x: 94, y: 72 });
     expect(s.drone).toEqual({ x: 86, y: 70 });
-    expect(s.stamina).toBe(49);
     expect(s.inspected).toBeNull();
     expect(lastLog(s)).toBe("Entered Dev Village.");
   });
@@ -507,14 +515,13 @@ describe("gameReducer: zones", () => {
     expect(s.player).toEqual({ x: 28, y: 72 });
   });
 
-  it("the village wall is solid whether or not the gate is open, and logs once", () => {
+  it("the village has no wall: you walk north of the old wall line, gate open or not", () => {
     for (const gateUnlocked of [false, true]) {
       const start: GameState = { ...s0, zone: "village", gateUnlocked, player: { x: 30, y: 52 } };
-      const once = gameReducer(start, { type: "move", dir: "up" });
-      expect(once.player).toEqual({ x: 30, y: 52 });
-      expect(once.stamina).toBe(start.stamina);
-      expect(lastLog(once)).toBe(LOG.wallSolid);
-      expect(gameReducer(once, { type: "move", dir: "up" })).toBe(once);
+      const moved = gameReducer(start, { type: "move", dir: "up" });
+      expect(moved.player).toEqual({ x: 30, y: 48 });
+      expect(moved.logs).toEqual(start.logs);
+      expect(isNorthOfWall(moved.player)).toBe(true);
     }
   });
 
@@ -530,14 +537,15 @@ describe("gameReducer: places and talking", () => {
   const village: GameState = { ...s0, zone: "village" };
   const ADA_GATE_LINE = 'Ada: "Heading north? The gate\'s terminal wants one CSS fix. Get the display right and the wall lets you through."';
 
-  it("visiblePois: your zone's places, plus the dig spot in the Peaks once revealed", () => {
+  it("visiblePois: your zone's places, plus the dig spot on the island once revealed", () => {
     expect(visiblePois(s0).map((p) => p.id)).toEqual([
-      "gate", "chest", "river", "tower", "chest-cpp-1", "chest-java", "chest-cpp-2", "chest-html", "chest-css", "chest-py-1",
+      "gate", "chest", "river", "tower", "dock", "peaks-signpost", "weather-station", "chest-html", "chest-css",
     ]);
     expect(visiblePois({ ...village, clueDecoded: true }).map((p) => p.id)).toEqual([
-      "villager", "signpost", "terminal", "archive", "chest-php", "chest-sql", "chest-py-2",
+      "villager", "signpost", "terminal", "archive", "chest-php", "chest-sql",
     ]);
-    expect(visiblePois({ ...s0, clueDecoded: true }).map((p) => p.id).at(-1)).toBe("artifact");
+    expect(visiblePois({ ...s0, clueDecoded: true }).map((p) => p.id)).not.toContain("artifact");
+    expect(visiblePois({ ...s0, zone: "foggaten", clueDecoded: true }).map((p) => p.id).at(-1)).toBe("artifact");
   });
 
   it("places outside your zone do nothing", () => {
@@ -624,7 +632,7 @@ describe("gameReducer: the challenge engine", () => {
     const s = gameReducer(cipher, { type: "submitChallenge", value: "dense-forest!" });
     expect(s.clueDecoded).toBe(true);
     expect(s.challenge).toBeNull();
-    expect(lastLog(s)).toBe("Clue decoded: the artifact rests in the Dense Forest.");
+    expect(lastLog(s)).toBe("Clue decoded: the artifact is buried in the Dense Forest, south of camp.");
   });
 
   it("crafted submits do nothing", () => {
@@ -657,17 +665,17 @@ describe("gameReducer: chests", () => {
   const sqlOpen: GameState = { ...village, challenge: openOn("chest-sql") };
 
   it("a south chest opens its picked challenge and sets inspected", () => {
-    const s = gameReducer({ ...s0, player: { x: 14, y: 64 } }, { type: "interact", poi: "chest-html" });
+    const s = gameReducer({ ...s0, player: { x: 19, y: 84 } }, { type: "interact", poi: "chest-html" });
     expect(s.challenge?.target).toBe("chest-html");
     expect(s.inspected).toBe("chest-html");
   });
 
   it("a north chest before the gate logs LOG.wallLocked, sets inspected and opens nothing; after the gate it opens", () => {
-    const locked = gameReducer(s0, { type: "interact", poi: "chest-java" });
+    const locked = gameReducer(s0, { type: "interact", poi: "chest-css" });
     expect(locked.challenge).toBeNull();
-    expect(locked.inspected).toBe("chest-java");
+    expect(locked.inspected).toBe("chest-css");
     expect(lastLog(locked)).toBe(LOG.wallLocked);
-    expect(gameReducer(opened, { type: "interact", poi: "chest-java" }).challenge?.target).toBe("chest-java");
+    expect(gameReducer(opened, { type: "interact", poi: "chest-css" }).challenge?.target).toBe("chest-css");
   });
 
   it("a right answer earns the badge once, records the answer, logs it and shows the success view", () => {
@@ -727,8 +735,9 @@ describe("gameReducer: chests", () => {
 
   it("south of the locked wall, north chests are out of reach of [E]", () => {
     const p = { x: 16, y: 50 };
-    expect(placeInReach(p, reachPlaces({ ...s0, player: p }))?.id).toBe("chest-html");
-    expect(placeInReach(p, reachPlaces({ ...opened, player: p }))?.id).toBe("chest-java");
+    expect(reachPlaces({ ...s0, player: p }).map((q) => q.id)).not.toContain("chest-css");
+    expect(reachPlaces({ ...opened, player: p }).map((q) => q.id)).toContain("chest-css");
+    expect(placeInReach({ x: 19, y: 84 }, reachPlaces({ ...s0, player: { x: 19, y: 84 } }))?.id).toBe("chest-html");
   });
 });
 
@@ -813,7 +822,7 @@ describe("gameReducer: teammates close stale terminals (Review Focus 1)", () => 
   it("a teammate's flags close your open terminal for the same thing, logging only the teammate line", () => {
     const cases = [
       { target: "gate", flag: "gateUnlocked", line: "Ana opened the gate." },
-      { target: "cipher", flag: "clueDecoded", line: "Ana decoded the scroll: the artifact rests in the Dense Forest." },
+      { target: "cipher", flag: "clueDecoded", line: "Ana decoded the scroll: the artifact is buried in the Dense Forest, south of camp." },
       { target: "archive", flag: "archiveOpen", line: "Ana unsealed the Archive." },
     ] as const;
     for (const { target, flag, line } of cases) {
@@ -828,5 +837,391 @@ describe("gameReducer: teammates close stale terminals (Review Focus 1)", () => 
   it("a teammate's other progress leaves your terminal open", () => {
     const open: GameState = { ...s0, challenge: openOn("gate") };
     expect(gameReducer(open, { type: "teamSync", flags: { ...NO_FLAGS, hasLoot: true }, by: "Ana" }).challenge).toEqual(openOn("gate"));
+  });
+});
+
+describe("gameReducer: the Dense Forest (Review Focus 1 and 5)", () => {
+  const down = { type: "move", dir: "down" } as const;
+  const up = { type: "move", dir: "up" } as const;
+
+  it("down from (70, 90) in the Peaks enters the forest at (70, 10) with the drone behind", () => {
+    const s = gameReducer({ ...s0, player: { x: 70, y: 90 } }, down);
+    expect(s.zone).toBe("forest");
+    expect(s.player).toEqual({ x: 70, y: 10 });
+    expect(s.drone).toEqual({ x: 68, y: 18 });
+    expect(s.inspected).toBeNull();
+    expect(lastLog(s)).toBe("Entered Dense Forest.");
+  });
+
+  it("up from (70, 10) in the forest returns to the Peaks at (70, 90)", () => {
+    const s = gameReducer({ ...s0, zone: "forest", player: { x: 70, y: 10 } }, up);
+    expect(s.zone).toBe("peaks");
+    expect(s.player).toEqual({ x: 70, y: 90 });
+    expect(lastLog(s)).toBe("Entered C++ Peaks.");
+  });
+
+  it("a column outside the span stays in the Peaks, clamped at the edge", () => {
+    for (const x of [58, 82]) {
+      const s = gameReducer({ ...s0, player: { x, y: 90 } }, down);
+      expect([s.zone, s.player], `x ${x}`).toEqual(["peaks", { x, y: 90 }]);
+    }
+    expect(gameReducer({ ...s0, zone: "forest", player: { x: 58, y: 10 } }, up).zone).toBe("forest");
+  });
+
+  it("the forest has no wall: y 48 and y 52 are one free step apart, with no wall log", () => {
+    const north = gameReducer({ ...s0, zone: "forest", player: { x: 70, y: 52 } }, up);
+    expect(north.player).toEqual({ x: 70, y: 48 });
+    const south = gameReducer(north, down);
+    expect(south.player).toEqual({ x: 70, y: 52 });
+    expect(south.logs).toEqual(s0.logs);
+  });
+
+  it("the river's cold never applies in the forest, and a downed player respawns at the Peaks camp", () => {
+    const onIce: GameState = { ...s0, zone: "forest", player: { x: 50, y: 33 } };
+    expect(gameReducer(onIce, { type: "riverDamage" })).toBe(onIce);
+    const s = gameReducer({ ...s0, zone: "forest", hp: 0, player: { x: 60, y: 70 } }, { type: "respawn" });
+    expect([s.zone, s.player, s.drone]).toEqual(["peaks", { x: 28, y: 72 }, { x: 36, y: 70 }]);
+  });
+});
+
+describe("gameReducer: the Dense Forest's places", () => {
+  const forest: GameState = { ...s0, zone: "forest" };
+
+  it("the forest's places are the ranger, campfire, signpost and the old oak's JavaScript chest", () => {
+    expect(reachPlaces(forest).map((p) => p.id)).toEqual(["ranger", "campfire", "forest-signpost", "hunter-cabin", "forest-well", "forest-brook", "fairy-ring", "hollow-tree", "mushroom-1", "mushroom-2", "mushroom-3", "chest-js"]);
+  });
+
+  it("talking to the ranger opens her card and logs her line once", () => {
+    const once = gameReducer(forest, { type: "interact", poi: "ranger" });
+    expect(once.inspected).toBe("ranger");
+    expect(lastLog(once)).toBe(
+      'Ranger: "Welcome to the Dense Forest! Back north, the Supply Cache waits behind the wall. Its gate opens with one CSS fix. Oh, and if you pass any glow mushrooms, bring me three for my stew (0 of 3)."',
+    );
+    const twice = gameReducer(once, { type: "interact", poi: "ranger" });
+    expect(twice.logCount).toBe(once.logCount);
+  });
+
+  it("the campfire and the signpost inspect and log nothing", () => {
+    for (const poi of ["campfire", "forest-signpost"] as const) {
+      const s = gameReducer(forest, { type: "interact", poi });
+      expect(s.inspected, poi).toBe(poi);
+      expect(s.logCount, poi).toBe(forest.logCount);
+    }
+  });
+
+  it("other zones' places do nothing in the forest, and the ranger does nothing elsewhere", () => {
+    for (const poi of ["gate", "villager", "signpost", "terminal"] as const) expect(gameReducer(forest, { type: "interact", poi }), poi).toBe(forest);
+    expect(gameReducer(s0, { type: "interact", poi: "ranger" })).toBe(s0);
+    expect(gameReducer({ ...s0, zone: "village" }, { type: "interact", poi: "campfire" }).inspected).toBeNull();
+  });
+});
+
+describe("gameReducer: the Sunbaked Desert's places", () => {
+  const desert: GameState = { ...s0, zone: "desert" };
+
+  it("the desert's places are the nomad, signpost and the pyramid and oasis chests", () => {
+    expect(reachPlaces(desert).map((p) => p.id)).toEqual(["nomad", "desert-signpost", "caravan-camp", "desert-well", "temple-door", "dry-riverbed", "obelisk", "jar-1", "jar-2", "jar-3", "chest-java", "chest-py-2"]);
+  });
+
+  it("the nomad speaks once; the signpost inspects and logs nothing", () => {
+    const once = gameReducer(desert, { type: "interact", poi: "nomad" });
+    expect(once.inspected).toBe("nomad");
+    expect(lastLog(once)).toMatch(/^Nomad: "/);
+    expect(gameReducer(once, { type: "interact", poi: "nomad" }).logCount).toBe(once.logCount);
+    for (const poi of ["desert-signpost"] as const) {
+      const s = gameReducer(desert, { type: "interact", poi });
+      expect(s.inspected, poi).toBe(poi);
+      expect(s.logCount, poi).toBe(desert.logCount);
+    }
+  });
+
+  it("the desert's places do nothing elsewhere", () => {
+    expect(gameReducer(s0, { type: "interact", poi: "nomad" })).toBe(s0);
+    expect(gameReducer({ ...s0, zone: "forest" }, { type: "interact", poi: "chest-py-2" }).inspected).toBeNull();
+  });
+
+  it("crossing the forest's west edge enters the desert on its east edge, same row, and logs it once", () => {
+    const edge: GameState = { ...s0, zone: "forest", player: { x: 6, y: 70 } };
+    const s = gameReducer(edge, { type: "move", dir: "left" });
+    expect([s.zone, s.player.x, s.player.y]).toEqual(["desert", 94, 70]);
+    expect(lastLog(s)).toBe("Entered the Sunbaked Desert.");
+  });
+});
+
+describe("gameReducer: the Sunny Beach's places", () => {
+  const beach: GameState = { ...s0, zone: "beach" };
+  it("the beach's places are the fisher, signpost and the pier and shipwreck chests", () => {
+    expect(reachPlaces(beach).map((p) => p.id)).toEqual(["fisher", "beach-signpost", "sandcastle", "chest-cpp-1", "chest-cpp-2"]);
+  });
+  it("the fisher speaks once; the signpost inspects and logs nothing", () => {
+    const once = gameReducer(beach, { type: "interact", poi: "fisher" });
+    expect(once.inspected).toBe("fisher");
+    expect(lastLog(once)).toMatch(/^Fisher: "/);
+    expect(gameReducer(once, { type: "interact", poi: "fisher" }).logCount).toBe(once.logCount);
+    for (const poi of ["beach-signpost"] as const) {
+      const s = gameReducer(beach, { type: "interact", poi });
+      expect(s.inspected, poi).toBe(poi);
+      expect(s.logCount, poi).toBe(beach.logCount);
+    }
+  });
+  it("the beach's places do nothing elsewhere", () => {
+    expect(gameReducer(s0, { type: "interact", poi: "fisher" })).toBe(s0);
+    expect(gameReducer({ ...s0, zone: "desert" }, { type: "interact", poi: "chest-cpp-2" }).inspected).toBeNull();
+  });
+  it("crossing the forest's east edge enters the beach on its west edge, same row", () => {
+    const s = gameReducer({ ...s0, zone: "forest", player: { x: 94, y: 70 } }, { type: "move", dir: "right" });
+    expect([s.zone, s.player.x, s.player.y]).toEqual(["beach", 6, 70]);
+    expect(lastLog(s)).toBe("Entered Sunny Beach.");
+  });
+});
+
+describe("gameReducer: chests hosted in landmarks", () => {
+  const HOSTED = [["chest-html", "peaks"], ["chest-css", "peaks"], ["chest-php", "village"], ["chest-sql", "village"], ["chest-js", "forest"], ["chest-java", "desert"], ["chest-py-2", "desert"], ["chest-cpp-2", "beach"], ["chest-cpp-1", "beach"], ["chest-py-1", "foggaten"]] as const;
+
+  it("standing at its landmark opens each chest's question, and an earned chest can be reviewed", () => {
+    for (const [id, zone] of HOSTED) {
+      const at = ZONES[zone].places.find((p) => p.id === id)!;
+      const here: GameState = { ...s0, zone, player: { x: Math.round(at.x / 2) * 2, y: Math.max(10, Math.round(at.y / 2) * 2) }, gateUnlocked: true };
+      expect(gameReducer(here, { type: "interact", poi: id }).challenge?.target, id).toBe(id);
+    }
+  });
+
+  it("each hosted chest's place is named after its landmark", () => {
+    expect(ZONES.village.places.find((p) => p.id === "chest-sql")?.label).toBe("Windmill");
+    expect(ZONES.foggaten.places.find((p) => p.id === "chest-py-1")?.label).toBe("Ruins");
+  });
+});
+
+describe("gameReducer: Codex 'Go there'", () => {
+  it("goTo closes the Codex and logs the note, once", () => {
+    const open = gameReducer(s0, { type: "toggleCodex" });
+    const s = gameReducer(open, { type: "goTo", chest: "chest-sql" });
+    expect(s.codexOpen).toBe(false);
+    expect(lastLog(s)).toBe("Head to the Windmill in Dev Village, west of the Peaks.");
+    expect(gameReducer(s, { type: "goTo", chest: "chest-sql" }).logCount).toBe(s.logCount);
+  });
+
+  it("goTo does nothing while a terminal is open", () => {
+    const busy: GameState = { ...s0, challenge: openOn("gate") };
+    expect(gameReducer(busy, { type: "goTo", chest: "chest-sql" })).toBe(busy);
+  });
+});
+
+describe("gameReducer: sailing to Foggaten Island", () => {
+  const atDock: GameState = { ...s0, gateUnlocked: true, player: { x: DOCK.x - 2, y: DOCK.y } };
+  const atIslandDock: GameState = { ...s0, zone: "foggaten", gateUnlocked: true, player: { x: ISLAND_DOCK.x + 2, y: ISLAND_DOCK.y } };
+
+  it("sails from the Peaks' dock to the island once the gate is open, changing nothing else", () => {
+    const s = gameReducer({ ...atDock, hp: 77, hasLoot: true, towerPowered: true, minutes: 100 }, { type: "sail", to: "foggaten" });
+    expect(s.zone).toBe("foggaten");
+    expect(s.player).toEqual(SAIL_LANDING.foggaten);
+    expect(s.drone.y).toBe(SAIL_LANDING.foggaten.y);
+    expect(s.drone.x).toBeLessThan(SAIL_LANDING.foggaten.x);
+    expect(lastLog(s)).toBe(LOG.sailOut);
+    expect(s).toMatchObject({ hp: 77, hasLoot: true, towerPowered: true, gateUnlocked: true, minutes: 100, inspected: null });
+    expect(s.badges).toEqual(atDock.badges);
+  });
+
+  it("lands out of reach of the far dock, so holding E cannot bounce you back and forth", () => {
+    const out = gameReducer(atDock, { type: "interact", poi: "dock" });
+    expect(gameReducer(out, { type: "interact", poi: "island-dock" })).toMatchObject({ zone: "foggaten", player: out.player });
+    const back = gameReducer(atIslandDock, { type: "interact", poi: "island-dock" });
+    expect(back.zone).toBe("peaks");
+    expect(gameReducer(back, { type: "interact", poi: "dock" })).toMatchObject({ zone: "peaks", player: back.player });
+  });
+
+  it("sails back from the island's dock to the Peaks", () => {
+    const s = gameReducer(atIslandDock, { type: "sail", to: "peaks" });
+    expect(s.zone).toBe("peaks");
+    expect(s.player).toEqual(SAIL_LANDING.peaks);
+    expect(lastLog(s)).toBe(LOG.sailBack);
+  });
+
+  it("the dock waits for the gate: one locked line and no move", () => {
+    const locked = { ...atDock, gateUnlocked: false };
+    const s = gameReducer(locked, { type: "sail", to: "foggaten" });
+    expect(s.zone).toBe("peaks");
+    expect(lastLog(s)).toBe(LOG.dockLocked);
+    expect(gameReducer(s, { type: "sail", to: "foggaten" }).logCount).toBe(s.logCount);
+  });
+
+  it("refuses from far away, with a terminal or the Codex open, and for any other destination", () => {
+    const far = { ...atDock, player: { x: 20, y: 20 } };
+    expect(gameReducer(far, { type: "sail", to: "foggaten" })).toBe(far);
+    expect(gameReducer({ ...atDock, codexOpen: true }, { type: "sail", to: "foggaten" })).toEqual({ ...atDock, codexOpen: true });
+    expect(gameReducer({ ...atDock, challenge: openOn("gate") }, { type: "sail", to: "foggaten" }).zone).toBe("peaks");
+    for (const to of ["village", "forest", "peaks"] as const) expect(gameReducer(atDock, { type: "sail", to })).toBe(atDock);
+    expect(gameReducer(atIslandDock, { type: "sail", to: "foggaten" })).toBe(atIslandDock);
+    expect(gameReducer(atIslandDock, { type: "sail", to: "forest" })).toBe(atIslandDock);
+    expect(gameReducer({ ...atDock, zone: "village" }, { type: "sail", to: "foggaten" }).zone).toBe("village");
+    expect(gameReducer({ ...atDock, hp: 0 }, { type: "sail", to: "foggaten" }).zone).toBe("peaks");
+  });
+
+  it("interact on a dock does what sail does, including the locked line", () => {
+    expect(gameReducer(atDock, { type: "interact", poi: "dock" }).zone).toBe("foggaten");
+    expect(gameReducer(atIslandDock, { type: "interact", poi: "island-dock" }).zone).toBe("peaks");
+    const locked = gameReducer({ ...atDock, gateUnlocked: false }, { type: "interact", poi: "dock" });
+    expect(locked.zone).toBe("peaks");
+    expect(lastLog(locked)).toBe(LOG.dockLocked);
+  });
+
+  it("pressing the dock's map button from far away only shows its card", () => {
+    const far: GameState = { ...s0, gateUnlocked: true, player: { x: 20, y: 20 } };
+    const s = gameReducer(far, { type: "interact", poi: "dock" });
+    expect(s.zone).toBe("peaks");
+    expect(s.player).toEqual(far.player);
+    expect(s.inspected).toBe("dock");
+  });
+
+  it("the island's places inspect, and the hermit speaks once", () => {
+    const island: GameState = { ...s0, zone: "foggaten" };
+    for (const poi of ["lighthouse", "island-fire"] as const) {
+      expect(gameReducer(island, { type: "interact", poi }).inspected, poi).toBe(poi);
+    }
+    const once = gameReducer(island, { type: "interact", poi: "hermit" });
+    expect(once.inspected).toBe("hermit");
+    expect(lastLog(once)).toBe(`Hermit: "${hermitLine(island)}"`);
+    expect(gameReducer(once, { type: "interact", poi: "hermit" }).logCount).toBe(once.logCount);
+  });
+
+  it("the island's places do not answer from another zone", () => {
+    expect(gameReducer(s0, { type: "interact", poi: "hermit" })).toBe(s0);
+    expect(gameReducer({ ...s0, zone: "foggaten" }, { type: "interact", poi: "dock" })).toEqual({ ...s0, zone: "foggaten" });
+  });
+
+  it("there is no way off the island by walking and no hazard on it", () => {
+    const island: GameState = { ...s0, zone: "foggaten", player: { x: 94, y: 70 } };
+    expect(gameReducer(island, { type: "move", dir: "right" }).player).toEqual(island.player);
+    expect(gameReducer(island, { type: "riverDamage" }).hp).toBe(island.hp);
+  });
+});
+
+describe("gameReducer: the lighthouse lamp", () => {
+  const bitsOf = (n: number): Bits8 => n.toString(2).padStart(8, "0").split("").map(Number) as Bits8;
+  const island: GameState = { ...s0, zone: "foggaten", gateUnlocked: true, player: { x: LIGHTHOUSE.x + 2, y: LIGHTHOUSE.y } };
+  const lamp = (over: Partial<GameState> = {}): GameState => ({ ...island, lampOpen: true, ...over });
+  const interact = (s: GameState) => gameReducer(s, { type: "interact", poi: "lighthouse" });
+
+  it("starts unlit with the lamp terminal closed", () => {
+    expect([s0.lighthouseLit, s0.lampOpen, s0.lampError, s0.lampTries, s0.lampHintRevealed]).toEqual([false, false, null, 0, false]);
+  });
+
+  it("E at the unlit lighthouse opens the lamp terminal, a modal", () => {
+    const s = interact(island);
+    expect(s).toMatchObject({ lampOpen: true, inspected: "lighthouse", lampError: null, lampTries: 0 });
+    expect(lastLog(s)).toBe(LOG.lampOpened);
+    expect(isModalOpen(s)).toBe(true);
+  });
+
+  it("needs you beside it: from far away only the card shows", () => {
+    const s = interact({ ...island, player: { x: 10, y: 10 } });
+    expect(s.lampOpen).toBe(false);
+    expect(s.inspected).toBe("lighthouse");
+  });
+
+  it("does not open over another modal", () => {
+    for (const over of [{ codexOpen: true }, { logicOpen: true }, { challenge: openOn("gate") }]) {
+      const s: GameState = { ...island, ...over };
+      expect(interact(s)).toBe(s);
+    }
+  });
+
+  it("once lit it only inspects, and says so", () => {
+    const s = interact({ ...island, lighthouseLit: true });
+    expect(s).toMatchObject({ lampOpen: false, inspected: "lighthouse" });
+    expect(lastLog(s)).toBe(LOG.lighthouseOnline);
+  });
+
+  it("01001000 lights it for the team, closes the terminal and changes nothing else", () => {
+    const s = gameReducer(lamp({ hp: 77, minutes: 100 }), { type: "submitLamp", bits: bitsOf(72) });
+    expect(s).toMatchObject({ lighthouseLit: true, lampOpen: false, lampError: null, hp: 77, minutes: 100 });
+    expect(s.badges).toEqual(island.badges);
+    expect(lastLog(s)).toBe(LOG.lampLit);
+  });
+
+  it("every other setting from 0 to 255 leaves it dark with the terminal open", () => {
+    for (let n = 0; n < 256; n++) {
+      if (n === 72) continue;
+      const s = gameReducer(lamp(), { type: "submitLamp", bits: bitsOf(n) });
+      expect(s.lighthouseLit, String(n)).toBe(false);
+      expect(s.lampOpen, String(n)).toBe(true);
+      expect(s.lampError, String(n)).toMatch(/^The lamp sent "(.|\?)"\. It should send "H"\./);
+    }
+  });
+
+  it("the drone's tip comes on the second wrong run", () => {
+    const first = gameReducer(lamp(), { type: "submitLamp", bits: bitsOf(75) });
+    expect(first).toMatchObject({ lampTries: 1, lampHintRevealed: false, lampError: 'The lamp sent "K". It should send "H".' });
+    const second = gameReducer(first, { type: "submitLamp", bits: bitsOf(0) });
+    expect(second).toMatchObject({ lampTries: 2, lampHintRevealed: true, lampError: 'The lamp sent "?". It should send "H". The drone has a tip below.' });
+  });
+
+  it("ignores crafted submissions and a submission with no terminal open", () => {
+    const open = lamp();
+    for (const bits of [[0, 1, 0, 0, 1, 0, 0], [0, 1, 0, 0, 1, 0, 0, 0, 0], [2, 0, 0, 0, 0, 0, 0, 0], "01001000", null]) {
+      expect(gameReducer(open, { type: "submitLamp", bits: bits as unknown as Bits8 })).toBe(open);
+    }
+    expect(gameReducer(island, { type: "submitLamp", bits: bitsOf(72) })).toBe(island);
+  });
+
+  it("close, reset and the hint item each do one thing", () => {
+    const wrong = gameReducer(lamp(), { type: "submitLamp", bits: bitsOf(1) });
+    expect(gameReducer(wrong, { type: "resetLamp" })).toMatchObject({ lampOpen: true, lampError: null, lampTries: 1 });
+    expect(gameReducer(wrong, { type: "closeLamp" })).toMatchObject({ lampOpen: false, lampError: null });
+    expect(gameReducer(lamp(), { type: "revealLampHint" }).lampHintRevealed).toBe(true);
+  });
+
+  it("while it is open the Codex, sailing, other places and movement are refused", () => {
+    const s = lamp({ player: { x: ISLAND_DOCK.x + 2, y: ISLAND_DOCK.y } });
+    expect(gameReducer(s, { type: "toggleCodex" })).toBe(s);
+    expect(gameReducer(s, { type: "sail", to: "peaks" })).toBe(s);
+    expect(gameReducer(s, { type: "interact", poi: "island-dock" })).toBe(s);
+    expect(gameReducer(s, { type: "move", dir: "up" }).player).toEqual(s.player);
+  });
+
+  it("a teammate lighting it closes your terminal and logs only their line; it never goes dark", () => {
+    const open = lamp();
+    const synced = gameReducer(open, { type: "teamSync", flags: { ...NO_FLAGS, lighthouseLit: true }, by: "Kai" });
+    expect(synced).toMatchObject({ lighthouseLit: true, lampOpen: false });
+    expect(lastLog(synced)).toBe("Kai lit the lighthouse. Its beam sweeps the fog.");
+    expect(gameReducer(synced, { type: "teamSync", flags: NO_FLAGS, by: "Mia" })).toBe(synced);
+  });
+});
+
+describe("gameReducer: the camp signpost, the weather station and the snow cave", () => {
+  const beside = (poi: { x: number; y: number }, over: Partial<GameState> = {}): GameState => ({ ...s0, player: { x: poi.x + 2, y: poi.y }, ...over });
+
+  it("the signpost and the weather station are always in the Peaks, and inspecting them only shows a card", () => {
+    for (const poi of [PEAKS_SIGNPOST, WEATHER_STATION]) {
+      expect(visiblePois(s0).map((p) => p.id)).toContain(poi.id);
+      const s = gameReducer(beside(poi), { type: "interact", poi: poi.id });
+      expect(s.inspected).toBe(poi.id);
+      expect(s.logs).toEqual(beside(poi).logs);
+      expect({ hp: s.hp, minutes: s.minutes, zone: s.zone }).toEqual({ hp: 100, minutes: s0.minutes, zone: "peaks" });
+    }
+  });
+
+  it("they are not places elsewhere", () => {
+    for (const zone of ["village", "forest", "foggaten"] as const) {
+      const ids = visiblePois({ ...s0, zone }).map((p) => p.id);
+      expect(ids).not.toContain("peaks-signpost");
+      expect(ids).not.toContain("weather-station");
+      expect(ids).not.toContain("snow-cave");
+    }
+  });
+
+  it("the snow cave is hidden until the signal tower is powered, then it is a place you can inspect", () => {
+    expect(visiblePois(s0).map((p) => p.id)).not.toContain("snow-cave");
+    const hidden = gameReducer(beside(SNOW_CAVE), { type: "interact", poi: "snow-cave" });
+    expect(hidden.inspected).toBeNull();
+    const powered = beside(SNOW_CAVE, { towerPowered: true });
+    expect(visiblePois(powered).map((p) => p.id)).toContain("snow-cave");
+    expect(reachPlaces(powered).map((p) => p.id)).toContain("snow-cave");
+    expect(gameReducer(powered, { type: "interact", poi: "snow-cave" }).inspected).toBe("snow-cave");
+  });
+
+  it("a teammate powering the tower reveals the cave for you too", () => {
+    const synced = gameReducer(beside(SNOW_CAVE), { type: "teamSync", flags: { ...NO_FLAGS, towerPowered: true }, by: "Kai" });
+    expect(visiblePois(synced).map((p) => p.id)).toContain("snow-cave");
   });
 });

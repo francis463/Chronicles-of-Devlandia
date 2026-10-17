@@ -1,6 +1,6 @@
 /** The challenge engine's data types: every challenge (chest, gate, cipher, keypad, Matcher) is one of these. */
 
-export type Lang = "html" | "css" | "php" | "python" | "java" | "csharp" | "sql" | "cpp" | "logic";
+export type Lang = "html" | "css" | "php" | "python" | "java" | "csharp" | "sql" | "cpp" | "javascript" | "logic";
 
 export type ChestId =
   | "chest-cpp-1"
@@ -12,9 +12,10 @@ export type ChestId =
   | "chest-php"
   | "chest-sql"
   | "chest-py-2"
-  | "chest-cs";
+  | "chest-cs"
+  | "chest-js";
 
-export type ChallengeTarget = ChestId | "gate" | "cipher" | "matcher" | "archive";
+export type ChallengeTarget = ChestId | "gate" | "cipher" | "matcher" | "archive" | "sandcastle";
 
 /**
  * What the live check knows about a blank: a closed set (`legal`, complete), an open set
@@ -52,9 +53,12 @@ export type BlankChallenge = Base & {
 export type ChoiceChallenge = Base & {
   kind: "choice";
   code?: readonly string[];
-  options: readonly [string, string, string, string];
+  /** Four options, or just two for a true-or-false question (which also sets `fixedOrder`). */
+  options: readonly [string, string, string, string] | readonly [string, string];
   /** The data index of the right option, never the shown position. */
   correct: 0 | 1 | 2 | 3;
+  /** Show the options in their written order instead of the game's shuffle (true-or-false keeps "True" first). */
+  fixedOrder?: boolean;
   codeOptions?: boolean;
 };
 

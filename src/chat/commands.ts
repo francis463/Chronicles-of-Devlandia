@@ -97,11 +97,25 @@ function ping(arg: string, c: CommandContext): Result {
   }
   const place = PING_PLACE_NAMES.find((n) => n === nameKey(arg));
   if (!place) {
-    const [first, chests] = [PING_PLACE_NAMES.slice(0, 8), PING_PLACE_NAMES.slice(8)];
+    const [first, chests] = [
+      [...PING_PLACE_NAMES.slice(0, 8), ...FOREST_PLACES, ...ISLAND_PLACES, ...DESERT_PLACES, ...BEACH_PLACES],
+      PING_PLACE_NAMES.filter((n, i) => i >= 8 && !FOREST_PLACES.includes(n) && !ISLAND_PLACES.includes(n) && !DESERT_PLACES.includes(n) && !BEACH_PLACES.includes(n)),
+    ];
     return say(`No place called "${arg}". Try: ${first.join(", ")}, or a chest: ${chests.join(", ")}.`);
   }
   return { notes: [`Ping sent: ${placeCopy(place)}.`], effect: { kind: "ping", ...placeSpot(place), place } };
 }
+
+/** The forest places chat can ping, listed with the landmarks rather than the chests. */
+const FOREST_PLACES: readonly PingPlace[] = ["ranger", "campfire"];
+/** The Peaks' dock and Foggaten Island's places, likewise listed with the landmarks. */
+const ISLAND_PLACES: readonly PingPlace[] = ["dock", "pier", "lighthouse", "hermit"];
+
+/** The desert places chat can ping, likewise listed with the landmarks. */
+const DESERT_PLACES: readonly PingPlace[] = ["nomad"];
+
+/** The beach place chat can ping (the pier and shipwreck are chests, pinged by their language). */
+const BEACH_PLACES: readonly PingPlace[] = ["fisher"];
 
 function weather(arg: string): Result {
   const word = nameKey(arg);

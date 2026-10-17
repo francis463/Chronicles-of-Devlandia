@@ -1,5 +1,6 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { DEFAULT_CLASS } from "../game/classes";
 import { PLAYER_START } from "../game/constants";
 import type { SceneInput } from "../render/scene";
 import { backdropWorld, toArt, type WorldRect } from "../render/world";
@@ -18,6 +19,7 @@ describe("MenuBackdrop", () => {
     render(<MenuBackdrop />);
     const { input, world } = drawn.at(-1)!;
     expect(input.player).toEqual(PLAYER_START);
+    expect(input.playerClass).toBe(DEFAULT_CLASS);
     expect(world).toEqual(backdropWorld({ width: window.innerWidth, height: window.innerHeight, dpr: 1 }, toArt(PLAYER_START)));
   });
 });

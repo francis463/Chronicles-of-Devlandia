@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import type { ClassId } from "../../game/classes";
 import type { CommandContext, CommandEffect } from "../../chat/commands";
 import { chatRoster } from "../../chat/context";
 import { maskRude } from "../../chat/filter";
@@ -6,6 +7,7 @@ import { displayNames } from "../../chat/names";
 import { cardFor } from "../../game/cards";
 import { challengeOf, challengeView } from "../../game/challenges";
 import { rollGame } from "../../game/roll";
+import { loadRecent, saveRecent, withPicks } from "../../learn/recent";
 import { interactLabel, placeInReach, promptText } from "../../game/geometry";
 import { gameReducer, initialState, isDowned, isModalOpen, reachPlaces } from "../../game/reducer";
 import type { GameState } from "../../game/types";
@@ -13,9 +15,12 @@ import { countUnread, lastSeq, useChat, type ChatFeed } from "../../hooks/useCha
 import { usePings } from "../../hooks/usePings";
 import type { TeamSession } from "../../hooks/useTeamSession";
 import { LOG, TICK_MS } from "../../game/constants";
+import { tideName } from "../../game/tide";
 import { flagsOf, teamMinutes } from "../../game/team";
 import { ZONES } from "../../game/zones";
-import { chestById } from "../../learn/chests";
+import { chestById, chestChallenge } from "../../learn/chests";
+import { goToSpot } from "../../learn/codexModel";
+import { seedFromSaved, type SavedBadge } from "../../progress/progress";
 import type { BlankMode, ChestId } from "../../learn/types";
 import { useNow } from "../../hooks/useNow";
 import { useGameTimers } from "../../hooks/useGameTimers";
@@ -24,7 +29,11 @@ import { Panel } from "../../ui/Panel";
 import { ChallengeTerminal } from "../ChallengeTerminal";
 import { ChatPanel } from "../chat/ChatPanel";
 import { Codex } from "../Codex";
+import { Certificate } from "../Certificate";
+import { Finale, playedFor } from "../Finale";
+import { Help } from "../Help";
 import { LeaveConfirm } from "./LeaveConfirm";
+import { LampModal } from "../LampModal";
 import { LogicModal } from "../LogicModal";
 import { BottomHud } from "./BottomHud";
 import { EventLog, type SideTab } from "./EventLog";
@@ -39,26 +48,69 @@ export function Overworld({
   initial,
   team,
   chat,
+  saved,
+  onBadgeEarned,
+  saveFailed = false,
+  playerClass,
+  hard = false,
+  onNewGamePlus,
+  playerName = "",
+  onSave,
 }: {
   onMenu: () => void;
   initial?: Partial<GameState>;
+  /** A signed-in player's saved badges: they start the game earned, with the question they answered. */
+  saved?: readonly SavedBadge[];
+  /** Called once for each badge earned during this game (never for the saved ones). */
+  onBadgeEarned?: (b: SavedBadge) => void;
+  /** True while the saver is failing; the game says so once each time it starts. */
+  saveFailed?: boolean;
+  /** Your hero's class: how it is drawn, and the line in the top bar. */
+  playerClass?: ClassId;
+  /** A New Game+ run: harder questions, and wrong answers cost HP. */
+  hard?: boolean;
+  /** The finale's [ NEW GAME+ ]: start a fresh hard run (solo games only). */
+  onNewGamePlus?: () => void;
+  /** The signed-in player's name, which the certificate starts with (a guest types theirs). */
+  playerName?: string;
+  /** Called with the game's state whenever it changes (a solo game keeps itself this way so a refresh can resume it). */
+  onSave?: (state: GameState) => void;
   /** Team mode: shared progress, teammates on the map and the team clock. */
   team?: TeamSession;
   /** The team's conversation, when the lobby already started one; without it the game keeps its own. */
   chat?: ChatFeed;
 }) {
   // Each game rolls its questions, shuffle seed, Matcher round and access code once, at mount; a team shares the code.
-  const [state, dispatch] = useReducer(gameReducer, undefined, () => ({
-    ...initialState,
-    ...rollGame(Math.random, team?.startedAt ?? undefined),
-    ...initial,
-  }));
+  const [state, dispatch] = useReducer(gameReducer, undefined, () => {
+    const rolled = rollGame(Math.random, team?.startedAt ?? undefined, loadRecent(), hard);
+    return { ...initialState, ...rolled, hard, ...seedFromSaved(saved ?? [], rolled.picks), ...initial };
+  });
+  // Remember this game's questions, so the next game picks others.
+  useEffect(() => (hard || initial ? undefined : saveRecent(withPicks(loadRecent(), state.picks))), []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => onSave?.(state), [state]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The badges this game started with from the player's account: neither saved again nor announced to the team.
+  const seeded = useRef<ReadonlySet<ChestId>>(new Set((saved ?? []).map((b) => b.chest)));
+  const reported = useRef(new Set<ChestId>(seeded.current));
+  useEffect(() => {
+    for (const chest of state.badges) {
+      if (reported.current.has(chest)) continue;
+      reported.current.add(chest);
+      onBadgeEarned?.({ chest, questionId: chestChallenge(state.picks, chest).id, answer: state.answered[chest] ?? "" });
+    }
+  }, [onBadgeEarned, state.badges, state.picks, state.answered]);
+  const wasFailing = useRef(false);
+  useEffect(() => {
+    if (saveFailed && !wasFailing.current) dispatch({ type: "note", text: LOG.saveFailed });
+    wasFailing.current = saveFailed;
+  }, [saveFailed]);
   // Type or Blocks: kept while terminals open and close, reset by a new game (which remounts this).
   const [mode, setMode] = useState<BlankMode>("type");
   // [=] Menu with progress asks first; while it asks, play pauses and it owns the keys.
   const [leaving, setLeaving] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [certificateOpen, setCertificateOpen] = useState(false);
   const hasProgress = state.badges.length > 0 || state.matcherSolved || Object.values(flagsOf(state)).some(Boolean);
-  useGameTimers(state, dispatch, leaving);
+  useGameTimers(state, dispatch, leaving || helpOpen);
   const downed = isDowned(state);
 
   // ── Chat, commands and your own view ──
@@ -89,9 +141,15 @@ export function Overworld({
     }
     input.setSelectionRange(input.value.length, input.value.length);
   }, [focusRequest, setDraft]);
-  useKeyboardControls(state, dispatch, leaving, onChatKey);
-  const [view, setView] = useState<{ snow: boolean; light: "auto" | "day" | "night" }>({ snow: false, light: "auto" });
+  useKeyboardControls(state, dispatch, leaving || helpOpen, onChatKey, () => setHelpOpen(true));
+  // `snow: undefined` is the default (the Peaks snow, other zones do not); /weather snow and /weather clear set it for every zone.
+  const [view, setView] = useState<{ snow: boolean | undefined; light: "auto" | "day" | "night" }>({ snow: undefined, light: "auto" });
   const { pings, add: addPing } = usePings();
+  // The Codex's "Go there": the game logs where the chest is, and a ring marks its landmark when you are in that zone.
+  const goTo = (chest: ChestId) => {
+    dispatch({ type: "goTo", chest });
+    addPing({ id: "guide", name: chestById(chest).host ?? "Archive", color: "#fde047", ...goToSpot(chest) });
+  };
 
   // ── Team mode ──
   const publishPosition = team?.publishPosition;
@@ -125,7 +183,7 @@ export function Overworld({
     [onZoneChange],
   );
   // Badges are personal: each new one goes out once, and teammates' badges are news for the log.
-  const published = useRef(new Set<ChestId>());
+  const published = useRef(new Set<ChestId>(seeded.current));
   useEffect(() => {
     for (const chest of state.badges) {
       if (published.current.has(chest) || !publishBadge) continue;
@@ -180,14 +238,17 @@ export function Overworld({
       <TopHud
         className="md:col-span-2"
         hp={state.hp}
-        stamina={state.stamina}
         minutes={minutes}
         onMenu={() => (hasProgress ? setLeaving(true) : onMenu())}
         onCodex={() => dispatch({ type: "toggleCodex" })}
+        onHelp={() => setHelpOpen(true)}
         teamLabel={teamLabel}
         chatUnread={team ? unread : 0}
         reconnecting={team?.status === "reconnecting"}
         region={ZONES[state.zone].name}
+        playerClass={playerClass}
+        hard={state.hard}
+        tide={state.zone === "beach" ? tideName(minutes) : undefined}
       />
       <MiniMap
         className="md:col-start-1 md:row-start-2"
@@ -213,13 +274,18 @@ export function Overworld({
           artifactFound={state.artifactFound}
           towerPowered={state.towerPowered}
           badges={state.badges}
+          mushrooms={state.mushrooms}
+          jars={state.jars}
+          sandcastleBuilt={state.sandcastleBuilt}
           matcherSolved={state.matcherSolved}
           archiveOpen={state.archiveOpen}
+          lighthouseLit={state.lighthouseLit}
           teammates={team?.teammates.filter((t) => t.zone === state.zone)}
           pings={pings}
           lightMode={view.light}
           snow={view.snow}
           playerColor={team?.me?.color}
+          playerClass={playerClass}
           inRange={inRange}
           downed={downed}
           onInteract={(poi) => dispatch({ type: "interact", poi })}
@@ -229,7 +295,7 @@ export function Overworld({
           card={cardFor(state)}
         />
         <TouchControls
-          disabled={downed || leaving || isModalOpen(state)}
+          disabled={downed || leaving || helpOpen || isModalOpen(state)}
           inRange={inRange}
           label={inRange ? interactLabel(state, inRange) : null}
           onMove={(dir) => dispatch({ type: "move", dir })}
@@ -272,9 +338,29 @@ export function Overworld({
           answered={state.answered}
           picks={state.picks}
           team={team !== undefined}
+          progress={state}
+          zone={state.zone}
+          player={state.player}
+          onGoTo={goTo}
+          onFinale={() => dispatch({ type: "openFinale" })}
           onClose={() => dispatch({ type: "toggleCodex" })}
         />
       )}
+      {state.finaleOpen && certificateOpen && (
+        <Certificate name={playerName} badges={state.badges} played={playedFor(minutes)} hard={state.hard} onBack={() => setCertificateOpen(false)} />
+      )}
+      {state.finaleOpen && !certificateOpen && (
+        <Finale
+          badges={state.badges}
+          minutes={minutes}
+          hints={state.hintsRevealed.length}
+          hard={state.hard}
+          onClose={() => dispatch({ type: "closeFinale" })}
+          onCertificate={() => setCertificateOpen(true)}
+          onNewGamePlus={team ? undefined : onNewGamePlus}
+        />
+      )}
+      {helpOpen && <Help onClose={() => setHelpOpen(false)} />}
       {leaving && <LeaveConfirm onStay={() => setLeaving(false)} onLeave={onMenu} />}
       {state.challenge && (
         <ChallengeTerminal
@@ -296,6 +382,16 @@ export function Overworld({
           onClose={() => dispatch({ type: "closeLogic" })}
           onRevealHint={() => dispatch({ type: "revealLogicHint" })}
           onReset={() => dispatch({ type: "resetLogic" })}
+        />
+      )}
+      {state.lampOpen && (
+        <LampModal
+          error={state.lampError}
+          hintRevealed={state.lampHintRevealed}
+          onSubmit={(bits) => dispatch({ type: "submitLamp", bits })}
+          onClose={() => dispatch({ type: "closeLamp" })}
+          onRevealHint={() => dispatch({ type: "revealLampHint" })}
+          onReset={() => dispatch({ type: "resetLamp" })}
         />
       )}
     </Panel>

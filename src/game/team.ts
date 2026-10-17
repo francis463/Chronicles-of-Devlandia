@@ -2,6 +2,7 @@ import { RAW_CHAT_MAX, CHAT_MAX, chatLength, cleanChat, maskRude } from "../chat
 import { isPingPlace, placeSpot, type PingPlace } from "../chat/places";
 import { CHEST_IDS } from "../learn/chests";
 import type { ChestId } from "../learn/types";
+import { classOrDefault, type ClassId } from "./classes";
 import { BOUNDS, MINUTES_PER_DAY, START_MINUTES, TICK_MINUTES, TICK_MS } from "./constants";
 import type { GameState } from "./types";
 import type { ZoneId } from "./zones";
@@ -17,6 +18,7 @@ export type TeamFlags = {
   gateUnlocked: boolean;
   towerPowered: boolean;
   archiveOpen: boolean;
+  lighthouseLit: boolean;
 };
 export type FlagKey = keyof TeamFlags;
 
@@ -30,6 +32,8 @@ export type PresenceMeta = {
   y: number;
   /** Where they are; null means a zone this version doesn't know (shown nowhere, still in the team). */
   zone: ZoneId | null;
+  /** Their class. Older clients send none; read it with classOrDefault. */
+  cls?: ClassId;
 };
 
 export type TeamMessage =
@@ -58,9 +62,11 @@ export const JOIN_TIMEOUT_MS = 12_000;
 export const POS_INTERVAL_MS = 250;
 const MAX_START_SKEW_MS = 86_400_000;
 
-const FLAG_KEYS: FlagKey[] = ["questComplete", "hasLoot", "clueDecoded", "artifactFound", "gateUnlocked", "towerPowered", "archiveOpen"];
-/** Every version sends these; newer flags are optional so older clients' messages still parse. */
-const REQUIRED_FLAGS: FlagKey[] = FLAG_KEYS.filter((k) => k !== "archiveOpen");
+const FLAG_KEYS: FlagKey[] = ["questComplete", "hasLoot", "clueDecoded", "artifactFound", "gateUnlocked", "towerPowered", "archiveOpen", "lighthouseLit"];
+/** Newer flags are optional on the wire, so older clients' messages still parse (missing or odd means false). */
+const OPTIONAL_FLAGS: FlagKey[] = ["archiveOpen", "lighthouseLit"];
+/** Every version sends these. */
+const REQUIRED_FLAGS: FlagKey[] = FLAG_KEYS.filter((k) => !OPTIONAL_FLAGS.includes(k));
 
 export const NO_FLAGS: TeamFlags = {
   questComplete: false,
@@ -70,16 +76,18 @@ export const NO_FLAGS: TeamFlags = {
   gateUnlocked: false,
   towerPowered: false,
   archiveOpen: false,
+  lighthouseLit: false,
 };
 
 const TEAMMATE_LOG: Record<FlagKey, (name: string) => string> = {
   questComplete: (n) => `${n} surveyed the Frozen River.`,
   hasLoot: (n) => `${n} opened the Supply Cache.`,
-  clueDecoded: (n) => `${n} decoded the scroll: the artifact rests in the Dense Forest.`,
+  clueDecoded: (n) => `${n} decoded the scroll: the artifact is buried in the Dense Forest, south of camp.`,
   artifactFound: (n) => `${n} found the Golden Semicolon!`,
   gateUnlocked: (n) => `${n} opened the gate.`,
   towerPowered: (n) => `${n} powered the signal tower. The fog lifts and the bridge returns.`,
   archiveOpen: (n) => `${n} unsealed the Archive.`,
+  lighthouseLit: (n) => `${n} lit the lighthouse. Its beam sweeps the fog.`,
 };
 
 // ── Flags ─────────────────────────────────────────────────────────────────
@@ -147,13 +155,13 @@ const isStart = (v: unknown, now: number): v is number => isNum(v) && Math.abs(v
 /** Older clients send no zone (they are in the Peaks); a zone we don't know is "elsewhere", never a reason to drop. */
 function parseZone(v: unknown): ZoneId | null {
   if (v === undefined) return "peaks";
-  return v === "peaks" || v === "village" ? v : null;
+  return v === "peaks" || v === "village" || v === "forest" || v === "foggaten" || v === "desert" || v === "beach" ? v : null;
 }
 
-/** The six original flags must be booleans; `archiveOpen` is read leniently (missing or odd means false). */
+/** The six original flags must be booleans; the newer ones are read leniently (missing or odd means false). */
 function parseFlags(v: unknown): TeamFlags | null {
   if (!isObj(v) || !REQUIRED_FLAGS.every((k) => typeof v[k] === "boolean")) return null;
-  return { ...(Object.fromEntries(REQUIRED_FLAGS.map((k) => [k, v[k]])) as Omit<TeamFlags, "archiveOpen">), archiveOpen: v.archiveOpen === true };
+  return Object.fromEntries(FLAG_KEYS.map((k) => [k, OPTIONAL_FLAGS.includes(k) ? v[k] === true : v[k]])) as TeamFlags;
 }
 
 export function parsePresence(raw: unknown, now: number): PresenceMeta | null {
@@ -162,7 +170,7 @@ export function parsePresence(raw: unknown, now: number): PresenceMeta | null {
   const flags = parseFlags(raw.flags);
   const startedAt = raw.startedAt === null ? null : isStart(raw.startedAt, now) ? raw.startedAt : undefined;
   if (!name || !flags || startedAt === undefined || !isX(raw.x) || !isY(raw.y)) return null;
-  return { id: raw.id, name, joinedAt: raw.joinedAt, startedAt, flags, x: raw.x, y: raw.y, zone: parseZone(raw.zone) };
+  return { id: raw.id, name, joinedAt: raw.joinedAt, startedAt, flags, x: raw.x, y: raw.y, zone: parseZone(raw.zone), cls: classOrDefault(raw.cls) };
 }
 
 export function parseMessage(raw: unknown, now: number): TeamMessage | null {
@@ -192,7 +200,7 @@ export function parseMessage(raw: unknown, now: number): TeamMessage | null {
   if (raw.type === "ping") {
     const name = typeof raw.name === "string" ? normalizeNickname(raw.name) : null;
     // The zone is strict here (parseZone's lenient default is for older clients' positions).
-    const zone = raw.zone === "peaks" || raw.zone === "village" ? raw.zone : null;
+    const zone = raw.zone === "peaks" || raw.zone === "village" || raw.zone === "forest" || raw.zone === "foggaten" || raw.zone === "desert" || raw.zone === "beach" ? raw.zone : null;
     const place = raw.place === null ? null : isPingPlace(raw.place) ? raw.place : undefined;
     if (!isId(raw.id) || !name || !zone || !isX(raw.x) || !isY(raw.y) || place === undefined) return null;
     return { type: "ping", id: raw.id, name, ...(place ? { ...placeSpot(place), place } : { zone, x: raw.x, y: raw.y, place }) };

@@ -1,5 +1,5 @@
 /**
- * Supabase project used for Online team play (Realtime only: no tables, no stored data).
+ * Supabase project used for Online team play (Realtime) and accounts (tables and the account function).
  * The publishable key is designed to be public. Override both with VITE_SUPABASE_URL and
  * VITE_SUPABASE_PUBLISHABLE_KEY (see .env.example). Empty values make Online mode report
  * "Can't reach the team server"; Same computer mode never needs them.

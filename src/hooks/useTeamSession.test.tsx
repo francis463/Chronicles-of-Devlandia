@@ -219,7 +219,7 @@ describe("useTeamSession: in game", () => {
     act(() => vi.advanceTimersByTime(POS_INTERVAL_MS));
     expect(kai.result.current.teammates).toEqual([
       // Fake timers freeze Date.now, so both joined at the same instant: assert the color matches Ana's own.
-      { id: ana.result.current.me!.id, name: "Ana", color: ana.result.current.me!.color, x: 40, y: 60, zone: "peaks" },
+      { id: ana.result.current.me!.id, name: "Ana", color: ana.result.current.me!.color, cls: "warrior", x: 40, y: 60, zone: "peaks" },
     ]);
   });
 
@@ -286,6 +286,18 @@ describe("useTeamSession: in game", () => {
     expect(progress).toHaveBeenCalledWith({ ...NO_FLAGS, gateUnlocked: true }, "Gil");
     expect(() => act(() => hub.inject(room, { type: "badge", id: "gil", name: "Gil", chest: "chest-rust" }))).not.toThrow();
     expect(badges).not.toHaveBeenCalled();
+  });
+
+  it("a teammate's progress with lighthouseLit reaches onProgress, and a later message without it never turns it off", async () => {
+    const { kai, hub } = await withGil();
+    const room = kai.result.current.room!;
+    const progress = vi.fn();
+    kai.result.current.onProgress(progress);
+    act(() => hub.inject(room, { type: "progress", id: "gil", name: "Gil", flags: { ...NO_FLAGS, gateUnlocked: true, lighthouseLit: true } }));
+    expect(progress).toHaveBeenLastCalledWith({ ...NO_FLAGS, gateUnlocked: true, lighthouseLit: true }, "Gil");
+    const { archiveOpen: _a, lighthouseLit: _l, ...oldest } = NO_FLAGS;
+    act(() => hub.inject(room, { type: "progress", id: "gil", name: "Gil", flags: { ...oldest, gateUnlocked: true } }));
+    expect(progress).toHaveBeenLastCalledWith({ ...NO_FLAGS, gateUnlocked: true, lighthouseLit: true }, "Gil");
   });
 
   it("a change to or from an unknown zone reports nothing", async () => {
@@ -582,5 +594,42 @@ describe("useTeamSession: chat and pings", () => {
     await settle();
     act(() => void p.ana.result.current.sendChat("three"));
     expect(got).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe("useTeamSession: classes", () => {
+  it("create and join tell the room which class each player is; no class means the warrior", async () => {
+    const { player } = world();
+    const ana = player();
+    const kai = player();
+    const zed = player();
+    act(() => ana.result.current.create("Ana", "local", "archer"));
+    await settle();
+    const room = ana.result.current.room!;
+    act(() => kai.result.current.join("Kai", room, "local", "mage"));
+    await settle();
+    act(() => zed.result.current.join("Zed", room, "local"));
+    await settle();
+    const classes = (p: typeof ana) => Object.fromEntries(p.result.current.players.map((x) => [x.name, x.cls]));
+    expect(classes(ana)).toEqual({ Ana: "archer", Kai: "mage", Zed: "warrior" });
+    expect(kai.result.current.teammates.map((t) => [t.name, t.cls])).toEqual([
+      ["Ana", "archer"],
+      ["Zed", "warrior"],
+    ]);
+  });
+
+  it("a teammate with an unknown class is shown as the warrior", async () => {
+    const { player, hub } = world();
+    const ana = player();
+    act(() => ana.result.current.create("Ana", "local", "tank"));
+    await settle();
+    const gil = hub.transport();
+    await act(async () => {
+      await gil.join(ana.result.current.room!, {
+        id: "gil", name: "Gil", joinedAt: Date.now() + 1000, startedAt: null, flags: NO_FLAGS, x: 28, y: 72, zone: "peaks",
+        cls: "__proto__" as never,
+      });
+    });
+    expect(ana.result.current.teammates.find((t) => t.name === "Gil")?.cls).toBe("warrior");
   });
 });

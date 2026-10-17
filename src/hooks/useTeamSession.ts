@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { type PingPlace } from "../chat/places";
+import { DEFAULT_CLASS, classOrDefault, type ClassId } from "../game/classes";
 import { PLAYER_START } from "../game/constants";
 import {
   makeRoomCode,
@@ -26,7 +27,7 @@ export type TeamPhase = "idle" | "connecting" | "lobby" | "playing" | "error";
 /** Who a chat line or ping came from: roster id, the nickname as typed, and their colour. */
 export type ChatSender = { id: string; name: string; color: string };
 export type PingNote = { zone: ZoneId; x: number; y: number; place: PingPlace | null };
-export type Teammate = { id: string; name: string; color: string; x: number; y: number; zone: ZoneId | null };
+export type Teammate = { id: string; name: string; color: string; cls?: ClassId; x: number; y: number; zone: ZoneId | null };
 
 export type TeamSession = {
   phase: TeamPhase;
@@ -37,8 +38,8 @@ export type TeamSession = {
   players: RankedPlayer[];
   startedAt: number | null;
   teammates: Teammate[];
-  create(name: string, mode: TeamMode): void;
-  join(name: string, code: string, mode: TeamMode): void;
+  create(name: string, mode: TeamMode, cls?: ClassId): void;
+  join(name: string, code: string, mode: TeamMode, cls?: ClassId): void;
   start(): void;
   leave(): void;
   retry(): void;
@@ -105,7 +106,7 @@ function reducer(state: State, action: Action): State {
   }
 }
 
-type Request = { name: string; mode: TeamMode; room: string; creating: boolean };
+type Request = { name: string; mode: TeamMode; room: string; creating: boolean; cls: ClassId };
 
 /**
  * The player's connection to a team room: lobby membership, start, teammates' positions and
@@ -196,7 +197,7 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
       transport.current = t;
       request.current = req;
       const myId = crypto.randomUUID();
-      me.current = { id: myId, name: req.name, joinedAt: now(), startedAt: null, flags: NO_FLAGS, x: PLAYER_START.x, y: PLAYER_START.y, zone: "peaks" };
+      me.current = { id: myId, name: req.name, joinedAt: now(), startedAt: null, flags: NO_FLAGS, x: PLAYER_START.x, y: PLAYER_START.y, zone: "peaks", cls: req.cls };
       dispatch({ type: "connect", room: req.room, myId });
 
       let lastStatus: TeamStatus | null = null;
@@ -310,15 +311,15 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
   const busy = () => stateRef.current.phase === "connecting";
 
   const create = useCallback(
-    (name: string, mode: TeamMode) => {
-      if (!busy()) connect({ name, mode, room: makeRoomCode(), creating: true });
+    (name: string, mode: TeamMode, cls: ClassId = DEFAULT_CLASS) => {
+      if (!busy()) connect({ name, mode, room: makeRoomCode(), creating: true, cls: classOrDefault(cls) });
     },
     [connect],
   );
 
   const join = useCallback(
-    (name: string, code: string, mode: TeamMode) => {
-      if (!busy()) connect({ name, mode, room: code, creating: false });
+    (name: string, code: string, mode: TeamMode, cls: ClassId = DEFAULT_CLASS) => {
+      if (!busy()) connect({ name, mode, room: code, creating: false, cls: classOrDefault(cls) });
     },
     [connect],
   );
@@ -436,7 +437,7 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
     () =>
       players
         .filter((p) => p.id !== state.myId)
-        .map((p) => ({ id: p.id, name: p.name, color: p.color, ...(state.positions[p.id] ?? { x: p.x, y: p.y, zone: p.zone }) })),
+        .map((p) => ({ id: p.id, name: p.name, color: p.color, cls: classOrDefault(p.cls), ...(state.positions[p.id] ?? { x: p.x, y: p.y, zone: p.zone }) })),
     [players, state.myId, state.positions],
   );
 

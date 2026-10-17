@@ -1,5 +1,6 @@
 import { ARCHIVE_LOCK, GATE_CSS, SCROLL_CIPHER } from "../learn/bank/builtin";
 import { MATCHER_ROUNDS } from "../learn/bank/matcher";
+import { SANDCASTLE } from "../learn/bank/sandcastle";
 import { chestChallenge, CHESTS } from "../learn/chests";
 import type { Challenge, ChallengeTarget } from "../learn/types";
 import type { GameState } from "./types";
@@ -15,6 +16,8 @@ export function challengeOf(s: GameState, target: ChallengeTarget): Challenge {
       return ARCHIVE_LOCK;
     case "matcher":
       return MATCHER_ROUNDS[s.matcherRound];
+    case "sandcastle":
+      return SANDCASTLE;
     default:
       return chestChallenge(s.picks, target);
   }
@@ -39,6 +42,7 @@ export function challengeView(s: GameState): ChallengeView | null {
   const c = challengeOf(s, open.target);
   let success: ChallengeView["success"] = null;
   if (open.solved && open.target === "matcher") success = { code: s.accessCode, explain: c.explain };
+  else if (open.solved && open.target === "sandcastle") success = { line: "✓ Sandcastle built", spoken: "Sandcastle built", explain: c.explain, answer: "" };
   else if (open.solved) {
     const chest = CHESTS.find((ch) => ch.id === open.target);
     if (chest) {

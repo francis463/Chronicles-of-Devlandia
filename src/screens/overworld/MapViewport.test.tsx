@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POIS } from "../../game/constants";
@@ -40,6 +40,7 @@ const props = (over: Partial<Props> = {}): Props => ({
   badges: [],
   matcherSolved: false,
   archiveOpen: false,
+  lighthouseLit: false,
   ...over,
 });
 
@@ -184,14 +185,22 @@ describe("MapViewport on the canvas", () => {
   });
 
   it("dig-spot anchor only while the clue is decoded and not found; artifact anchor when found", () => {
-    const { rerender } = render(<MapViewport {...props()} />);
+    const { rerender } = render(<MapViewport {...props({ zone: "foggaten" })} />);
     expect(screen.queryByTestId("dig-spot")).toBeNull();
-    rerender(<MapViewport {...props({ clueDecoded: true })} />);
+    rerender(<MapViewport {...props({ zone: "foggaten", clueDecoded: true })} />);
     expect(screen.getByTestId("dig-spot")).toHaveTextContent("Dig spot");
     expect(screen.queryByTestId("artifact")).toBeNull();
-    rerender(<MapViewport {...props({ clueDecoded: true, artifactFound: true })} />);
+    rerender(<MapViewport {...props({ zone: "foggaten", clueDecoded: true, artifactFound: true })} />);
     expect(screen.queryByTestId("dig-spot")).toBeNull();
     expect(screen.getByTestId("artifact")).toHaveTextContent("Golden Semicolon");
+    rerender(<MapViewport {...props({ zone: "forest", clueDecoded: true })} />);
+    expect(screen.queryByTestId("dig-spot")).toBeNull();
+    rerender(<MapViewport {...props({ zone: "forest", clueDecoded: true, artifactFound: true })} />);
+    expect(screen.queryByTestId("artifact")).toBeNull();
+    rerender(<MapViewport {...props({ zone: "peaks", clueDecoded: true })} />);
+    expect(screen.queryByTestId("dig-spot")).toBeNull();
+    rerender(<MapViewport {...props({ zone: "peaks", clueDecoded: true, artifactFound: true })} />);
+    expect(screen.queryByTestId("artifact")).toBeNull();
   });
 
   it("keeps the map captions, without dashed boxes", () => {
@@ -239,29 +248,38 @@ describe("MapViewport on the canvas", () => {
 });
 
 describe("MapViewport chests, the Syntax Terminal and the Archive", () => {
-  it("the Peaks show six chest buttons and the village three plus Terminal and Archive, named by their spoken forms", () => {
+  it("the Peaks show the lodge and cave chests and the village the hut and windmill chests plus Terminal and Archive, each named for its landmark and spoken language", () => {
     const onInteract = vi.fn();
     const { rerender } = render(<MapViewport {...props({ onInteract })} />);
-    const peaks = ["C++ 1 chest", "Java chest", "C++ 2 chest", "HTML chest", "CSS chest", "Python 1 chest"];
+    const peaks = ["Ski Lodge, HTML chest", "Ice Cave, CSS chest"];
     for (const name of peaks) expect(screen.getByRole("button", { name })).toBeInTheDocument();
-    expect(within(screen.getByRole("button", { name: "C++ 1 chest" })).getByText("C++ I")).toBeInTheDocument();
+    expect(within(screen.getByRole("button", { name: "Ski Lodge, HTML chest" })).getByText("Lodge")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Syntax Terminal" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "HTML chest" }));
+    fireEvent.click(screen.getByRole("button", { name: "Ski Lodge, HTML chest" }));
     rerender(<MapViewport {...props({ zone: "village", onInteract })} />);
-    for (const name of ["PHP chest", "SQL chest", "Python 2 chest", "Syntax Terminal", "Archive"]) expect(screen.getByRole("button", { name })).toBeInTheDocument();
+    for (const name of ["Hut, PHP chest", "Windmill, SQL chest", "Syntax Terminal", "Archive"]) expect(screen.getByRole("button", { name })).toBeInTheDocument();
     expect(within(screen.getByRole("button", { name: "Syntax Terminal" })).getByText("Terminal")).toBeInTheDocument();
     for (const name of peaks) expect(screen.queryByRole("button", { name })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Syntax Terminal" }));
     fireEvent.click(screen.getByRole("button", { name: "Archive" }));
-    fireEvent.click(screen.getByRole("button", { name: "SQL chest" }));
+    fireEvent.click(screen.getByRole("button", { name: "Windmill, SQL chest" }));
     expect(onInteract.mock.calls).toEqual([["chest-html"], ["terminal"], ["archive"], ["chest-sql"]]);
   });
 
-  it("earned chests' captions read SQL ✓, and the button is named SQL chest, earned", () => {
+  it("every other zone's landmark chests are buttons too: oak, pyramid, oasis, shipwreck, pier and ruins", () => {
+    const zones = [["forest", ["Old Oak, JavaScript chest"]], ["desert", ["Pyramid, Java chest", "Oasis, Python 2 chest"]], ["beach", ["Pier, C++ 1 chest", "Shipwreck, C++ 2 chest"]], ["foggaten", ["Ruins, Python 1 chest"]]] as const;
+    for (const [zone, names] of zones) {
+      const { unmount } = render(<MapViewport {...props({ zone })} />);
+      for (const name of names) expect(screen.getByRole("button", { name }), `${zone} ${name}`).toBeInTheDocument();
+      unmount();
+    }
+  });
+
+  it("earned chests' captions read Mill ✓, and the button is named for its landmark, earned", () => {
     render(<MapViewport {...props({ zone: "village", badges: ["chest-sql"] })} />);
-    const sql = screen.getByRole("button", { name: "SQL chest, earned" });
-    expect(within(sql).getByText("SQL ✓")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "PHP chest" })).toBeInTheDocument();
+    const sql = screen.getByRole("button", { name: "Windmill, SQL chest, earned" });
+    expect(within(sql).getByText("Mill ✓")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Hut, PHP chest" })).toBeInTheDocument();
   });
 
   it("the Archive caption reads Archive, then C#, then C# ✓, and the button is named Archive, then C sharp chest, then C sharp chest, earned", () => {
@@ -273,45 +291,21 @@ describe("MapViewport chests, the Syntax Terminal and the Archive", () => {
     expect(within(screen.getByRole("button", { name: "C sharp chest, earned" })).getByText("C# ✓")).toBeInTheDocument();
   });
 
-  it("at 1× a chest caption is hidden until hovered, focused or in reach, but the button keeps its accessible name (Review Focus 5)", () => {
+  it("a landmark chest's caption shows at 1× like any landmark's, and hides while it is in reach (the prompt takes over)", () => {
     const { rerender } = render(<MapViewport {...props()} />);
     expect(screen.getByTestId("world-layer").style.width).toBe("320px");
-    const button = screen.getByRole("button", { name: "HTML chest" });
-    expect(button).toHaveClass("group");
-    const chip = within(button).getByText("HTML");
-    expect(chip).toHaveClass("opacity-0");
-    expect(chip.className.split(/\s+/)).toEqual(expect.arrayContaining(["group-hover:opacity-100", "group-focus-visible:opacity-100"]));
-    // The landmarks' captions still show at 1×.
+    const button = screen.getByRole("button", { name: "Ski Lodge, HTML chest" });
+    expect(within(button).getByText("Lodge")).not.toHaveClass("opacity-0");
     expect(within(screen.getByRole("button", { name: "[G] Gate" })).getByText("[G] Gate")).not.toHaveClass("opacity-0");
-    const html = { id: "chest-html" as const, label: "HTML Chest", x: 10, y: 60 };
-    rerender(<MapViewport {...props({ player: { x: 10, y: 66 }, inRange: html, prompt: "[E] Open HTML Chest" })} />);
-    expect(within(screen.getByRole("button", { name: "HTML chest" })).getByText("HTML")).not.toHaveClass("opacity-0");
-    expect(within(screen.getByRole("button", { name: "CSS chest" })).getByText("CSS")).toHaveClass("opacity-0");
+    const html = { id: "chest-html" as const, label: "Ski Lodge", x: 19.4, y: 89.4 };
+    rerender(<MapViewport {...props({ player: { x: 19, y: 84 }, inRange: html, prompt: "[E] Search Ski Lodge" })} />);
+    expect(within(screen.getByRole("button", { name: "Ski Lodge, HTML chest" })).getByText("Lodge")).toHaveClass("opacity-0");
   });
 
-  it("a hidden caption takes no taps, a showing landmark caption sits above the other buttons, and a 1× chest caption never takes taps", () => {
-    const { rerender } = render(<MapViewport {...props()} />);
-    const html = within(screen.getByRole("button", { name: "HTML chest" })).getByText("HTML");
-    expect(html).toHaveClass("pointer-events-none");
-    const cache = within(screen.getByRole("button", { name: "[X] Supply Cache" })).getByText("[X] Supply Cache");
-    expect(cache).toHaveClass("z-10");
-    expect(cache).not.toHaveClass("pointer-events-none");
-    const poi = POIS.find((p) => p.id === "chest")!;
-    rerender(<MapViewport {...props({ player: { x: poi.x, y: poi.y + 6 }, inRange: poi, prompt: "[E] Inspect Supply Cache" })} />);
-    expect(within(screen.getByRole("button", { name: "[X] Supply Cache" })).getByText("[X] Supply Cache")).toHaveClass("pointer-events-none");
-    // At 1× a chest caption is information only: shown in reach it still takes no taps, so a tap on a
-    // neighbouring drawing under it reaches that place (final review).
-    rerender(<MapViewport {...props({ inRange: { id: "chest-html", label: "HTML Chest", x: 10, y: 60 } })} />);
-    const shown = within(screen.getByRole("button", { name: "HTML chest" })).getByText("HTML");
-    expect(shown).not.toHaveClass("opacity-0");
-    expect(shown).toHaveClass("pointer-events-none");
-    expect(shown).not.toHaveClass("z-10");
-  });
-
-  it("chest buttons are disabled while downed, and the old landmarks keep their caption as their name", () => {
+  it("chest buttons are disabled while downed and keep their landmark name", () => {
     render(<MapViewport {...props({ downed: true })} />);
-    expect(screen.getByRole("button", { name: "HTML chest" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "HTML chest" })).toHaveAttribute("aria-label", "HTML chest");
+    expect(screen.getByRole("button", { name: "Ski Lodge, HTML chest" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Ski Lodge, HTML chest" })).toHaveAttribute("aria-label", "Ski Lodge, HTML chest");
   });
 });
 
@@ -360,5 +354,169 @@ describe("MapViewport: your view", () => {
     render(<MapViewport {...props()} />);
     expect(drawn.at(-1)!.input.snow).toBeFalsy();
     expect(drawn.at(-1)!.input.lightMode ?? "auto").toBe("auto");
+  });
+});
+
+describe("MapViewport: the Dense Forest", () => {
+  it("shows its own caption and exit sign, and none of the other zones' buttons or captions", () => {
+    render(<MapViewport {...props({ zone: "forest" })} />);
+    expect(screen.getByText("(Dense Forest)")).toBeInTheDocument();
+    expect(screen.getByText("↑ C++ Peaks")).toBeInTheDocument();
+    for (const name of ["[G] Gate", "[T] Tower", "[X] Supply Cache", "[V] Ada"]) expect(screen.queryByRole("button", { name })).toBeNull();
+    for (const text of ["(Snowy Peaks Biome)", "(Dev Village)", "← Dev Village", "Forest ↓"]) expect(screen.queryByText(text)).toBeNull();
+  });
+
+  it("has three place buttons that call onInteract, and only the forest has them", () => {
+    const onInteract = vi.fn();
+    const { rerender } = render(<MapViewport {...props({ zone: "forest", onInteract })} />);
+    const names = ["[R] Ranger", "[F] Campfire", "[P] Signpost"];
+    for (const name of names) fireEvent.click(screen.getByRole("button", { name }));
+    expect(onInteract.mock.calls).toEqual([["ranger"], ["campfire"], ["forest-signpost"]]);
+    rerender(<MapViewport {...props({ zone: "peaks" })} />);
+    for (const name of ["[R] Ranger", "[F] Campfire"]) expect(screen.queryByRole("button", { name })).toBeNull();
+  });
+
+  it("the Peaks show the way south", () => {
+    render(<MapViewport {...props()} />);
+    expect(screen.getByText("Forest ↓")).toBeInTheDocument();
+    expect(screen.getByText("(Dense Forests Biome)")).toBeInTheDocument();
+  });
+
+  it("the fog is off in the forest even with the tower unpowered, and still on in the village (Review Focus 5)", () => {
+    const { rerender } = render(<MapViewport {...props({ zone: "village" })} />);
+    expect(screen.getByTestId("fog").style.opacity).toBe("1");
+    rerender(<MapViewport {...props({ zone: "forest" })} />);
+    expect(screen.getByTestId("fog").style.opacity).toBe("0");
+    rerender(<MapViewport {...props({ zone: "peaks" })} />);
+    expect(screen.getByTestId("fog").style.opacity).toBe("1");
+  });
+
+  it("crossing into the forest re-keys the fade and the world layer", () => {
+    const { rerender } = render(<MapViewport {...props()} />);
+    const fade = screen.getByTestId("zone-fade");
+    const layer = screen.getByTestId("world-layer");
+    rerender(<MapViewport {...props({ zone: "forest" })} />);
+    expect(screen.getByTestId("zone-fade")).not.toBe(fade);
+    expect(screen.getByTestId("world-layer")).not.toBe(layer);
+  });
+});
+
+describe("MapViewport on Foggaten Island", () => {
+  const island = (over: Partial<Props> = {}) => props({ zone: "foggaten", player: { x: 30, y: 70 }, drone: { x: 34, y: 68 }, ...over });
+  const reduceMotion = () => {
+    window.matchMedia = ((query: string) => ({ media: query, matches: true, addEventListener: () => {}, removeEventListener: () => {} })) as unknown as typeof window.matchMedia;
+  };
+
+  it("hands the lamp's state to the canvas", () => {
+    render(<MapViewport {...island({ lighthouseLit: true })} />);
+    expect(drawn.at(-1)?.input.lighthouseLit).toBe(true);
+  });
+
+  it("shows the island's caption and buttons", () => {
+    render(<MapViewport {...island()} />);
+    expect(screen.getByText("(Foggaten Island Biome)")).toBeInTheDocument();
+    for (const name of ["[B] Dock", "[L] Lighthouse", "[H] Hermit", "[F] Campfire", "Ruins, Python 1 chest"]) expect(screen.getByRole("button", { name })).toBeInTheDocument();
+  });
+
+  it("drifts a mist over the island only, hidden from assistive tech, and holds it still with reduced motion", () => {
+    const { rerender } = render(<MapViewport {...props()} />);
+    expect(screen.queryByTestId("mist")).toBeNull();
+    rerender(<MapViewport {...island()} />);
+    const mist = screen.getByTestId("mist");
+    expect(mist).toHaveAttribute("aria-hidden", "true");
+    expect(mist.className).toContain("pointer-events-none");
+    expect(mist.className).toContain("animate-[mist-drift");
+    cleanup();
+    reduceMotion();
+    render(<MapViewport {...island()} />);
+    expect(screen.getByTestId("mist").className).not.toContain("mist-drift");
+  });
+
+  it("the mist is there until the lighthouse is lit, then fades away (and stays gone)", () => {
+    const { rerender } = render(<MapViewport {...island({ lighthouseLit: false })} />);
+    expect(screen.getByTestId("mist").style.opacity).toBe("1");
+    rerender(<MapViewport {...island({ lighthouseLit: true })} />);
+    expect(screen.getByTestId("mist").style.opacity).toBe("0");
+    expect(screen.getByTestId("mist").className).toContain("transition-opacity");
+  });
+
+  it("covers the map with the crossing fade only while a boat crossing is under way", () => {
+    vi.useFakeTimers();
+    const { rerender } = render(<MapViewport {...props()} />);
+    expect(screen.getByTestId("crossing-fade").style.opacity).toBe("0");
+    expect(screen.getByTestId("crossing-fade")).toHaveAttribute("aria-hidden", "true");
+    rerender(<MapViewport {...island()} />);
+    expect(screen.getByTestId("crossing-fade").style.opacity).toBe("1");
+    act(() => void vi.advanceTimersByTime(700));
+    expect(screen.getByTestId("crossing-fade").style.opacity).toBe("0");
+    vi.useRealTimers();
+  });
+});
+
+describe("MapViewport in the Snowy Peaks: the signpost, the weather station and the snow cave", () => {
+  it("shows the signpost and the weather station, and presses go to their places", () => {
+    const onInteract = vi.fn();
+    render(<MapViewport {...props({ onInteract })} />);
+    fireEvent.click(screen.getByRole("button", { name: "Signpost" }));
+    fireEvent.click(screen.getByRole("button", { name: "Weather Station" }));
+    expect(onInteract.mock.calls).toEqual([["peaks-signpost"], ["weather-station"]]);
+  });
+
+  it("the snow cave's button only exists once the tower is powered", () => {
+    const { rerender } = render(<MapViewport {...props()} />);
+    expect(screen.queryByRole("button", { name: "Snow Cave" })).toBeNull();
+    rerender(<MapViewport {...props({ towerPowered: true })} />);
+    expect(screen.getByRole("button", { name: "Snow Cave" })).toBeInTheDocument();
+  });
+
+  it("the other zones have none of them", () => {
+    for (const zone of ["village", "forest", "foggaten"] as const) {
+      const { unmount } = render(<MapViewport {...props({ zone, towerPowered: true })} />);
+      expect(screen.queryByRole("button", { name: "Weather Station" }), zone).toBeNull();
+      expect(screen.queryByRole("button", { name: "Snow Cave" }), zone).toBeNull();
+      unmount();
+    }
+  });
+});
+
+describe("MapViewport in the Sunbaked Desert", () => {
+  const desert = (over: Partial<Props> = {}) => props({ zone: "desert", player: { x: 90, y: 70 }, drone: { x: 86, y: 68 }, ...over });
+
+  it("shows the desert's caption and four place buttons, which go to their places", () => {
+    const onInteract = vi.fn();
+    render(<MapViewport {...desert({ onInteract })} />);
+    expect(screen.getByText("(Sunbaked Desert Biome)")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "[N] Nomad" }));
+    fireEvent.click(screen.getByRole("button", { name: "Oasis, Python 2 chest" }));
+    fireEvent.click(screen.getByRole("button", { name: "Pyramid, Java chest" }));
+    fireEvent.click(screen.getByRole("button", { name: "Signpost" }));
+    expect(onInteract.mock.calls).toEqual([["nomad"], ["chest-py-2"], ["chest-java"], ["desert-signpost"]]);
+  });
+
+  it("has no fog of war and shows the way back to the forest", () => {
+    render(<MapViewport {...desert()} />);
+    expect(screen.getByTestId("fog").style.opacity).toBe("0");
+    expect(screen.getByText("Forest →")).toBeInTheDocument();
+  });
+});
+
+describe("MapViewport on the Sunny Beach", () => {
+  const beach = (over: Partial<Props> = {}) => props({ zone: "beach", player: { x: 10, y: 70 }, drone: { x: 14, y: 68 }, ...over });
+
+  it("shows the beach's caption and four place buttons, which go to their places", () => {
+    const onInteract = vi.fn();
+    render(<MapViewport {...beach({ onInteract })} />);
+    expect(screen.getByText("(Sunny Beach Biome)")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "[F] Fisher" }));
+    fireEvent.click(screen.getByRole("button", { name: "Pier, C++ 1 chest" }));
+    fireEvent.click(screen.getByRole("button", { name: "Shipwreck, C++ 2 chest" }));
+    fireEvent.click(screen.getByRole("button", { name: "Signpost" }));
+    expect(onInteract.mock.calls).toEqual([["fisher"], ["chest-cpp-1"], ["chest-cpp-2"], ["beach-signpost"]]);
+  });
+
+  it("has no fog of war and shows the way back to the forest", () => {
+    render(<MapViewport {...beach()} />);
+    expect(screen.getByTestId("fog").style.opacity).toBe("0");
+    expect(screen.getByText("← Forest")).toBeInTheDocument();
   });
 });

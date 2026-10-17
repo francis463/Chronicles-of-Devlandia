@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { CLASSES } from "../game/classes";
 import { createGroundCache, createSpriteCache, paintScene, type Ctx2D, type MakeCanvas } from "./paint";
 import { buildScene, type Scene, type SceneInput } from "./scene";
+import { CLASS_ITEMS } from "./sprites";
 import { fitWorld, toArt } from "./world";
 
 type Call = [string, ...unknown[]];
@@ -67,6 +69,7 @@ const input: SceneInput = {
   towerPowered: true,
   minutes: 23 * 60,
   archiveOpen: false,
+  lighthouseLit: false,
   matcherSolved: false,
   earned: [],
 };
@@ -215,6 +218,67 @@ describe("caches", () => {
     expect(made.length).toBe(before + 1);
     sprites.get("explorer-down", 0, "#a78bfa", false, false);
     expect(made.length).toBe(before + 2);
+  });
+
+  describe("class variants", () => {
+    const fills = (contexts: ReturnType<typeof maker>["contexts"], img: CanvasImageSource | null) =>
+      contexts.get(img as unknown as FakeImage)!.log.filter((c) => c[0] === "fillRect") as [string, string, number, number, number, number, number][];
+
+    it("a class variant is its own cached image, distinct from the plain hood", () => {
+      const { sprites, made } = setup();
+      const plain = sprites.get("explorer-down", 0, "#f472b6", false, false);
+      const mage = sprites.get("explorer-down", 0, "#f472b6:mage", false, false);
+      expect(mage).not.toBe(plain);
+      const n = made.length;
+      expect(sprites.get("explorer-down", 0, "#f472b6:mage", false, false)).toBe(mage);
+      expect(made.length).toBe(n);
+    });
+
+    it("no two variants, hoods, flips or rotations share a cache entry", () => {
+      const { sprites } = setup();
+      const images = new Set<unknown>();
+      let count = 0;
+      for (const variant of ["#f472b6", "#f472b6:mage", "#f472b6:tank", "#22c55e:mage"])
+        for (const flip of [false, true])
+          for (const rotate of [false, true]) {
+            images.add(sprites.get("explorer-down", 0, variant, flip, rotate));
+            count++;
+          }
+      expect(images.size).toBe(count);
+    });
+
+    it("paints the class cloak colour and the item colours over the explorer", () => {
+      const { sprites, contexts } = setup();
+      const colours = new Set(fills(contexts, sprites.get("explorer-down", 0, "#f472b6:mage", false, false)).map((c) => c[1]));
+      expect(colours).toContain(CLASSES.mage.outfit);
+      expect(colours).toContain("#f472b6");
+      expect(colours).toContain(CLASS_ITEMS.mage.palette.i);
+      expect(colours).toContain(CLASS_ITEMS.mage.palette.j);
+    });
+
+    it("an unknown class paints exactly like the plain hood", () => {
+      const { sprites, contexts } = setup();
+      const plain = fills(contexts, sprites.get("explorer-down", 0, "#f472b6", false, false));
+      const bad = fills(contexts, sprites.get("explorer-down", 0, "#f472b6:nonsense", false, false));
+      expect(bad).toEqual(plain);
+    });
+
+    it("the downed grey ignores any class", () => {
+      const { sprites, contexts } = setup();
+      const grey = fills(contexts, sprites.get("explorer-down", 0, "grey", false, false));
+      const greyMage = fills(contexts, sprites.get("explorer-down", 0, "grey:mage", false, false));
+      expect(greyMage).toEqual(grey);
+    });
+
+    it("flipping mirrors the item too", () => {
+      const { sprites, contexts } = setup();
+      const itemFills = (flip: boolean) =>
+        fills(contexts, sprites.get("explorer-right", 0, "#22c55e:archer", flip, false)).filter((c) => c[1] === CLASS_ITEMS.archer.palette.i || c[1] === CLASS_ITEMS.archer.palette.j);
+      const minX = Math.min(...itemFills(false).map((c) => c[3]));
+      const maxEnd = Math.max(...itemFills(true).map((c) => c[3] + c[5] - 1));
+      expect(minX).toBe(0);
+      expect(maxEnd).toBe(15);
+    });
   });
 
   it("returns null when no canvas can be made", () => {

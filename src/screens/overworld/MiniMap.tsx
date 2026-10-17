@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react";
-import { ADA, ARCHIVE, HIDDEN_ARTIFACT, POIS, SIGNPOST } from "../../game/constants";
+import { ADA, ARCHIVE, BEACH_SIGNPOST, CAMPFIRE, DESERT_SIGNPOST, FISHER, FOREST_SIGNPOST, HERMIT, HIDDEN_ARTIFACT, ISLAND_DOCK, ISLAND_FIRE, LIGHTHOUSE, NOMAD, POIS, RANGER, SIGNPOST } from "../../game/constants";
 import { WALL_Y } from "../../game/wall";
 import type { Poi, Point } from "../../game/types";
 import type { ZoneId } from "../../game/zones";
@@ -18,6 +18,10 @@ export const MINI_COLORS: Record<TerrainKind, string> = {
   snow: "#e2e8f0",
   forest: "#24452a",
   meadow: "#3f7d3a",
+  sand: "#e7c98a",
+  dune: "#e2ac4c",
+  beach: "#f1e0b0",
+  sea: "#1e5aa8",
 };
 
 const WALL_COLOR = "#1e293b";
@@ -32,9 +36,10 @@ export function paintMiniTerrain(ctx: Ctx2D, width: number, height: number, zone
   const wallTop = Math.round((WALL_Y / 100) * height);
   const wallRows = Math.max(1, Math.round(height / 96));
   const gate = area.gateBox;
+  const wall = area.wall;
   for (let y = 0; y < height; y++) {
     const ay = Math.round((y / height) * WORLD.height);
-    const onWall = y >= wallTop && y < wallTop + wallRows;
+    const onWall = wall && y >= wallTop && y < wallTop + wallRows;
     let start = 0;
     let color = "";
     for (let x = 0; x <= width; x++) {
@@ -53,12 +58,17 @@ export function paintMiniTerrain(ctx: Ctx2D, width: number, height: number, zone
   }
 }
 
-const CELL_W = 96; // w-24
-const CELL_H = 54;
-/** The world map, west to east. */
+const CELL_W = 32; // six of them fill the box's 192 inner px
+const CELL_H = 18; // about 16:9, centred in the box's 54 px (18 px above and below)
+const CELL_TOP = 18;
+/** The world map, west to east. The forest lies south of the Peaks, the desert west and the beach east of the forest and Foggaten Island east of the Peaks; the cells keep one row to fit the sidebar. */
 const CELLS: Array<{ zone: ZoneId; left: number; places: Poi[] }> = [
   { zone: "village", left: 0, places: [ADA, SIGNPOST] },
   { zone: "peaks", left: CELL_W, places: POIS },
+  { zone: "desert", left: 2 * CELL_W, places: [NOMAD, DESERT_SIGNPOST] },
+  { zone: "forest", left: 3 * CELL_W, places: [RANGER, CAMPFIRE, FOREST_SIGNPOST] },
+  { zone: "beach", left: 4 * CELL_W, places: [FISHER, BEACH_SIGNPOST] },
+  { zone: "foggaten", left: 5 * CELL_W, places: [ISLAND_DOCK, LIGHTHOUSE, HERMIT, ISLAND_FIRE] },
 ];
 
 const at = (p: Point) => ({ left: `${p.x}%`, top: `${p.y}%` });
@@ -90,7 +100,7 @@ function MiniCell({ zone, left, current, children }: { zone: ZoneId; left: numbe
     paintMiniTerrain(ctx, canvas.width, canvas.height, zone);
   }, [zone]);
   return (
-    <div data-testid={`minimap-cell-${zone}`} data-current={current ? "true" : undefined} className="absolute top-0 h-[54px] w-24" style={{ left }}>
+    <div data-testid={`minimap-cell-${zone}`} data-current={current ? "true" : undefined} className="absolute" style={{ left, top: CELL_TOP, width: CELL_W, height: CELL_H }}>
       <canvas ref={terrain} aria-hidden="true" className="absolute inset-0 h-full w-full" />
       {/* An overlay, not the cell's own shadow: the opaque canvas would paint over that. */}
       {current && <div aria-hidden="true" data-testid="minimap-current" className="pointer-events-none absolute inset-0 shadow-[inset_0_0_0_1px_var(--accent)]" />}
@@ -141,7 +151,7 @@ export function MiniMap({
               const point = chest.at ?? (archiveOpen ? ARCHIVE : null);
               return chest.zone === cell.zone && point ? <ChestDiamond key={chest.id} id={chest.id} point={point} earned={badges.includes(chest.id)} /> : null;
             })}
-            {cell.zone === "peaks" && artifactFound && (
+            {cell.zone === "foggaten" && artifactFound && (
               <div className="absolute h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-[var(--accent)]" style={at(HIDDEN_ARTIFACT)} />
             )}
             {teammates
@@ -181,6 +191,7 @@ export function MiniMap({
         <span className="hidden pointer-coarse:inline">Move: D-pad</span>
         <span className="hidden pointer-coarse:inline">Interact: [E] button</span>
         <span>Codex: [C]</span>
+        <span>Help: [?]</span>
         {chatHint && <span className="pointer-coarse:hidden">{chatHint}</span>}
       </div>
     </div>

@@ -3,6 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Overworld } from "./Overworld";
 
+// A game remembers its questions in localStorage; here every mount rolls from a clean slate (and jsdom's storage would queue a fake timer).
+vi.mock("../../learn/recent", async (importActual) => ({ ...(await importActual<typeof import("../../learn/recent")>()), loadRecent: () => ({}), saveRecent: () => {} }));
+
+
 const noop = () => {};
 const setup = () => userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 const player = () => screen.getByTestId("player");
@@ -73,7 +77,7 @@ describe("TouchControls: D-pad", () => {
 
 describe("TouchControls: interact button", () => {
   it("is disabled when nothing is in range", () => {
-    render(<Overworld onMenu={noop} />);
+    render(<Overworld onMenu={noop} initial={{ player: { x: 62, y: 90 } }} />);
     expect(screen.getByRole("button", { name: "[E] Interact" })).toBeDisabled();
   });
 
@@ -122,7 +126,7 @@ describe("Controls legend", () => {
 describe("TouchControls: hidden artifact", () => {
   it("the [E] button digs at the revealed spot", async () => {
     const user = setup();
-    render(<Overworld onMenu={noop} initial={{ hasLoot: true, clueDecoded: true, player: { x: 72, y: 80 } }} />);
+    render(<Overworld onMenu={noop} initial={{ hasLoot: true, clueDecoded: true, zone: "foggaten", player: { x: 84, y: 80 } }} />);
     await user.click(screen.getByRole("button", { name: "[E] Dig here" }));
     expect(screen.getByText("Artifact found: the Golden Semicolon!")).toBeInTheDocument();
   });
