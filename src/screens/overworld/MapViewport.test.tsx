@@ -455,3 +455,29 @@ describe("MapViewport on Foggaten Island", () => {
     vi.useRealTimers();
   });
 });
+
+describe("MapViewport in the Snowy Peaks: the signpost, the weather station and the snow cave", () => {
+  it("shows the signpost and the weather station, and presses go to their places", () => {
+    const onInteract = vi.fn();
+    render(<MapViewport {...props({ onInteract })} />);
+    fireEvent.click(screen.getByRole("button", { name: "Signpost" }));
+    fireEvent.click(screen.getByRole("button", { name: "Weather Station" }));
+    expect(onInteract.mock.calls).toEqual([["peaks-signpost"], ["weather-station"]]);
+  });
+
+  it("the snow cave's button only exists once the tower is powered", () => {
+    const { rerender } = render(<MapViewport {...props()} />);
+    expect(screen.queryByRole("button", { name: "Snow Cave" })).toBeNull();
+    rerender(<MapViewport {...props({ towerPowered: true })} />);
+    expect(screen.getByRole("button", { name: "Snow Cave" })).toBeInTheDocument();
+  });
+
+  it("the other zones have none of them", () => {
+    for (const zone of ["village", "forest", "foggaten"] as const) {
+      const { unmount } = render(<MapViewport {...props({ zone, towerPowered: true })} />);
+      expect(screen.queryByRole("button", { name: "Weather Station" }), zone).toBeNull();
+      expect(screen.queryByRole("button", { name: "Snow Cave" }), zone).toBeNull();
+      unmount();
+    }
+  });
+});

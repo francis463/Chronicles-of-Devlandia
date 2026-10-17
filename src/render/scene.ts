@@ -5,7 +5,7 @@ import type { ZoneId } from "../game/zones";
 import { AREAS } from "./areas";
 import { LAMP_POINT } from "./areas/foggaten";
 import { FOREST_POINTS } from "./areas/forest";
-import { WILDLIFE, foxPose, goatPose } from "./areas/peaks";
+import { CAVE_POINT, WILDLIFE, foxPose, goatPose } from "./areas/peaks";
 import { VILLAGE_LIFE, wandererPose } from "./areas/village";
 import { DOCK_POINT } from "./areas/peaks";
 import type { Pose } from "./motion";
@@ -439,6 +439,8 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
     ...props(input.zone),
     ...wildlife,
     ...(input.earned.length === 0 ? [startArrow] : []),
+    // The snow cave appears once the signal tower is powered (shared with the team).
+    ...(input.towerPowered ? [placed("snow-cave", CAVE_POINT)] : []),
     ...learning(input),
     ...mates,
     player,
@@ -462,7 +464,8 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
 
   // The campfire's flame flickers (copies, so the cached drawables are never changed).
   const flame = reduced ? 0 : Math.floor(t / 400) % 2;
-  const animated = upright.map((d) => (d.sprite === "campfire" ? { ...d, frame: flame } : d));
+  const spin = reduced ? 0 : Math.floor(t / 300) % 2;
+  const animated = upright.map((d) => (d.sprite === "campfire" ? { ...d, frame: flame } : d.sprite === "station" ? { ...d, frame: spin } : d));
 
   return { zone: input.zone, glints, flat, upright: animated, drone, tint: PHASE_TINT[phase], light, snow };
 }

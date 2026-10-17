@@ -369,6 +369,11 @@ export function MapViewport({
             <MapCaption id="peaks" text="(Snowy Peaks Biome)" world={world} />
             <MapCaption id="river" text={towerPowered ? "Bridge" : "Frozen River"} world={world} />
             <MapCaption id="forest" text="(Dense Forests Biome)" world={world} />
+            <LandmarkButton hit={hits["peaks-signpost"]} name={caption("peaks-signpost")} label="Signpost" color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={smallMap && inRange?.id !== "peaks-signpost"} peek passive={smallMap} onClick={() => onInteract("peaks-signpost")} />
+            <LandmarkButton hit={hits["weather-station"]} name={caption("weather-station")} label="Weather Station" color="var(--accent)" world={world} map={map} prefer="above" disabled={downed} hideCaption={smallMap && inRange?.id !== "weather-station"} peek passive={smallMap} onClick={() => onInteract("weather-station")} />
+            {towerPowered && (
+              <LandmarkButton hit={hits["snow-cave"]} name={caption("snow-cave")} label="Snow Cave" color="var(--primary-border)" world={world} map={map} prefer="above" disabled={downed} hideCaption={smallMap && inRange?.id !== "snow-cave"} peek passive={smallMap} onClick={() => onInteract("snow-cave")} />
+            )}
             <LandmarkButton hit={hits.dock} name={caption("dock")} color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "dock"} onClick={() => onInteract("dock")} />
 
             <LandmarkButton hit={hits.tower} name={caption("tower")} color="var(--primary-border)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "tower"} onClick={() => onInteract("tower")} />

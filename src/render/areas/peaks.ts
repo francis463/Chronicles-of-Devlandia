@@ -1,6 +1,6 @@
 import { chestPoints } from "../learnPoints";
 import { spriteBox, type SpriteId } from "../sprites";
-import { DOCK } from "../../game/constants";
+import { DOCK, PEAKS_SIGNPOST, SNOW_CAVE, WEATHER_STATION } from "../../game/constants";
 import { toArt, type ArtPoint, type Rect } from "../world";
 import { inRect, type Area, type Prop, type TerrainKind } from "./area";
 
@@ -57,10 +57,10 @@ function terrainAt(x: number, y: number): TerrainKind {
 const MOUTH: Rect = { x: 0, y: 112, w: 32, h: 32 };
 const p = LANDMARK_POINTS;
 
-/** Where the camp's new places will stand (the signpost, the weather station and the hidden snow cave), kept clear from the start. */
-export const SIGNPOST_POINT: ArtPoint = { x: 106, y: 122 };
-export const STATION_POINT: ArtPoint = { x: 122, y: 124 };
-export const CAVE_POINT: ArtPoint = { x: 34, y: 56 };
+/** Where the camp signpost, the weather station and the hidden snow cave stand (the cave is only drawn once the tower is powered, but its room is kept clear from the start). */
+export const SIGNPOST_POINT: ArtPoint = toArt(PEAKS_SIGNPOST);
+export const STATION_POINT: ArtPoint = toArt(WEATHER_STATION);
+export const CAVE_POINT: ArtPoint = toArt(SNOW_CAVE);
 
 /**
  * The animals' zones: the art-px range each one's feet can ever reach, wherever you stand. The fox lives in the
@@ -104,6 +104,8 @@ const CAMP_PROPS: Prop[] = [
   { sprite: "campfire", at: { x: 108, y: 150 } },
   { sprite: "bench", at: { x: 122, y: 152 } },
   { sprite: "bench", at: { x: 96, y: 152 } },
+  { sprite: "signpost", at: SIGNPOST_POINT },
+  { sprite: "station", at: STATION_POINT },
   { sprite: "waterfall", at: { x: 110, y: 17 } },
   { sprite: "cave-mouth", at: { x: 150, y: 16 } },
   { sprite: "cave-mouth", at: { x: 235, y: 16 } },

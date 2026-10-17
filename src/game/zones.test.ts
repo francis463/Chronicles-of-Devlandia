@@ -144,6 +144,8 @@ describe("Foggaten Island", () => {
 
   it("the Peaks has a dock", () => {
     expect(ZONES.peaks.places.map((p) => p.id)).toContain("dock");
+    expect(ZONES.peaks.places.map((p) => p.id)).toEqual(expect.arrayContaining(["peaks-signpost", "weather-station"]));
+    expect(ZONES.peaks.places.map((p) => p.id)).not.toContain("snow-cave");
     expect(ZONES.peaks.places.find((p) => p.id === "dock")).toMatchObject({ label: "Dock", x: 92, y: 74 });
   });
 });

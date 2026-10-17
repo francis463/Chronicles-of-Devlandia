@@ -73,7 +73,7 @@ describe("TouchControls: D-pad", () => {
 
 describe("TouchControls: interact button", () => {
   it("is disabled when nothing is in range", () => {
-    render(<Overworld onMenu={noop} />);
+    render(<Overworld onMenu={noop} initial={{ player: { x: 62, y: 90 } }} />);
     expect(screen.getByRole("button", { name: "[E] Interact" })).toBeDisabled();
   });
 

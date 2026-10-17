@@ -87,3 +87,12 @@ describe("the lighthouse's verb", () => {
     expect(promptText({ ...island, lighthouseLit: true }, LIGHTHOUSE)).toBe("[E] Inspect Lighthouse");
   });
 });
+
+describe("the camp places' verbs", () => {
+  it("name what [E] does", () => {
+    const peaks: GameState = { ...initialState, zone: "peaks" };
+    expect(promptText(peaks, { id: "peaks-signpost", label: "Signpost", x: 0, y: 0 })).toBe("[E] Read Signpost");
+    expect(promptText(peaks, { id: "weather-station", label: "Weather Station", x: 0, y: 0 })).toBe("[E] Read Weather Station");
+    expect(promptText(peaks, { id: "snow-cave", label: "Snow Cave", x: 0, y: 0 })).toBe("[E] Enter Snow Cave");
+  });
+});

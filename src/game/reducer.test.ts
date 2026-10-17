@@ -3,7 +3,7 @@ import { gameReducer, initialState, isDowned, isModalOpen, reachPlaces, revealed
 import { placeInReach } from "./geometry";
 import type { ChallengeState, ChallengeTarget, GameState, Point } from "./types";
 import { NO_FLAGS } from "./team";
-import { DOCK, HIDDEN_ARTIFACT, INTERACT_RADIUS, ISLAND_DOCK, LIGHTHOUSE, LOG, PLAYER_START, POIS, SAIL_LANDING } from "./constants";
+import { DOCK, HIDDEN_ARTIFACT, INTERACT_RADIUS, ISLAND_DOCK, LIGHTHOUSE, LOG, PEAKS_SIGNPOST, PLAYER_START, POIS, SAIL_LANDING, SNOW_CAVE, WEATHER_STATION } from "./constants";
 import type { Bits8 } from "./lamp";
 import { cardFor } from "./cards";
 import { hermitLine } from "./island";
@@ -545,7 +545,7 @@ describe("gameReducer: places and talking", () => {
 
   it("visiblePois: your zone's places, plus the dig spot in the forest once revealed", () => {
     expect(visiblePois(s0).map((p) => p.id)).toEqual([
-      "gate", "chest", "river", "tower", "dock", "chest-cpp-1", "chest-java", "chest-cpp-2", "chest-html", "chest-css", "chest-py-1",
+      "gate", "chest", "river", "tower", "dock", "peaks-signpost", "weather-station", "chest-cpp-1", "chest-java", "chest-cpp-2", "chest-html", "chest-css", "chest-py-1",
     ]);
     expect(visiblePois({ ...village, clueDecoded: true }).map((p) => p.id)).toEqual([
       "villager", "signpost", "terminal", "archive", "chest-php", "chest-sql", "chest-py-2",
@@ -1100,5 +1100,43 @@ describe("gameReducer: the lighthouse lamp", () => {
     expect(synced).toMatchObject({ lighthouseLit: true, lampOpen: false });
     expect(lastLog(synced)).toBe("Kai lit the lighthouse. Its beam sweeps the fog.");
     expect(gameReducer(synced, { type: "teamSync", flags: NO_FLAGS, by: "Mia" })).toBe(synced);
+  });
+});
+
+describe("gameReducer: the camp signpost, the weather station and the snow cave", () => {
+  const beside = (poi: { x: number; y: number }, over: Partial<GameState> = {}): GameState => ({ ...s0, player: { x: poi.x + 2, y: poi.y }, ...over });
+
+  it("the signpost and the weather station are always in the Peaks, and inspecting them only shows a card", () => {
+    for (const poi of [PEAKS_SIGNPOST, WEATHER_STATION]) {
+      expect(visiblePois(s0).map((p) => p.id)).toContain(poi.id);
+      const s = gameReducer(beside(poi), { type: "interact", poi: poi.id });
+      expect(s.inspected).toBe(poi.id);
+      expect(s.logs).toEqual(beside(poi).logs);
+      expect({ hp: s.hp, stamina: s.stamina, minutes: s.minutes, zone: s.zone }).toEqual({ hp: 100, stamina: 100, minutes: s0.minutes, zone: "peaks" });
+    }
+  });
+
+  it("they are not places elsewhere", () => {
+    for (const zone of ["village", "forest", "foggaten"] as const) {
+      const ids = visiblePois({ ...s0, zone }).map((p) => p.id);
+      expect(ids).not.toContain("peaks-signpost");
+      expect(ids).not.toContain("weather-station");
+      expect(ids).not.toContain("snow-cave");
+    }
+  });
+
+  it("the snow cave is hidden until the signal tower is powered, then it is a place you can inspect", () => {
+    expect(visiblePois(s0).map((p) => p.id)).not.toContain("snow-cave");
+    const hidden = gameReducer(beside(SNOW_CAVE), { type: "interact", poi: "snow-cave" });
+    expect(hidden.inspected).toBeNull();
+    const powered = beside(SNOW_CAVE, { towerPowered: true });
+    expect(visiblePois(powered).map((p) => p.id)).toContain("snow-cave");
+    expect(reachPlaces(powered).map((p) => p.id)).toContain("snow-cave");
+    expect(gameReducer(powered, { type: "interact", poi: "snow-cave" }).inspected).toBe("snow-cave");
+  });
+
+  it("a teammate powering the tower reveals the cave for you too", () => {
+    const synced = gameReducer(beside(SNOW_CAVE), { type: "teamSync", flags: { ...NO_FLAGS, towerPowered: true }, by: "Kai" });
+    expect(visiblePois(synced).map((p) => p.id)).toContain("snow-cave");
   });
 });

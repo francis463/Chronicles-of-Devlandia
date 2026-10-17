@@ -141,8 +141,8 @@ describe("Overworld map", () => {
   });
 
   it("shows the inspect prompt only near a point of interest", () => {
-    const { unmount } = render(<Overworld onMenu={() => {}} />);
-    expect(screen.queryByText(/\[E\] Inspect/)).toBeNull();
+    const { unmount } = render(<Overworld onMenu={() => {}} initial={{ player: { x: 62, y: 90 } }} />);
+    expect(screen.queryByText(/^\[E\] (Inspect|Read)/)).toBeNull();
     unmount();
     render(<Overworld onMenu={() => {}} initial={{ player: { x: 50, y: 58 } }} />);
     expect(screen.getByText("[E] Inspect Terminal Gate")).toBeInTheDocument();

@@ -16,6 +16,7 @@ import {
   DOCK,
   INTERACT_RADIUS,
   LIGHTHOUSE,
+  SNOW_CAVE,
   ISLAND_DOCK,
   SAIL_LANDING,
 } from "./constants";
@@ -80,7 +81,12 @@ export const isModalOpen = (s: GameState) => s.challenge !== null || s.logicOpen
 
 /** Hidden points of interest that are currently diggable: the artifact, after decoding, until found. */
 /** What you can use in your zone: its places, plus the dig spot in the Peaks once revealed. */
-export const visiblePois = (s: GameState): Poi[] => [...ZONES[s.zone].places, ...(s.zone === "forest" ? revealedPois(s) : [])];
+export const visiblePois = (s: GameState): Poi[] => [
+  ...ZONES[s.zone].places,
+  ...(s.zone === "forest" ? revealedPois(s) : []),
+  // The snow cave is hidden until the signal tower is powered (shared with the team).
+  ...(s.zone === "peaks" && s.towerPowered ? [SNOW_CAVE] : []),
+];
 
 /** On the frozen river's ice, in a zone that has the river. */
 export const inRiver = (s: GameState): boolean => ZONES[s.zone].river && isInRiver(s.player);
@@ -290,7 +296,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       }
       if (action.poi === "island-fire" || action.poi === "ruins") return { ...state, inspected: action.poi };
       if (action.poi === "ranger") return pushLogOnce({ ...state, inspected: "ranger" }, `Ranger: "${rangerLine(state)}"`);
-      if (action.poi === "signpost" || action.poi === "campfire" || action.poi === "old-oak" || action.poi === "forest-signpost")
+      if (action.poi === "signpost" || action.poi === "peaks-signpost" || action.poi === "weather-station" || action.poi === "snow-cave" || action.poi === "campfire" || action.poi === "old-oak" || action.poi === "forest-signpost")
         return { ...state, inspected: action.poi };
       if (action.poi === "terminal") {
         // Once solved, the terminal shows its success view (the code) again, not a new round.

@@ -63,7 +63,7 @@ describe("useKeyboardControls: movement", () => {
 describe("useKeyboardControls: interact", () => {
   it("[E] does nothing out of range", async () => {
     const user = userEvent.setup();
-    render(<Overworld onMenu={noop} />);
+    render(<Overworld onMenu={noop} initial={{ player: { x: 62, y: 90 } }} />);
     await user.keyboard("e");
     expect(screen.queryByText(/Gate terminal ready/)).toBeNull();
     expect(screen.queryByRole("region", { name: "POI Inspection" })).toBeNull();

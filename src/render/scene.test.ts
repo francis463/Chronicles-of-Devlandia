@@ -184,7 +184,8 @@ describe("scene: zones", () => {
   });
 
   it("the Peaks draw none of the village's props", () => {
-    for (const id of ["hut", "well", "fence", "signpost"]) expect(sprites(scene(), "upright")).not.toContain(id);
+    // The Peaks have their own camp signpost; the village's huts, well and fences are not there.
+    for (const id of ["hut", "well", "fence"]) expect(sprites(scene(), "upright")).not.toContain(id);
   });
 
   it("the village scene's interior decorations are the village's own, even after a Peaks scene", () => {
@@ -757,5 +758,29 @@ describe("scene: the Peaks' camp, wildlife and start arrow", () => {
     expect(sprites(peaks({}, 400, true), "arrow")[0].y).toBe(sprites(peaks({}, 0, true), "arrow")[0].y);
     const arrow = sprites(peaks(), "arrow")[0];
     expect(Math.abs(arrow.x + 4 - 32)).toBeLessThanOrEqual(1);
+  });
+});
+
+describe("scene: the camp signpost, the weather station and the snow cave", () => {
+  const peaks = (over: Partial<SceneInput> = {}, t = 0, reduced = false) => scene({ minutes: DAY, ...over }, t, reduced);
+  const sprites = (s: ReturnType<typeof scene>, id: string) => s.upright.filter((d) => d.sprite === id);
+
+  it("the Peaks have a camp signpost and a weather station whose anemometer spins", () => {
+    expect(sprites(peaks(), "signpost")).toHaveLength(1);
+    expect(sprites(peaks(), "station")).toHaveLength(1);
+    expect(new Set([0, 300].map((t) => sprites(peaks({}, t), "station")[0].frame)).size).toBe(2);
+    expect(sprites(peaks({}, 300, true), "station")[0].frame).toBe(0);
+  });
+
+  it("the snow cave is drawn only once the tower is powered, only in the Peaks", () => {
+    expect(sprites(peaks(), "snow-cave")).toEqual([]);
+    expect(sprites(peaks({ towerPowered: true }), "snow-cave")).toHaveLength(1);
+    for (const zone of ["village", "forest", "foggaten"] as const) expect(sprites(scene({ zone, towerPowered: true }, 0), "snow-cave"), zone).toEqual([]);
+  });
+
+  it("the village has its own signpost and no weather station", () => {
+    const v = scene({ zone: "village" }, 0);
+    expect(sprites(v, "signpost")).toHaveLength(1);
+    expect(sprites(v, "station")).toEqual([]);
   });
 });

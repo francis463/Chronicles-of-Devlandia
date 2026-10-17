@@ -27,6 +27,10 @@ export const FOREST_SIGNPOST: Poi = { id: "forest-signpost", label: "Signpost", 
 export const TERMINAL: Poi = { id: "terminal", label: "Syntax Terminal", x: 68, y: 60 };
 export const ARCHIVE: Poi = { id: "archive", label: "Archive", x: 55, y: 66 };
 /** The Peaks' dock on the east shore, and Foggaten Island's: its dock, lighthouse, hermit, campfire and ruins. */
+/** The Peaks: a signpost and a weather station on the east road, and the snow cave the signal tower's light reveals. */
+export const PEAKS_SIGNPOST: Poi = { id: "peaks-signpost", label: "Signpost", x: 72.5, y: 60 };
+export const WEATHER_STATION: Poi = { id: "weather-station", label: "Weather Station", x: 72, y: 81 };
+export const SNOW_CAVE: Poi = { id: "snow-cave", label: "Snow Cave", x: 10.5, y: 44.5 };
 export const DOCK: Poi = { id: "dock", label: "Dock", x: 92, y: 74 };
 export const ISLAND_DOCK: Poi = { id: "island-dock", label: "Dock", x: 8, y: 62 };
 export const LIGHTHOUSE: Poi = { id: "lighthouse", label: "Lighthouse", x: 50, y: 46 };

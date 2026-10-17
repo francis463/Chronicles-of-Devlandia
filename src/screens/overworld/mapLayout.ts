@@ -4,7 +4,7 @@ import { CHESTS } from "../../learn/chests";
 import type { ChestId } from "../../learn/types";
 import { FOGGATEN_POINTS } from "../../render/areas/foggaten";
 import { FOREST_POINTS } from "../../render/areas/forest";
-import { DOCK_POINT } from "../../render/areas/peaks";
+import { CAVE_POINT, DOCK_POINT, SIGNPOST_POINT, STATION_POINT } from "../../render/areas/peaks";
 import { VILLAGE_POINTS } from "../../render/areas/village";
 import { ARCHIVE_POINT, TERMINAL_POINT } from "../../render/learnPoints";
 import { spriteBox, type SpriteId } from "../../render/sprites";
@@ -101,6 +101,8 @@ export type LandmarkCaption = {
   prefer: "above" | "below";
   /** An outdoor chest: on a 1× map its caption shows only on hover, focus or while it is in reach. */
   chest?: ChestId;
+  /** Like a chest: on a 1× map its caption shows only on hover, focus or while it is in reach (the camp is crowded). */
+  quiet?: boolean;
 };
 
 /**
@@ -118,6 +120,9 @@ export const LANDMARK_CAPTIONS: readonly LandmarkCaption[] = [
   { id: "old-oak", zone: "forest", sprite: "old-oak", point: FOREST_POINTS.oak, texts: ["[O] Old Oak"], prefer: "above" },
   { id: "forest-signpost", zone: "forest", sprite: "signpost", point: FOREST_POINTS.signpost, texts: ["[P] Signpost"], prefer: "below" },
   { id: "dock", zone: "peaks", sprite: "dock", point: DOCK_POINT, texts: ["[B] Dock"], prefer: "below" },
+  { id: "peaks-signpost", zone: "peaks", sprite: "signpost", point: SIGNPOST_POINT, texts: ["[P] Signpost"], prefer: "above", quiet: true },
+  { id: "weather-station", zone: "peaks", sprite: "station", point: STATION_POINT, texts: ["[W] Weather Station"], prefer: "above", quiet: true },
+  { id: "snow-cave", zone: "peaks", sprite: "snow-cave", point: CAVE_POINT, texts: ["[C] Cave"], prefer: "above", quiet: true },
   { id: "island-dock", zone: "foggaten", sprite: "dock", point: FOGGATEN_POINTS.dock, texts: ["[B] Dock"], prefer: "below" },
   { id: "lighthouse", zone: "foggaten", sprite: "lighthouse", point: FOGGATEN_POINTS.lighthouse, texts: ["[L] Lighthouse"], prefer: "above" },
   { id: "hermit", zone: "foggaten", sprite: "explorer-down", point: FOGGATEN_POINTS.hermit, texts: ["[H] Hermit"], prefer: "above" },
@@ -166,7 +171,7 @@ export function landmarkCaptions(world: WorldRect, map: MapArea, state: MapState
   const hits = zoneHitAreas(world, zone);
   return LANDMARK_CAPTIONS.filter((l) => l.zone === zone).flatMap((l) => {
     const drawing = toEdges(spriteCss(spriteBox(spriteOf(l, state), l.point), world), world);
-    if (l.chest && world.scale < CHEST_CAPTION_SCALE && state.reach !== l.id) return [drawing];
+    if ((l.chest || l.quiet) && world.scale < CHEST_CAPTION_SCALE && state.reach !== l.id) return [drawing];
     return [toEdges(captionRect(captionText(l, state), hits[l.id], map, l.prefer), world), drawing];
   });
 }

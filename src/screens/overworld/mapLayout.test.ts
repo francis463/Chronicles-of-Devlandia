@@ -55,6 +55,7 @@ const GROUPS = {
   forest: ["dense-forest", "north-exit", "ranger", "campfire", "old-oak", "forest-signpost"],
   foggaten: ["foggaten", "island-dock", "lighthouse", "hermit", "island-fire", "ruins"],
 };
+const quietGroups = (zone: "peaks" | "village" | "forest" | "foggaten") => LANDMARK_CAPTIONS.filter((l) => l.zone === zone && l.quiet).map((l) => l.id as string);
 /** Chest captions show at 2× and larger; on a 1× map only on hover, focus or in reach. */
 const chestGroups = (zone: "peaks" | "village" | "forest" | "foggaten") => CHESTS.filter((c) => c.zone === zone && c.at).map((c) => c.id as string);
 const inside = (inner: CssRect, outer: CssRect) =>
@@ -128,12 +129,12 @@ describe("captions", () => {
         const hits = zoneHitAreas(world, zone);
         const showsChests = world.scale >= 2;
         const captions: Array<{ group: string; rect: CssRect }> = [
-          ...LANDMARK_CAPTIONS.filter((l) => l.zone === zone && (showsChests || !l.chest)).flatMap((l) =>
+          ...LANDMARK_CAPTIONS.filter((l) => l.zone === zone && (showsChests || !(l.chest || l.quiet))).flatMap((l) =>
             l.texts.map((t) => ({ group: l.id as string, rect: captionRect(t, hits[l.id], map, l.prefer) })),
           ),
           ...MAP_CAPTIONS.filter((c) => c.zone === zone).flatMap(({ id }) => MAP_TEXTS[id].map((t) => ({ group: id as string, rect: mapCaptionRect(id, t, world) }))),
         ];
-        expect(new Set(captions.map((c) => c.group))).toEqual(new Set([...GROUPS[zone], ...(showsChests ? chestGroups(zone) : [])]));
+        expect(new Set(captions.map((c) => c.group))).toEqual(new Set([...GROUPS[zone], ...(showsChests ? [...chestGroups(zone), ...quietGroups(zone)] : [])]));
         const sprites =
           zone === "peaks"
             ? [

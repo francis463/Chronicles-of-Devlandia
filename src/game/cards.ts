@@ -1,8 +1,9 @@
 import { chestById, chestChallenge, CHESTS, type Chest } from "../learn/chests";
-import { FOREST_DIRECTIONS, HIDDEN_ARTIFACT, INSPECT_COPY } from "./constants";
+import { FOREST_DIRECTIONS, HIDDEN_ARTIFACT, INSPECT_COPY, SNOW_CAVE } from "./constants";
 import type { GameState } from "./types";
 import { rangerLine } from "./forest";
 import { adaLine } from "./village";
+import { CAVE_TEXT, signpostText, stationText } from "./camp";
 import { hermitLine, ISLAND_COPY } from "./island";
 import { ZONES } from "./zones";
 
@@ -16,7 +17,7 @@ function chestText(s: GameState, chest: Chest): string {
 
 /** The inspection card for what you last inspected, with the place's y so the card never covers it. */
 export function cardFor(s: GameState): Card | null {
-  const place = [...ZONES[s.zone].places, HIDDEN_ARTIFACT].find((p) => p.id === s.inspected);
+  const place = [...ZONES[s.zone].places, HIDDEN_ARTIFACT, SNOW_CAVE].find((p) => p.id === s.inspected);
   if (!place) return null;
   const card = (title: string, text: string): Card => ({ title, text, y: place.y });
 
@@ -46,6 +47,12 @@ export function cardFor(s: GameState): Card | null {
     case "island-fire":
     case "ruins":
       return card(place.label, ISLAND_COPY[place.id]);
+    case "peaks-signpost":
+      return card(place.label, signpostText(s));
+    case "weather-station":
+      return card(place.label, stationText(s));
+    case "snow-cave":
+      return card(place.label, CAVE_TEXT);
     case "forest-signpost": {
       const lead = INSPECT_COPY["forest-signpost"].default;
       return card(place.label, `${lead} ${FOREST_DIRECTIONS}${s.clueDecoded ? " The scroll's clue: dig in the south-east corner." : ""}`);

@@ -78,3 +78,35 @@ describe("cardFor: Foggaten Island", () => {
     expect(cardFor({ ...initialState, inspected: "dock" })?.title).toBe("Dock");
   });
 });
+
+describe("cardFor: the Snowy Peaks' camp places", () => {
+  const peaks: GameState = { ...initialState, zone: "peaks" };
+
+  it("the signpost lists the destinations and says whether the gate is open and the tower powered", () => {
+    const closed = cardFor({ ...peaks, inspected: "peaks-signpost" });
+    expect(closed?.title).toBe("Signpost");
+    for (const word of ["Gate", "Tower", "Supply Cache", "Dock", "Dev Village", "Forest", "HTML", "CSS", "Python"]) expect(closed?.text, word).toContain(word);
+    expect(closed?.text).toContain("The gate is still locked.");
+    const open = cardFor({ ...peaks, gateUnlocked: true, towerPowered: true, inspected: "peaks-signpost" });
+    expect(open?.text).toContain("The gate is open.");
+    expect(open?.text).toContain("The tower is powered.");
+    expect(open?.text).not.toContain("still locked");
+  });
+
+  it("the weather station shows the time and phase", () => {
+    const at = (minutes: number) => cardFor({ ...peaks, minutes, inspected: "weather-station" })!;
+    expect(at(12 * 60).title).toBe("Weather Station");
+    expect(at(12 * 60).text).toContain("12:00");
+    expect(at(12 * 60).text).toContain("Day");
+    expect(at(19 * 60 + 29).text).toContain("19:29");
+    expect(at(19 * 60 + 29).text).toContain("Dusk");
+    expect(at(23 * 60).text).toContain("Night");
+    expect(new Set([12 * 60, 19 * 60 + 29, 23 * 60].map((m) => at(m).text)).size).toBe(3);
+  });
+
+  it("the snow cave has a story card", () => {
+    const card = cardFor({ ...peaks, towerPowered: true, inspected: "snow-cave" });
+    expect(card?.title).toBe("Snow Cave");
+    expect(card?.text.length).toBeGreaterThan(40);
+  });
+});
