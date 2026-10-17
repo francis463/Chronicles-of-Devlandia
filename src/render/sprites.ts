@@ -83,7 +83,20 @@ export type SpriteId =
   | "brook"
   | "fairy-ring"
   | "hollow-tree"
-  | "glow-mushroom";
+  | "glow-mushroom"
+  | "scorpion"
+  | "camel"
+  | "snake"
+  | "vulture"
+  | "fennec"
+  | "tent"
+  | "temple-door"
+  | "riverbed"
+  | "obelisk"
+  | "jar"
+  | "skull"
+  | "bloom-cactus"
+  | "arch";
 /** bottom: bottom-centre on the art point; centre: centred on it; hover: centred 12 px above it. */
 export type SpriteDef = { w: number; h: number; frames: PixelGrid[]; palette: Palette; anchor: "bottom" | "centre" | "hover" };
 export type TextureId = "ice" | "mountains" | "snow" | "forest" | "meadow" | "path" | "bank" | "sand" | "sea" | "dune" | "beach";
@@ -695,6 +708,176 @@ function glowMushroomGrid(frame: 0 | 1): PixelGrid {
     rect(7, 2, 7, 2, spot),
     rect(6, 4, 6, 4, spot),
     rect(4, 2, 4, 2, spot),
+  ]);
+}
+
+/** A scorpion in profile: a rust shell, raised claws and a tail curled over its back, scuttling between frames. */
+function scorpionGrid(frame: 0 | 1): PixelGrid {
+  const [a, b] = frame === 0 ? [4, 9] : [5, 8];
+  return creature(20, 12, [
+    rect(a, 9, a, 11, "C"),
+    rect(a + 3, 9, a + 3, 11, "C"),
+    rect(b, 9, b, 11, "C"),
+    rect(b + 3, 9, b + 3, 11, "C"),
+    ell(2.6, 5.4, 2.2, 3.2, "c"),
+    rect(2, 1, 5, 3, "c"),
+    rect(5, 1, 6, 4, "C"),
+    ell(9, 7, 5.4, 2.8, "c"),
+    ell(14, 7, 2.4, 2.2, "c"),
+    ell(17.4, 4, 2.4, 2, "c"),
+    rect(14, 6, 14, 6, "e"),
+  ]);
+}
+
+/** A camel standing, shifting its weight between frames: two humps, a long neck and a striped blanket. */
+function camelGrid(frame: 0 | 1): PixelGrid {
+  const [a, b] = frame === 0 ? [7, 22] : [9, 20];
+  return creature(36, 30, [
+    rect(a, 18, a + 1, 29, "M"),
+    rect(a + 4, 18, a + 5, 29, "M"),
+    rect(b, 18, b + 1, 29, "M"),
+    rect(b + 4, 18, b + 5, 29, "M"),
+    rect(4, 13, 5, 21, "M"),
+    ell(16, 14, 11, 5.4, "m"),
+    ell(11.5, 8, 3.6, 3.4, "m"),
+    ell(20, 8.4, 3.6, 3.4, "m"),
+    rect(9, 9, 22, 12, "b"),
+    rect(9, 10, 22, 10, "y"),
+    poly([[25, 14], [28, 5], [32, 6], [30, 15]], "m"),
+    ell(32, 5, 3.2, 2.4, "m"),
+    ell(34, 6.2, 1.6, 1.4, "n"),
+    rect(31, 4, 31, 4, "k"),
+  ]);
+}
+
+/** A snake slithering right in an S: green with a pale belly stripe, its S shifting between frames. */
+function snakeGrid(frame: 0 | 1): PixelGrid {
+  const phase = frame === 0 ? 0 : Math.PI;
+  const body: Paint = (x, y) => (x <= 17 && Math.abs(y - (5 + 2 * Math.sin(x / 2.6 + phase))) <= 1.7 ? (x % 4 < 2 ? "g" : "G") : null);
+  return creature(24, 11, [body, ell(19.5, 5 + 2 * Math.sin(17 / 2.6 + phase), 3.4, 2.5, "g"), rect(21, 4, 21, 4, "e"), rect(22, 6, 23, 6, "r")]);
+}
+
+/** A vulture soaring: dark broad wings that beat up and down, a pale bald head and a hooked beak. */
+function vultureGrid(frame: 0 | 1): PixelGrid {
+  const up: Array<Array<[number, number]>> = [[[0, 0], [9, 5], [3, 7]], [[19, 0], [10, 5], [16, 7]]];
+  const down: Array<Array<[number, number]>> = [[[0, 9], [8, 5], [2, 3]], [[19, 9], [11, 5], [17, 3]]];
+  return creature(20, 10, [
+    ...(frame === 0 ? up : down).map((w) => poly(w, "k")),
+    ell(9.5, 5.6, 2.8, 2.4, "k"),
+    ell(9.5, 2.8, 1.6, 1.6, "p"),
+    rect(9, 4, 10, 4, "k"),
+  ]);
+}
+
+/** A fennec fox trotting right: huge ears, a cream face and chest and a bushy dark-tipped tail. */
+function fennecGrid(frame: 0 | 1): PixelGrid {
+  const [a, b] = frame === 0 ? [5, 12] : [7, 10];
+  return creature(22, 15, [
+    ell(2.6, 8, 3, 2.4, "f"),
+    rect(0, 7, 1, 9, "F"),
+    rect(a, 11, a + 1, 14, "F"),
+    rect(a + 4, 11, a + 5, 14, "F"),
+    rect(b, 11, b + 1, 14, "F"),
+    rect(b + 3, 11, b + 4, 14, "F"),
+    ell(10, 9, 6.4, 3, "f"),
+    ell(11, 10.6, 4.4, 1.3, "w"),
+    poly([[14, 5], [14, 0], [17, 4]], "F"),
+    poly([[17, 4], [19, 0], [21, 5]], "F"),
+    ell(17, 7, 3.4, 2.8, "f"),
+    ell(19.6, 8, 1.8, 1.4, "w"),
+    rect(18, 6, 18, 6, "k"),
+  ]);
+}
+
+/** A caravan camp: two striped canvas tents with dark doorways, leaning together. */
+function tentGrid(): PixelGrid {
+  return creature(40, 26, [
+    poly([[0, 25], [10, 3], [21, 25]], "t"),
+    poly([[18, 25], [29, 6], [39, 25]], "T"),
+    ...[8, 14, 20].map((y) => rect(2 + (25 - y) / 2.4, y, 20 - (25 - y) / 2.4, y, "r")),
+    poly([[8, 25], [10, 13], [13, 25]], "D"),
+    poly([[26, 25], [29, 15], [32, 25]], "D"),
+    rect(10, 1, 10, 3, "K"),
+    rect(11, 1, 13, 2, "r"),
+  ]);
+}
+
+/** A buried temple door: a stone frame and dark archway sinking into a drift of sand. */
+function templeDoorGrid(): PixelGrid {
+  return creature(30, 32, [
+    rect(4, 8, 25, 28, "S"),
+    ell(14.5, 9, 10.5, 7, "S"),
+    rect(9, 14, 20, 29, "D"),
+    ell(14.5, 15, 5.5, 5, "D"),
+    ...[[6, 12], [23, 12], [6, 18], [23, 18], [6, 24], [23, 24]].map(([x, y]) => rect(x, y, x + 1, y + 1, "g")),
+    ell(14.5, 31, 14.5, 4.2, "s"),
+    ell(21, 30, 7, 1.6, "d"),
+  ]);
+}
+
+/** A dry riverbed of cracked mud, with a little stone bridge over where the water used to run. */
+function riverbedGrid(): PixelGrid {
+  const bank = (x: number) => Math.round(1.5 * Math.sin(x / 5));
+  const bed: Paint = (x, y) => (y >= 6 + bank(x) && y <= 17 + bank(x + 4) ? ((x * 3 + y * 5) % 11 === 0 || (x + y * 2) % 13 === 0 ? "c" : "b") : null);
+  const arch: Paint = (x, y) => (((x - 29.5) / 5.5) ** 2 + ((y - 16) / 7) ** 2 <= 1 ? null : rect(21, 3, 38, 18, "S")(x, y));
+  return creature(56, 22, [bed, arch, rect(22, 3, 37, 4, "B")]);
+}
+
+/** An obelisk: a tall tapering stone with golden glyphs up its face. */
+function obeliskGrid(): PixelGrid {
+  return creature(16, 40, [
+    rect(2, 35, 13, 39, "B"),
+    poly([[3, 36], [4, 8], [8, 0], [12, 8], [13, 36]], "S"),
+    ...[11, 16, 21, 26, 31].map((y, i) => rect(i % 2 ? 7 : 6, y, i % 2 ? 9 : 8, y + 1, "g")),
+  ]);
+}
+
+/** A clay water jar with a bright drop of water glinting in its belly. */
+function jarGrid(frame: 0 | 1): PixelGrid {
+  return creature(11, 13, [
+    ell(5.5, 8.4, 4.8, 4.4, "j"),
+    rect(3, 1, 7, 4, "j"),
+    rect(2, 0, 8, 1, "J"),
+    rect(frame === 0 ? 4 : 6, 7, frame === 0 ? 4 : 6, 8, "b"),
+    rect(7, 9, 7, 9, "J"),
+  ]);
+}
+
+/** A bleached cow skull half buried in the sand, horns curling out. */
+function skullGrid(): PixelGrid {
+  return creature(14, 10, [
+    ell(3, 3, 3, 2, "w"),
+    ell(11, 3, 3, 2, "w"),
+    ell(7, 5.6, 4.6, 3.6, "w"),
+    rect(4, 5, 5, 6, "k"),
+    rect(9, 5, 10, 6, "k"),
+    rect(6, 8, 7, 9, "k"),
+  ]);
+}
+
+/** A tall saguaro in flower: ribbed green arms and pink blossoms on their tips. */
+function bloomCactusGrid(): PixelGrid {
+  return creature(18, 28, [
+    rect(7, 5, 10, 27, "c"),
+    rect(1, 14, 7, 17, "c"),
+    rect(1, 9, 4, 17, "c"),
+    rect(10, 12, 16, 15, "c"),
+    rect(13, 7, 16, 15, "c"),
+    ...[8, 2, 14].map((x) => rect(x, x === 8 ? 0 : 4, x + 1, x === 8 ? 5 : 8, "G")),
+    ell(8.5, 3, 2.2, 2.2, "p"),
+    ell(2.5, 7, 1.8, 1.8, "p"),
+    ell(14.5, 5, 1.8, 1.8, "p"),
+  ]);
+}
+
+/** A natural rock arch weathered out of a sandstone mesa. */
+function archGrid(): PixelGrid {
+  const mass = poly([[0, 23], [2, 9], [8, 2], [19, 2], [26, 9], [28, 23]], "r");
+  const hole = (x: number, y: number) => ((x - 14) / 6) ** 2 + ((y - 22) / 11) ** 2 <= 1;
+  return creature(30, 24, [
+    (x, y) => (hole(x, y) ? null : mass(x, y)),
+    (x, y) => (!hole(x, y) && y > 3 && y < 8 && x > 6 && x < 13 ? "R" : null),
+    (x, y) => (!hole(x, y) && y >= 14 && (x < 5 || x > 23) && y % 4 === 1 ? "D" : null),
   ]);
 }
 
@@ -1776,6 +1959,19 @@ export const SPRITES: Record<SpriteId, SpriteDef> = {
   "fairy-ring": { w: 31, h: 17, anchor: "bottom", palette: { o: "#0b1020", g: "#4a9a4a", r: "#dc2626", w: "#f8fafc" }, frames: [fairyRingGrid()] },
   "hollow-tree": { w: 26, h: 34, anchor: "bottom", palette: { o: "#0b1020", t: "#6b4423", T: "#4a2f18", g: "#1f7a3a", G: "#14532d", L: "#2f9e4f", H: "#1c1308" }, frames: [hollowTreeGrid()] },
   "glow-mushroom": { w: 11, h: 10, anchor: "bottom", palette: { o: "#0b1020", v: "#a78bfa", m: "#e9e3f7", c: "#67e8f9", w: "#ffffff" }, frames: [glowMushroomGrid(0), glowMushroomGrid(1)] },
+  scorpion: { w: 20, h: 12, anchor: "bottom", palette: { o: "#0b1020", c: "#b45309", C: "#78350f", e: "#fde68a" }, frames: [scorpionGrid(0), scorpionGrid(1)] },
+  camel: { w: 36, h: 30, anchor: "bottom", palette: { o: "#0b1020", m: "#c8964f", M: "#8a5f2a", n: "#e3c9a0", b: "#be123c", y: "#fde047", k: "#0b1020" }, frames: [camelGrid(0), camelGrid(1)] },
+  snake: { w: 24, h: 11, anchor: "bottom", palette: { o: "#0b1020", g: "#65a30d", G: "#3f6212", e: "#fde047", r: "#dc2626" }, frames: [snakeGrid(0), snakeGrid(1)] },
+  vulture: { w: 20, h: 10, anchor: "bottom", palette: { o: "#0b1020", k: "#44403c", p: "#f4a7a7" }, frames: [vultureGrid(0), vultureGrid(1)] },
+  fennec: { w: 22, h: 15, anchor: "bottom", palette: { o: "#0b1020", f: "#e8c08c", F: "#b8793a", w: "#fff3dc", k: "#0b1020" }, frames: [fennecGrid(0), fennecGrid(1)] },
+  tent: { w: 40, h: 26, anchor: "bottom", palette: { o: "#0b1020", t: "#e7d9bd", T: "#cdb98f", r: "#b4472f", D: "#3b2a1a", K: "#6b4423" }, frames: [tentGrid()] },
+  "temple-door": { w: 30, h: 32, anchor: "bottom", palette: { o: "#0b1020", S: "#9a8a6a", D: "#1c1308", g: "#fbbf24", s: "#e2ac4c", d: "#c98f35" }, frames: [templeDoorGrid()] },
+  riverbed: { w: 56, h: 22, anchor: "bottom", palette: { o: "#0b1020", b: "#c9a36a", c: "#9a7a48", S: "#9a8a6a", B: "#b8a888" }, frames: [riverbedGrid()] },
+  obelisk: { w: 16, h: 40, anchor: "bottom", palette: { o: "#0b1020", S: "#b8a888", B: "#8c7f66", g: "#fbbf24" }, frames: [obeliskGrid()] },
+  jar: { w: 11, h: 13, anchor: "bottom", palette: { o: "#0b1020", j: "#c2410c", J: "#9a3412", b: "#7dd3fc" }, frames: [jarGrid(0), jarGrid(1)] },
+  skull: { w: 14, h: 10, anchor: "bottom", palette: { o: "#0b1020", w: "#f1ead6", k: "#2b2417" }, frames: [skullGrid()] },
+  "bloom-cactus": { w: 18, h: 28, anchor: "bottom", palette: { o: "#0b1020", c: "#4d9e4d", G: "#2f7d3a", p: "#f472b6" }, frames: [bloomCactusGrid()] },
+  arch: { w: 30, h: 24, anchor: "bottom", palette: { o: "#0b1020", r: "#c2763a", R: "#d99a5c", D: "#9a5a2a" }, frames: [archGrid()] },
   lizard: { w: 14, h: 9, anchor: "bottom", palette: { o: "#0b1020", z: "#6b8f3a", Z: "#8fb34a", e: "#f5d547" }, frames: [lizardGrid(0), lizardGrid(1)] },
 };
 

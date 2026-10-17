@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { AREAS } from "./areas";
 import { FOGGATEN_POINTS, LAMP_POINT } from "./areas/foggaten";
+import { DESERT_WILDLIFE, camelPose, fennecPose, scorpionPose, snakePose } from "./areas/desert";
 import { FOREST_WILDLIFE, deerPose, rabbitPose, squirrelPose } from "./areas/forest";
 import { VILLAGE_LIFE, wandererPose } from "./areas/village";
-import { PHASE_TINT, buildScene, type Poses, type SceneInput } from "./scene";
+import { PHASE_TINT, buildScene, stormStrength, type Poses, type SceneInput } from "./scene";
 import { LIGHTS, SPRITES, spriteBox, type SpriteId } from "./sprites";
 import { BRIDGE_RECT, decorations } from "./terrain";
 import { REACHABLE_RECT, intersects, toArt } from "./world";
@@ -926,5 +927,63 @@ describe("scene: the forest's glow mushrooms and landmarks", () => {
   it("they pulse between two frames, and rest on the first when motion is reduced", () => {
     expect(new Set([0, 500].map((t) => glow(forest({}, t))[0].frame)).size).toBe(2);
     expect(glow(forest({}, 500, true)).every((d) => d.frame === 0)).toBe(true);
+  });
+});
+
+describe("scene: the desert's wildlife, jars and weather", () => {
+  const desert = (t: number, reduced = false, over: Partial<SceneInput> = {}) => scene({ zone: "desert", minutes: DAY, player: { x: 60, y: 20 }, ...over }, t, reduced);
+  const count = (s: ReturnType<typeof scene>, id: string) => s.upright.filter((d) => d.sprite === id).length;
+
+  it("a scorpion, a camel and a snake roam the desert by day, vultures circle, and none of them live elsewhere", () => {
+    const s = desert(0);
+    expect(["scorpion", "camel", "snake", "vulture"].map((id) => count(s, id))).toEqual([1, 1, 1, 2]);
+    for (const zone of ["village", "peaks", "forest", "beach", "foggaten"] as const) {
+      const other = scene({ zone, minutes: DAY }, 0);
+      for (const id of ["scorpion", "camel", "snake", "vulture", "fennec", "jar"]) expect(count(other, id), `${zone} ${id}`).toBe(0);
+    }
+  });
+
+  it("the fennec fox comes out only at dusk and night", () => {
+    expect(count(desert(0), "fennec")).toBe(0);
+    for (const minutes of [DUSK, NIGHT]) expect(count(desert(0, false, { minutes }), "fennec"), `minutes ${minutes}`).toBe(1);
+  });
+
+  it("each animal stays in its zone, clear of the desert's landmarks, whoever is near, at any moment", () => {
+    const boxes = AREAS.desert.props.map((p) => spriteBox(p.sprite, p.at));
+    for (const [id, pose, zone] of [["scorpion", scorpionPose, DESERT_WILDLIFE.scorpion.zone], ["camel", camelPose, DESERT_WILDLIFE.camel.zone], ["snake", snakePose, DESERT_WILDLIFE.snake.zone], ["fennec", fennecPose, DESERT_WILDLIFE.fennec.zone]] as const) {
+      for (let t = 0; t < 30_000; t += 2800) {
+        for (let px = 0; px <= 320; px += 32) {
+          for (let py = 0; py <= 180; py += 30) {
+            const at = pose(t, false, { x: px, y: py });
+            expect(at.x >= zone.x && at.x <= zone.x + zone.w && at.y >= zone.y && at.y <= zone.y + zone.h, `${id} zone`).toBe(true);
+            for (const b of boxes) expect(intersects(spriteBox(id, at), b), `${id} / ${JSON.stringify(b)} t=${t} p=${px},${py}`).toBe(false);
+          }
+        }
+      }
+    }
+  });
+
+  it("three water jars stand in the dunes, each leaving once picked up", () => {
+    expect(count(desert(0), "jar")).toBe(3);
+    expect(count(desert(0, false, { jars: ["jar-1"] }), "jar")).toBe(2);
+    expect(count(desert(0, false, { jars: ["jar-1", "jar-2", "jar-3"] }), "jar")).toBe(0);
+  });
+
+  it("a sandstorm sweeps in for 14 s every two minutes, browning the screen, and never when motion is reduced", () => {
+    expect(stormStrength(0, false)).toBe(0);
+    expect(stormStrength(97_000, false)).toBeGreaterThan(0.9);
+    expect(stormStrength(110_000, false)).toBe(0);
+    expect(stormStrength(97_000, true)).toBe(0);
+    expect(desert(97_000).tint).not.toBe(PHASE_TINT.Day);
+    expect(desert(97_000, true).tint).toBe(PHASE_TINT.Day);
+    expect(desert(97_000).light.filter((p) => p.color === "#cda55a").length).toBeGreaterThan(100);
+  });
+
+  it("a mirage shivers by day and the sand sparkles under the moon", () => {
+    const mirage = (s: ReturnType<typeof scene>) => s.light.filter((p) => p.color === "#bfe9f5");
+    const sparkle = (s: ReturnType<typeof scene>) => s.light.filter((p) => p.color === "#e0f2fe");
+    expect([mirage(desert(0)).length > 0, sparkle(desert(0)).length]).toEqual([true, 0]);
+    const night = desert(0, false, { minutes: NIGHT });
+    expect([mirage(night).length, sparkle(night).length]).toEqual([0, 28]);
   });
 });

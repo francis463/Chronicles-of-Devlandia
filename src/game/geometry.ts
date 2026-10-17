@@ -39,6 +39,9 @@ const VERBS: Partial<Record<Poi["id"], string>> = {
   "mushroom-1": "Pick Glow Mushroom",
   "mushroom-2": "Pick Glow Mushroom",
   "mushroom-3": "Pick Glow Mushroom",
+  "jar-1": "Pick up Water Jar",
+  "jar-2": "Pick up Water Jar",
+  "jar-3": "Pick up Water Jar",
 };
 
 const chestVerb = (s: GameState, id: string, host: string, open = "Search") => `${s.badges.some((b) => b === id) ? "Review" : open} ${host}`;

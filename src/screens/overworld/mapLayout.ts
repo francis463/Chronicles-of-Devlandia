@@ -1,10 +1,11 @@
+import { DESERT_JARS, DESERT_LORE } from "../../game/desertLore";
 import { FOREST_LORE, FOREST_MUSHROOMS } from "../../game/forestLore";
 import type { PoiId, Point } from "../../game/types";
 import type { ZoneId } from "../../game/zones";
 import { CHESTS } from "../../learn/chests";
 import type { ChestId } from "../../learn/types";
 import { BEACH_POINTS } from "../../render/areas/beach";
-import { DESERT_POINTS } from "../../render/areas/desert";
+import { DESERT_POINTS, JAR_POINTS } from "../../render/areas/desert";
 import { FOGGATEN_POINTS } from "../../render/areas/foggaten";
 import { FOREST_POINTS, MUSHROOM_POINTS } from "../../render/areas/forest";
 import { CAVE_POINT, DOCK_POINT, SIGNPOST_POINT, STATION_POINT } from "../../render/areas/peaks";
@@ -141,6 +142,12 @@ export const LANDMARK_CAPTIONS: readonly LandmarkCaption[] = [
   { id: "fairy-ring", zone: "forest", sprite: "fairy-ring", point: FOREST_POINTS.ring, texts: ["Fairy Ring"], prefer: "above", quiet: true },
   { id: "hollow-tree", zone: "forest", sprite: "hollow-tree", point: FOREST_POINTS.hollow, texts: ["Hollow Tree"], prefer: "below", quiet: true },
   ...MUSHROOM_POINTS.map((m): LandmarkCaption => ({ id: m.id, zone: "forest", sprite: "glow-mushroom", point: m.at, texts: ["Mushroom"], prefer: "below", quiet: true })),
+  { id: "caravan-camp", zone: "desert", sprite: "tent", point: DESERT_POINTS.camp, texts: ["Camp"], prefer: "above", quiet: true },
+  { id: "desert-well", zone: "desert", sprite: "well", point: DESERT_POINTS.well, texts: ["Well"], prefer: "above", quiet: true },
+  { id: "temple-door", zone: "desert", sprite: "temple-door", point: DESERT_POINTS.door, texts: ["Door"], prefer: "above", quiet: true },
+  { id: "dry-riverbed", zone: "desert", sprite: "riverbed", point: DESERT_POINTS.riverbed, texts: ["Riverbed"], prefer: "below", quiet: true },
+  { id: "obelisk", zone: "desert", sprite: "obelisk", point: DESERT_POINTS.obelisk, texts: ["Obelisk"], prefer: "above", quiet: true },
+  ...JAR_POINTS.map((j): LandmarkCaption => ({ id: j.id, zone: "desert", sprite: "jar", point: j.at, texts: ["Jar"], prefer: "below", quiet: true })),
   { id: "dock", zone: "peaks", sprite: "dock", point: DOCK_POINT, texts: ["[B] Dock"], prefer: "below" },
   { id: "peaks-signpost", zone: "peaks", sprite: "signpost", point: SIGNPOST_POINT, texts: ["[P] Signpost"], prefer: "above", quiet: true },
   { id: "weather-station", zone: "peaks", sprite: "station", point: STATION_POINT, texts: ["[W] Weather Station"], prefer: "above", quiet: true },
@@ -163,6 +170,9 @@ export const LANDMARK_CAPTIONS: readonly LandmarkCaption[] = [
 
 /** The forest's quiet scenery buttons (its lore landmarks and the ranger's glow mushrooms), with the side each caption prefers. */
 export const FOREST_SCENERY = [...FOREST_LORE, ...FOREST_MUSHROOMS].map((p) => ({ id: p.id, label: p.label, prefer: LANDMARK_CAPTIONS.find((l) => l.id === p.id)!.prefer }));
+
+/** The desert's quiet scenery buttons (its lore landmarks and the nomad's water jars), with the side each caption prefers. */
+export const DESERT_SCENERY = [...DESERT_LORE, ...DESERT_JARS].map((p) => ({ id: p.id, label: p.label, prefer: LANDMARK_CAPTIONS.find((l) => l.id === p.id)!.prefer }));
 
 /** What the map captions depend on. `reach` is the place in reach, whose chest caption shows at 1×. */
 export type MapState = { hasLoot: boolean; towerPowered: boolean; badges?: readonly ChestId[]; archiveOpen?: boolean; reach?: PoiId | null };

@@ -920,7 +920,7 @@ describe("gameReducer: the Sunbaked Desert's places", () => {
   const desert: GameState = { ...s0, zone: "desert" };
 
   it("the desert's places are the nomad, signpost and the pyramid and oasis chests", () => {
-    expect(reachPlaces(desert).map((p) => p.id)).toEqual(["nomad", "desert-signpost", "chest-java", "chest-py-2"]);
+    expect(reachPlaces(desert).map((p) => p.id)).toEqual(["nomad", "desert-signpost", "caravan-camp", "desert-well", "temple-door", "dry-riverbed", "obelisk", "jar-1", "jar-2", "jar-3", "chest-java", "chest-py-2"]);
   });
 
   it("the nomad speaks once; the signpost inspects and logs nothing", () => {

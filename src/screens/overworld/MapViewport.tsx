@@ -19,6 +19,7 @@ import { MapCanvas } from "./MapCanvas";
 import {
   CHEST_CAPTION_SCALE,
   EXIT_SIGNS,
+  DESERT_SCENERY,
   FOREST_SCENERY,
   LANDMARK_CAPTIONS,
   captionRect,
@@ -217,6 +218,7 @@ export function MapViewport({
   towerPowered,
   badges,
   mushrooms = [],
+  jars = [],
   matcherSolved,
   archiveOpen,
   lighthouseLit,
@@ -247,6 +249,8 @@ export function MapViewport({
   badges: ChestId[];
   /** The ranger's glow mushrooms you have picked: they leave the map. */
   mushrooms?: readonly PoiId[];
+  /** The nomad's water jars you have picked up: they leave the map. */
+  jars?: readonly PoiId[];
   matcherSolved: boolean;
   archiveOpen: boolean;
   lighthouseLit: boolean;
@@ -306,6 +310,7 @@ export function MapViewport({
     matcherSolved,
     earned: badges,
     mushrooms,
+    jars,
     minutes,
     lightMode,
     snow,
@@ -410,6 +415,9 @@ export function MapViewport({
 
             <LandmarkButton hit={hits.nomad} name={caption("nomad")} color="var(--accent-border)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "nomad"} onClick={() => onInteract("nomad")} />
             <LandmarkButton hit={hits["desert-signpost"]} name={caption("desert-signpost")} label="Signpost" color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "desert-signpost"} onClick={() => onInteract("desert-signpost")} />
+            {DESERT_SCENERY.filter((l) => !jars.includes(l.id)).map((l) => (
+              <LandmarkButton key={l.id} hit={hits[l.id]} name={caption(l.id)} label={l.label} color="var(--accent)" world={world} map={map} prefer={l.prefer} disabled={downed} hideCaption={smallMap && inRange?.id !== l.id} peek passive={smallMap} onClick={() => onInteract(l.id)} />
+            ))}
           </>
         ) : zone === "foggaten" ? (
           <>

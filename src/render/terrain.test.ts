@@ -89,7 +89,7 @@ describe("decorations", () => {
     const area = AREAS[id];
     const touching = decorations(VIEW, area).filter((d) => intersects(boxOf(d), WORLD_RECT) && !intersects(boxOf(d), REACHABLE_RECT));
     // The forest has no hedge on top: trees from the scenery above reach into its top rows.
-    for (const d of touching) expect(["bush", "rock", "snow-rock", ...(id === "forest" || id === "village" ? ["tree", "birch", "stump", "log", "mushroom", "fern", "flowers"] : []), ...(id === "desert" ? ["dry-bush", "cactus"] : []), ...(id === "beach" ? ["palm"] : [])], key(d)).toContain(d.sprite);
+    for (const d of touching) expect(["bush", "rock", "snow-rock", ...(id === "forest" || id === "village" ? ["tree", "birch", "stump", "log", "mushroom", "fern", "flowers"] : []), ...(id === "desert" ? ["dry-bush", "cactus", "bloom-cactus", "skull", "arch"] : []), ...(id === "beach" ? ["palm"] : [])], key(d)).toContain(d.sprite);
     const covers = (x: number, y: number) => touching.some((d) => intersects(boxOf(d), { x, y, w: 1, h: 1 }));
     // The Peaks' bottom hedge is open at its south exit (art x 192–255); everywhere clear of it the hedge is closed.
     for (let x = 0; x < WORLD.width; x += 4) {
@@ -229,9 +229,9 @@ describe("dune decorations", () => {
   const dunes: Area = { id: "desert", wall: false, terrainAt: () => "dune", paths: [], mouths: [], corridors: [], gateBox: null, ice: null, props: [], protected: [] };
   const found = decorations(VIEW, dunes);
 
-  it("a dune area gets only desert scenery: cacti, palms, dry bushes and rocks", () => {
+  it("a dune area gets only desert scenery: cacti, palms, dry bushes, rocks, skulls and arches", () => {
     expect(found.length).toBeGreaterThan(10);
-    for (const d of found) expect(["cactus", "palm", "dry-bush", "rock"], d.sprite).toContain(d.sprite);
+    for (const d of found) expect(["cactus", "bloom-cactus", "palm", "dry-bush", "rock", "skull", "arch"], d.sprite).toContain(d.sprite);
     expect(new Set(found.map((d) => d.sprite))).toContain("cactus");
     expect(new Set(found.map((d) => d.sprite))).toContain("dry-bush");
   });

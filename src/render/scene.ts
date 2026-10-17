@@ -5,7 +5,7 @@ import type { ZoneId } from "../game/zones";
 import { AREAS } from "./areas";
 import { FOGGATEN_POINTS, LAMP_POINT } from "./areas/foggaten";
 import { BEACH_SHELLS } from "./areas/beach";
-import { DESERT_POINTS } from "./areas/desert";
+import { DESERT_POINTS, JAR_POINTS, camelPose, fennecPose, scorpionPose, snakePose } from "./areas/desert";
 import { FOREST_POINTS, MUSHROOM_POINTS, deerPose, rabbitPose, squirrelPose } from "./areas/forest";
 import { CAVE_POINT, WILDLIFE, foxPose, goatPose } from "./areas/peaks";
 import { VILLAGE_LIFE, wandererPose } from "./areas/village";
@@ -59,6 +59,8 @@ export type SceneInput = {
   earned: ChestId[];
   /** The ranger's glow mushrooms you have picked: they leave the forest floor. */
   mushrooms?: readonly string[];
+  /** The nomad's water jars you have picked up: they leave the dunes. */
+  jars?: readonly string[];
   /** Your own view's lighting: "day" or "night" draws as that phase whatever the clock says. */
   lightMode?: "auto" | "day" | "night";
   /** Your own view's weather: snowfall over the whole world. */
@@ -196,6 +198,71 @@ function desertAir(t: number, reduced: boolean): Pixel[] {
     })),
   );
   return [...haze, ...grains];
+}
+
+const MIRAGE = "#bfe9f5";
+const DUST = "#d9b46c";
+const MOONLIT = "#e0f2fe";
+const STORM = "#cda55a";
+const STORM_PERIOD = 120;
+const STORM_START = 90;
+const STORM_LENGTH = 14;
+
+/** How hard the sandstorm blows at time `t` (ms), 0 to 1: a swell that crests in the middle of a 14 s spell every two minutes, never when motion is reduced. */
+export function stormStrength(t: number, reduced: boolean): number {
+  if (reduced) return 0;
+  const phase = (t / 1000) % STORM_PERIOD;
+  return phase >= STORM_START && phase < STORM_START + STORM_LENGTH ? Math.round(Math.sin(((phase - STORM_START) / STORM_LENGTH) * Math.PI) * 100) / 100 : 0;
+}
+
+/**
+ * More of the desert's air at time `t` (ms): by day a mirage shivers in the far dunes; two sand devils spin across the sand at any hour;
+ * under the moon the sand sparkles; and every two minutes a sandstorm streaks across. All still when motion is reduced.
+ */
+function desertSky(t: number, reduced: boolean, strength: number): Pixel[] {
+  const seconds = reduced ? 0 : t / 1000;
+  const mirage = strength > 0 ? [] : Array.from({ length: 5 }, (_, k) => k).flatMap((k) =>
+    Array.from({ length: 22 }, (_, j): Pixel => ({
+      x: ((k * 67 + j * 3 + 20 + Math.round(4 * Math.sin(seconds * 1.2 + k))) % 300) + 8,
+      y: 22 + k * 3 + Math.round(Math.sin(seconds * 3 + j * 0.5 + k)),
+      color: MIRAGE,
+      alpha: 0.14,
+    })),
+  );
+  const devils = [0, 1].flatMap((i) => {
+    const cx = ((i * 170 + 60 + Math.floor(seconds * 9)) % 360) - 20;
+    const base = 70 + i * 58;
+    return Array.from({ length: 15 }, (_, h): Pixel[] => [-1, 1].map((side) => ({
+      x: cx + Math.round(side * (1 + h * 0.35) * (0.6 + 0.4 * Math.sin(seconds * 4 + h * 0.6))),
+      y: base - h,
+      color: DUST,
+      alpha: 0.55,
+    }))).flat();
+  });
+  const sparkle = strength === 0 ? [] : Array.from({ length: 28 }, (_, i): Pixel => ({
+    x: (i * 97 + 31) % WORLD.width,
+    y: 20 + ((i * 53 + 7) % (WORLD.height - 30)),
+    color: MOONLIT,
+    alpha: Math.round(strength * (0.25 + 0.6 * Math.max(0, Math.sin(seconds * 1.4 + i * 2.3))) * 100) / 100,
+  }));
+  const storm = stormStrength(t, reduced);
+  const streaks = storm === 0 ? [] : Array.from({ length: 150 }, (_, i) => i).flatMap((i) =>
+    Array.from({ length: 4 }, (_, j): Pixel => ({
+      x: (((i * 53 + Math.floor(seconds * 230)) % (WORLD.width + 40)) - 20 + j) % WORLD.width,
+      y: (i * 29 + 11) % WORLD.height,
+      color: STORM,
+      alpha: Math.round(storm * 0.7 * 100) / 100,
+    })),
+  );
+  return [...mirage, ...devils, ...sparkle, ...streaks];
+}
+
+/** Two vultures circling high over the dunes (wings beating), or hanging still when motion is reduced. */
+function vultures(t: number, reduced: boolean): Drawable[] {
+  return [0, 1].map((i) => {
+    const a = reduced ? i * Math.PI : (t / 1000) * 0.4 + i * Math.PI;
+    return placed("vulture", { x: Math.round(190 + (i ? 30 : 70) * Math.cos(a)), y: Math.round(26 + 12 * Math.sin(a)) }, { frame: reduced ? 0 : Math.floor(t / 260) % 2, flip: Math.sin(a) > 0 });
+  });
 }
 
 /** The tumbleweed: it rolls right at 16 art px a second across the south of the map, bouncing; it rests in a fixed spot when motion is reduced. */
@@ -502,9 +569,25 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
     if (input.zone === "desert") {
       // The lizard sits on its rock (drawn right after it) and flicks its tail; the tumbleweed rolls through.
       const lizard = placed("lizard", { x: DESERT_POINTS.lizardRock.x, y: DESERT_POINTS.lizardRock.y - 12 }, { frame: reduced ? 0 : Math.floor(t / 700) % 2 });
-      const withWeed = [...upright, tumbleweed(t, reduced)].sort(byFeet);
+      const you = poses.player;
+      const scorpion = scorpionPose(t, reduced, you);
+      const camel = camelPose(t, reduced, you);
+      const snake = snakePose(t, reduced, you);
+      const fennec = fennecPose(t, reduced, you);
+      const wild = [
+        ...JAR_POINTS.filter((j) => !input.jars?.includes(j.id)).map((j) => placed("jar", j.at, { frame: reduced ? 0 : Math.floor(t / 600) % 2 })),
+        placed("scorpion", scorpion, { frame: scorpion.frame, flip: scorpion.flip }),
+        placed("camel", camel, { frame: camel.frame, flip: camel.flip }),
+        placed("snake", snake, { frame: snake.frame, flip: snake.flip }),
+        // The fennec only comes out once the sun is going down.
+        ...(strength > 0 ? [placed("fennec", fennec, { frame: fennec.frame, flip: fennec.flip })] : []),
+      ];
+      const withWeed = [...upright, ...wild, tumbleweed(t, reduced)].sort(byFeet);
       withWeed.splice(withWeed.findIndex((d) => d.sprite === "rock" && d.x === spriteBox("rock", DESERT_POINTS.lizardRock).x) + 1, 0, lizard);
-      return { zone: input.zone, glints: [], flat: [], upright: withWeed, drone, tint: PHASE_TINT[phase], light: desertAir(t, reduced), snow };
+      const storm = stormStrength(t, reduced);
+      // The storm browns the whole screen, over the hour's own tint.
+      const tint = storm === 0 ? PHASE_TINT[phase] : `rgba(190,150,80,${Math.round(storm * 22) / 100})`;
+      return { zone: input.zone, glints: [], flat: [], upright: [...withWeed, ...vultures(t, reduced)], drone, tint, light: [...desertAir(t, reduced), ...desertSky(t, reduced, strength)], snow };
     }
     if (input.zone === "beach") {
       const withLife = [...upright, ...BEACH_SHELLS.map((at) => placed("shell", at)), ...birds(t, reduced), crab(t, reduced)].sort(byFeet);

@@ -512,3 +512,35 @@ describe("the Dense Forest's art", () => {
     for (const id of ["owl", "deer", "squirrel", "rabbit", "glow-mushroom"] as const) expect(SPRITES[id].frames[0], id).not.toEqual(SPRITES[id].frames[1]);
   });
 });
+
+describe("the Sunbaked Desert's new art", () => {
+  const SIZES = [["scorpion", 20, 12, 2], ["camel", 36, 30, 2], ["snake", 24, 11, 2], ["vulture", 20, 10, 2], ["fennec", 22, 15, 2], ["tent", 40, 26, 1], ["temple-door", 30, 32, 1], ["riverbed", 56, 22, 1], ["obelisk", 16, 40, 1], ["jar", 11, 13, 2], ["skull", 14, 10, 1], ["bloom-cactus", 18, 28, 1], ["arch", 30, 24, 1]] as const;
+
+  it("have their declared sizes, anchors and frame counts", () => {
+    for (const [id, w, h, frames] of SIZES) expect([SPRITES[id].w, SPRITES[id].h, SPRITES[id].anchor, SPRITES[id].frames.length], id).toEqual([w, h, "bottom", frames]);
+  });
+
+  it("every grid is rectangular, uses only palette characters, and every edge is the shared dark outline", () => {
+    for (const [id, w, h] of SIZES) {
+      const { frames, palette } = SPRITES[id];
+      frames.forEach((grid, i) => {
+        expect(grid.length, `${id}[${i}] rows`).toBe(h);
+        grid.forEach((row, y) => {
+          expect(row.length, `${id}[${i}] row ${y}`).toBe(w);
+          for (const ch of row) if (ch !== ".") expect(palette[ch], `${id}[${i}] char ${ch}`).toBeDefined();
+        });
+        const solid = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < h && grid[y][x] !== ".";
+        for (let y = 0; y < h; y++)
+          for (let x = 0; x < w; x++) {
+            if (!solid(x, y)) continue;
+            const edge = !solid(x - 1, y) || !solid(x + 1, y) || !solid(x, y - 1) || !solid(x, y + 1);
+            if (edge) expect(palette[grid[y][x]], `${id}[${i}] edge at ${x},${y}`).toBe(OUTLINE);
+          }
+      });
+    }
+  });
+
+  it("the animated ones' frames differ", () => {
+    for (const id of ["scorpion", "camel", "snake", "vulture", "fennec", "jar"] as const) expect(SPRITES[id].frames[0], id).not.toEqual(SPRITES[id].frames[1]);
+  });
+});

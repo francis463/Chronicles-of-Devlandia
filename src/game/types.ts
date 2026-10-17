@@ -39,10 +39,19 @@ export type PoiId =
   | "fairy-ring"
   | "hollow-tree"
   | MushroomId
+  | "caravan-camp"
+  | "desert-well"
+  | "temple-door"
+  | "dry-riverbed"
+  | "obelisk"
+  | JarId
   | Exclude<ChestId, "chest-cs">;
 
 /** The ranger's three lost glow mushrooms. */
 export type MushroomId = "mushroom-1" | "mushroom-2" | "mushroom-3";
+
+/** The nomad's three lost water jars. */
+export type JarId = "jar-1" | "jar-2" | "jar-3";
 
 export type Poi = { id: PoiId; label: string } & Point;
 
@@ -103,6 +112,9 @@ export type GameState = {
   /** Which of the ranger's glow mushrooms you have picked, and whether she has cooked them. */
   mushrooms: MushroomId[];
   rangerFed: boolean;
+  /** Which of the nomad's water jars you have picked up, and whether she has had her water. */
+  jars: JarId[];
+  nomadServed: boolean;
   codexOpen: boolean;
   logs: string[];
   /** Total entries ever logged; gives each visible entry a stable identity. */

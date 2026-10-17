@@ -32,7 +32,8 @@ import type { ChallengeState, Direction, GameAction, GameState, Poi, Point } fro
 import { crossesWall, isNorthOfWall, wallBlock } from "./wall";
 import { ZONES, arrival, exitFor, type ZoneId } from "./zones";
 import { FISHER_LINE } from "./beach";
-import { NOMAD_LINE } from "./desert";
+import { nomadSays } from "./desert";
+import { DESERT_JARS, DESERT_LOG, DESERT_LORE, JAR_TIPS, isJar } from "./desertLore";
 import { goToNote } from "../learn/codexModel";
 import { rangerSays } from "./forest";
 import { FOREST_LOG, FOREST_LORE, FOREST_MUSHROOMS, MUSHROOM_TIPS, isMushroom } from "./forestLore";
@@ -72,6 +73,8 @@ export const initialState: GameState = {
   lighthouseLit: false,
   mushrooms: [],
   rangerFed: false,
+  jars: [],
+  nomadServed: false,
   codexOpen: false,
   logs: INITIAL_LOGS,
   logCount: INITIAL_LOGS.length,
@@ -86,7 +89,7 @@ export const isModalOpen = (s: GameState) => s.challenge !== null || s.logicOpen
 /** What you can use in your zone: its places, plus the dig spot on Foggaten Island once revealed. */
 export const visiblePois = (s: GameState): Poi[] => [
   // A glow mushroom is gone from the map once you have picked it.
-  ...ZONES[s.zone].places.filter((p) => !isMushroom(p.id) || !s.mushrooms.includes(p.id)),
+  ...ZONES[s.zone].places.filter((p) => (!isMushroom(p.id) || !s.mushrooms.includes(p.id)) && (!isJar(p.id) || !s.jars.includes(p.id))),
   ...(s.zone === "foggaten" ? revealedPois(s) : []),
   // The snow cave is hidden until the signal tower is powered (shared with the team).
   ...(s.zone === "peaks" && s.towerPowered ? [SNOW_CAVE] : []),
@@ -299,7 +302,20 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       }
       if (action.poi === "fisher") return pushLogOnce({ ...state, inspected: "fisher" }, `Fisher: "${FISHER_LINE}"`);
       if (action.poi === "beach-signpost") return { ...state, inspected: action.poi };
-      if (action.poi === "nomad") return pushLogOnce({ ...state, inspected: "nomad" }, `Nomad: "${NOMAD_LINE}"`);
+      if (action.poi === "nomad") {
+        const talked = pushLogOnce({ ...state, inspected: "nomad" }, `Nomad: "${nomadSays(state)}"`);
+        // Three jars in hand: she shares the water, and it restores you in full.
+        return state.jars.length >= DESERT_JARS.length && !state.nomadServed ? pushLog({ ...talked, nomadServed: true, hp: MAX_HP }, DESERT_LOG.water) : talked;
+      }
+      if (isJar(action.poi)) {
+        const id = action.poi;
+        const spot = DESERT_JARS.find((j) => j.id === id)!;
+        // The map's button works from anywhere; picking up needs you beside the jar.
+        if (state.jars.includes(id) || distance(state.player, spot) > INTERACT_RADIUS) return { ...state, inspected: id };
+        const jars = [...state.jars, id];
+        return pushLog({ ...state, inspected: id, jars }, JAR_TIPS[jars.length - 1]);
+      }
+      if (DESERT_LORE.some((l) => l.id === action.poi)) return { ...state, inspected: action.poi };
       if (action.poi === "desert-signpost") return { ...state, inspected: action.poi };
       if (action.poi === "island-fire") return { ...state, inspected: action.poi };
       if (action.poi === "ranger") {

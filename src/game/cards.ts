@@ -2,7 +2,8 @@ import { chestById, chestChallenge, CHESTS, type Chest } from "../learn/chests";
 import { FOREST_DIRECTIONS, HIDDEN_ARTIFACT, INSPECT_COPY, SNOW_CAVE } from "./constants";
 import type { GameState } from "./types";
 import { BEACH_COPY, FISHER_LINE } from "./beach";
-import { DESERT_COPY, NOMAD_LINE } from "./desert";
+import { DESERT_COPY, nomadSays } from "./desert";
+import { DESERT_LORE, JAR_CARD } from "./desertLore";
 import { rangerSays } from "./forest";
 import { FOREST_LORE, MUSHROOM_CARD } from "./forestLore";
 import { adaLine } from "./village";
@@ -50,12 +51,22 @@ export function cardFor(s: GameState): Card | null {
     case "mushroom-2":
     case "mushroom-3":
       return card(place.label, s.mushrooms.includes(place.id) ? MUSHROOM_CARD.picked : MUSHROOM_CARD.far);
+    case "caravan-camp":
+    case "desert-well":
+    case "temple-door":
+    case "dry-riverbed":
+    case "obelisk":
+      return card(place.label, DESERT_LORE.find((l) => l.id === place.id)!.text);
+    case "jar-1":
+    case "jar-2":
+    case "jar-3":
+      return card(place.label, s.jars.includes(place.id) ? JAR_CARD.picked : JAR_CARD.far);
     case "fisher":
       return card(place.label, FISHER_LINE);
     case "beach-signpost":
       return card(place.label, BEACH_COPY[place.id]);
     case "nomad":
-      return card(place.label, NOMAD_LINE);
+      return card(place.label, nomadSays(s));
     case "desert-signpost":
       return card(place.label, DESERT_COPY[place.id]);
     case "hermit":

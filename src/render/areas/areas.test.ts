@@ -388,7 +388,7 @@ describe("the Sunbaked Desert's area", () => {
   });
 
   it("its props are inside the world, clear of each other and the mouth, and are protected", () => {
-    expect(D.props.map((p) => p.sprite).sort()).toEqual(["explorer-down", "oasis", "palm", "palm", "pyramid", "rock", "signpost"]);
+    expect(D.props.map((p) => p.sprite).sort()).toEqual(["explorer-down", "oasis", "obelisk", "palm", "palm", "pyramid", "riverbed", "rock", "signpost", "temple-door", "tent", "well"]);
     const boxes = D.props.map((p) => spriteBox(p.sprite, p.at));
     for (const [i, a] of boxes.entries()) {
       expect(a.x >= 0 && a.y >= 0 && a.x + a.w <= 320 && a.y + a.h <= 180, `prop ${i} in the world`).toBe(true);

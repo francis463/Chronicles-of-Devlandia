@@ -38,7 +38,7 @@ export const protectedBoxes = (area: Area = PEAKS): Rect[] => area.protected;
 
 // ── Decorations ─────────────────────────────────────────────────────────────
 
-export type DecorationSprite = Extract<SpriteId, "pine" | "tree" | "rock" | "bush" | "snow-rock" | "cactus" | "palm" | "dry-bush" | "birch" | "stump" | "log" | "mushroom" | "fern" | "flowers">;
+export type DecorationSprite = Extract<SpriteId, "pine" | "tree" | "rock" | "bush" | "snow-rock" | "cactus" | "palm" | "dry-bush" | "birch" | "stump" | "log" | "mushroom" | "fern" | "flowers" | "skull" | "bloom-cactus" | "arch">;
 export type Decoration = { sprite: DecorationSprite; at: ArtPoint };
 
 const CELL = 16;
@@ -111,7 +111,7 @@ function candidate(cx: number, cy: number, area: Area): Candidate | null {
     sand: [],
     sea: [],
     beach: [["palm", 0.05], ["rock", 0.03]],
-    dune: [["cactus", 0.14], ["dry-bush", 0.16], ["rock", 0.08], ["palm", 0.03]],
+    dune: [["cactus", 0.12], ["bloom-cactus", 0.05], ["dry-bush", 0.14], ["rock", 0.07], ["skull", 0.03], ["arch", 0.02], ["palm", 0.03]],
   };
   const sprite = pick(options[ground]);
   if (!sprite) return null;
