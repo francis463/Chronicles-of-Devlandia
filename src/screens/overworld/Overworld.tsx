@@ -27,6 +27,7 @@ import { Panel } from "../../ui/Panel";
 import { ChallengeTerminal } from "../ChallengeTerminal";
 import { ChatPanel } from "../chat/ChatPanel";
 import { Codex } from "../Codex";
+import { Help } from "../Help";
 import { LeaveConfirm } from "./LeaveConfirm";
 import { LampModal } from "../LampModal";
 import { LogicModal } from "../LogicModal";
@@ -87,8 +88,9 @@ export function Overworld({
   const [mode, setMode] = useState<BlankMode>("type");
   // [=] Menu with progress asks first; while it asks, play pauses and it owns the keys.
   const [leaving, setLeaving] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const hasProgress = state.badges.length > 0 || state.matcherSolved || Object.values(flagsOf(state)).some(Boolean);
-  useGameTimers(state, dispatch, leaving);
+  useGameTimers(state, dispatch, leaving || helpOpen);
   const downed = isDowned(state);
 
   // ── Chat, commands and your own view ──
@@ -119,7 +121,7 @@ export function Overworld({
     }
     input.setSelectionRange(input.value.length, input.value.length);
   }, [focusRequest, setDraft]);
-  useKeyboardControls(state, dispatch, leaving, onChatKey);
+  useKeyboardControls(state, dispatch, leaving || helpOpen, onChatKey, () => setHelpOpen(true));
   // `snow: undefined` is the default (the Peaks snow, other zones do not); /weather snow and /weather clear set it for every zone.
   const [view, setView] = useState<{ snow: boolean | undefined; light: "auto" | "day" | "night" }>({ snow: undefined, light: "auto" });
   const { pings, add: addPing } = usePings();
@@ -219,6 +221,7 @@ export function Overworld({
         minutes={minutes}
         onMenu={() => (hasProgress ? setLeaving(true) : onMenu())}
         onCodex={() => dispatch({ type: "toggleCodex" })}
+        onHelp={() => setHelpOpen(true)}
         teamLabel={teamLabel}
         chatUnread={team ? unread : 0}
         reconnecting={team?.status === "reconnecting"}
@@ -267,7 +270,7 @@ export function Overworld({
           card={cardFor(state)}
         />
         <TouchControls
-          disabled={downed || leaving || isModalOpen(state)}
+          disabled={downed || leaving || helpOpen || isModalOpen(state)}
           inRange={inRange}
           label={inRange ? interactLabel(state, inRange) : null}
           onMove={(dir) => dispatch({ type: "move", dir })}
@@ -317,6 +320,7 @@ export function Overworld({
           onClose={() => dispatch({ type: "toggleCodex" })}
         />
       )}
+      {helpOpen && <Help onClose={() => setHelpOpen(false)} />}
       {leaving && <LeaveConfirm onStay={() => setLeaving(false)} onLeave={onMenu} />}
       {state.challenge && (
         <ChallengeTerminal

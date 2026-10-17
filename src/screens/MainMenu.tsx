@@ -4,6 +4,7 @@ import type { Result } from "../auth/authClient";
 import { useOnline } from "../hooks/useOnline";
 import { Button } from "../ui/Button";
 import { Panel } from "../ui/Panel";
+import { Help } from "./Help";
 import { MenuBackdrop } from "./MenuBackdrop";
 
 /** Who is playing, as the menu shows it. */
@@ -31,6 +32,7 @@ export function MainMenu({
 }) {
   const online = useOnline();
   const [addingEmail, setAddingEmail] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   return (
     <>
       <MenuBackdrop />
@@ -79,10 +81,13 @@ export function MainMenu({
         </nav>
 
         <footer className="mt-12 flex w-full flex-wrap justify-between gap-2 text-xs text-[var(--text-muted)]">
-          <span>[?] HCI Help / Tutorials</span>
+          <Button variant="ghost" className="px-2 py-1 text-xs pointer-coarse:min-h-11" onClick={() => setHelpOpen(true)}>
+            [?] HCI Help / Tutorials
+          </Button>
           <span>v1.0 | {online ? "Online" : "Offline"} Network</span>
         </footer>
       </Panel>
+      {helpOpen && <Help initial="tutorial" onClose={() => setHelpOpen(false)} />}
     </>
   );
 }

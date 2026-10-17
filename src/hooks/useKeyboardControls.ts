@@ -27,13 +27,14 @@ const OWNS_ENTER = "button, a, input, select, textarea, summary, [role='tab'], [
 
 /**
  * `paused`: a dialog outside the game state (the leave confirmation) owns the keys, Esc included.
- * `onChatKey`: Enter (`false`) or `/` (`true`) asks for the chat input.
+ * `onChatKey`: Enter (`false`) or `/` (`true`) asks for the chat input. `onHelpKey`: `?` opens the help.
  */
 export function useKeyboardControls(
   state: GameState,
   dispatch: Dispatch<GameAction>,
   paused = false,
   onChatKey?: (slash: boolean) => void,
+  onHelpKey?: () => void,
 ): void {
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -41,6 +42,8 @@ export function useKeyboardControls(
   pausedRef.current = paused;
   const chatKeyRef = useRef(onChatKey);
   chatKeyRef.current = onChatKey;
+  const helpKeyRef = useRef(onHelpKey);
+  helpKeyRef.current = onHelpKey;
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -65,6 +68,12 @@ export function useKeyboardControls(
       }
 
       if (isTextField(event.target) || isModalOpen(current) || isDowned(current)) return;
+
+      if (key === "?" && !event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey && helpKeyRef.current) {
+        event.preventDefault();
+        helpKeyRef.current();
+        return;
+      }
 
       const chatKey = chatKeyRef.current;
       if (chatKey && !event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey) {

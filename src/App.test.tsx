@@ -38,8 +38,19 @@ describe("App", () => {
     render(<GuestApp />);
     expect(screen.getByRole("heading", { name: /chronicles of devlandia/i })).toBeInTheDocument();
     expect(screen.getByText(/solve the map, break the code, find the treasure/i)).toBeInTheDocument();
-    expect(screen.getByText("[?] HCI Help / Tutorials")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "[?] HCI Help / Tutorials" })).toBeInTheDocument();
     expect(screen.getByText("v1.0 | Online Network")).toBeInTheDocument();
+  });
+
+  it("the menu's [?] HCI Help / Tutorials opens the help on the Tutorial tab and closes again", async () => {
+    const user = userEvent.setup();
+    render(<GuestApp />);
+    await user.click(screen.getByRole("button", { name: "[?] HCI Help / Tutorials" }));
+    expect(screen.getByRole("dialog", { name: "< HELP & TUTORIAL >" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Tutorial" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "Tutorial" })).toHaveFocus();
+    await user.click(screen.getByRole("button", { name: "[X] CLOSE" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
   it("shows the browser's real connection status in the footer", () => {

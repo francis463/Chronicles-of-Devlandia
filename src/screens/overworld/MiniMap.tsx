@@ -191,6 +191,7 @@ export function MiniMap({
         <span className="hidden pointer-coarse:inline">Move: D-pad</span>
         <span className="hidden pointer-coarse:inline">Interact: [E] button</span>
         <span>Codex: [C]</span>
+        <span>Help: [?]</span>
         {chatHint && <span className="pointer-coarse:hidden">{chatHint}</span>}
       </div>
     </div>

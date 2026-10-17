@@ -502,6 +502,33 @@ describe("Overworld village", () => {
 });
 
 describe("Overworld: the Codex and leaving", () => {
+  it("[?] Help and the ? key open the help, which pauses the game (no walking, no clock) and closes with Esc", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} />);
+    const player = () => screen.getByTestId("player");
+    const before = player().style.left;
+    const clock = screen.getByText(/^Dusk \/ \d/).textContent;
+    await user.click(screen.getByRole("button", { name: "[?] Help" }));
+    expect(screen.getByRole("dialog", { name: "< HELP & TUTORIAL >" })).toBeInTheDocument();
+    await user.keyboard("{ArrowRight}d");
+    act(() => vi.advanceTimersByTime(10_000));
+    expect(player().style.left).toBe(before);
+    expect(screen.getByText(/^Dusk \/ \d/).textContent).toBe(clock);
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    await user.keyboard("?");
+    expect(screen.getByRole("dialog", { name: "< HELP & TUTORIAL >" })).toBeInTheDocument();
+    await user.keyboard("?");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    await user.keyboard("{ArrowRight}");
+    expect(player().style.left).not.toBe(before);
+  });
+
+  it("the legend shows Help: [?]", () => {
+    render(<Overworld onMenu={() => {}} />);
+    expect(screen.getByText("Help: [?]")).toBeInTheDocument();
+  });
+
   it("Go there closes the Codex, logs where the chest is and rings it on the map when you are in its zone", async () => {
     const user = setup();
     render(<Overworld onMenu={() => {}} initial={{ zone: "village" }} />);

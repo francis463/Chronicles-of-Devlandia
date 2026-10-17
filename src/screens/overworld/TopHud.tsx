@@ -9,6 +9,7 @@ export function TopHud({
   minutes,
   onMenu,
   onCodex,
+  onHelp,
   teamLabel,
   chatUnread = 0,
   reconnecting,
@@ -20,6 +21,7 @@ export function TopHud({
   minutes: number;
   onMenu: () => void;
   onCodex: () => void;
+  onHelp: () => void;
   /** Team mode: "ROOM KQZM · 3 online". */
   teamLabel?: string;
   /** Unread team chat; on phones the chat panel can be out of view, so the top bar says so. */
@@ -55,6 +57,9 @@ export function TopHud({
         <span className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">
           {`${phaseOf(minutes)} / ${formatTime(minutes)}`}
         </span>
+        <Button variant="ghost" className="px-2 py-1 text-[10px] pointer-coarse:min-h-11" onClick={onHelp}>
+          [?] Help
+        </Button>
         <Button variant="ghost" className="mr-4 px-2 py-1 text-[10px] pointer-coarse:min-h-11" onClick={onCodex}>
           [C] Codex
         </Button>
