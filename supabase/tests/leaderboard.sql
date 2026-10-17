@@ -15,6 +15,8 @@ insert into public.profiles (user_id, name) values
   ('00000000-0000-0000-0000-00000000000c', 'Carol'),
   ('00000000-0000-0000-0000-00000000000d', 'Dave'),
   ('00000000-0000-0000-0000-00000000000e', 'Erin');
+-- The seed sets its own times, so the badge-stamping trigger is switched off while it runs.
+set local session_replication_role = replica;
 -- A and B have 3 badges (A finished earlier), C has 1, D has 2 and hides, E has none. F has no profile.
 insert into public.badges (user_id, chest, question_id, answer, earned_at) values
   ('00000000-0000-0000-0000-00000000000a', 'chest-sql', 'q', 'a', '2026-01-01'),
@@ -27,6 +29,7 @@ insert into public.badges (user_id, chest, question_id, answer, earned_at) value
   ('00000000-0000-0000-0000-00000000000d', 'chest-sql', 'q', 'a', '2026-04-01'),
   ('00000000-0000-0000-0000-00000000000d', 'chest-css', 'q', 'a', '2026-04-02');
 insert into public.leaderboard_hidden (user_id) values ('00000000-0000-0000-0000-00000000000d');
+set local session_replication_role = origin;
 
 -- The functions are definer functions with a fixed search path.
 do $$
@@ -136,11 +139,27 @@ begin
   if not exists (select 1 from public.leaderboard_top() where name = 'Alice') then raise exception 'A unhid but is not listed'; end if;
 end $$;
 
+-- A player cannot choose when a badge was earned: the server stamps it, so nobody can win a tie by back-dating.
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000f', true);
+insert into public.badges (user_id, chest, question_id, answer, earned_at)
+  values ('00000000-0000-0000-0000-00000000000f', 'chest-php', 'q', 'a', '1970-01-01');
+reset role;
+do $$
+begin
+  if abs(extract(epoch from ((select earned_at from public.badges where user_id = '00000000-0000-0000-0000-00000000000f') - now()))) > 5 then
+    raise exception 'a player back-dated a badge';
+  end if;
+end $$;
+
 -- A long list is cut at 20 by default and at 50 at most.
 reset role;
+set local session_replication_role = replica;
 insert into auth.users (id, email) select ('10000000-0000-0000-0000-' || lpad(g::text, 12, '0'))::uuid, 'u' || g || '@test.invalid' from generate_series(1, 60) g;
 insert into public.profiles (user_id, name) select ('10000000-0000-0000-0000-' || lpad(g::text, 12, '0'))::uuid, 'Pl' || g from generate_series(1, 60) g;
 insert into public.badges (user_id, chest, question_id, answer) select ('10000000-0000-0000-0000-' || lpad(g::text, 12, '0'))::uuid, 'chest-sql', 'q', 'a' from generate_series(1, 60) g;
+set local session_replication_role = origin;
 set local role anon;
 do $$
 begin

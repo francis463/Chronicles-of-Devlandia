@@ -11,6 +11,18 @@ create policy hidden_read   on public.leaderboard_hidden for select to authentic
 create policy hidden_insert on public.leaderboard_hidden for insert to authenticated with check (user_id = auth.uid());
 create policy hidden_delete on public.leaderboard_hidden for delete to authenticated using (user_id = auth.uid());
 
+-- A badge's time is the server's, never the player's: the leaderboard breaks ties on it, so a client must not be
+-- able to back-date a badge. (The badge count itself is still self-reported: nothing here checks answers.)
+create function public.badges_stamp() returns trigger
+language plpgsql set search_path = ''
+as $$
+begin
+  new.earned_at := now();
+  return new;
+end
+$$;
+create trigger badges_stamp before insert on public.badges for each row execute function public.badges_stamp();
+
 -- The top players by badges, never more than 50 rows and never a user id or email. Players with the same
 -- count share a rank; within a rank the one whose latest badge came first is listed first.
 create function public.leaderboard_top(max_rows int default 20)
