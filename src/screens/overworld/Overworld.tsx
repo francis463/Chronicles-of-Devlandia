@@ -55,6 +55,7 @@ export function Overworld({
   hard = false,
   onNewGamePlus,
   playerName = "",
+  onSave,
 }: {
   onMenu: () => void;
   initial?: Partial<GameState>;
@@ -72,6 +73,8 @@ export function Overworld({
   onNewGamePlus?: () => void;
   /** The signed-in player's name, which the certificate starts with (a guest types theirs). */
   playerName?: string;
+  /** Called with the game's state whenever it changes (a solo game keeps itself this way so a refresh can resume it). */
+  onSave?: (state: GameState) => void;
   /** Team mode: shared progress, teammates on the map and the team clock. */
   team?: TeamSession;
   /** The team's conversation, when the lobby already started one; without it the game keeps its own. */
@@ -83,7 +86,8 @@ export function Overworld({
     return { ...initialState, ...rolled, hard, ...seedFromSaved(saved ?? [], rolled.picks), ...initial };
   });
   // Remember this game's questions, so the next game picks others.
-  useEffect(() => (hard ? undefined : saveRecent(withPicks(loadRecent(), state.picks))), []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => (hard || initial ? undefined : saveRecent(withPicks(loadRecent(), state.picks))), []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => onSave?.(state), [state]); // eslint-disable-line react-hooks/exhaustive-deps
   // The badges this game started with from the player's account: neither saved again nor announced to the team.
   const seeded = useRef<ReadonlySet<ChestId>>(new Set((saved ?? []).map((b) => b.chest)));
   const reported = useRef(new Set<ChestId>(seeded.current));

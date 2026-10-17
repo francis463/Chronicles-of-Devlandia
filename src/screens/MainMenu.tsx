@@ -12,6 +12,7 @@ export type MenuAccount = { kind: "guest" } | { kind: "user"; name: string; hasR
 
 export function MainMenu({
   onSoloQuest,
+  onContinue,
   onTeamLobby,
   onLeaderboards,
   account,
@@ -21,6 +22,8 @@ export function MainMenu({
   busy = false,
 }: {
   onSoloQuest: () => void;
+  /** A solo game saved in this browser: picks it up where it was left. */
+  onContinue?: () => void;
   onTeamLobby: () => void;
   onLeaderboards: () => void;
   account: MenuAccount;
@@ -69,6 +72,11 @@ export function MainMenu({
         {addingEmail && <AddEmail onAdd={onAddEmail} onClose={() => setAddingEmail(false)} />}
 
         <nav aria-label="Main menu" className="mt-6 flex w-[200px] flex-col gap-2">
+          {onContinue && (
+            <Button className="w-full" disabled={busy} onClick={onContinue}>
+              Continue
+            </Button>
+          )}
           <Button className="w-full" disabled={busy} onClick={onSoloQuest}>
             Solo Quest
           </Button>

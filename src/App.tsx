@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { AuthClient } from "./auth/authClient";
 import { DEFAULT_CLASS, type ClassId } from "./game/classes";
+import { loadGame, saveGame, type SavedGame } from "./game/resume";
 import type { LeaderboardStore } from "./leaderboard/leaderboard";
 import { createSupabaseLeaderboard } from "./leaderboard/supabaseLeaderboard";
 import { createSupabaseAuth } from "./auth/supabaseAuth";
@@ -77,6 +78,9 @@ export default function App({
   const [gameId, setGameId] = useState(0);
   // New Game+: a fresh solo run with harder questions, played without touching the account's saved badges.
   const [hardRun, setHardRun] = useState(false);
+  // A solo game kept in this browser: the menu offers to continue it, and a refresh lands back there.
+  const [resumeGame, setResumeGame] = useState<SavedGame | null>(null);
+  const resumable = useMemo(() => (screen === "menu" ? loadGame(userId) : null), [screen, userId]);
   const team = useTeamSession(makeTransport, teamClock);
   const chat = useChat(team);
 
@@ -98,7 +102,16 @@ export default function App({
     if (screen === "menu") flush();
   }, [screen, flush]);
 
+  const continueGame = () => {
+    if (!resumable) return;
+    setChosenClass(resumable.playerClass);
+    setHardRun(resumable.hard);
+    setResumeGame(resumable);
+    setGameId((id) => id + 1);
+    setScreen("overworld");
+  };
   const startSoloQuest = () => {
+    setResumeGame(null);
     setGameId((id) => id + 1);
     setScreen("overworld");
   };
@@ -134,6 +147,7 @@ export default function App({
       {screen === "menu" && (
         <MainMenu
           onSoloQuest={() => chooseClass("overworld")}
+          onContinue={resumable ? continueGame : undefined}
           onTeamLobby={() => chooseClass("lobby")}
           onLeaderboards={() => setScreen("leaderboard")}
           account={userName && account ? { kind: "user", name: userName, hasRealEmail: account.hasRealEmail } : { kind: "guest" }}
@@ -155,7 +169,9 @@ export default function App({
           saveFailed={hardRun ? false : saver.failed}
           hard={hardRun}
           playerName={userName ?? ""}
-          onNewGamePlus={() => setHardRun(true)}
+          onNewGamePlus={() => (setResumeGame(null), setHardRun(true))}
+          initial={resumeGame?.state}
+          onSave={(state) => saveGame(userId, { state, playerClass, hard: hardRun })}
         />
       )}
       {screen === "lobby" &&

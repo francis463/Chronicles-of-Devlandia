@@ -512,3 +512,39 @@ describe("App: leaderboard", () => {
     expect(screen.queryByRole("heading", { name: "LEADERBOARD" })).not.toBeInTheDocument();
   });
 });
+
+describe("App: a refresh resumes the solo game", () => {
+  const begin = async (user: ReturnType<typeof userEvent.setup>) => {
+    await user.click(screen.getByRole("button", { name: /solo quest/i }));
+    await user.click(screen.getByRole("button", { name: "[ Start ]" }));
+  };
+
+  it("there is no Continue before a game; after a refresh it picks the game up with its progress and class", async () => {
+    const user = userEvent.setup();
+    const first = render(<GuestApp />);
+    expect(screen.queryByRole("button", { name: "Continue" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: /solo quest/i }));
+    await user.click(screen.getByRole("radio", { name: "Mage" }));
+    await user.click(screen.getByRole("button", { name: "[ Start ]" }));
+    await user.click(screen.getByRole("button", { name: "[G] Gate" }));
+    await user.keyboard("block{Enter}");
+    first.unmount(); // a refresh: the page is gone, the browser's storage is not
+    render(<GuestApp />);
+    await user.click(screen.getByRole("button", { name: "Continue" }));
+    expect(screen.getByText("REGION: C++ PEAKS")).toBeInTheDocument();
+    expect(screen.getByText("Class: Mage")).toBeInTheDocument();
+    expect(screen.getAllByText(/Gate unlocked/).length).toBeGreaterThan(0); // the gate is still open
+  });
+
+  it("Solo Quest still starts a fresh game", async () => {
+    const user = userEvent.setup();
+    const first = render(<GuestApp />);
+    await begin(user);
+    await user.click(screen.getByRole("button", { name: "[G] Gate" }));
+    await user.keyboard("block{Enter}");
+    first.unmount();
+    render(<GuestApp />);
+    await begin(user);
+    expect(screen.getByRole("button", { name: "[G] Gate" })).toBeInTheDocument();
+  });
+});
