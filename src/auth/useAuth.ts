@@ -62,13 +62,14 @@ export function useAuth(client: AuthClient): Auth {
       };
     return {
       ...state,
-      signUp: after(client.signUp),
-      logIn: after(client.logIn),
-      logInWithGoogle: after(client.logInWithGoogle),
-      forgot: client.forgot,
-      setPassword: after(client.setPassword),
-      addEmail: after(client.addEmail),
-      chooseName: after(client.chooseName),
+      // Each call looks the method up on the client when it runs, never when the hook rendered.
+      signUp: after((name, password) => client.signUp(name, password)),
+      logIn: after((name, password) => client.logIn(name, password)),
+      logInWithGoogle: after(() => client.logInWithGoogle()),
+      forgot: (name) => client.forgot(name),
+      setPassword: after((password) => client.setPassword(password)),
+      addEmail: after((email) => client.addEmail(email)),
+      chooseName: after((name) => client.chooseName(name)),
       playAsGuest: () => setState((s) => ({ ...s, status: "guest", account: null })),
       leaveGuest: () => setState((s) => (s.status === "guest" ? { ...s, status: "signedOut" } : s)),
       async logOut() {
