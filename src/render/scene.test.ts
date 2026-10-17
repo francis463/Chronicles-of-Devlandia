@@ -838,3 +838,39 @@ describe("scene: the Sunbaked Desert", () => {
     }
   });
 });
+
+describe("scene: the Sunny Beach", () => {
+  const beach = (t = 0, reduced = false, over: Partial<SceneInput> = {}) => scene({ zone: "beach", player: { x: 10, y: 70 }, drone: { x: 14, y: 68 }, minutes: DAY, ...over }, t, reduced);
+
+  it("draws the pier, shipwreck, boat, umbrellas, castle, shells, gulls and the crab, with no snow or chests", () => {
+    const s = beach();
+    for (const id of ["pier", "shipwreck", "boat", "umbrella", "sandcastle", "shell", "bird", "crab", "palm", "signpost", "explorer-down"] as const) expect(sprites(s, "upright"), id).toContain(id);
+    expect(s.snow).toEqual([]);
+    expect(sprites(s, "upright")).not.toContain("code-chest");
+    expect(s.tint).toBe(PHASE_TINT.Day);
+  });
+
+  it("foam and glints move with time and stay inside the world", () => {
+    const a = beach(0).light;
+    const b = beach(1500).light;
+    expect(a.length).toBeGreaterThan(20);
+    expect(a).not.toEqual(b);
+    for (const p of [...a, ...b]) expect(p.x >= 0 && p.x < 320 && p.y >= 0 && p.y < 180, `${p.x},${p.y}`).toBe(true);
+  });
+
+  it("the crab scuttles along the sand and the gulls cross the sky", () => {
+    const at = (t: number) => beach(t).upright.filter((d) => d.sprite === "crab" || d.sprite === "bird").map((d) => `${d.sprite}${d.x}`).join();
+    expect(at(0)).not.toBe(at(3000));
+  });
+
+  it("with reduced motion nothing moves", () => {
+    expect(beach(9000, true)).toEqual(beach(0, true));
+  });
+
+  it("the other zones have no crab or shells", () => {
+    for (const zone of ["peaks", "village", "forest", "foggaten", "desert"] as const) {
+      expect(sprites(scene({ zone }, 0), "upright"), zone).not.toContain("crab");
+      expect(sprites(scene({ zone }, 0), "upright"), zone).not.toContain("shell");
+    }
+  });
+});

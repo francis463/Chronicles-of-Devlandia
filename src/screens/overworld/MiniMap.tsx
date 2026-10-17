@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react";
-import { ADA, ARCHIVE, CAMPFIRE, DESERT_PYRAMID, DESERT_SIGNPOST, FOREST_SIGNPOST, HERMIT, HIDDEN_ARTIFACT, ISLAND_DOCK, ISLAND_FIRE, LIGHTHOUSE, NOMAD, OASIS, OLD_OAK, POIS, RANGER, RUINS, SIGNPOST } from "../../game/constants";
+import { ADA, ARCHIVE, BEACH_PIER, BEACH_SIGNPOST, CAMPFIRE, DESERT_PYRAMID, DESERT_SIGNPOST, FISHER, FOREST_SIGNPOST, HERMIT, HIDDEN_ARTIFACT, ISLAND_DOCK, ISLAND_FIRE, LIGHTHOUSE, NOMAD, OASIS, OLD_OAK, POIS, RANGER, RUINS, SHIPWRECK, SIGNPOST } from "../../game/constants";
 import { WALL_Y } from "../../game/wall";
 import type { Poi, Point } from "../../game/types";
 import type { ZoneId } from "../../game/zones";
@@ -58,16 +58,17 @@ export function paintMiniTerrain(ctx: Ctx2D, width: number, height: number, zone
   }
 }
 
-const CELL_W = 38; // five of them fill 190 of the box's 192 inner px
-const CELL_H = 22; // about 16:9, centred in the box's 54 px (16 px above and below)
-const CELL_TOP = 16;
-/** The world map, west to east. The forest lies south of the Peaks, the desert west of the forest and Foggaten Island east of the Peaks; the cells keep one row to fit the sidebar. */
+const CELL_W = 32; // six of them fill the box's 192 inner px
+const CELL_H = 18; // about 16:9, centred in the box's 54 px (18 px above and below)
+const CELL_TOP = 18;
+/** The world map, west to east. The forest lies south of the Peaks, the desert west and the beach east of the forest and Foggaten Island east of the Peaks; the cells keep one row to fit the sidebar. */
 const CELLS: Array<{ zone: ZoneId; left: number; places: Poi[] }> = [
   { zone: "village", left: 0, places: [ADA, SIGNPOST] },
   { zone: "peaks", left: CELL_W, places: POIS },
   { zone: "desert", left: 2 * CELL_W, places: [NOMAD, OASIS, DESERT_PYRAMID, DESERT_SIGNPOST] },
   { zone: "forest", left: 3 * CELL_W, places: [RANGER, CAMPFIRE, OLD_OAK, FOREST_SIGNPOST] },
-  { zone: "foggaten", left: 4 * CELL_W, places: [ISLAND_DOCK, LIGHTHOUSE, HERMIT, ISLAND_FIRE, RUINS] },
+  { zone: "beach", left: 4 * CELL_W, places: [FISHER, BEACH_PIER, SHIPWRECK, BEACH_SIGNPOST] },
+  { zone: "foggaten", left: 5 * CELL_W, places: [ISLAND_DOCK, LIGHTHOUSE, HERMIT, ISLAND_FIRE, RUINS] },
 ];
 
 const at = (p: Point) => ({ left: `${p.x}%`, top: `${p.y}%` });

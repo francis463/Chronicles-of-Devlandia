@@ -12,6 +12,9 @@ export const BEACH_POINTS = {
   crabLane: { x: 0, y: 160 },
 } as const;
 
+/** Shells scattered on the sand: decoration only, nothing keeps clear of them. */
+export const BEACH_SHELLS: ReadonlyArray<{ x: number; y: number }> = [{ x: 100, y: 150 }, { x: 205, y: 166 }, { x: 60, y: 134 }, { x: 270, y: 140 }];
+
 const PROPS: Prop[] = [
   { sprite: "shipwreck", at: BEACH_POINTS.shipwreck },
   { sprite: "pier", at: BEACH_POINTS.pier },
@@ -19,9 +22,9 @@ const PROPS: Prop[] = [
   { sprite: "explorer-down", at: BEACH_POINTS.fisher, variant: "#0e7490" },
   { sprite: "umbrella", at: { x: 150, y: 100 } },
   { sprite: "umbrella", at: { x: 170, y: 104 } },
-  { sprite: "sandcastle", at: { x: 140, y: 150 } },
+  { sprite: "sandcastle", at: { x: 185, y: 152 } },
   { sprite: "boat", at: { x: 230, y: 150 } },
-  { sprite: "palm", at: { x: 80, y: 92 } },
+  { sprite: "palm", at: { x: 110, y: 72 } },
   { sprite: "palm", at: { x: 250, y: 80 } },
 ];
 

@@ -2,6 +2,7 @@ import type { PoiId, Point } from "../../game/types";
 import type { ZoneId } from "../../game/zones";
 import { CHESTS } from "../../learn/chests";
 import type { ChestId } from "../../learn/types";
+import { BEACH_POINTS } from "../../render/areas/beach";
 import { DESERT_POINTS } from "../../render/areas/desert";
 import { FOGGATEN_POINTS } from "../../render/areas/foggaten";
 import { FOREST_POINTS } from "../../render/areas/forest";
@@ -133,6 +134,10 @@ export const LANDMARK_CAPTIONS: readonly LandmarkCaption[] = [
   { id: "oasis", zone: "desert", sprite: "oasis", point: DESERT_POINTS.oasis, texts: ["[O] Oasis"], prefer: "below" },
   { id: "desert-pyramid", zone: "desert", sprite: "pyramid", point: DESERT_POINTS.pyramid, texts: ["[P] Pyramid"], prefer: "above" },
   { id: "desert-signpost", zone: "desert", sprite: "signpost", point: DESERT_POINTS.signpost, texts: ["[S] Signpost"], prefer: "above" },
+  { id: "fisher", zone: "beach", sprite: "explorer-down", point: BEACH_POINTS.fisher, texts: ["[F] Fisher"], prefer: "below" },
+  { id: "beach-pier", zone: "beach", sprite: "pier", point: BEACH_POINTS.pier, texts: ["[P] Pier"], prefer: "below" },
+  { id: "shipwreck", zone: "beach", sprite: "shipwreck", point: BEACH_POINTS.shipwreck, texts: ["[W] Shipwreck"], prefer: "above" },
+  { id: "beach-signpost", zone: "beach", sprite: "signpost", point: BEACH_POINTS.signpost, texts: ["[S] Signpost"], prefer: "above" },
   { id: "terminal", zone: "village", sprite: "syntax-terminal", point: TERMINAL_POINT, texts: ["Terminal"], prefer: "below" },
   { id: "archive", zone: "village", sprite: "archive", point: ARCHIVE_POINT, texts: ["Archive", "C#", "C# ✓"], prefer: "above" },
   ...CHESTS.flatMap((c): LandmarkCaption[] =>
@@ -194,6 +199,9 @@ export const MAP_CAPTIONS = [
   { id: "north-exit", zone: "forest", at: { x: 64, y: 18 }, align: "centre" },
   { id: "foggaten", zone: "foggaten", at: { x: 40, y: 4 }, align: "centre" },
   { id: "desert", zone: "desert", at: { x: 62, y: 4 }, align: "centre" },
+  { id: "beach", zone: "beach", at: { x: 22, y: 4 }, align: "centre" },
+  { id: "beach-west-exit", zone: "beach", at: { x: 1, y: 88 }, align: "left-centre" },
+  { id: "forest-east-exit", zone: "forest", at: { x: 99, y: 88 }, align: "right-centre" },
   { id: "desert-east-exit", zone: "desert", at: { x: 99, y: 88 }, align: "right-centre" },
   { id: "forest-west-exit", zone: "forest", at: { x: 1, y: 88 }, align: "left-centre" },
 ] as const satisfies ReadonlyArray<{ id: string; zone: ZoneId; at: Point; align: "centre" | "right-bottom" | "left-centre" | "right-centre" }>;
@@ -226,9 +234,11 @@ export const EXIT_SIGNS: Record<ZoneId, ReadonlyArray<{ id: MapCaptionId; text: 
   forest: [
     { id: "north-exit", text: "↑ C++ Peaks" },
     { id: "forest-west-exit", text: "← Desert" },
+    { id: "forest-east-exit", text: "Beach →" },
   ],
   foggaten: [],
   desert: [{ id: "desert-east-exit", text: "Forest →" }],
+  beach: [{ id: "beach-west-exit", text: "← Forest" }],
 };
 
 /** A zone's exit signs as world-layer edges, for labelLayout to avoid. */

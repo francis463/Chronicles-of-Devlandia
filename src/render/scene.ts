@@ -4,6 +4,7 @@ import type { Phase, Point } from "../game/types";
 import type { ZoneId } from "../game/zones";
 import { AREAS } from "./areas";
 import { LAMP_POINT } from "./areas/foggaten";
+import { BEACH_SHELLS } from "./areas/beach";
 import { DESERT_POINTS } from "./areas/desert";
 import { FOREST_POINTS } from "./areas/forest";
 import { CAVE_POINT, WILDLIFE, foxPose, goatPose } from "./areas/peaks";
@@ -172,6 +173,33 @@ function tumbleweed(t: number, reduced: boolean): Drawable {
   if (reduced) return placed("tumbleweed", { x: 200, y: 160 });
   const x = Math.floor(((t / 1000) * 16) % 380) - 30;
   return placed("tumbleweed", { x, y: 160 - Math.round(3 * Math.abs(Math.sin(t / 300))) }, { frame: Math.floor(t / 250) % 2 });
+}
+
+const FOAM = "#ffffff";
+const SEA_GLINT = "#e0f2fe";
+
+/**
+ * The beach's water at time `t` (ms): foam washing in and out along the shoreline (a wavering white line every third row) and
+ * twelve glints twinkling on the sea. Both hold still when motion is reduced (the glints show every third one).
+ */
+function beachWater(t: number, reduced: boolean): Pixel[] {
+  const seconds = reduced ? 0 : t / 1000;
+  const foam = Array.from({ length: 56 }, (_, k): Pixel[] => {
+    const y = 12 + k * 3;
+    const x = 298 + Math.round(3 * Math.sin(seconds * 1.1 + y / 9));
+    return [0, 1, 2].map((j) => ({ x: x + j, y, color: FOAM, alpha: 0.55 }));
+  }).flat();
+  const glints = Array.from({ length: 12 }, (_, i): Pixel[] =>
+    (reduced ? i % 3 === 0 : (t + i * 170) % 1800 < 300) ? [{ x: 306 + ((i * 5) % 12), y: 14 + ((i * 29) % 160), color: SEA_GLINT, alpha: 0.9 }] : [],
+  ).flat();
+  return [...foam, ...glints];
+}
+
+/** The crab: it shuffles back and forth along the sand at 10 art px a second; it rests in a fixed spot when motion is reduced. */
+function crab(t: number, reduced: boolean): Drawable {
+  if (reduced) return placed("crab", { x: 150, y: 160 });
+  const p = ((t / 1000) * 10) % 560;
+  return placed("crab", { x: 20 + Math.round(p < 280 ? p : 560 - p), y: 160 }, { frame: Math.floor(t / 200) % 2 });
 }
 
 const LAMPLIGHT = "#fde047";
@@ -444,6 +472,10 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
       const withWeed = [...upright, tumbleweed(t, reduced)].sort(byFeet);
       withWeed.splice(withWeed.findIndex((d) => d.sprite === "rock" && d.x === spriteBox("rock", DESERT_POINTS.lizardRock).x) + 1, 0, lizard);
       return { zone: input.zone, glints: [], flat: [], upright: withWeed, drone, tint: PHASE_TINT[phase], light: desertAir(t, reduced), snow };
+    }
+    if (input.zone === "beach") {
+      const withLife = [...upright, ...BEACH_SHELLS.map((at) => placed("shell", at)), ...birds(t, reduced), crab(t, reduced)].sort(byFeet);
+      return { zone: input.zone, glints: [], flat: [], upright: withLife, drone, tint: PHASE_TINT[phase], light: beachWater(t, reduced), snow };
     }
     if (input.zone === "foggaten") {
       const lighthouse = upright.find((d) => d.sprite === "lighthouse");

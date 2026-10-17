@@ -40,7 +40,7 @@ describe("cardFor", () => {
     expect(cardFor({ ...forest, inspected: "campfire" })?.text).toBe("A campfire crackles in the clearing. Someone left it burning for the next explorer.");
     expect(cardFor({ ...forest, inspected: "old-oak" })?.text).toBe("An enormous old oak. Its bark is carved with a thousand tiny semicolons.");
     const directions =
-      "C++ PEAKS → North through the trees: base camp, the north gate and the frozen river. RANGER and CAMPFIRE → Northwest, in the clearing. OLD OAK → Far west. JAVASCRIPT CHEST → Far west, near the forest edge.";
+      "C++ PEAKS → North through the trees: base camp, the north gate and the frozen river. RANGER and CAMPFIRE → Northwest, in the clearing. OLD OAK → Far west. JAVASCRIPT CHEST → Far west, near the forest edge. SUNBAKED DESERT → Out the west gap. SUNNY BEACH → Out the east gap.";
     expect(cardFor({ ...forest, inspected: "forest-signpost" })?.text).toBe(directions);
     expect(cardFor({ ...forest, clueDecoded: true, inspected: "forest-signpost" })?.text).toBe(`${directions} The scroll's clue: dig in the south-east corner.`);
   });

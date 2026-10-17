@@ -502,3 +502,24 @@ describe("MapViewport in the Sunbaked Desert", () => {
     expect(screen.getByText("Forest →")).toBeInTheDocument();
   });
 });
+
+describe("MapViewport on the Sunny Beach", () => {
+  const beach = (over: Partial<Props> = {}) => props({ zone: "beach", player: { x: 10, y: 70 }, drone: { x: 14, y: 68 }, ...over });
+
+  it("shows the beach's caption and four place buttons, which go to their places", () => {
+    const onInteract = vi.fn();
+    render(<MapViewport {...beach({ onInteract })} />);
+    expect(screen.getByText("(Sunny Beach Biome)")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "[F] Fisher" }));
+    fireEvent.click(screen.getByRole("button", { name: "Pier" }));
+    fireEvent.click(screen.getByRole("button", { name: "[W] Shipwreck" }));
+    fireEvent.click(screen.getByRole("button", { name: "Signpost" }));
+    expect(onInteract.mock.calls).toEqual([["fisher"], ["beach-pier"], ["shipwreck"], ["beach-signpost"]]);
+  });
+
+  it("has no fog of war and shows the way back to the forest", () => {
+    render(<MapViewport {...beach()} />);
+    expect(screen.getByTestId("fog").style.opacity).toBe("0");
+    expect(screen.getByText("← Forest")).toBeInTheDocument();
+  });
+});
