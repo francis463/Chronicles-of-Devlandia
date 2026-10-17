@@ -32,7 +32,7 @@ export const VILLAGE_LIFE = {
     { variant: "#a16207", a: { x: 108, y: 136 }, b: { x: 172, y: 136 }, speed: 6, offset: 3 },
     { variant: "#0f766e", a: { x: 210, y: 129 }, b: { x: 222, y: 129 }, speed: 5, offset: 1 },
   ],
-  chicken: { x: 190, y: 158 },
+  chicken: { x: 190, y: 163 },
 } as const;
 export type Wanderer = (typeof VILLAGE_LIFE.wanderers)[number];
 

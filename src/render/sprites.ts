@@ -109,6 +109,23 @@ function outlined(w: number, h: number, kind: (x: number, y: number) => string |
   );
 }
 
+/** Layered shape painters for the animals: the last painter to cover a cell wins, then the whole is outlined. */
+type Paint = (x: number, y: number) => string | null;
+const ell = (cx: number, cy: number, rx: number, ry: number, c: string): Paint => (x, y) => (((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1 ? c : null);
+const rect = (x0: number, y0: number, x1: number, y1: number, c: string): Paint => (x, y) => (x >= x0 && x <= x1 && y >= y0 && y <= y1 ? c : null);
+const poly = (pts: Array<[number, number]>, c: string): Paint => (x, y) => {
+  let inside = false;
+  for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+    const [xi, yi] = pts[i];
+    const [xj, yj] = pts[j];
+    if (yi > y + 0.5 !== yj > y + 0.5 && x + 0.5 < ((xj - xi) * (y + 0.5 - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside ? c : null;
+};
+function creature(w: number, h: number, layers: Paint[]): PixelGrid {
+  return outlined(w, h, (x, y) => layers.reduce<string | null>((acc, paint) => paint(x, y) ?? acc, null));
+}
+
 /** The village pond: a rippling oval with reeds at two edges and a plank footbridge across it. */
 function pondGrid(): PixelGrid {
   const inside = (x: number, y: number) => ((x - 23.5) / 23.5) ** 2 + ((y - 11.5) / 11.5) ** 2 <= 1;
@@ -219,34 +236,55 @@ function caveMouthGrid(): PixelGrid {
   });
 }
 
-/** A fox trotting right: orange with a white tail tip and belly, the legs swapping between frames. */
+/** A fox trotting right: pointed ears, a white muzzle and chest, a bushy white-tipped tail, the legs swapping between frames. */
 function foxGrid(frame: 0 | 1): PixelGrid {
-  const legs = frame === 0 ? [4, 9] : [5, 8];
-  return outlined(14, 9, (x, y) => {
-    if (y === 1 && x === 11) return "f";
-    if (y >= 2 && y <= 5 && x >= 10 && x <= 13) return x === 13 ? "F" : "f";
-    if (y >= 3 && y <= 6 && x >= 3 && x <= 10) return y === 6 && x >= 5 && x <= 8 ? "w" : "f";
-    if (y >= 3 && y <= 5 && x >= 0 && x <= 2) return x === 0 ? "w" : "f";
-    if (y >= 7 && legs.includes(x)) return "F";
-    return null;
-  });
+  const [a, b] = frame === 0 ? [5, 14] : [7, 12];
+  return creature(22, 13, [
+    poly([[0, 3], [7, 6], [8, 10], [3, 9]], "f"),
+    ell(1.8, 4.6, 1.8, 1.8, "w"),
+    rect(a, 9, a + 1, 12, "F"),
+    rect(a + 5, 9, a + 6, 12, "F"),
+    rect(b, 9, b + 1, 12, "F"),
+    rect(b - 5, 9, b - 4, 12, "F"),
+    ell(11, 7, 6.8, 3.4, "f"),
+    ell(11.5, 9, 5, 1.2, "w"),
+    poly([[14, 4], [15, 0], [17, 4]], "F"),
+    poly([[17, 4], [19, 0], [20, 4]], "F"),
+    ell(17, 6, 3.5, 3, "f"),
+    ell(20, 7, 2, 1.4, "w"),
+    rect(18, 5, 18, 5, "k"),
+  ]);
 }
 
-/** A mountain goat standing: off-white with curved horns. */
+/** A mountain goat standing: off-white with a beard, grey legs and horns curving back from its head. */
 function goatGrid(): PixelGrid {
-  return outlined(14, 12, (x, y) => {
-    if (y === 1 && (x === 11 || x === 12)) return "h";
-    if (y >= 2 && y <= 6 && x >= 10 && x <= 13) return "g";
-    if (y >= 4 && y <= 8 && x >= 3 && x <= 10) return y >= 7 ? "G" : "g";
-    if (y >= 9 && [4, 6, 8, 9].includes(x)) return "G";
-    return null;
-  });
+  return creature(20, 15, [
+    poly([[0, 4], [4, 5], [3, 8]], "g"),
+    rect(4, 10, 5, 14, "G"),
+    rect(7, 10, 8, 14, "G"),
+    rect(11, 10, 12, 14, "G"),
+    rect(14, 10, 15, 14, "G"),
+    ell(9.5, 7, 7, 3.8, "g"),
+    ell(9.5, 9.4, 5.5, 1.3, "G"),
+    poly([[13, 5], [15, 2], [18, 3], [17, 8], [14, 9]], "g"),
+    ell(16.5, 4.8, 2.8, 2.6, "g"),
+    ell(18.2, 6.2, 1.6, 1.5, "g"),
+    ell(13.5, 1.6, 1.4, 1.7, "h"),
+    ell(15.4, 1.2, 1.2, 1.5, "h"),
+    rect(18, 8, 18, 10, "g"),
+    rect(17, 5, 17, 5, "k"),
+  ]);
 }
 
-/** A distant bird: wings up in one frame, down in the next. */
+/** A distant gull: a pale body under wings that flap up in one frame and down in the next. */
 function birdGrid(frame: 0 | 1): PixelGrid {
-  const cells = frame === 0 ? ["0,0", "5,0", "1,1", "4,1", "2,2", "3,2"] : ["2,1", "3,1", "1,2", "4,2", "0,3", "5,3"];
-  return outlined(6, 4, (x, y) => (cells.includes(`${x},${y}`) ? "k" : null));
+  const up: Array<Array<[number, number]>> = [[[0, 0], [7, 4], [2, 5]], [[13, 0], [6, 4], [11, 5]]];
+  const down: Array<Array<[number, number]>> = [[[0, 7], [6, 4], [2, 3]], [[13, 7], [7, 4], [11, 3]]];
+  return creature(14, 8, [
+    ...(frame === 0 ? up : down).map((w) => poly(w, "k")),
+    ell(6.5, 4.8, 2.8, 2, "w"),
+    ell(9, 3.6, 1.4, 1.3, "w"),
+  ]);
 }
 
 /** A bright down-pointing arrow over the first chest. */
@@ -409,16 +447,36 @@ function tumbleweedGrid(frame: 0 | 1): PixelGrid {
   });
 }
 
-/** A lizard in profile, tail flicking up or down between frames. */
+/** A lizard in profile: a green body with a lighter back, four bent legs and a tail that flicks up or down between frames. */
 function lizardGrid(frame: 0 | 1): PixelGrid {
-  const tailY = frame === 0 ? 2 : 1;
-  return outlined(12, 6, (x, y) => {
-    if (x >= 3 && x <= 10 && y >= 1 && y <= 3) return x === 10 && y === 1 ? "e" : y === 1 ? "Z" : "z";
-    if (x === 11 && y >= 1 && y <= 2) return "z";
-    if (x <= 2 && y >= tailY && y <= tailY + 1) return "z";
-    if (y === 4 && (x === 4 || x === 8)) return "z";
-    return null;
-  });
+  const tip = frame === 0 ? 5 : 1;
+  return creature(14, 9, [
+    poly([[0, tip], [5, 3], [5, 6], [1, tip + 1]], "z"),
+    rect(4, 5, 5, 8, "z"),
+    rect(7, 5, 8, 8, "z"),
+    rect(9, 5, 10, 8, "z"),
+    ell(7.5, 3.8, 4.6, 2.5, "z"),
+    ell(7.5, 3, 3.6, 1, "Z"),
+    ell(11.5, 3.4, 2.5, 2, "Z"),
+    rect(12, 2, 12, 2, "e"),
+  ]);
+}
+
+/** A hen in profile: white with a red comb and wattle and an orange beak, bobbing down to peck in its second frame. */
+function chickenGrid(frame: 0 | 1): PixelGrid {
+  const dip = frame === 0 ? 0 : 2;
+  return creature(12, 12, [
+    rect(4, 9, 4, 11, "b"),
+    rect(7, 9, 7, 11, "b"),
+    poly([[0, 3], [3, 6], [2, 8]], "W"),
+    ell(5, 7, 4.2, 3, "w"),
+    ell(4.5, 7.4, 2.4, 1.5, "W"),
+    ell(9, 4 + dip, 2, 2.2, "w"),
+    rect(8, 1 + dip, 9, 2 + dip, "r"),
+    poly([[10, 3 + dip], [12, 4 + dip], [10, 5 + dip]], "b"),
+    rect(10, 6 + dip, 10, 6 + dip, "r"),
+    rect(9, 4 + dip, 9, 4 + dip, "k"),
+  ]);
 }
 
 /** A striped beach umbrella: a red-and-white canopy over a pole. */
@@ -472,15 +530,20 @@ function pierGrid(): PixelGrid {
   });
 }
 
-/** A crab: a red shell with raised claws, legs shuffling between frames. */
+/** A crab: a red shell on bent legs, eye stalks and two round claws that lift and drop between frames. */
 function crabGrid(frame: 0 | 1): PixelGrid {
-  const claws = frame === 0 ? ["0,0", "9,0", "0,1", "9,1"] : ["1,0", "8,0", "0,1", "9,1"];
-  const legs = frame === 0 ? ["2,4", "5,4", "7,4"] : ["3,4", "4,4", "6,4"];
-  return outlined(10, 5, (x, y) => {
-    if (claws.includes(`${x},${y}`)) return "c";
-    if (legs.includes(`${x},${y}`)) return "c";
-    return x >= 2 && x <= 7 && y >= 1 && y <= 3 ? (y === 1 && (x === 3 || x === 6) ? "e" : "c") : null;
-  });
+  const lift = frame === 0 ? 0 : 1;
+  const leg = (x: number): Paint => rect(x, 7, x, 9 - ((x + frame) % 2), "c");
+  return creature(16, 10, [
+    ...[2, 4, 6, 9, 11, 13].map(leg),
+    rect(3, 3 + lift, 5, 4 + lift, "c"),
+    rect(10, 3 + lift, 12, 4 + lift, "c"),
+    ell(2, 2 + lift, 2.3, 2, "c"),
+    ell(14, 2 + lift, 2.3, 2, "c"),
+    rect(6, 2, 6, 3, "e"),
+    rect(9, 2, 9, 3, "e"),
+    ell(7.5, 6, 5.5, 3, "c"),
+  ]);
 }
 
 /** A scallop shell. */
@@ -1404,9 +1467,9 @@ export const SPRITES: Record<SpriteId, SpriteDef> = {
   post: { w: 4, h: 10, anchor: "bottom", palette: { o: "#0b1020", w: "#f1f5f9", p: "#9a5f2b" }, frames: [postGrid()] },
   waterfall: { w: 24, h: 18, anchor: "bottom", palette: { o: "#0b1020", w: "#f1f5f9", i: "#bae6fd", I: "#7dd3fc", c: "#94a3b8" }, frames: [waterfallGrid()] },
   "cave-mouth": { w: 20, h: 11, anchor: "bottom", palette: { o: "#0b1020", w: "#f1f5f9", c: "#64748b", k: "#0f172a" }, frames: [caveMouthGrid()] },
-  fox: { w: 14, h: 9, anchor: "bottom", palette: { o: "#0b1020", f: "#f97316", F: "#c2410c", w: "#f8fafc" }, frames: [foxGrid(0), foxGrid(1)] },
-  goat: { w: 14, h: 12, anchor: "bottom", palette: { o: "#0b1020", g: "#e2e8f0", G: "#94a3b8", h: "#78716c" }, frames: [goatGrid()] },
-  bird: { w: 6, h: 4, anchor: "bottom", palette: { o: "#0b1020", k: "#334155" }, frames: [birdGrid(0), birdGrid(1)] },
+  fox: { w: 22, h: 13, anchor: "bottom", palette: { o: "#0b1020", k: "#0b1020", f: "#f97316", F: "#c2410c", w: "#f8fafc" }, frames: [foxGrid(0), foxGrid(1)] },
+  goat: { w: 20, h: 15, anchor: "bottom", palette: { o: "#0b1020", k: "#0b1020", g: "#e2e8f0", G: "#94a3b8", h: "#78716c" }, frames: [goatGrid()] },
+  bird: { w: 14, h: 8, anchor: "bottom", palette: { o: "#0b1020", k: "#334155", w: "#f1f5f9" }, frames: [birdGrid(0), birdGrid(1)] },
   arrow: { w: 8, h: 8, anchor: "bottom", palette: { o: "#0b1020", y: "#fde047" }, frames: [arrowGrid()] },
   station: { w: 14, h: 20, anchor: "bottom", palette: { o: "#0b1020", c: "#e2e8f0", w: "#f1f5f9", W: "#cbd5e1", p: "#7c4a1e" }, frames: [stationGrid(0), stationGrid(1)] },
   "snow-cave": { w: 28, h: 20, anchor: "bottom", palette: { o: "#0b1020", w: "#f1f5f9", c: "#64748b", k: "#0f172a", i: "#7dd3fc" }, frames: [snowCaveGrid()] },
@@ -1432,34 +1495,7 @@ export const SPRITES: Record<SpriteId, SpriteDef> = {
       ],
     ],
   },
-  chicken: {
-    w: 8,
-    h: 8,
-    anchor: "bottom",
-    palette: { o: "#0b1020", w: "#f1f5f9", W: "#cbd5e1", b: "#f59e0b", r: "#dc2626" },
-    frames: [
-      [
-        "....oo..",
-        "...orwo.",
-        "..owwwbo",
-        ".owwwwwo",
-        ".oWwwwWo",
-        "..ooooo.",
-        "...o.o..",
-        "...o.o..",
-      ],
-      [
-        "........",
-        "........",
-        "....oo..",
-        "..oorwo.",
-        ".owwwwbo",
-        ".oWwwwWo",
-        "..ooooo.",
-        "...o.o..",
-      ],
-    ],
-  },
+  chicken: { w: 12, h: 12, anchor: "bottom", palette: { o: "#0b1020", k: "#0b1020", w: "#f1f5f9", W: "#cbd5e1", b: "#f59e0b", r: "#dc2626" }, frames: [chickenGrid(0), chickenGrid(1)] },
   garden: { w: 24, h: 10, anchor: "bottom", palette: { o: "#0b1020", s: "#7c4a1e", S: "#5b3a1e", g: "#4ade80", G: "#16a34a" }, frames: [gardenGrid()] },
   stall: {
     w: 24,
@@ -1499,9 +1535,9 @@ export const SPRITES: Record<SpriteId, SpriteDef> = {
   boat: { w: 28, h: 12, anchor: "bottom", palette: { o: "#0b1020", h: "#9a5f2b", H: "#7c4a1e", w: "#e2d3b0" }, frames: [boatGrid()] },
   shipwreck: { w: 36, h: 24, anchor: "bottom", palette: { o: "#0b1020", k: "#7c4a1e", K: "#5b3a1e", s: "#e8c47a", S: "#c9a357" }, frames: [shipwreckGrid()] },
   pier: { w: 40, h: 14, anchor: "bottom", palette: { o: "#0b1020", p: "#b07a45", P: "#8f5f33", k: "#5b3a1e" }, frames: [pierGrid()] },
-  crab: { w: 10, h: 5, anchor: "bottom", palette: { o: "#0b1020", c: "#e5533d", e: "#f8fafc" }, frames: [crabGrid(0), crabGrid(1)] },
+  crab: { w: 16, h: 10, anchor: "bottom", palette: { o: "#0b1020", c: "#e5533d", e: "#f8fafc" }, frames: [crabGrid(0), crabGrid(1)] },
   shell: { w: 6, h: 5, anchor: "bottom", palette: { o: "#0b1020", q: "#f9a8d4", Q: "#f472b6" }, frames: [shellGrid()] },
-  lizard: { w: 12, h: 6, anchor: "bottom", palette: { o: "#0b1020", z: "#6b8f3a", Z: "#8fb34a", e: "#f5d547" }, frames: [lizardGrid(0), lizardGrid(1)] },
+  lizard: { w: 14, h: 9, anchor: "bottom", palette: { o: "#0b1020", z: "#6b8f3a", Z: "#8fb34a", e: "#f5d547" }, frames: [lizardGrid(0), lizardGrid(1)] },
 };
 
 export const TEXTURES: Record<TextureId, { grid: PixelGrid; palette: Palette }> = {

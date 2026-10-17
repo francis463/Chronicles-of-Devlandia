@@ -66,7 +66,7 @@ export const CAVE_POINT: ArtPoint = toArt(SNOW_CAVE);
  * north-east, the goat on the snow north of the river; birds fly across the sky and need no zone.
  */
 export const WILDLIFE = {
-  fox: { home: { x: 281, y: 52 }, zone: { x: 270, y: 44, w: 23, h: 18 } },
+  fox: { home: { x: 286, y: 52 }, zone: { x: 281, y: 44, w: 10, h: 18 } },
   goat: { home: { x: 112, y: 42 }, zone: { x: 84, y: 38, w: 56, h: 8 } },
   birds: 3,
 } as const;

@@ -293,7 +293,7 @@ describe("Foggaten Island art", () => {
 
 describe("the village's life sprites", () => {
   it("have their declared sizes, anchors and frame counts", () => {
-    for (const [id, w, h, frames] of [["lantern", 6, 12, 1], ["chicken", 8, 8, 2], ["garden", 24, 10, 1], ["stall", 24, 20, 1]] as const) {
+    for (const [id, w, h, frames] of [["lantern", 6, 12, 1], ["chicken", 12, 12, 2], ["garden", 24, 10, 1], ["stall", 24, 20, 1]] as const) {
       expect([SPRITES[id].w, SPRITES[id].h, SPRITES[id].anchor, SPRITES[id].frames.length], id).toEqual([w, h, "bottom", frames]);
     }
     expect(SPRITES.chicken.frames[0]).not.toEqual(SPRITES.chicken.frames[1]);
@@ -357,7 +357,7 @@ describe("the Peaks' lodge, waterfall, caves, animals, posts and arrow", () => {
   it("have their declared sizes, anchors and frame counts", () => {
     for (const [id, w, h, frames] of [
       ["lodge", 40, 28, 1], ["post", 4, 10, 1], ["waterfall", 24, 18, 1], ["cave-mouth", 20, 11, 1],
-      ["fox", 14, 9, 2], ["goat", 14, 12, 1], ["bird", 6, 4, 2], ["arrow", 8, 8, 1],
+      ["fox", 22, 13, 2], ["goat", 20, 15, 1], ["bird", 14, 8, 2], ["arrow", 8, 8, 1],
     ] as const) {
       expect([SPRITES[id].w, SPRITES[id].h, SPRITES[id].anchor, SPRITES[id].frames.length], id).toEqual([w, h, "bottom", frames]);
     }
@@ -406,7 +406,7 @@ describe("the weather station and the snow cave", () => {
 });
 
 describe("the Sunbaked Desert's art", () => {
-  const SIZES = [["cactus", 14, 20, 1], ["palm", 24, 32, 1], ["dry-bush", 16, 16, 1], ["oasis", 48, 24, 1], ["pyramid", 40, 28, 1], ["tumbleweed", 8, 8, 2], ["lizard", 12, 6, 2]] as const;
+  const SIZES = [["cactus", 14, 20, 1], ["palm", 24, 32, 1], ["dry-bush", 16, 16, 1], ["oasis", 48, 24, 1], ["pyramid", 40, 28, 1], ["tumbleweed", 8, 8, 2], ["lizard", 14, 9, 2]] as const;
 
   it("have their declared sizes, anchors and frame counts", () => {
     for (const [id, w, h, frames] of SIZES) expect([SPRITES[id].w, SPRITES[id].h, SPRITES[id].anchor, SPRITES[id].frames.length], id).toEqual([w, h, "bottom", frames]);
@@ -448,7 +448,7 @@ describe("the Sunbaked Desert's art", () => {
 });
 
 describe("the Sunny Beach's art", () => {
-  const SIZES = [["umbrella", 16, 16, 1], ["sandcastle", 14, 10, 1], ["boat", 28, 12, 1], ["shipwreck", 36, 24, 1], ["pier", 40, 14, 1], ["crab", 10, 5, 2], ["shell", 6, 5, 1]] as const;
+  const SIZES = [["umbrella", 16, 16, 1], ["sandcastle", 14, 10, 1], ["boat", 28, 12, 1], ["shipwreck", 36, 24, 1], ["pier", 40, 14, 1], ["crab", 16, 10, 2], ["shell", 6, 5, 1]] as const;
 
   it("have their declared sizes, anchors and frame counts", () => {
     for (const [id, w, h, frames] of SIZES) expect([SPRITES[id].w, SPRITES[id].h, SPRITES[id].anchor, SPRITES[id].frames.length], id).toEqual([w, h, "bottom", frames]);
