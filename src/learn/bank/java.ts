@@ -120,7 +120,7 @@ export const JAVA_BANK: readonly ChestQuestion[] = [
     caseSensitive: true,
     live: { kind: "notLegal", tokens: ["create", "make", "alloc", "malloc", "init"], label: "a Java keyword" },
     blocks: ["new", "static", "final", "this", "create"],
-    hint: "It is the keyword that builds a new object or array.",
+    hint: "It is the keyword that allocates an object or array.",
     explain: "new allocates the array. static, final and this are real keywords but make no sense here, and create is not a Java keyword.",
   },
   {

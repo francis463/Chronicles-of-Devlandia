@@ -142,7 +142,7 @@ export const JS_BANK: readonly ChestQuestion[] = [
       label: "an array method",
     },
     blocks: ["push", "pop", "unshift", "append", "add"],
-    hint: "Think of pushing one more item onto the end of a pile.",
+    hint: "Think of stacking one more item onto the end of a pile.",
     explain: "push adds an item to the end of an array. pop removes the last item and unshift adds to the front instead; append and add are not array methods in JavaScript.",
   },
   {
