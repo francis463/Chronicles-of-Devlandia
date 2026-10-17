@@ -20,6 +20,11 @@ export function mulberry32(seed: number): () => number {
   };
 }
 
+/** The display order of a choice's options: the game's shuffle, or the written order for a fixed-order question (true or false). */
+export function optionOrder(c: { id: string; options: readonly string[]; fixedOrder?: boolean }, seed: number): number[] {
+  return c.fixedOrder ? c.options.map((_, i) => i) : order(c.options.length, seed, c.id);
+}
+
 /**
  * The display order for a challenge's options, tiles or labels: a permutation of 0..n-1 that is fixed
  * for one game's seed and the challenge id, so the right answer isn't always first and never moves while you play.

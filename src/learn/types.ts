@@ -53,9 +53,12 @@ export type BlankChallenge = Base & {
 export type ChoiceChallenge = Base & {
   kind: "choice";
   code?: readonly string[];
-  options: readonly [string, string, string, string];
+  /** Four options, or just two for a true-or-false question (which also sets `fixedOrder`). */
+  options: readonly [string, string, string, string] | readonly [string, string];
   /** The data index of the right option, never the shown position. */
   correct: 0 | 1 | 2 | 3;
+  /** Show the options in their written order instead of the game's shuffle (true-or-false keeps "True" first). */
+  fixedOrder?: boolean;
   codeOptions?: boolean;
 };
 

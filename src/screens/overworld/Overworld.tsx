@@ -7,6 +7,7 @@ import { displayNames } from "../../chat/names";
 import { cardFor } from "../../game/cards";
 import { challengeOf, challengeView } from "../../game/challenges";
 import { rollGame } from "../../game/roll";
+import { loadRecent, saveRecent, withPicks } from "../../learn/recent";
 import { interactLabel, placeInReach, promptText } from "../../game/geometry";
 import { gameReducer, initialState, isDowned, isModalOpen, reachPlaces } from "../../game/reducer";
 import type { GameState } from "../../game/types";
@@ -66,9 +67,11 @@ export function Overworld({
 }) {
   // Each game rolls its questions, shuffle seed, Matcher round and access code once, at mount; a team shares the code.
   const [state, dispatch] = useReducer(gameReducer, undefined, () => {
-    const rolled = rollGame(Math.random, team?.startedAt ?? undefined);
+    const rolled = rollGame(Math.random, team?.startedAt ?? undefined, loadRecent());
     return { ...initialState, ...rolled, ...seedFromSaved(saved ?? [], rolled.picks), ...initial };
   });
+  // Remember this game's questions, so the next game picks others.
+  useEffect(() => saveRecent(withPicks(loadRecent(), state.picks)), []); // eslint-disable-line react-hooks/exhaustive-deps
   // The badges this game started with from the player's account: neither saved again nor announced to the team.
   const seeded = useRef<ReadonlySet<ChestId>>(new Set((saved ?? []).map((b) => b.chest)));
   const reported = useRef(new Set<ChestId>(seeded.current));

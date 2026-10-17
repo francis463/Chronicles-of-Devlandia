@@ -122,12 +122,19 @@ describe("the question bank and the chest table", () => {
     for (const keyword of ["enum", "record"]) expect(tiles).not.toContain(keyword);
   });
 
-  it("choices: 4 unique options, correct in range", () => {
+  it("choices: 4 unique options, or True and False in that order; correct in range", () => {
     const choices = bankItems.filter((c) => c.kind === "choice");
     expect(choices.length).toBeGreaterThan(0);
     for (const c of choices) {
-      expect(new Set(c.options).size, c.id).toBe(4);
-      expect([0, 1, 2, 3], c.id).toContain(c.correct);
+      expect(new Set(c.options).size, c.id).toBe(c.options.length);
+      if (c.options.length === 2) {
+        expect([...c.options], c.id).toEqual(["True", "False"]);
+        expect(c.fixedOrder, c.id).toBe(true);
+        expect([0, 1], c.id).toContain(c.correct);
+      } else {
+        expect(c.fixedOrder, c.id).toBeUndefined();
+        expect([0, 1, 2, 3], c.id).toContain(c.correct);
+      }
     }
   });
 
