@@ -954,6 +954,33 @@ describe("gameReducer: the Sunbaked Desert's places", () => {
   });
 });
 
+describe("gameReducer: the Sunny Beach's places", () => {
+  const beach: GameState = { ...s0, zone: "beach" };
+  it("the beach's places are the fisher, pier, shipwreck and signpost", () => {
+    expect(reachPlaces(beach).map((p) => p.id)).toEqual(["fisher", "beach-pier", "shipwreck", "beach-signpost"]);
+  });
+  it("the fisher speaks once; the others inspect and log nothing", () => {
+    const once = gameReducer(beach, { type: "interact", poi: "fisher" });
+    expect(once.inspected).toBe("fisher");
+    expect(lastLog(once)).toMatch(/^Fisher: "/);
+    expect(gameReducer(once, { type: "interact", poi: "fisher" }).logCount).toBe(once.logCount);
+    for (const poi of ["beach-pier", "shipwreck", "beach-signpost"] as const) {
+      const s = gameReducer(beach, { type: "interact", poi });
+      expect(s.inspected, poi).toBe(poi);
+      expect(s.logCount, poi).toBe(beach.logCount);
+    }
+  });
+  it("the beach's places do nothing elsewhere", () => {
+    expect(gameReducer(s0, { type: "interact", poi: "fisher" })).toBe(s0);
+    expect(gameReducer({ ...s0, zone: "desert" }, { type: "interact", poi: "shipwreck" }).inspected).toBeNull();
+  });
+  it("crossing the forest's east edge enters the beach on its west edge, same row", () => {
+    const s = gameReducer({ ...s0, zone: "forest", player: { x: 94, y: 70 } }, { type: "move", dir: "right" });
+    expect([s.zone, s.player.x, s.player.y]).toEqual(["beach", 6, 70]);
+    expect(lastLog(s)).toBe("Entered Sunny Beach.");
+  });
+});
+
 describe("gameReducer: sailing to Foggaten Island", () => {
   const atDock: GameState = { ...s0, gateUnlocked: true, player: { x: DOCK.x - 2, y: DOCK.y } };
   const atIslandDock: GameState = { ...s0, zone: "foggaten", gateUnlocked: true, player: { x: ISLAND_DOCK.x + 2, y: ISLAND_DOCK.y } };

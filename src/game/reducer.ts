@@ -33,6 +33,7 @@ import { flagsOf, mergeFlags, newlySet, teammateLog } from "./team";
 import type { ChallengeState, Direction, GameAction, GameState, Poi, Point } from "./types";
 import { crossesWall, isNorthOfWall, wallBlock } from "./wall";
 import { ZONES, arrival, exitFor, type ZoneId } from "./zones";
+import { FISHER_LINE } from "./beach";
 import { NOMAD_LINE } from "./desert";
 import { rangerLine } from "./forest";
 import { hermitLine } from "./island";
@@ -295,6 +296,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         if (distance(state.player, LIGHTHOUSE) > INTERACT_RADIUS) return { ...state, inspected: "lighthouse" };
         return pushLog({ ...state, inspected: "lighthouse", lampOpen: true, lampError: null, lampTries: 0, lampHintRevealed: false }, LOG.lampOpened);
       }
+      if (action.poi === "fisher") return pushLogOnce({ ...state, inspected: "fisher" }, `Fisher: "${FISHER_LINE}"`);
+      if (action.poi === "beach-pier" || action.poi === "shipwreck" || action.poi === "beach-signpost") return { ...state, inspected: action.poi };
       if (action.poi === "nomad") return pushLogOnce({ ...state, inspected: "nomad" }, `Nomad: "${NOMAD_LINE}"`);
       if (action.poi === "oasis" || action.poi === "desert-pyramid" || action.poi === "desert-signpost") return { ...state, inspected: action.poi };
       if (action.poi === "island-fire" || action.poi === "ruins") return { ...state, inspected: action.poi };

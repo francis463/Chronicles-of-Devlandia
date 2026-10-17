@@ -56,8 +56,8 @@ const NORTH: Exit = { edge: "north", min: 62, max: 78, to: "peaks" };
 const WEST: Exit = { edge: "west", min: 62, max: 78, to: "village" };
 
 describe("the Dense Forest zone", () => {
-  it("has five zones, the forest is named Dense Forest and has no wall, gate or river", () => {
-    expect(Object.keys(ZONES).sort()).toEqual(["desert", "foggaten", "forest", "peaks", "village"]);
+  it("has six zones, the forest is named Dense Forest and has no wall, gate or river", () => {
+    expect(Object.keys(ZONES).sort()).toEqual(["beach", "desert", "foggaten", "forest", "peaks", "village"]);
     expect(ZONES.forest).toMatchObject({ name: "Dense Forest", wall: false, gate: false, river: false });
     expect(ZONES.peaks).toMatchObject({ wall: true, gate: true, river: true });
     expect(ZONES.village).toMatchObject({ wall: false, gate: false, river: false });
@@ -72,6 +72,7 @@ describe("the Dense Forest zone", () => {
     expect(ZONES.forest.exits).toEqual([
       { edge: "north", min: 62, max: 78, to: "peaks" },
       { edge: "west", min: 62, max: 78, to: "desert" },
+      { edge: "east", min: 62, max: 78, to: "beach" },
     ]);
   });
 
@@ -171,5 +172,22 @@ describe("the Sunbaked Desert zone", () => {
   it("its places are the nomad, oasis, pyramid and signpost", () => {
     expect(ZONES.desert.places.map((p) => p.id)).toEqual(["nomad", "oasis", "desert-pyramid", "desert-signpost"]);
     expect(ZONES.desert.places.map((p) => p.label)).toEqual(["Nomad", "Oasis", "Pyramid", "Signpost"]);
+  });
+});
+
+describe("the Sunny Beach zone", () => {
+  it("is east of the forest, with a west exit back, and no wall, gate or river", () => {
+    expect(ZONES.beach).toMatchObject({ id: "beach", name: "Sunny Beach", wall: false, gate: false, river: false });
+    expect(ZONES.beach.exits).toEqual([{ edge: "west", min: 62, max: 78, to: "forest" }]);
+  });
+  it("crossing the forest's east edge or the beach's west edge works inside the span only", () => {
+    expect(exitFor("forest", { x: 94, y: 70 }, { x: 98, y: 70 })?.to).toBe("beach");
+    expect(exitFor("beach", { x: 6, y: 70 }, { x: 2, y: 70 })?.to).toBe("forest");
+    expect(exitFor("forest", { x: 94, y: 50 }, { x: 98, y: 50 })).toBeNull();
+    expect(exitFor("beach", { x: 6, y: 86 }, { x: 2, y: 86 })).toBeNull();
+  });
+  it("its places are the fisher, pier, shipwreck and signpost", () => {
+    expect(ZONES.beach.places.map((p) => p.id)).toEqual(["fisher", "beach-pier", "shipwreck", "beach-signpost"]);
+    expect(ZONES.beach.places.map((p) => p.label)).toEqual(["Fisher", "Pier", "Shipwreck", "Signpost"]);
   });
 });

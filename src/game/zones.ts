@@ -1,8 +1,8 @@
 import { CHESTS } from "../learn/chests";
-import { ADA, ARCHIVE, BOUNDS, CAMPFIRE, DESERT_PYRAMID, DESERT_SIGNPOST, DOCK, FOREST_SIGNPOST, HERMIT, ISLAND_DOCK, ISLAND_FIRE, LIGHTHOUSE, LOG, NOMAD, OASIS, OLD_OAK, PEAKS_SIGNPOST, POIS, RANGER, RUINS, SIGNPOST, TERMINAL, WEATHER_STATION } from "./constants";
+import { ADA, ARCHIVE, BEACH_PIER, BEACH_SIGNPOST, BOUNDS, CAMPFIRE, DESERT_PYRAMID, DESERT_SIGNPOST, DOCK, FISHER, FOREST_SIGNPOST, HERMIT, ISLAND_DOCK, ISLAND_FIRE, LIGHTHOUSE, LOG, NOMAD, OASIS, OLD_OAK, PEAKS_SIGNPOST, POIS, RANGER, RUINS, SHIPWRECK, SIGNPOST, TERMINAL, WEATHER_STATION } from "./constants";
 import type { Poi, PoiId, Point } from "./types";
 
-export type ZoneId = "peaks" | "village" | "forest" | "foggaten" | "desert";
+export type ZoneId = "peaks" | "village" | "forest" | "foggaten" | "desert" | "beach";
 
 /**
  * Where a zone's edge opens onto its neighbour. `min`/`max` are the rows (inclusive) a horizontal step
@@ -52,6 +52,7 @@ export const ZONES: Record<ZoneId, Zone> = {
     exits: [
       { edge: "north", min: 62, max: 78, to: "peaks" },
       { edge: "west", min: 62, max: 78, to: "desert" },
+      { edge: "east", min: 62, max: 78, to: "beach" },
     ],
     wall: false,
     gate: false,
@@ -66,6 +67,16 @@ export const ZONES: Record<ZoneId, Zone> = {
     wall: false,
     gate: false,
     places: [NOMAD, OASIS, DESERT_PYRAMID, DESERT_SIGNPOST],
+    river: false,
+  },
+  beach: {
+    id: "beach",
+    name: "Sunny Beach",
+    entered: LOG.enteredBeach,
+    exits: [{ edge: "west", min: 62, max: 78, to: "forest" }],
+    wall: false,
+    gate: false,
+    places: [FISHER, BEACH_PIER, SHIPWRECK, BEACH_SIGNPOST],
     river: false,
   },
   // No edge leads here: the island is entered and left by boat, from a dock (the `sail` action).

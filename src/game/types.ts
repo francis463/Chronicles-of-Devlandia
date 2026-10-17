@@ -33,6 +33,10 @@ export type PoiId =
   | "ruins"
   | "nomad"
   | "oasis"
+  | "fisher"
+  | "beach-pier"
+  | "shipwreck"
+  | "beach-signpost"
   | "desert-pyramid"
   | "desert-signpost"
   | Exclude<ChestId, "chest-cs">;

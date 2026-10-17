@@ -1,4 +1,4 @@
-import { ADA, ARCHIVE, CAMPFIRE, DESERT_PYRAMID, DOCK, HERMIT, ISLAND_DOCK, LIGHTHOUSE, NOMAD, OASIS, POIS, RANGER, SIGNPOST, TERMINAL } from "../game/constants";
+import { ADA, ARCHIVE, BEACH_PIER, CAMPFIRE, DESERT_PYRAMID, DOCK, FISHER, HERMIT, ISLAND_DOCK, LIGHTHOUSE, NOMAD, OASIS, POIS, RANGER, SHIPWRECK, SIGNPOST, TERMINAL } from "../game/constants";
 import type { Poi } from "../game/types";
 import { ZONES, type ZoneId } from "../game/zones";
 import { chestById } from "../learn/chests";
@@ -8,7 +8,7 @@ import type { ChestId } from "../learn/types";
 export const PING_PLACE_NAMES = [
   "gate", "tower", "cache", "river", "ada", "signpost", "terminal", "archive",
   "html", "css", "java", "cpp1", "cpp2", "py1", "php", "sql", "py2", "cs", "ranger", "campfire", "js",
-  "dock", "pier", "lighthouse", "hermit", "nomad", "oasis", "pyramid",
+  "dock", "pier", "lighthouse", "hermit", "nomad", "oasis", "pyramid", "fisher", "jetty", "shipwreck",
 ] as const;
 export type PingPlace = (typeof PING_PLACE_NAMES)[number];
 
@@ -54,6 +54,9 @@ const SPOTS: Record<PingPlace, Spot> = {
   nomad: the(NOMAD, "desert"),
   oasis: the(OASIS, "desert"),
   pyramid: the(DESERT_PYRAMID, "desert"),
+  fisher: the(FISHER, "beach"),
+  jetty: the(BEACH_PIER, "beach"),
+  shipwreck: the(SHIPWRECK, "beach"),
 };
 
 /** Where a place is: its zone and its point in game percentages. */

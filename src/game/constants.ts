@@ -41,6 +41,11 @@ export const RUINS: Poi = { id: "ruins", label: "Ruins", x: 28, y: 50 };
 export const DESERT_SIGNPOST: Poi = { id: "desert-signpost", label: "Signpost", x: 84, y: 60 };
 export const NOMAD: Poi = { id: "nomad", label: "Nomad", x: 62, y: 70 };
 export const OASIS: Poi = { id: "oasis", label: "Oasis", x: 42, y: 52 };
+/** Sunny Beach: a signpost by the way back west, a fisher, a pier into the sea and a shipwreck up the shore. */
+export const BEACH_SIGNPOST: Poi = { id: "beach-signpost", label: "Signpost", x: 14, y: 58 };
+export const FISHER: Poi = { id: "fisher", label: "Fisher", x: 34, y: 72 };
+export const BEACH_PIER: Poi = { id: "beach-pier", label: "Pier", x: 84, y: 62 };
+export const SHIPWRECK: Poi = { id: "shipwreck", label: "Shipwreck", x: 60, y: 30 };
 export const DESERT_PYRAMID: Poi = { id: "desert-pyramid", label: "Pyramid", x: 20, y: 34 };
 /** Where you and the drone land after sailing: a few steps in from the other island's dock. */
 export const SAIL_LANDING = { foggaten: { x: 24, y: 62 }, peaks: { x: 78, y: 74 } } as const;
@@ -89,6 +94,7 @@ export const LOG = {
   enteredPeaks: "Entered C++ Peaks.",
   enteredVillage: "Entered Dev Village.",
   enteredForest: "Entered Dense Forest.",
+  enteredBeach: "Entered Sunny Beach.",
   enteredDesert: "Entered the Sunbaked Desert.",
   enteredFoggaten: "Fog rolls over Foggaten Island. A lighthouse stands dark at the far end.",
   lampOpened: "Lighthouse terminal ready. Lamp lock found.",

@@ -126,3 +126,17 @@ describe("the Sunbaked Desert's cards", () => {
     expect(cardFor({ ...desert, inspected: "nomad", gateUnlocked: true, hasLoot: true })?.text).toBe(a);
   });
 });
+
+describe("the Sunny Beach's cards", () => {
+  const beach = { ...initialState, zone: "beach" as const };
+  it("every beach place has a card titled with its label", () => {
+    for (const [id, title] of [["fisher", "Fisher"], ["beach-pier", "Pier"], ["shipwreck", "Shipwreck"], ["beach-signpost", "Signpost"]] as const) {
+      expect(cardFor({ ...beach, inspected: id })?.title, id).toBe(title);
+      expect(cardFor({ ...beach, inspected: id })!.text.length, id).toBeGreaterThan(20);
+    }
+  });
+  it("the signpost points back to the Dense Forest and the fisher's hint never changes", () => {
+    expect(cardFor({ ...beach, inspected: "beach-signpost" })?.text).toContain("Dense Forest");
+    expect(cardFor({ ...beach, inspected: "fisher", hasLoot: true })?.text).toBe(cardFor({ ...beach, inspected: "fisher" })?.text);
+  });
+});

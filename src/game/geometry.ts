@@ -33,6 +33,8 @@ const VERBS: Partial<Record<Poi["id"], string>> = {
   "island-dock": "Sail back to the Peaks",
   hermit: "Talk to Hermit",
   nomad: "Talk to Nomad",
+  fisher: "Talk to Fisher",
+  "beach-signpost": "Read Signpost",
   "desert-signpost": "Read Signpost",
 };
 

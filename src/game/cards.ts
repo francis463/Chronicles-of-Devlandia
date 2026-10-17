@@ -1,6 +1,7 @@
 import { chestById, chestChallenge, CHESTS, type Chest } from "../learn/chests";
 import { FOREST_DIRECTIONS, HIDDEN_ARTIFACT, INSPECT_COPY, SNOW_CAVE } from "./constants";
 import type { GameState } from "./types";
+import { BEACH_COPY, FISHER_LINE } from "./beach";
 import { DESERT_COPY, NOMAD_LINE } from "./desert";
 import { rangerLine } from "./forest";
 import { adaLine } from "./village";
@@ -38,6 +39,12 @@ export function cardFor(s: GameState): Card | null {
       return card(place.label, adaLine(s));
     case "ranger":
       return card(place.label, rangerLine(s));
+    case "fisher":
+      return card(place.label, FISHER_LINE);
+    case "beach-pier":
+    case "shipwreck":
+    case "beach-signpost":
+      return card(place.label, BEACH_COPY[place.id]);
     case "nomad":
       return card(place.label, NOMAD_LINE);
     case "oasis":

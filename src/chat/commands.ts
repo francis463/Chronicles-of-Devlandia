@@ -98,8 +98,8 @@ function ping(arg: string, c: CommandContext): Result {
   const place = PING_PLACE_NAMES.find((n) => n === nameKey(arg));
   if (!place) {
     const [first, chests] = [
-      [...PING_PLACE_NAMES.slice(0, 8), ...FOREST_PLACES, ...ISLAND_PLACES, ...DESERT_PLACES],
-      PING_PLACE_NAMES.filter((n, i) => i >= 8 && !FOREST_PLACES.includes(n) && !ISLAND_PLACES.includes(n) && !DESERT_PLACES.includes(n)),
+      [...PING_PLACE_NAMES.slice(0, 8), ...FOREST_PLACES, ...ISLAND_PLACES, ...DESERT_PLACES, ...BEACH_PLACES],
+      PING_PLACE_NAMES.filter((n, i) => i >= 8 && !FOREST_PLACES.includes(n) && !ISLAND_PLACES.includes(n) && !DESERT_PLACES.includes(n) && !BEACH_PLACES.includes(n)),
     ];
     return say(`No place called "${arg}". Try: ${first.join(", ")}, or a chest: ${chests.join(", ")}.`);
   }
@@ -113,6 +113,9 @@ const ISLAND_PLACES: readonly PingPlace[] = ["dock", "pier", "lighthouse", "herm
 
 /** The desert places chat can ping, likewise listed with the landmarks. */
 const DESERT_PLACES: readonly PingPlace[] = ["nomad", "oasis", "pyramid"];
+
+/** The beach places chat can ping (`jetty` because `pier` is Foggaten's dock). */
+const BEACH_PLACES: readonly PingPlace[] = ["fisher", "jetty", "shipwreck"];
 
 function weather(arg: string): Result {
   const word = nameKey(arg);

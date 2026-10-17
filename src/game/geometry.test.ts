@@ -105,3 +105,12 @@ describe("the desert places' verbs", () => {
     expect(promptText(desert, { id: "oasis", label: "Oasis", x: 0, y: 0 })).toBe("[E] Inspect Oasis");
   });
 });
+
+describe("the beach places' verbs", () => {
+  it("talk to the fisher, read the signpost, inspect the rest", () => {
+    const beach: GameState = { ...initialState, zone: "beach" };
+    expect(promptText(beach, { id: "fisher", label: "Fisher", x: 0, y: 0 })).toBe("[E] Talk to Fisher");
+    expect(promptText(beach, { id: "beach-signpost", label: "Signpost", x: 0, y: 0 })).toBe("[E] Read Signpost");
+    expect(promptText(beach, { id: "shipwreck", label: "Shipwreck", x: 0, y: 0 })).toBe("[E] Inspect Shipwreck");
+  });
+});

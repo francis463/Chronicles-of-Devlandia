@@ -322,6 +322,15 @@ describe("the Sunbaked Desert in team messages", () => {
   });
 });
 
+describe("the Sunny Beach in team messages", () => {
+  it("a teammate on the beach keeps their zone in presence, position and ping messages", () => {
+    expect(parsePresence({ ...meta("a", 1), zone: "beach" }, NOW)?.zone).toBe("beach");
+    expect(parseMessage({ type: "pos", id: "a", x: 20, y: 20, zone: "beach" }, NOW)).toEqual({ type: "pos", id: "a", x: 20, y: 20, zone: "beach" });
+    expect(parseMessage({ type: "ping", id: "a", name: "Kai", zone: "beach", x: 30, y: 40, place: null }, NOW)).toMatchObject({ zone: "beach", place: null });
+    expect(parseMessage({ type: "ping", id: "a", name: "Kai", zone: "peaks", x: 30, y: 40, place: "shipwreck" }, NOW)).toMatchObject({ zone: "beach", x: 60, y: 30, place: "shipwreck" });
+  });
+});
+
 describe("Foggaten Island in team messages", () => {
   it("a teammate on the island keeps their zone in presence, position and ping messages", () => {
     expect(parsePresence({ ...meta("a", 1), zone: "foggaten" }, NOW)?.zone).toBe("foggaten");
