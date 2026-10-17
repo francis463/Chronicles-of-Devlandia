@@ -510,15 +510,20 @@ function boatGrid(): PixelGrid {
   });
 }
 
-/** A shipwreck: the ribs and keel of an old hull, half buried. */
+/** A shipwreck: a listing hull of grey-brown planks with a snapped mast, a torn sail, bare ribs and sand piled around it. */
 function shipwreckGrid(): PixelGrid {
-  const ribs = [{ x: 3, h: 14 }, { x: 10, h: 18 }, { x: 17, h: 20 }, { x: 24, h: 16 }, { x: 31, h: 11 }];
-  return outlined(36, 24, (x, y) => {
-    if (y >= 20) return x >= 1 && x <= 34 ? ((x * 5 + y) % 6 === 0 ? "S" : "s") : null;
-    if (y >= 17 && y <= 19 && x >= 2 && x <= 33) return "k";
-    for (const r of ribs) if (x >= r.x && x <= r.x + 2 && y >= 24 - r.h) return (x + y) % 5 === 0 ? "K" : "k";
-    return null;
-  });
+  const plank: Paint = (x, y) => (y % 3 === 0 ? "K" : (x + y) % 9 === 0 ? "p" : "k");
+  const hull = poly([[3, 9], [20, 11], [34, 14], [31, 22], [8, 22]], "k");
+  const planked: Paint = (x, y) => (hull(x, y) ? plank(x, y) : null);
+  return creature(36, 24, [
+    rect(10, 0, 11, 13, "K"),
+    poly([[12, 2], [21, 3], [19, 8], [17, 6], [15, 10], [12, 9]], "w"),
+    poly([[0, 6], [5, 9], [6, 14], [3, 14]], "K"),
+    planked,
+    ...[19, 23, 27, 31].map((x) => rect(x, 6 + (x % 4), x + 1, 13, "K")),
+    ell(18, 24, 17.5, 3.2, "s"),
+    ell(24, 22.5, 8, 1.2, "S"),
+  ]);
 }
 
 /** A wooden pier: planks along the top and posts under them. */
@@ -1533,7 +1538,7 @@ export const SPRITES: Record<SpriteId, SpriteDef> = {
   umbrella: { w: 16, h: 16, anchor: "bottom", palette: { o: "#0b1020", r: "#ef4444", w: "#f8fafc", p: "#9a5f2b" }, frames: [umbrellaGrid()] },
   sandcastle: { w: 14, h: 10, anchor: "bottom", palette: { o: "#0b1020", s: "#e8c47a", S: "#c9a357" }, frames: [sandcastleGrid()] },
   boat: { w: 28, h: 12, anchor: "bottom", palette: { o: "#0b1020", h: "#9a5f2b", H: "#7c4a1e", w: "#e2d3b0" }, frames: [boatGrid()] },
-  shipwreck: { w: 36, h: 24, anchor: "bottom", palette: { o: "#0b1020", k: "#7c4a1e", K: "#5b3a1e", s: "#e8c47a", S: "#c9a357" }, frames: [shipwreckGrid()] },
+  shipwreck: { w: 36, h: 24, anchor: "bottom", palette: { o: "#0b1020", k: "#7c4a1e", K: "#5b3a1e", p: "#9a5f2b", w: "#d9d2bd", s: "#e8c47a", S: "#c9a357" }, frames: [shipwreckGrid()] },
   pier: { w: 40, h: 14, anchor: "bottom", palette: { o: "#0b1020", p: "#b07a45", P: "#8f5f33", k: "#5b3a1e" }, frames: [pierGrid()] },
   crab: { w: 16, h: 10, anchor: "bottom", palette: { o: "#0b1020", c: "#e5533d", e: "#f8fafc" }, frames: [crabGrid(0), crabGrid(1)] },
   shell: { w: 6, h: 5, anchor: "bottom", palette: { o: "#0b1020", q: "#f9a8d4", Q: "#f472b6" }, frames: [shellGrid()] },
