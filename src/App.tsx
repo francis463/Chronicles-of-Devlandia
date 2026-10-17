@@ -45,7 +45,10 @@ export default function App({
   const store = useMemo(() => (userId ? makeProgress(userId) : null), [userId]); // eslint-disable-line react-hooks/exhaustive-deps
   const [saved, setSaved] = useState<{ userId: string; rows: SavedBadge[] } | null>(null);
   useEffect(() => {
-    if (!store || !userId) return;
+    if (!store || !userId) {
+      setSaved(null); // a different (or no) player: never reuse the last player's rows
+      return;
+    }
     let live = true;
     store.load().then(
       (rows) => live && setSaved({ userId, rows }),
@@ -63,6 +66,19 @@ export default function App({
   const chat = useChat(team);
 
   const { flush } = saver;
+  // A badge saved this session is part of what the next game starts with.
+  const onBadgeEarned = (b: SavedBadge) => {
+    saver.save(b);
+    setSaved((s) => (s && s.userId === userId && !s.rows.some((r) => r.chest === b.chest) ? { ...s, rows: [...s.rows, b] } : s));
+  };
+  // Leaving the signed-in/guest world (signed out elsewhere, a reset link) ends any game in progress.
+  const playing = auth.status === "signedIn" || auth.status === "guest";
+  const leaveSession = team.leave;
+  useEffect(() => {
+    if (playing) return;
+    setScreen("menu");
+    leaveSession();
+  }, [playing, leaveSession]);
   useEffect(() => {
     if (screen === "menu") flush();
   }, [screen, flush]);
@@ -99,10 +115,10 @@ export default function App({
           busy={!!userId && !loadedRows}
         />
       )}
-      {screen === "overworld" && <Overworld key={gameId} onMenu={() => setScreen("menu")} saved={loadedRows} onBadgeEarned={saver.save} saveFailed={saver.failed} />}
+      {screen === "overworld" && <Overworld key={gameId} onMenu={() => setScreen("menu")} saved={loadedRows} onBadgeEarned={onBadgeEarned} saveFailed={saver.failed} />}
       {screen === "lobby" &&
         (team.phase === "playing" ? (
-          <Overworld key={`team-${team.room}`} team={team} chat={chat} onMenu={leaveTeam} saved={loadedRows} onBadgeEarned={saver.save} saveFailed={saver.failed} />
+          <Overworld key={`team-${team.room}`} team={team} chat={chat} onMenu={leaveTeam} saved={loadedRows} onBadgeEarned={onBadgeEarned} saveFailed={saver.failed} />
         ) : (
           <TeamLobby session={team} onBack={leaveTeam} chat={chat} defaultNickname={userName ?? undefined} />
         ))}

@@ -112,4 +112,15 @@ describe("useAuth", () => {
     expect(r.client.emailAdded).toBe("k@x.com");
     await waitFor(() => expect(r.result.current.account?.hasRealEmail).toBe(true));
   });
+
+  it("a background auth event that can't reach the server keeps a signed-in player signed in", async () => {
+    const r = setup();
+    await act(async () => void (await r.client.signUp("Kai", "password1")));
+    await waitFor(() => expect(status(r)).toBe("signedIn"));
+    r.client.reachable = false;
+    act(() => r.client.emit("signedIn"));
+    await new Promise((res) => setTimeout(res, 20));
+    expect(status(r)).toBe("signedIn");
+    expect(r.result.current.account?.name).toBe("Kai");
+  });
 });

@@ -12,6 +12,8 @@ const CORS = {
   "access-control-allow-headers": "authorization, x-client-info, apikey, content-type",
   "access-control-allow-methods": "POST, OPTIONS",
 };
+// Comma-separated sites a reset link may return to, set as a secret: supabase secrets set SITE_URLS=...
+const siteUrls = (Deno.env.get("SITE_URLS") ?? "").split(",").map((u) => u.trim()).filter(Boolean);
 const noSession = { auth: { persistSession: false, autoRefreshToken: false } };
 
 const adminClient = createClient(url, serviceKey, noSession);
@@ -44,6 +46,8 @@ const anon = (): AnonLike => {
   return {
     async signIn(email, password) {
       const { data, error } = await client.auth.signInWithPassword({ email, password });
+      // Bad credentials are a 400; a rate limit or server error must not look like one.
+      if (error && (error.status === 429 || !error.status || error.status >= 500)) throw error;
       return error || !data.session ? null : { access_token: data.session.access_token, refresh_token: data.session.refresh_token };
     },
     async resetPassword(email, redirectTo) {
@@ -60,6 +64,6 @@ Deno.serve(async (req) => {
   } catch {
     /* an empty or invalid body falls through to the "unknown action" reply */
   }
-  const reply = await handle(body, { admin, anon, origin: req.headers.get("origin") });
+  const reply = await handle(body, { admin, anon, origin: req.headers.get("origin"), siteUrls });
   return new Response(JSON.stringify(reply.body), { status: reply.status, headers: { ...CORS, "content-type": "application/json" } });
 });

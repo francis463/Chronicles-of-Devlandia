@@ -33,3 +33,10 @@ describe("no secret is committed (Review Focus 3)", () => {
     expect(repoFiles.map((f) => f.rel)).toEqual(expect.arrayContaining([INDEX, "src/net/config.ts", ".env.example"]));
   });
 });
+
+describe("function deployment settings", () => {
+  it("the account function skips the JWT check, because signed-out players send only the publishable key", () => {
+    const toml = readFileSync("supabase/config.toml", "utf8");
+    expect(toml).toMatch(/\[functions\.account\]\s*\n\s*verify_jwt\s*=\s*false/);
+  });
+});

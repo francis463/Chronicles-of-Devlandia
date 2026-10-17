@@ -269,4 +269,38 @@ describe("App: saved badges", () => {
     expect(load).not.toHaveBeenCalled();
     expect(store.rows).toEqual([]);
   });
+
+  it("badges earned this session are in the next game without a reload", async () => {
+    const store = createMemoryProgress();
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const { user } = await signedIn(store);
+    await waitFor(() => expect(screen.getByRole("button", { name: /solo quest/i })).toBeEnabled());
+    await user.click(screen.getByRole("button", { name: /solo quest/i }));
+    await user.click(screen.getByRole("button", { name: "HTML chest" }));
+    await user.keyboard("href{Enter}");
+    await waitFor(() => expect(store.rows).toHaveLength(1));
+    await user.keyboard("{Escape}");
+    await user.click(screen.getByRole("button", { name: "[=] Menu" }));
+    await user.click(screen.getByRole("button", { name: "[ LEAVE ]" }));
+    await user.click(await screen.findByRole("button", { name: /solo quest/i }));
+    expect(screen.getByText("Badges: 1/11")).toBeInTheDocument();
+  });
+
+  it("being signed out from elsewhere ends the running game; logging back in lands on the menu", async () => {
+    const { client, user } = await signedIn(createMemoryProgress());
+    await waitFor(() => expect(screen.getByRole("button", { name: /solo quest/i })).toBeEnabled());
+    await user.click(screen.getByRole("button", { name: /solo quest/i }));
+    const account = client.session;
+    act(() => {
+      client.session = null;
+      client.emit("signedOut");
+    });
+    expect(await screen.findByRole("button", { name: /play as guest/i })).toBeInTheDocument();
+    act(() => {
+      client.session = account;
+      client.emit("signedIn");
+    });
+    expect(await screen.findByText(/Signed in as/)).toBeInTheDocument();
+    expect(screen.queryByText(/Badges: \d+\/11/)).not.toBeInTheDocument();
+  });
 });

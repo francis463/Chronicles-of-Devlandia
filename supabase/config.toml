@@ -1,0 +1,6 @@
+project_id = "oifzgkvgpxxnoiyvbwvt"
+
+# Signed-out players call this function with only the public publishable key, which is not a JWT,
+# so the gateway's JWT check must be off. The function validates everything itself.
+[functions.account]
+verify_jwt = false

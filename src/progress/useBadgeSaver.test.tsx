@@ -43,4 +43,18 @@ describe("useBadgeSaver", () => {
     expect(() => act(() => result.current.save(sql))).not.toThrow();
     expect(result.current.failed).toBe(false);
   });
+
+  it("never saves one player's queued badge into the next player's store", async () => {
+    const a = createMemoryProgress();
+    const b = createMemoryProgress();
+    a.failNext = 5;
+    const { result, rerender } = renderHook(({ store }) => useBadgeSaver(store), { initialProps: { store: a } });
+    act(() => result.current.save(sql));
+    await waitFor(() => expect(result.current.failed).toBe(true));
+    rerender({ store: b });
+    act(() => result.current.flush());
+    await waitFor(() => expect(result.current.failed).toBe(false));
+    expect(b.rows).toEqual([]);
+    expect(a.rows).toEqual([]);
+  });
 });

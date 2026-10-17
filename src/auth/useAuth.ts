@@ -39,7 +39,10 @@ export function useAuth(client: AuthClient, initial?: "guest"): Auth {
           keep(s) ? s : { status: account ? (account.name ? "signedIn" : "needsName") : "signedOut", account, offline: false },
         );
       } catch {
-        setState((s) => (keep(s) ? s : { status: "signedOut", account: null, offline: true }));
+        // Only the first check (or a player's own action) may land on "offline"; a background event that
+        // can't reach the server never throws a signed-in player out of what they are doing.
+        const settled = (s: State) => !force && (s.status === "signedIn" || s.status === "needsName");
+        setState((s) => (keep(s) || settled(s) ? s : { status: "signedOut", account: null, offline: true }));
       }
     },
     [client],

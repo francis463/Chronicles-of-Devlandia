@@ -15,9 +15,12 @@ export type AnonLike = {
   signIn(email: string, password: string): Promise<Session | null>;
   resetPassword(email: string, redirectTo: string): Promise<void>;
 };
-export type Deps = { admin: AdminLike; anon: () => AnonLike; origin: string | null };
+/** `siteUrls` are the only origins a reset link may point to; the request's Origin header is just a claim. */
+export type Deps = { admin: AdminLike; anon: () => AnonLike; origin: string | null; siteUrls: string[] };
 export type Reply = { status: number; body: { session?: Session; ok?: true; error?: string } };
 
+/** No valid name contains a dot, so this address can never belong to a real player. */
+const NO_SUCH_PLAYER = internalEmail("no.such.player");
 const WRONG: Reply = { status: 400, body: { error: "wrong-credentials" } };
 const fail = (status: number, error: string): Reply => ({ status, body: { error } });
 const text = (v: unknown) => (typeof v === "string" ? v : "");
@@ -38,16 +41,25 @@ export async function handle(req: { action?: string; name?: string; password?: s
       await admin.deleteUser(created.userId);
       return saved.error === "duplicate" ? fail(409, "name-taken") : fail(500, "unknown");
     }
-    const session = await deps.anon().signIn(internalEmail(name), password);
-    return session ? { status: 200, body: { session } } : fail(500, "unknown");
+    try {
+      const session = await deps.anon().signIn(internalEmail(name), password);
+      return session ? { status: 200, body: { session } } : fail(500, "unknown");
+    } catch {
+      return fail(503, "unknown");
+    }
   }
 
   if (req.action === "login") {
     const profile = validateName(name) ? null : await admin.profileByKey(accountKey(name));
     const email = profile ? await admin.emailOf(profile.userId) : null;
     // An unknown name still makes one sign-in attempt, so both failures cost about the same.
-    const session = await deps.anon().signIn(email ?? internalEmail("nobody"), password);
-    return profile && email && session ? { status: 200, body: { session } } : WRONG;
+    // A rate-limit or server error is not a wrong password, so it is told apart.
+    try {
+      const session = await deps.anon().signIn(email ?? NO_SUCH_PLAYER, password);
+      return profile && email && session ? { status: 200, body: { session } } : WRONG;
+    } catch {
+      return fail(503, "unknown");
+    }
   }
 
   if (req.action === "forgot") {
@@ -55,7 +67,7 @@ export async function handle(req: { action?: string; name?: string; password?: s
     try {
       const profile = validateName(name) ? null : await admin.profileByKey(accountKey(name));
       const email = profile ? await admin.emailOf(profile.userId) : null;
-      if (email && !isInternalEmail(email) && deps.origin) await deps.anon().resetPassword(email, deps.origin);
+      if (email && !isInternalEmail(email) && deps.origin && deps.siteUrls.includes(deps.origin)) await deps.anon().resetPassword(email, deps.origin);
     } catch {
       /* never reveal anything through an error */
     }
