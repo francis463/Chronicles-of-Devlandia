@@ -125,7 +125,7 @@ export const PHP_BANK: readonly ChestQuestion[] = [
       label: "a PHP function that takes an array",
     },
     blocks: ["count", "max", "array_sum", "length", "size"],
-    hint: "The function's name is the thing you want to do to the items.",
+    hint: "You want to know how many items the array holds.",
     explain: "count (or its alias sizeof) returns the number of items, here 3. max and array_sum work on arrays but give 15 and 27. length and size are not PHP functions.",
   },
   {

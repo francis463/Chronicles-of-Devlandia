@@ -132,7 +132,7 @@ export const HTML_BANK: readonly ChestQuestion[] = [
     options: ["<body>", "<head>", "<title>", "<meta>"],
     correct: 0,
     codeOptions: true,
-    hint: "The page has a head and a ...",
+    hint: "Think of the part of the page you can actually see.",
     explain: "<body> holds the visible page content. <head> holds information about the page, and <title> and <meta> live inside it.",
   },
   {
