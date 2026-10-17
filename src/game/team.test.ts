@@ -309,6 +309,19 @@ describe("the Dense Forest in team messages (Review Focus 2)", () => {
   });
 });
 
+describe("the Sunbaked Desert in team messages", () => {
+  it("a teammate in the desert keeps their zone in presence, position and ping messages", () => {
+    expect(parsePresence({ ...meta("a", 1), zone: "desert" }, NOW)?.zone).toBe("desert");
+    expect(parseMessage({ type: "pos", id: "a", x: 20, y: 20, zone: "desert" }, NOW)).toEqual({ type: "pos", id: "a", x: 20, y: 20, zone: "desert" });
+    expect(parseMessage({ type: "ping", id: "a", name: "Kai", zone: "desert", x: 30, y: 40, place: null }, NOW)).toMatchObject({ zone: "desert", place: null });
+    expect(parseMessage({ type: "ping", id: "a", name: "Kai", zone: "peaks", x: 30, y: 40, place: "pyramid" }, NOW)).toMatchObject({ zone: "desert", x: 20, y: 34, place: "pyramid" });
+  });
+  it("a zone this client does not know is still elsewhere, and its ping is dropped", () => {
+    expect(parsePresence({ ...meta("a", 1), zone: "tundra" }, NOW)?.zone).toBeNull();
+    expect(parseMessage({ type: "ping", id: "a", name: "Kai", zone: "tundra", x: 30, y: 40, place: null }, NOW)).toBeNull();
+  });
+});
+
 describe("Foggaten Island in team messages", () => {
   it("a teammate on the island keeps their zone in presence, position and ping messages", () => {
     expect(parsePresence({ ...meta("a", 1), zone: "foggaten" }, NOW)?.zone).toBe("foggaten");
