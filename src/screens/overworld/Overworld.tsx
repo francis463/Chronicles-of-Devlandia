@@ -15,7 +15,8 @@ import type { TeamSession } from "../../hooks/useTeamSession";
 import { LOG, TICK_MS } from "../../game/constants";
 import { flagsOf, teamMinutes } from "../../game/team";
 import { ZONES } from "../../game/zones";
-import { chestById } from "../../learn/chests";
+import { chestById, chestChallenge } from "../../learn/chests";
+import { seedFromSaved, type SavedBadge } from "../../progress/progress";
 import type { BlankMode, ChestId } from "../../learn/types";
 import { useNow } from "../../hooks/useNow";
 import { useGameTimers } from "../../hooks/useGameTimers";
@@ -39,20 +40,43 @@ export function Overworld({
   initial,
   team,
   chat,
+  saved,
+  onBadgeEarned,
+  saveFailed = false,
 }: {
   onMenu: () => void;
   initial?: Partial<GameState>;
+  /** A signed-in player's saved badges: they start the game earned, with the question they answered. */
+  saved?: readonly SavedBadge[];
+  /** Called once for each badge earned during this game (never for the saved ones). */
+  onBadgeEarned?: (b: SavedBadge) => void;
+  /** True while the saver is failing; the game says so once each time it starts. */
+  saveFailed?: boolean;
   /** Team mode: shared progress, teammates on the map and the team clock. */
   team?: TeamSession;
   /** The team's conversation, when the lobby already started one; without it the game keeps its own. */
   chat?: ChatFeed;
 }) {
   // Each game rolls its questions, shuffle seed, Matcher round and access code once, at mount; a team shares the code.
-  const [state, dispatch] = useReducer(gameReducer, undefined, () => ({
-    ...initialState,
-    ...rollGame(Math.random, team?.startedAt ?? undefined),
-    ...initial,
-  }));
+  const [state, dispatch] = useReducer(gameReducer, undefined, () => {
+    const rolled = rollGame(Math.random, team?.startedAt ?? undefined);
+    return { ...initialState, ...rolled, ...seedFromSaved(saved ?? [], rolled.picks), ...initial };
+  });
+  // The badges this game started with from the player's account: neither saved again nor announced to the team.
+  const seeded = useRef<ReadonlySet<ChestId>>(new Set((saved ?? []).map((b) => b.chest)));
+  const reported = useRef(new Set<ChestId>(seeded.current));
+  useEffect(() => {
+    for (const chest of state.badges) {
+      if (reported.current.has(chest)) continue;
+      reported.current.add(chest);
+      onBadgeEarned?.({ chest, questionId: chestChallenge(state.picks, chest).id, answer: state.answered[chest] ?? "" });
+    }
+  }, [onBadgeEarned, state.badges, state.picks, state.answered]);
+  const wasFailing = useRef(false);
+  useEffect(() => {
+    if (saveFailed && !wasFailing.current) dispatch({ type: "note", text: LOG.saveFailed });
+    wasFailing.current = saveFailed;
+  }, [saveFailed]);
   // Type or Blocks: kept while terminals open and close, reset by a new game (which remounts this).
   const [mode, setMode] = useState<BlankMode>("type");
   // [=] Menu with progress asks first; while it asks, play pauses and it owns the keys.
@@ -125,7 +149,7 @@ export function Overworld({
     [onZoneChange],
   );
   // Badges are personal: each new one goes out once, and teammates' badges are news for the log.
-  const published = useRef(new Set<ChestId>());
+  const published = useRef(new Set<ChestId>(seeded.current));
   useEffect(() => {
     for (const chest of state.badges) {
       if (published.current.has(chest) || !publishBadge) continue;

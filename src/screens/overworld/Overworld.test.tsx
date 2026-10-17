@@ -4,6 +4,8 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RIVER_DAMAGE_MS } from "../../game/constants";
 import type { SceneInput } from "../../render/scene";
+import { CHESTS } from "../../learn/chests";
+import { LOG } from "../../game/constants";
 import { Overworld } from "./Overworld";
 
 // The real canvas still renders; this only records what the game asks it to draw.
@@ -685,5 +687,48 @@ describe("Overworld commands (solo)", () => {
     render(<Overworld onMenu={() => {}} />);
     await say(user, "/time");
     expect(screen.getByRole("list", { name: "Team chat" })).toHaveTextContent("Dusk, 19:29.");
+  });
+});
+
+describe("Overworld: saved badges", () => {
+  const sql = CHESTS.find((c) => c.id === "chest-sql")!;
+  const savedSql = { chest: "chest-sql", questionId: sql.bank[3].id, answer: "FROM" } as const;
+
+  it("starts with the saved badges, open chests, and the Codex shows the question that was answered (Review Focus 5)", async () => {
+    const user = setup();
+    vi.spyOn(Math, "random").mockReturnValue(0); // the roll alone would pick question 0 everywhere
+    render(<Overworld onMenu={() => {}} saved={[savedSql]} />);
+    expect(screen.getByText("Badges: 1/11")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "[C] Codex" }));
+    await user.click(screen.getByRole("button", { name: /^SQL Badge/ }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText(sql.bank[3].prompt)).toBeInTheDocument();
+    expect(within(dialog).getByText("Your answer: FROM")).toBeInTheDocument();
+  });
+
+  it("reports a newly earned badge once, with the question id and the answer", async () => {
+    const user = setup();
+    const onBadgeEarned = vi.fn();
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    render(<Overworld onMenu={() => {}} initial={{ player: { x: 10, y: 60 } }} onBadgeEarned={onBadgeEarned} />);
+    await user.keyboard("e");
+    await user.keyboard("href{Enter}");
+    expect(onBadgeEarned).toHaveBeenCalledTimes(1);
+    expect(onBadgeEarned).toHaveBeenCalledWith({ chest: "chest-html", questionId: "html-link", answer: "href" });
+  });
+
+  it("never reports the badges it was seeded with", () => {
+    const onBadgeEarned = vi.fn();
+    render(<Overworld onMenu={() => {}} saved={[savedSql]} onBadgeEarned={onBadgeEarned} />);
+    expect(onBadgeEarned).not.toHaveBeenCalled();
+  });
+
+  it("logs the save failure once each time the saver starts failing", () => {
+    const { rerender } = render(<Overworld onMenu={() => {}} saveFailed={false} />);
+    expect(screen.queryByText(LOG.saveFailed)).toBeNull();
+    rerender(<Overworld onMenu={() => {}} saveFailed />);
+    expect(screen.getAllByText(LOG.saveFailed)).toHaveLength(1);
+    rerender(<Overworld onMenu={() => {}} saveFailed />);
+    expect(screen.getAllByText(LOG.saveFailed)).toHaveLength(1);
   });
 });

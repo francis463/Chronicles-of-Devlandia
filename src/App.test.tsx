@@ -1,8 +1,9 @@
-import { act, render, screen, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import { createMemoryAuth } from "./auth/memoryAuth";
+import { createMemoryProgress, type SavedBadge } from "./progress/progress";
 import { GuestApp } from "./testing/GuestApp";
 
 
@@ -195,9 +196,77 @@ describe("App: accounts", () => {
   it("prefills the team nickname with the account name", async () => {
     const client = createMemoryAuth();
     await client.signUp("Kai", "password1");
-    const { user } = renderWith(client);
+    const user = userEvent.setup();
+    render(<App authClient={client} makeProgress={() => createMemoryProgress()} />);
     await screen.findByText(/Signed in as/);
+    await waitFor(() => expect(screen.getByRole("button", { name: /team lobby/i })).toBeEnabled());
     await user.click(screen.getByRole("button", { name: /team lobby/i }));
     expect(screen.getByLabelText("Nickname")).toHaveValue("Kai");
+  });
+});
+
+describe("App: saved badges", () => {
+  const sql = { chest: "chest-sql", questionId: "sql-from", answer: "FROM" } as const;
+  const signedIn = async (store: ReturnType<typeof createMemoryProgress>) => {
+    const client = createMemoryAuth();
+    await client.signUp("Kai", "password1");
+    const user = userEvent.setup();
+    render(<App authClient={client} makeProgress={() => store} />);
+    return { client, user };
+  };
+
+  it("a signed-in player's saved badges start every game", async () => {
+    const { user } = await signedIn(createMemoryProgress([sql]));
+    await screen.findByText(/Signed in as/);
+    await user.click(await screen.findByRole("button", { name: /solo quest/i }));
+    expect(screen.getByText("Badges: 1/11")).toBeInTheDocument();
+  });
+
+  it("keeps the game buttons off until the saved badges have loaded", async () => {
+    let release: (rows: SavedBadge[]) => void = () => undefined;
+    const store = { load: () => new Promise<SavedBadge[]>((r) => (release = r)), save: async () => undefined };
+    const client = createMemoryAuth();
+    await client.signUp("Kai", "password1");
+    render(<App authClient={client} makeProgress={() => store} />);
+    await screen.findByText(/Signed in as/);
+    expect(screen.getByRole("button", { name: /solo quest/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /team lobby/i })).toBeDisabled();
+    act(() => release([]));
+    await waitFor(() => expect(screen.getByRole("button", { name: /solo quest/i })).toBeEnabled());
+  });
+
+  it("an unreadable save file does not block play", async () => {
+    const store = { load: async () => Promise.reject(new Error("down")), save: async () => undefined };
+    const client = createMemoryAuth();
+    await client.signUp("Kai", "password1");
+    render(<App authClient={client} makeProgress={() => store} />);
+    await waitFor(() => expect(screen.getByRole("button", { name: /solo quest/i })).toBeEnabled());
+  });
+
+  it("a badge earned while signed in is saved with its question and answer; a failed save is logged and retried", async () => {
+    const store = createMemoryProgress();
+    store.failNext = 1;
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const { user } = await signedIn(store);
+    await waitFor(() => expect(screen.getByRole("button", { name: /solo quest/i })).toBeEnabled());
+    await user.click(screen.getByRole("button", { name: /solo quest/i }));
+    await user.click(screen.getByRole("button", { name: "HTML chest" }));
+    await user.keyboard("href{Enter}");
+    expect(await screen.findByText("Couldn't save your badge. It'll retry.")).toBeInTheDocument();
+    expect(store.rows).toEqual([]);
+    await user.keyboard("{Escape}");
+    await user.click(screen.getByRole("button", { name: "[=] Menu" }));
+    await user.click(screen.getByRole("button", { name: "[ LEAVE ]" }));
+    await waitFor(() => expect(store.rows).toEqual([{ chest: "chest-html", questionId: "html-link", answer: "href" }]));
+  });
+
+  it("a guest earns badges and nothing is saved or loaded", async () => {
+    const store = createMemoryProgress();
+    const load = vi.spyOn(store, "load");
+    const user = userEvent.setup();
+    render(<App authClient={createMemoryAuth()} startAsGuest makeProgress={() => store} />);
+    await user.click(screen.getByRole("button", { name: /solo quest/i }));
+    expect(load).not.toHaveBeenCalled();
+    expect(store.rows).toEqual([]);
   });
 });

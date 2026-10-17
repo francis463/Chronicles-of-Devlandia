@@ -27,6 +27,7 @@ export function MainMenu({
   onLogIn,
   onLogOut,
   onAddEmail,
+  busy = false,
 }: {
   onSoloQuest: () => void;
   onTeamLobby: () => void;
@@ -34,6 +35,8 @@ export function MainMenu({
   onLogIn: () => void;
   onLogOut: () => void;
   onAddEmail: (email: string) => Promise<Result>;
+  /** True while a signed-in player's saved badges load, so a game can't start without them. */
+  busy?: boolean;
 }) {
   const online = useOnline();
   const [addingEmail, setAddingEmail] = useState(false);
@@ -73,10 +76,10 @@ export function MainMenu({
         {addingEmail && <AddEmail onAdd={onAddEmail} onClose={() => setAddingEmail(false)} />}
 
         <nav aria-label="Main menu" className="mt-6 flex w-[200px] flex-col gap-2">
-          <Button className="w-full" onClick={onSoloQuest}>
+          <Button className="w-full" disabled={busy} onClick={onSoloQuest}>
             Solo Quest
           </Button>
-          <Button className="w-full" onClick={onTeamLobby}>
+          <Button className="w-full" disabled={busy} onClick={onTeamLobby}>
             Team Lobby
           </Button>
           <ComingSoon label="Leaderboards" />

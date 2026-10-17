@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { AuthClient } from "./auth/authClient";
 import { createSupabaseAuth } from "./auth/supabaseAuth";
 import { useAuth } from "./auth/useAuth";
 import { loadSupabase } from "./net/supabaseClient";
+import type { ProgressStore, SavedBadge } from "./progress/progress";
+import { createSupabaseProgress } from "./progress/supabaseProgress";
+import { useBadgeSaver } from "./progress/useBadgeSaver";
 import { AuthScreen } from "./screens/AuthScreen";
 import { ChooseName } from "./screens/ChooseName";
 import { SetPassword } from "./screens/SetPassword";
@@ -24,6 +27,7 @@ export default function App({
   teamClock,
   authClient = defaultAuth,
   startAsGuest = false,
+  makeProgress = (userId) => createSupabaseProgress(loadSupabase, userId),
 }: {
   makeTransport?: (mode: TeamMode) => TeamTransport;
   /** Test seam: a deterministic clock for join order. */
@@ -32,12 +36,36 @@ export default function App({
   authClient?: AuthClient;
   /** Test seam: skip the login screen and play as a guest. */
   startAsGuest?: boolean;
+  /** Test seam: the saved-badges store for a signed-in player. */
+  makeProgress?: (userId: string) => ProgressStore;
 }) {
   const auth = useAuth(authClient, startAsGuest ? "guest" : undefined);
+  // A signed-in player's badges are loaded into every new game and saved as they are earned; guests have no store.
+  const userId = auth.status === "signedIn" ? (auth.account?.userId ?? null) : null;
+  const store = useMemo(() => (userId ? makeProgress(userId) : null), [userId]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [saved, setSaved] = useState<{ userId: string; rows: SavedBadge[] } | null>(null);
+  useEffect(() => {
+    if (!store || !userId) return;
+    let live = true;
+    store.load().then(
+      (rows) => live && setSaved({ userId, rows }),
+      () => live && setSaved({ userId, rows: [] }),
+    );
+    return () => {
+      live = false;
+    };
+  }, [store, userId]);
+  const loadedRows = userId && saved?.userId === userId ? saved.rows : undefined;
+  const saver = useBadgeSaver(store);
   const [screen, setScreen] = useState<Screen>("menu");
   const [gameId, setGameId] = useState(0);
   const team = useTeamSession(makeTransport, teamClock);
   const chat = useChat(team);
+
+  const { flush } = saver;
+  useEffect(() => {
+    if (screen === "menu") flush();
+  }, [screen, flush]);
 
   const startSoloQuest = () => {
     setGameId((id) => id + 1);
@@ -68,12 +96,13 @@ export default function App({
           onLogIn={auth.leaveGuest}
           onLogOut={() => void auth.logOut()}
           onAddEmail={auth.addEmail}
+          busy={!!userId && !loadedRows}
         />
       )}
-      {screen === "overworld" && <Overworld key={gameId} onMenu={() => setScreen("menu")} />}
+      {screen === "overworld" && <Overworld key={gameId} onMenu={() => setScreen("menu")} saved={loadedRows} onBadgeEarned={saver.save} saveFailed={saver.failed} />}
       {screen === "lobby" &&
         (team.phase === "playing" ? (
-          <Overworld key={`team-${team.room}`} team={team} chat={chat} onMenu={leaveTeam} />
+          <Overworld key={`team-${team.room}`} team={team} chat={chat} onMenu={leaveTeam} saved={loadedRows} onBadgeEarned={saver.save} saveFailed={saver.failed} />
         ) : (
           <TeamLobby session={team} onBack={leaveTeam} chat={chat} defaultNickname={userName ?? undefined} />
         ))}

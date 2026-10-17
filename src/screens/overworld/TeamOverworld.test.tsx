@@ -247,6 +247,14 @@ describe("Overworld badges with a stub session", () => {
     expect(session.publishBadge).toHaveBeenCalledTimes(1);
   });
 
+  it("saved badges are not announced to teammates, but a new one is", () => {
+    const session = stub();
+    const saved = [{ chest: "chest-sql", questionId: "sql-from", answer: "FROM" }] as const;
+    render(<Overworld onMenu={() => {}} team={session} saved={[...saved]} initial={{ badges: ["chest-sql", "chest-html"] }} />);
+    expect(session.publishBadge).toHaveBeenCalledTimes(1);
+    expect(session.publishBadge).toHaveBeenCalledWith("chest-html");
+  });
+
   it("a teammate's badges log their own lines, and the personal-badges note only the first time", () => {
     let report: ((name: string, chest: ChestId) => void) | undefined;
     const session = stub({
