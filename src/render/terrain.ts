@@ -92,7 +92,7 @@ function candidate(cx: number, cy: number, area: Area): Candidate | null {
   if (!inWorld) {
     // Scenery around the world: dense trees to the sides and below, scattered rocks above.
     // Out at sea there is only the odd reef rock, never a tree.
-    const sprite = ground === "sea" ? pick([["rock", 0.2]]) : ground === "mountains" ? pick([["snow-rock", 0.3]]) : pick([[ground === "snow" ? "pine" : ground === "dune" ? (r[3] < 0.5 ? "cactus" : "dry-bush") : ground === "beach" ? (r[3] < 0.5 ? "palm" : "rock") : "tree", 0.8]]);
+    const sprite = ground === "sea" ? pick([["rock", 0.2]]) : ground === "mountains" ? pick([["snow-rock", 0.3]]) : pick([[ground === "snow" ? "pine" : ground === "dune" ? (r[3] < 0.5 ? "cactus" : "dry-bush") : ground === "beach" ? (r[3] < 0.2 ? "palm" : "rock") : "tree", 0.8]]);
     if (!sprite) return null;
     const box = spriteBox(sprite, at);
     if (intersects(box, WORLD_RECT) || area.corridors.some((c) => intersects(box, c))) return null;

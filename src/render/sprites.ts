@@ -358,19 +358,21 @@ function cactusGrid(): PixelGrid {
   });
 }
 
-/** A palm: a leaning trunk under a crown of drooping fronds. */
+/** A palm: a curved trunk under a full crown of thick, drooping fronds. */
 function palmGrid(): PixelGrid {
-  const blades = [-1, -0.6, -0.25, 0.25, 0.6, 1];
+  const blades = [-1, -0.7, -0.35, 0.35, 0.7, 1];
   const frond = (x: number, y: number) =>
     blades.some((d) => {
       for (let t = 0; t <= 11; t += 0.5) {
-        const fx = 11.5 + d * t * (Math.abs(d) > 0.5 ? 1 : 0.6);
-        const fy = 8 - (1 - Math.abs(d)) * 4 + t * t * 0.045 * (Math.abs(d) > 0.5 ? 1.4 : 0.8) - t * 0.15;
-        if (Math.abs(x - fx) <= 1 && Math.abs(y - fy) <= 1) return true;
+        const reach = Math.abs(d) > 0.5 ? 1 : 0.7;
+        const fx = 12 + d * t * reach;
+        const fy = 9 - (1 - Math.abs(d)) * 5 + t * t * 0.06 * (Math.abs(d) > 0.5 ? 1.3 : 0.7) - t * 0.2;
+        if (Math.abs(x - fx) <= 1.5 && Math.abs(y - fy) <= 1.2) return true;
       }
       return false;
     });
-  const trunk = (x: number, y: number) => y >= 8 && y <= 31 && x >= 10 - Math.floor((y - 8) / 12) && x <= 13 - Math.floor((y - 8) / 12);
+  const bend = (y: number) => Math.round(Math.sin((y - 8) / 8) * 1.5);
+  const trunk = (x: number, y: number) => y >= 8 && y <= 31 && x >= 10 + bend(y) && x <= 13 + bend(y);
   return outlined(24, 32, (x, y) => {
     if (frond(x, y)) return (x * 5 + y * 3) % 7 === 0 ? "L" : "g";
     if (trunk(x, y)) return y % 3 === 0 ? "T" : "t";
