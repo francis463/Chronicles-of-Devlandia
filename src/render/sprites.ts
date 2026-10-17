@@ -33,10 +33,13 @@ export type SpriteId =
   | "syntax-terminal"
   | "archive"
   | "campfire"
-  | "old-oak";
+  | "old-oak"
+  | "dock"
+  | "lighthouse"
+  | "ruins";
 /** bottom: bottom-centre on the art point; centre: centred on it; hover: centred 12 px above it. */
 export type SpriteDef = { w: number; h: number; frames: PixelGrid[]; palette: Palette; anchor: "bottom" | "centre" | "hover" };
-export type TextureId = "ice" | "mountains" | "snow" | "forest" | "meadow" | "path" | "bank";
+export type TextureId = "ice" | "mountains" | "snow" | "forest" | "meadow" | "path" | "bank" | "sand" | "sea";
 
 export const OUTLINE = "#0b1020";
 
@@ -61,6 +64,75 @@ function oakGrid(): PixelGrid {
     }).join(""),
   );
 }
+
+/** Outlines every edge cell of a filled shape: a cell with an empty (or off-grid) neighbour becomes "o". */
+function outlined(w: number, h: number, kind: (x: number, y: number) => string | null): PixelGrid {
+  const at = (x: number, y: number) => (x >= 0 && y >= 0 && x < w && y < h ? kind(x, y) : null);
+  return Array.from({ length: h }, (_, y) =>
+    Array.from({ length: w }, (_, x) => {
+      const k = at(x, y);
+      if (!k) return ".";
+      return [at(x - 1, y), at(x + 1, y), at(x, y - 1), at(x, y + 1)].every(Boolean) ? k : "o";
+    }).join(""),
+  );
+}
+
+/** The pier: a plank deck running out to sea (to the right) on three posts. */
+function dockGrid(): PixelGrid {
+  const post = (x: number) => [3, 12, 20].some((p) => Math.abs(x - p) <= 1);
+  return outlined(24, 14, (x, y) => {
+    if (y >= 3 && y <= 10) return y === 4 ? "l" : x % 4 === 0 ? "P" : "p";
+    if (y >= 11 && post(x)) return "t";
+    return null;
+  });
+}
+
+/** The lighthouse: a banded tower on a gallery, with a dark, unlit lamp room and a cap. */
+function lighthouseGrid(): PixelGrid {
+  const span = (half: number, x: number) => x >= 11 - half && x <= 10 + half;
+  return outlined(22, 44, (x, y) => {
+    if (y >= 1 && y <= 5) return span(y, x) ? "c" : null;
+    if (y >= 6 && y <= 12) return x >= 7 && x <= 14 ? "k" : null;
+    if (y === 13) return span(7, x) ? "g" : null;
+    if (y === 14) return span(6, x) ? "g" : null;
+    if (y >= 15) {
+      const half = 5 + Math.floor((y - 15) / 8);
+      if (!span(half, x)) return null;
+      if (y >= 38 && x >= 9 && x <= 12) return "d";
+      const red = Math.floor((y - 15) / 6) % 2 === 1;
+      const shade = x >= 11 + Math.floor(half / 2);
+      return red ? (shade ? "R" : "r") : shade ? "W" : "w";
+    }
+    return null;
+  });
+}
+
+/** Three broken pillars on a worn slab, with moss. */
+function ruinsGrid(): PixelGrid {
+  const pillars = [{ x: 2, h: 12 }, { x: 9, h: 8 }, { x: 16, h: 14 }];
+  return outlined(22, 16, (x, y) => {
+    if (y >= 14) return "s";
+    for (const p of pillars) {
+      if (x < p.x || x > p.x + 4 || y < 16 - p.h) continue;
+      if (y === 16 - p.h && (x === p.x || x === p.x + 4)) continue;
+      if ((x * 7 + y * 3) % 11 === 0) return "m";
+      return x === p.x + 4 ? "S" : "s";
+    }
+    return null;
+  });
+}
+
+/** Choppy water: two blues and a few light flecks. */
+const seaGrid = (): PixelGrid =>
+  Array.from({ length: 16 }, (_, y) =>
+    Array.from({ length: 16 }, (_, x) => ((x + (y % 4) * 3) % 8 < 2 && y % 4 === 1 ? "f" : (x * 5 + y * 3) % 13 === 0 ? "d" : "b")).join(""),
+  );
+
+/** Warm sand with darker and lighter speckles. */
+const sandGrid = (): PixelGrid =>
+  Array.from({ length: 16 }, (_, y) =>
+    Array.from({ length: 16 }, (_, x) => ((x * 7 + y * 11) % 17 === 0 ? "d" : (x * 3 + y * 5) % 19 === 0 ? "l" : "s")).join(""),
+  );
 
 export const SPRITES: Record<SpriteId, SpriteDef> = {
   "explorer-down": {
@@ -952,6 +1024,27 @@ export const SPRITES: Record<SpriteId, SpriteDef> = {
     palette: { o: "#0b1020", g: "#14532d", l: "#166534", L: "#22c55e", t: "#92400e", T: "#78350f" },
     frames: [oakGrid()],
   },
+  dock: {
+    w: 24,
+    h: 14,
+    anchor: "bottom",
+    palette: { o: "#0b1020", p: "#a16207", P: "#854d0e", l: "#ca8a04", t: "#713f12" },
+    frames: [dockGrid()],
+  },
+  lighthouse: {
+    w: 22,
+    h: 44,
+    anchor: "bottom",
+    palette: { o: "#0b1020", c: "#475569", k: "#1e293b", g: "#94a3b8", w: "#e2e8f0", W: "#b6c2d4", r: "#b91c1c", R: "#7f1d1d", d: "#5b3a1e" },
+    frames: [lighthouseGrid()],
+  },
+  ruins: {
+    w: 22,
+    h: 16,
+    anchor: "bottom",
+    palette: { o: "#0b1020", s: "#94a3b8", S: "#64748b", m: "#4f7942" },
+    frames: [ruinsGrid()],
+  },
 };
 
 export const TEXTURES: Record<TextureId, { grid: PixelGrid; palette: Palette }> = {
@@ -1102,6 +1195,8 @@ export const TEXTURES: Record<TextureId, { grid: PixelGrid; palette: Palette }> 
       "bbbbbbbbbbbbbbbb",
     ],
   },
+  sea: { palette: { b: "#1e5aa8", d: "#194a8c", f: "#5aa0e0" }, grid: seaGrid() },
+  sand: { palette: { s: "#e7c98a", d: "#d2b06e", l: "#f1dba6" }, grid: sandGrid() },
 };
 
 /** A player's explorer colours: the hood in their colour with a darker shade; a class recolours the cloak. */

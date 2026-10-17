@@ -106,6 +106,8 @@ function candidate(cx: number, cy: number, area: Area): Candidate | null {
     meadow: [["bush", 0.15], ["tree", 0.12]],
     forest: [["tree", 0.6], ["bush", 0.1]],
     ice: [],
+    sand: [],
+    sea: [],
   };
   const sprite = pick(options[ground]);
   if (!sprite) return null;

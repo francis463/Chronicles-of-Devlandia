@@ -18,6 +18,8 @@ export const MINI_COLORS: Record<TerrainKind, string> = {
   snow: "#e2e8f0",
   forest: "#24452a",
   meadow: "#3f7d3a",
+  sand: "#e7c98a",
+  sea: "#1e5aa8",
 };
 
 const WALL_COLOR = "#1e293b";
