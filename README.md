@@ -54,6 +54,14 @@ The touch controls only appear on touch screens; keyboard players never see them
 
 The map is drawn in pixel art on a canvas: snowy peaks, the frozen river, the meadow and the dense forest, with your hooded explorer and your AI drone. In team games your teammates are explorers in their own colours. Bushes, rocks and trees mark the edge of the walkable area, with a gap in the hedge where the path leads west, and a stone wall with a barred gate closes off the north. Dev Village has huts, a well and fences around a dirt square. The mini-map shows the village, the Peaks and the forest side by side, with yours outlined. Pixels stay sharp at any screen size; on some laptop scaling settings (such as Windows at 125 %) the map is drawn a little smaller to keep them sharp. If your device is set to reduce motion, characters step instead of gliding and the blinking lights, pulses and glints stay still.
 
+## Accounts and saved badges
+
+The game opens on a login screen. **Log in** or **Sign up** with a name (3–12 letters, digits, `-` or `_`) and a password (8 or more characters), **Sign in with Google**, or **Play as guest**. Signed-in players keep their 11 badges, and the answers behind them, on any computer: each new game starts with them earned, and the Codex shows the question you actually answered. Guests can play Solo Quest and Team Lobby too, but nothing of theirs is saved. Quest progress, your position and your inventory are not saved.
+
+The menu shows who is playing, with **[ Log out ]** (or **[ Log in ]** for a guest). A signed-in player can add an optional email with **[ Add email ]**; once it is confirmed, **Forgot your password?** sends a reset link to it (an account with no email can't reset its password). A Google player picks a name the first time. In a team game your team name is your account name.
+
+**Accounts setup (for whoever runs the Supabase project).** Accounts use the same Supabase project as Online play, with two tables (`profiles`, `badges`) locked so a player can only read and write their own rows, and one Edge Function (`account`) that signs players up and in by name. In `supabase/`: apply `migrations/20261017000000_accounts.sql`, deploy `functions/account` (`supabase functions deploy account`; it reads its service key from the platform's environment, never from this repo), and check the row rules with `tests/policies.sql`. For Google sign-in, enable the Google provider in Supabase and Google Cloud and list the redirect URLs (the production site, Vercel previews and `http://localhost:5173`). Password-reset emails go through Supabase's built-in sender, which is heavily rate-limited: add a custom SMTP sender for real use. If the account server can't be reached, the login screen says so and **Play as guest** still works.
+
 ## Team Lobby (2–4 players)
 
 From the main menu choose **TEAM LOBBY**, type a nickname and pick a connection:
@@ -72,7 +80,7 @@ In the game, teammates appear as colored dots with their names, and the top bar 
 
 **For teachers.** The chat is filtered (rude words in English and Filipino are masked, invisible characters are removed) and rate-limited (one message a second and one ping every 5 seconds per player, checked again on receipt), and a player can mute any teammate; a mute lasts while you are in the room. It is a classroom aid, not a moderated service: a modified copy of the game can still post under another player's roster name, anyone who has the room code can read that room's chat, and nothing is stored anywhere (a refresh or leaving the room clears it). Keep room codes within each team. A team's traffic is at most about 16 position updates, 4 chat messages and 0.8 pings per second.
 
-**Online setup.** Online play works out of the box with the game's own Supabase project (`chronicles-of-devlandia`, Realtime only: no tables, no stored data). To use a different project, put its URL and publishable key in a `.env` file (see `.env.example`):
+**Online setup.** Online play works out of the box with the game's own Supabase project (`chronicles-of-devlandia`; team play itself uses Realtime only and stores nothing, while accounts add the two tables above). To use a different project, put its URL and publishable key in a `.env` file (see `.env.example`):
 
 ```bash
 VITE_SUPABASE_URL=https://your-project-ref.supabase.co
@@ -88,9 +96,12 @@ src/game/      pure game rules: constants, geometry, clock, cipher, logic, chall
 src/learn/     the challenge engine and question bank: live check, shuffling, access codes, the 11 chests and their questions
 src/chat/      chat rules and commands: text cleaning and masking, display names, ping places, the command line
 src/hooks/     keyboard controls, game timers, team session, chat feed, pings
-src/net/       team transports: Supabase (Online), BroadcastChannel (Same computer), in-memory (tests)
+src/net/       team transports: Supabase (Online), BroadcastChannel (Same computer), in-memory (tests); the shared Supabase client
+src/auth/      accounts: name and password rules, the auth client (Supabase and in-memory), useAuth, add-email
+src/progress/  saved badges: the store (Supabase and in-memory), restoring a game from them, the saver
+supabase/      the accounts migration, the `account` Edge Function and the row-rule checks
 src/render/    the pixel-art map: world geometry, sprites, areas/ (each zone's art), terrain, motion, scene description and painting
-src/screens/   MainMenu, TeamLobby, ChallengeTerminal + challenge/* (chests, gate, scroll, Matcher, keypad), Codex, LogicModal (tower), chat/* (chat panel and announcer), overworld/*
+src/screens/   AuthScreen, ChooseName, SetPassword, MainMenu, TeamLobby, ChallengeTerminal + challenge/* (chests, gate, scroll, Matcher, keypad), Codex, LogicModal (tower), chat/* (chat panel and announcer), overworld/*
 src/ui/        Panel, Button, Meter, TerminalDialog primitives
 ```
 
