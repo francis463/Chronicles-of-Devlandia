@@ -11,7 +11,10 @@ export function useCrossingFade(zone: ZoneId, reduced: boolean): { fading: boole
   useEffect(() => {
     const from = last.current;
     last.current = zone;
-    if (reduced || !isCrossing(from, zone)) return;
+    if (reduced || !isCrossing(from, zone)) {
+      setFading(false);
+      return;
+    }
     setFading(true);
     const id = setTimeout(() => setFading(false), FADE_MS);
     return () => clearTimeout(id);

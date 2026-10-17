@@ -935,6 +935,14 @@ describe("gameReducer: sailing to Foggaten Island", () => {
     expect(s.badges).toEqual(atDock.badges);
   });
 
+  it("lands out of reach of the far dock, so holding E cannot bounce you back and forth", () => {
+    const out = gameReducer(atDock, { type: "interact", poi: "dock" });
+    expect(gameReducer(out, { type: "interact", poi: "island-dock" })).toMatchObject({ zone: "foggaten", player: out.player });
+    const back = gameReducer(atIslandDock, { type: "interact", poi: "island-dock" });
+    expect(back.zone).toBe("peaks");
+    expect(gameReducer(back, { type: "interact", poi: "dock" })).toMatchObject({ zone: "peaks", player: back.player });
+  });
+
   it("sails back from the island's dock to the Peaks", () => {
     const s = gameReducer(atIslandDock, { type: "sail", to: "peaks" });
     expect(s.zone).toBe("peaks");

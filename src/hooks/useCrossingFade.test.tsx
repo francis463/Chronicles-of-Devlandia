@@ -37,6 +37,26 @@ describe("useCrossingFade", () => {
     expect(result.current.fading).toBe(false);
   });
 
+  it("stops fading when the zone changes again mid-crossing to a non-crossing zone", () => {
+    const { result, rerender } = run();
+    rerender({ zone: "foggaten" });
+    expect(result.current.fading).toBe(true);
+    rerender({ zone: "forest" });
+    expect(result.current.fading).toBe(false);
+    act(() => void vi.advanceTimersByTime(5000));
+    expect(result.current.fading).toBe(false);
+  });
+
+  it("stops fading when reduced motion is switched on and off mid-crossing", () => {
+    const { result, rerender } = renderHook(({ zone, reduced }: { zone: ZoneId; reduced: boolean }) => useCrossingFade(zone, reduced), { initialProps: { zone: "peaks" as ZoneId, reduced: false } });
+    rerender({ zone: "foggaten", reduced: false });
+    expect(result.current.fading).toBe(true);
+    rerender({ zone: "foggaten", reduced: true });
+    rerender({ zone: "foggaten", reduced: false });
+    act(() => void vi.advanceTimersByTime(5000));
+    expect(result.current.fading).toBe(false);
+  });
+
   it("never fades with reduced motion", () => {
     const { result, rerender } = run(true);
     rerender({ zone: "foggaten" });

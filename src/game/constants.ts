@@ -34,7 +34,7 @@ export const HERMIT: Poi = { id: "hermit", label: "Hermit", x: 68, y: 62 };
 export const ISLAND_FIRE: Poi = { id: "island-fire", label: "Campfire", x: 44, y: 66 };
 export const RUINS: Poi = { id: "ruins", label: "Ruins", x: 28, y: 50 };
 /** Where you and the drone land after sailing: a few steps in from the other island's dock. */
-export const SAIL_LANDING = { foggaten: { x: 18, y: 62 }, peaks: { x: 82, y: 74 } } as const;
+export const SAIL_LANDING = { foggaten: { x: 24, y: 62 }, peaks: { x: 78, y: 74 } } as const;
 export const RIVER_ZONE = { minX: 24, maxX: 76, minY: 28, maxY: 39 };
 
 export const MAX_HP = 100;

@@ -736,13 +736,18 @@ describe("Overworld: saved badges", () => {
 describe("Overworld Foggaten Island", () => {
   const atDock = { player: { x: 92, y: 74 } };
 
-  it("sailing from the Peaks' dock with the gate open lands on the island, and sailing back returns", async () => {
+  it("sailing from the Peaks' dock with the gate open lands on the island", async () => {
     const user = setup();
     render(<Overworld onMenu={() => {}} initial={{ ...atDock, gateUnlocked: true }} />);
     await user.click(screen.getByRole("button", { name: "[B] Dock" }));
     expect(screen.getByText("(Foggaten Island Biome)")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "[H] Hermit" })).toBeInTheDocument();
     expect(screen.getByText(LOG.sailOut)).toBeInTheDocument();
+  });
+
+  it("sailing back from the island's dock returns to the Peaks", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} initial={{ zone: "foggaten", gateUnlocked: true, player: { x: 10, y: 62 } }} />);
     await user.click(screen.getByRole("button", { name: "[B] Dock" }));
     expect(screen.getByText("(Snowy Peaks Biome)")).toBeInTheDocument();
     expect(screen.getByText(LOG.sailBack)).toBeInTheDocument();
