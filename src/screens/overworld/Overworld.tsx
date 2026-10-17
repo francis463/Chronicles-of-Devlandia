@@ -252,6 +252,7 @@ export function Overworld({
           artifactFound={state.artifactFound}
           towerPowered={state.towerPowered}
           badges={state.badges}
+          mushrooms={state.mushrooms}
           matcherSolved={state.matcherSolved}
           archiveOpen={state.archiveOpen}
           lighthouseLit={state.lighthouseLit}

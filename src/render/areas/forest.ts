@@ -1,3 +1,4 @@
+import { FOREST_LORE, FOREST_MUSHROOMS } from "../../game/forestLore";
 import { spriteBox } from "../sprites";
 import { toArt, type Rect } from "../world";
 import { inRect, type Area, type Prop, type TerrainKind } from "./area";
@@ -10,12 +11,25 @@ export const FOREST_POINTS = {
   campfire: toArt({ x: 46, y: 66 }),
   oak: toArt({ x: 24, y: 50 }),
   signpost: toArt({ x: 72, y: 89 }),
+  cabin: toArt(FOREST_LORE.find((l) => l.id === "hunter-cabin")!),
+  well: toArt(FOREST_LORE.find((l) => l.id === "forest-well")!),
+  brook: toArt(FOREST_LORE.find((l) => l.id === "forest-brook")!),
+  ring: toArt(FOREST_LORE.find((l) => l.id === "fairy-ring")!),
+  hollow: toArt(FOREST_LORE.find((l) => l.id === "hollow-tree")!),
 } as const;
+
+/** Where the ranger's three glow mushrooms grow, in art px. Drawn by the scene until picked, never as props. */
+export const MUSHROOM_POINTS = FOREST_MUSHROOMS.map((m) => ({ id: m.id, at: toArt(m) }));
 
 const PROPS: Prop[] = [
   { sprite: "old-oak", at: FOREST_POINTS.oak },
   { sprite: "campfire", at: FOREST_POINTS.campfire },
   { sprite: "signpost", at: FOREST_POINTS.signpost },
+  { sprite: "cabin", at: FOREST_POINTS.cabin },
+  { sprite: "well", at: FOREST_POINTS.well },
+  { sprite: "brook", at: FOREST_POINTS.brook },
+  { sprite: "fairy-ring", at: FOREST_POINTS.ring },
+  { sprite: "hollow-tree", at: FOREST_POINTS.hollow },
   { sprite: "explorer-down", at: FOREST_POINTS.ranger, variant: "#be123c" },
 ];
 
@@ -87,6 +101,7 @@ export const FOREST: Area = {
     WEST_MOUTH,
     EAST_MOUTH,
     ...PROPS.map((prop) => spriteBox(prop.sprite, prop.at)),
+    ...MUSHROOM_POINTS.map((m) => spriteBox("glow-mushroom", m.at)),
     // Room for each animal's whole range, so no tree stands where it walks.
     ...Object.values(FOREST_WILDLIFE).map((a) => ({ x: a.zone.x - 16, y: a.zone.y - 20, w: a.zone.w + 32, h: a.zone.h + 22 })),
   ],

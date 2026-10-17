@@ -19,6 +19,7 @@ import { MapCanvas } from "./MapCanvas";
 import {
   CHEST_CAPTION_SCALE,
   EXIT_SIGNS,
+  FOREST_SCENERY,
   LANDMARK_CAPTIONS,
   captionRect,
   captionText,
@@ -215,6 +216,7 @@ export function MapViewport({
   artifactFound,
   towerPowered,
   badges,
+  mushrooms = [],
   matcherSolved,
   archiveOpen,
   lighthouseLit,
@@ -243,6 +245,8 @@ export function MapViewport({
   towerPowered: boolean;
   /** The chests you have opened: they draw open. */
   badges: ChestId[];
+  /** The ranger's glow mushrooms you have picked: they leave the map. */
+  mushrooms?: readonly PoiId[];
   matcherSolved: boolean;
   archiveOpen: boolean;
   lighthouseLit: boolean;
@@ -301,6 +305,7 @@ export function MapViewport({
     lighthouseLit,
     matcherSolved,
     earned: badges,
+    mushrooms,
     minutes,
     lightMode,
     snow,
@@ -388,6 +393,9 @@ export function MapViewport({
             <LandmarkButton hit={hits.ranger} name={caption("ranger")} color="var(--accent-border)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "ranger"} onClick={() => onInteract("ranger")} />
             <LandmarkButton hit={hits.campfire} name={caption("campfire")} color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "campfire"} onClick={() => onInteract("campfire")} />
             <LandmarkButton hit={hits["forest-signpost"]} name={caption("forest-signpost")} color="var(--text)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "forest-signpost"} onClick={() => onInteract("forest-signpost")} />
+            {FOREST_SCENERY.filter((l) => !mushrooms.includes(l.id)).map((l) => (
+              <LandmarkButton key={l.id} hit={hits[l.id]} name={caption(l.id)} label={l.label} color="var(--accent)" world={world} map={map} prefer={l.prefer} disabled={downed} hideCaption={smallMap && inRange?.id !== l.id} peek passive={smallMap} onClick={() => onInteract(l.id)} />
+            ))}
           </>
         ) : zone === "beach" ? (
           <>

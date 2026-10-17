@@ -138,7 +138,7 @@ describe("decorations", () => {
 
   it("the forest's decorations stay clear of its protected boxes, its mouth, and trees fill the scenery above its north mouth except its corridor", () => {
     const inside = decorations(VIEW, FOREST).filter((d) => intersects(boxOf(d), REACHABLE_RECT));
-    expect(inside.length).toBeGreaterThan(9);
+    expect(inside.length).toBeGreaterThan(5);
     // No wall runs here, so trees stand in the rows where the other zones keep a bare strip (art rows 80–89).
     expect(inside.some((d) => d.at.y >= 80 && d.at.y <= 89)).toBe(true);
     for (const d of inside) {

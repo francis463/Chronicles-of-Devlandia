@@ -3,7 +3,7 @@ import { HIDDEN_ARTIFACT } from "./constants";
 import { cardFor } from "./cards";
 import { initialState } from "./reducer";
 import type { GameState } from "./types";
-import { rangerLine } from "./forest";
+import { rangerSays } from "./forest";
 import { adaLine } from "./village";
 import { ISLAND_COPY, hermitLine } from "./island";
 
@@ -36,7 +36,7 @@ describe("cardFor", () => {
     );
     expect(cardFor(village)).toBeNull();
     const forest = { ...initialState, zone: "forest" as const };
-    expect(cardFor({ ...forest, inspected: "ranger" })).toMatchObject({ title: "Ranger", text: rangerLine(forest) });
+    expect(cardFor({ ...forest, inspected: "ranger" })).toMatchObject({ title: "Ranger", text: rangerSays(forest) });
     expect(cardFor({ ...forest, inspected: "campfire" })?.text).toBe("A campfire crackles in the clearing. Someone left it burning for the next explorer.");
     const directions =
       "C++ PEAKS → North through the trees: base camp, the north gate and the frozen river. RANGER and CAMPFIRE → Northwest, in the clearing. OLD OAK (the JavaScript chest) → Far west. SUNBAKED DESERT → Out the west gap. SUNNY BEACH → Out the east gap.";

@@ -34,7 +34,8 @@ import { ZONES, arrival, exitFor, type ZoneId } from "./zones";
 import { FISHER_LINE } from "./beach";
 import { NOMAD_LINE } from "./desert";
 import { goToNote } from "../learn/codexModel";
-import { rangerLine } from "./forest";
+import { rangerSays } from "./forest";
+import { FOREST_LOG, FOREST_LORE, FOREST_MUSHROOMS, MUSHROOM_TIPS, isMushroom } from "./forestLore";
 import { hermitLine } from "./island";
 import { adaLine } from "./village";
 
@@ -69,6 +70,8 @@ export const initialState: GameState = {
   accessCode: accessCode(0),
   archiveOpen: false,
   lighthouseLit: false,
+  mushrooms: [],
+  rangerFed: false,
   codexOpen: false,
   logs: INITIAL_LOGS,
   logCount: INITIAL_LOGS.length,
@@ -82,7 +85,8 @@ export const isModalOpen = (s: GameState) => s.challenge !== null || s.logicOpen
 /** Hidden points of interest that are currently diggable: the artifact, after decoding, until found. */
 /** What you can use in your zone: its places, plus the dig spot on Foggaten Island once revealed. */
 export const visiblePois = (s: GameState): Poi[] => [
-  ...ZONES[s.zone].places,
+  // A glow mushroom is gone from the map once you have picked it.
+  ...ZONES[s.zone].places.filter((p) => !isMushroom(p.id) || !s.mushrooms.includes(p.id)),
   ...(s.zone === "foggaten" ? revealedPois(s) : []),
   // The snow cave is hidden until the signal tower is powered (shared with the team).
   ...(s.zone === "peaks" && s.towerPowered ? [SNOW_CAVE] : []),
@@ -298,7 +302,20 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (action.poi === "nomad") return pushLogOnce({ ...state, inspected: "nomad" }, `Nomad: "${NOMAD_LINE}"`);
       if (action.poi === "desert-signpost") return { ...state, inspected: action.poi };
       if (action.poi === "island-fire") return { ...state, inspected: action.poi };
-      if (action.poi === "ranger") return pushLogOnce({ ...state, inspected: "ranger" }, `Ranger: "${rangerLine(state)}"`);
+      if (action.poi === "ranger") {
+        const talked = pushLogOnce({ ...state, inspected: "ranger" }, `Ranger: "${rangerSays(state)}"`);
+        // Three glow mushrooms in hand: she cooks them, and the stew restores you in full.
+        return state.mushrooms.length >= FOREST_MUSHROOMS.length && !state.rangerFed ? pushLog({ ...talked, rangerFed: true, hp: MAX_HP }, FOREST_LOG.stew) : talked;
+      }
+      if (isMushroom(action.poi)) {
+        const id = action.poi;
+        const spot = FOREST_MUSHROOMS.find((m) => m.id === id)!;
+        // The map's button works from anywhere; picking needs you beside the mushroom.
+        if (state.mushrooms.includes(id) || distance(state.player, spot) > INTERACT_RADIUS) return { ...state, inspected: id };
+        const mushrooms = [...state.mushrooms, id];
+        return pushLog({ ...state, inspected: id, mushrooms }, MUSHROOM_TIPS[mushrooms.length - 1]);
+      }
+      if (FOREST_LORE.some((l) => l.id === action.poi)) return { ...state, inspected: action.poi };
       if (action.poi === "signpost" || action.poi === "peaks-signpost" || action.poi === "weather-station" || action.poi === "snow-cave" || action.poi === "campfire" || action.poi === "forest-signpost")
         return { ...state, inspected: action.poi };
       if (action.poi === "terminal") {

@@ -6,7 +6,7 @@ import { AREAS } from "./areas";
 import { FOGGATEN_POINTS, LAMP_POINT } from "./areas/foggaten";
 import { BEACH_SHELLS } from "./areas/beach";
 import { DESERT_POINTS } from "./areas/desert";
-import { FOREST_POINTS, deerPose, rabbitPose, squirrelPose } from "./areas/forest";
+import { FOREST_POINTS, MUSHROOM_POINTS, deerPose, rabbitPose, squirrelPose } from "./areas/forest";
 import { CAVE_POINT, WILDLIFE, foxPose, goatPose } from "./areas/peaks";
 import { VILLAGE_LIFE, wandererPose } from "./areas/village";
 import { DOCK_POINT } from "./areas/peaks";
@@ -57,6 +57,8 @@ export type SceneInput = {
   matcherSolved: boolean;
   /** Your badges: their chests draw open. */
   earned: ChestId[];
+  /** The ranger's glow mushrooms you have picked: they leave the forest floor. */
+  mushrooms?: readonly string[];
   /** Your own view's lighting: "day" or "night" draws as that phase whatever the clock says. */
   lightMode?: "auto" | "day" | "night";
   /** Your own view's weather: snowfall over the whole world. */
@@ -471,7 +473,9 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
       const deer = deerPose(t, reduced, you);
       const rabbit = rabbitPose(t, reduced, you);
       const squirrel = squirrelPose(t, reduced, you);
+      const pulse = Math.floor(t / 500) % 2;
       upright.push(
+        ...MUSHROOM_POINTS.filter((m) => !input.mushrooms?.includes(m.id)).map((m) => placed("glow-mushroom", m.at, { frame: reduced ? 0 : pulse })),
         placed("deer", deer, { frame: deer.frame, flip: deer.flip }),
         placed("rabbit", rabbit, { frame: rabbit.frame, flip: rabbit.flip }),
         placed("squirrel", squirrel, { frame: squirrel.frame, flip: squirrel.flip }),

@@ -1,5 +1,6 @@
 import { CHESTS } from "../learn/chests";
 import { ADA, ARCHIVE, BEACH_SIGNPOST, BOUNDS, CAMPFIRE, DESERT_SIGNPOST, DOCK, FISHER, FOREST_SIGNPOST, HERMIT, ISLAND_DOCK, ISLAND_FIRE, LIGHTHOUSE, LOG, NOMAD, PEAKS_SIGNPOST, POIS, RANGER, SIGNPOST, TERMINAL, WEATHER_STATION } from "./constants";
+import { FOREST_LORE, FOREST_MUSHROOMS } from "./forestLore";
 import type { Poi, PoiId, Point } from "./types";
 
 export type ZoneId = "peaks" | "village" | "forest" | "foggaten" | "desert" | "beach";
@@ -56,7 +57,7 @@ export const ZONES: Record<ZoneId, Zone> = {
     ],
     wall: false,
     gate: false,
-    places: [RANGER, CAMPFIRE, FOREST_SIGNPOST, ...chestPlaces("forest")],
+    places: [RANGER, CAMPFIRE, FOREST_SIGNPOST, ...FOREST_LORE, ...FOREST_MUSHROOMS, ...chestPlaces("forest")],
     river: false,
   },
   desert: {

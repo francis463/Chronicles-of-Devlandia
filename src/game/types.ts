@@ -33,7 +33,16 @@ export type PoiId =
   | "fisher"
   | "beach-signpost"
   | "desert-signpost"
+  | "hunter-cabin"
+  | "forest-well"
+  | "forest-brook"
+  | "fairy-ring"
+  | "hollow-tree"
+  | MushroomId
   | Exclude<ChestId, "chest-cs">;
+
+/** The ranger's three lost glow mushrooms. */
+export type MushroomId = "mushroom-1" | "mushroom-2" | "mushroom-3";
 
 export type Poi = { id: PoiId; label: string } & Point;
 
@@ -91,6 +100,9 @@ export type GameState = {
   /** Shared with the team. */
   archiveOpen: boolean;
   lighthouseLit: boolean;
+  /** Which of the ranger's glow mushrooms you have picked, and whether she has cooked them. */
+  mushrooms: MushroomId[];
+  rangerFed: boolean;
   codexOpen: boolean;
   logs: string[];
   /** Total entries ever logged; gives each visible entry a stable identity. */

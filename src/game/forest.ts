@@ -1,3 +1,4 @@
+import { stewLine } from "./forestLore";
 import type { GameState } from "./types";
 
 type Progress = Pick<GameState, "gateUnlocked" | "hasLoot" | "clueDecoded" | "artifactFound">;
@@ -14,3 +15,6 @@ const DONE = "You found the Golden Semicolon! The forest has not been this quiet
 export function rangerLine(s: Progress): string {
   return STAGES.find(([flag]) => !s[flag])?.[1] ?? DONE;
 }
+
+/** Everything the ranger says: her hint for the first stage you have not done, then her stew line. */
+export const rangerSays = (s: Progress & Pick<GameState, "mushrooms" | "rangerFed">): string => `${rangerLine(s)} ${stewLine(s)}`;

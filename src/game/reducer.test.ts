@@ -888,14 +888,14 @@ describe("gameReducer: the Dense Forest's places", () => {
   const forest: GameState = { ...s0, zone: "forest" };
 
   it("the forest's places are the ranger, campfire, signpost and the old oak's JavaScript chest", () => {
-    expect(reachPlaces(forest).map((p) => p.id)).toEqual(["ranger", "campfire", "forest-signpost", "chest-js"]);
+    expect(reachPlaces(forest).map((p) => p.id)).toEqual(["ranger", "campfire", "forest-signpost", "hunter-cabin", "forest-well", "forest-brook", "fairy-ring", "hollow-tree", "mushroom-1", "mushroom-2", "mushroom-3", "chest-js"]);
   });
 
   it("talking to the ranger opens her card and logs her line once", () => {
     const once = gameReducer(forest, { type: "interact", poi: "ranger" });
     expect(once.inspected).toBe("ranger");
     expect(lastLog(once)).toBe(
-      'Ranger: "Welcome to the Dense Forest! Back north, the Supply Cache waits behind the wall. Its gate opens with one CSS fix."',
+      'Ranger: "Welcome to the Dense Forest! Back north, the Supply Cache waits behind the wall. Its gate opens with one CSS fix. Oh, and if you pass any glow mushrooms, bring me three for my stew (0 of 3)."',
     );
     const twice = gameReducer(once, { type: "interact", poi: "ranger" });
     expect(twice.logCount).toBe(once.logCount);

@@ -3,7 +3,8 @@ import { FOREST_DIRECTIONS, HIDDEN_ARTIFACT, INSPECT_COPY, SNOW_CAVE } from "./c
 import type { GameState } from "./types";
 import { BEACH_COPY, FISHER_LINE } from "./beach";
 import { DESERT_COPY, NOMAD_LINE } from "./desert";
-import { rangerLine } from "./forest";
+import { rangerSays } from "./forest";
+import { FOREST_LORE, MUSHROOM_CARD } from "./forestLore";
 import { adaLine } from "./village";
 import { CAVE_TEXT, signpostText, stationText } from "./camp";
 import { hermitLine, ISLAND_COPY } from "./island";
@@ -38,7 +39,17 @@ export function cardFor(s: GameState): Card | null {
     case "villager":
       return card(place.label, adaLine(s));
     case "ranger":
-      return card(place.label, rangerLine(s));
+      return card(place.label, rangerSays(s));
+    case "hunter-cabin":
+    case "forest-well":
+    case "forest-brook":
+    case "fairy-ring":
+    case "hollow-tree":
+      return card(place.label, FOREST_LORE.find((l) => l.id === place.id)!.text);
+    case "mushroom-1":
+    case "mushroom-2":
+    case "mushroom-3":
+      return card(place.label, s.mushrooms.includes(place.id) ? MUSHROOM_CARD.picked : MUSHROOM_CARD.far);
     case "fisher":
       return card(place.label, FISHER_LINE);
     case "beach-signpost":

@@ -78,7 +78,7 @@ describe("areas", () => {
 
   it("the forest's props are inside the world, clear of each other and of the north mouth, and their places are 12 game-% apart", () => {
     const boxes = AREAS.forest.props.map((p) => spriteBox(p.sprite, p.at));
-    expect(AREAS.forest.props.map((p) => p.sprite).sort()).toEqual(["campfire", "explorer-down", "old-oak", "signpost"]);
+    expect(AREAS.forest.props.map((p) => p.sprite).sort()).toEqual(["brook", "cabin", "campfire", "explorer-down", "fairy-ring", "hollow-tree", "old-oak", "signpost", "well"]);
     for (const [i, a] of boxes.entries()) {
       expect(a.x >= 0 && a.y >= 0 && a.x + a.w <= 320 && a.y + a.h <= 180, `prop ${i} in the world`).toBe(true);
       expect(AREAS.forest.mouths.some((m) => intersects(a, m)), `prop ${i} on a mouth`).toBe(false);

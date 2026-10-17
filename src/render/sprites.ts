@@ -78,7 +78,12 @@ export type SpriteId =
   | "owl"
   | "deer"
   | "squirrel"
-  | "rabbit";
+  | "rabbit"
+  | "cabin"
+  | "brook"
+  | "fairy-ring"
+  | "hollow-tree"
+  | "glow-mushroom";
 /** bottom: bottom-centre on the art point; centre: centred on it; hover: centred 12 px above it. */
 export type SpriteDef = { w: number; h: number; frames: PixelGrid[]; palette: Palette; anchor: "bottom" | "centre" | "hover" };
 export type TextureId = "ice" | "mountains" | "snow" | "forest" | "meadow" | "path" | "bank" | "sand" | "sea" | "dune" | "beach";
@@ -625,6 +630,71 @@ function rabbitGrid(frame: 0 | 1): PixelGrid {
     poly([[11, 5 - up], [12, 0], [15, 1], [13, 5 - up]], "r"),
     rect(9, 1, 9, 3, "w"),
     rect(12, 6 - up, 12, 6 - up, "k"),
+  ]);
+}
+
+/** The hunter's cabin: a log wall, a shingled roof, a stone chimney, a door and a lit window. */
+function cabinGrid(): PixelGrid {
+  return creature(34, 28, [
+    rect(24, 2, 27, 9, "S"),
+    poly([[0, 12], [17, 1], [33, 12]], "R"),
+    rect(2, 12, 31, 27, "t"),
+    ...[14, 17, 20, 23, 26].map((y) => rect(3, y, 30, y, "T")),
+    rect(14, 17, 19, 27, "D"),
+    rect(5, 15, 10, 20, "y"),
+    rect(7, 15, 8, 20, "T"),
+    rect(5, 17, 10, 17, "T"),
+    rect(23, 16, 28, 19, "T"),
+  ]);
+}
+
+/** A brook flowing across the ground with a log laid over it as a bridge. */
+function brookGrid(): PixelGrid {
+  const edge = (x: number) => Math.round(1.4 * Math.sin(x / 4));
+  const water: Paint = (x, y) => (y >= 4 + edge(x) && y <= 11 + edge(x + 3) ? ((x + y * 2) % 7 === 0 ? "f" : "b") : null);
+  return creature(44, 16, [
+    water,
+    rect(17, 1, 27, 14, "t"),
+    ...[3, 6, 9, 12].map((y) => rect(17, y, 27, y, "T")),
+    rect(18, 1, 26, 1, "R"),
+  ]);
+}
+
+/** A fairy ring: eight red toadstools in a circle round a patch of greener grass. */
+function fairyRingGrid(): PixelGrid {
+  const caps = Array.from({ length: 8 }, (_, i) => {
+    const a = (i / 8) * Math.PI * 2;
+    return [Math.round(15 + 12 * Math.cos(a)), Math.round(8 + 5 * Math.sin(a))] as const;
+  });
+  return creature(31, 17, [
+    ell(15, 8, 11, 4.4, "g"),
+    ...caps.map(([x, y]) => ell(x, y - 1, 2.6, 2.2, "r")),
+    ...caps.map(([x, y]) => rect(x, y - 1, x, y - 1, "w")),
+  ]);
+}
+
+/** A hollow tree: an old broad trunk with a dark hole in it under a leafy crown. */
+function hollowTreeGrid(): PixelGrid {
+  return creature(26, 34, [
+    poly([[5, 33], [9, 14], [17, 14], [21, 33]], "t"),
+    rect(8, 18, 8, 32, "T"),
+    ell(13, 10, 12, 9, "g"),
+    ell(9, 8, 5, 4, "L"),
+    ell(18, 13, 5, 3.5, "G"),
+    ell(13, 24, 3.6, 5, "H"),
+  ]);
+}
+
+/** A glow mushroom: a violet cap spotted with cyan, which pulses between its two frames. */
+function glowMushroomGrid(frame: 0 | 1): PixelGrid {
+  const spot = frame === 0 ? "c" : "w";
+  return creature(11, 10, [
+    rect(4, 6, 6, 9, "m"),
+    ell(5, 3.6, 5.2, 3.4, "v"),
+    rect(3, 3, 3, 3, spot),
+    rect(7, 2, 7, 2, spot),
+    rect(6, 4, 6, 4, spot),
+    rect(4, 2, 4, 2, spot),
   ]);
 }
 
@@ -1701,6 +1771,11 @@ export const SPRITES: Record<SpriteId, SpriteDef> = {
   deer: { w: 26, h: 20, anchor: "bottom", palette: { o: "#0b1020", d: "#a3643a", D: "#6b4423", B: "#e3c9a0", A: "#d6b98a", w: "#f8e9d0", k: "#0b1020" }, frames: [deerGrid(0), deerGrid(1)] },
   squirrel: { w: 14, h: 14, anchor: "bottom", palette: { o: "#0b1020", s: "#b45a2a", S: "#d9763a", B: "#f1d9b5", k: "#0b1020" }, frames: [squirrelGrid(0), squirrelGrid(1)] },
   rabbit: { w: 16, h: 13, anchor: "bottom", palette: { o: "#0b1020", r: "#a8a29e", R: "#78716c", w: "#f8fafc", k: "#0b1020" }, frames: [rabbitGrid(0), rabbitGrid(1)] },
+  cabin: { w: 34, h: 28, anchor: "bottom", palette: { o: "#0b1020", t: "#8b5e34", T: "#6b4423", R: "#7f3b2a", D: "#4a2f18", S: "#94a3b8", y: "#fde68a" }, frames: [cabinGrid()] },
+  brook: { w: 44, h: 16, anchor: "bottom", palette: { o: "#0b1020", b: "#38bdf8", f: "#bae6fd", t: "#8b5e34", T: "#6b4423", R: "#a97a4a" }, frames: [brookGrid()] },
+  "fairy-ring": { w: 31, h: 17, anchor: "bottom", palette: { o: "#0b1020", g: "#4a9a4a", r: "#dc2626", w: "#f8fafc" }, frames: [fairyRingGrid()] },
+  "hollow-tree": { w: 26, h: 34, anchor: "bottom", palette: { o: "#0b1020", t: "#6b4423", T: "#4a2f18", g: "#1f7a3a", G: "#14532d", L: "#2f9e4f", H: "#1c1308" }, frames: [hollowTreeGrid()] },
+  "glow-mushroom": { w: 11, h: 10, anchor: "bottom", palette: { o: "#0b1020", v: "#a78bfa", m: "#e9e3f7", c: "#67e8f9", w: "#ffffff" }, frames: [glowMushroomGrid(0), glowMushroomGrid(1)] },
   lizard: { w: 14, h: 9, anchor: "bottom", palette: { o: "#0b1020", z: "#6b8f3a", Z: "#8fb34a", e: "#f5d547" }, frames: [lizardGrid(0), lizardGrid(1)] },
 };
 

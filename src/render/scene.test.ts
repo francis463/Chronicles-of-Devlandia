@@ -420,7 +420,8 @@ describe("scene: the Dense Forest", () => {
     const s = forest();
     for (const id of ["old-oak", "campfire", "signpost"] as SpriteId[]) expect(at(s, id), id).toHaveLength(1);
     expect(s.upright.filter((d) => d.sprite === "explorer-down" && d.variant === "#be123c")).toHaveLength(1);
-    for (const id of ["wall", "tower", "gate", "chest-closed", "chest-open", "hut", "well"] as SpriteId[]) expect(at(s, id), id).toHaveLength(0);
+    for (const id of ["wall", "tower", "gate", "chest-closed", "chest-open", "hut"] as SpriteId[]) expect(at(s, id), id).toHaveLength(0);
+    for (const id of ["cabin", "well", "brook", "fairy-ring", "hollow-tree"] as SpriteId[]) expect(at(s, id), id).toHaveLength(1);
     expect(s.flat).toEqual([]);
   });
 
@@ -908,5 +909,22 @@ describe("scene: the Dense Forest's wildlife and night life", () => {
       const names = s.upright.map((d) => d.sprite);
       expect(names.indexOf("owl")).toBe(names.indexOf("old-oak") + 1);
     }
+  });
+});
+
+describe("scene: the forest's glow mushrooms and landmarks", () => {
+  const forest = (over: Partial<SceneInput> = {}, t = 0, reduced = false) => scene({ zone: "forest", minutes: DAY, ...over }, t, reduced);
+  const glow = (s: ReturnType<typeof scene>) => s.upright.filter((d) => d.sprite === "glow-mushroom");
+
+  it("three glow mushrooms grow on the forest floor, each leaving once picked, and no other zone has any", () => {
+    expect(glow(forest())).toHaveLength(3);
+    expect(glow(forest({ mushrooms: ["mushroom-1"] }))).toHaveLength(2);
+    expect(glow(forest({ mushrooms: ["mushroom-1", "mushroom-2", "mushroom-3"] }))).toHaveLength(0);
+    for (const zone of ["village", "peaks", "desert", "beach", "foggaten"] as const) expect(glow(scene({ zone, minutes: DAY }, 0)), zone).toHaveLength(0);
+  });
+
+  it("they pulse between two frames, and rest on the first when motion is reduced", () => {
+    expect(new Set([0, 500].map((t) => glow(forest({}, t))[0].frame)).size).toBe(2);
+    expect(glow(forest({}, 500, true)).every((d) => d.frame === 0)).toBe(true);
   });
 });
