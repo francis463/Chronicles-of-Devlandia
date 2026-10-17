@@ -109,7 +109,7 @@ export type LandmarkCaption = {
 
 /**
  * Each zone's buttons: the tower and cache captions sit above them when they fit (off the ice), as
- * do Ada's, the signpost's and the Archive's; chest captions take the chest table's side.
+ * do Ada's, the signpost's and the Archive's; a chest's caption is its landmark's, on the side HOSTS prefers.
  */
 /** The landmark each chest is inside: its drawing, which side its caption prefers and a shorter caption name where the host name is long. */
 const HOSTS: Partial<Record<ChestId, { sprite: SpriteId; prefer: "above" | "below"; name?: string }>> = {

@@ -428,6 +428,14 @@ describe("MapViewport on Foggaten Island", () => {
     expect(screen.getByTestId("mist").className).not.toContain("mist-drift");
   });
 
+  it("the mist is there until the lighthouse is lit, then fades away (and stays gone)", () => {
+    const { rerender } = render(<MapViewport {...island({ lighthouseLit: false })} />);
+    expect(screen.getByTestId("mist").style.opacity).toBe("1");
+    rerender(<MapViewport {...island({ lighthouseLit: true })} />);
+    expect(screen.getByTestId("mist").style.opacity).toBe("0");
+    expect(screen.getByTestId("mist").className).toContain("transition-opacity");
+  });
+
   it("covers the map with the crossing fade only while a boat crossing is under way", () => {
     vi.useFakeTimers();
     const { rerender } = render(<MapViewport {...props()} />);

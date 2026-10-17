@@ -979,7 +979,7 @@ describe("gameReducer: chests hosted in landmarks", () => {
   it("standing at its landmark opens each chest's question, and an earned chest can be reviewed", () => {
     for (const [id, zone] of HOSTED) {
       const at = ZONES[zone].places.find((p) => p.id === id)!;
-      const here: GameState = { ...s0, zone, player: { x: Math.round(at.x / 2) * 2, y: Math.round(at.y / 2) * 2 }, gateUnlocked: true };
+      const here: GameState = { ...s0, zone, player: { x: Math.round(at.x / 2) * 2, y: Math.max(10, Math.round(at.y / 2) * 2) }, gateUnlocked: true };
       expect(gameReducer(here, { type: "interact", poi: id }).challenge?.target, id).toBe(id);
     }
   });

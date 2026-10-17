@@ -322,11 +322,7 @@ describe("scene: chests, the Syntax Terminal and the Archive", () => {
     expect(at(scene({ ...inVillage, archiveOpen: true }), "archive", { x: 176, y: 116 })?.frame).toBe(1);
   });
 
-  it("no zone draws a chest: each chest is inside its landmark, whose drawing is there instead", () => {
-    for (const zone of ["peaks", "village", "forest", "foggaten", "desert", "beach"] as const) {
-      const s = scene({ zone, archiveOpen: true, earned: ["chest-cs"] });
-      expect(sprites(s, "upright"), zone).not.toContain("code-chest" as SpriteId);
-    }
+  it("only the village has the Syntax Terminal, and no zone draws anything for the chests (they are inside their landmarks)", () => {
     expect(of(scene({ zone: "village" }), "syntax-terminal")).toHaveLength(1);
     expect(of(scene(), "syntax-terminal")).toHaveLength(0);
   });

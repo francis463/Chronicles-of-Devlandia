@@ -24,7 +24,7 @@ export function cardFor(s: GameState): Card | null {
   const card = (title: string, text: string): Card => ({ title, text, y: place.y });
 
   const chest = CHESTS.find((c) => c.id === place.id) ?? (place.id === "archive" && s.archiveOpen ? chestById("chest-cs") : null);
-  if (chest) return card(place.label, chestText(s, chest));
+  if (chest) return card(chest.host ? place.label : `${chest.badge} Chest`, chestText(s, chest));
   switch (place.id) {
     case "terminal":
       return card(

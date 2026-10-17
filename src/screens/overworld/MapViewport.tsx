@@ -334,16 +334,17 @@ export function MapViewport({
         style={{ opacity: fading ? 1 : 0 }}
       />
 
-      {/* The island's mist: a slow, pixel-patterned drift over the scene. It hides nothing and changes no gameplay. */}
+      {/* The island's mist: a slow, pixel-patterned drift over the scene that fades away once the lighthouse is lit. It hides nothing and changes no gameplay. */}
       {zone === "foggaten" && (
         <div
           data-testid="mist"
           aria-hidden="true"
-          className={`pointer-events-none absolute inset-0 z-[30] ${reduced ? "" : "animate-[mist-drift_40s_linear_infinite]"}`}
+          className={`pointer-events-none absolute inset-0 z-[30] transition-opacity duration-1000 ease-linear motion-reduce:transition-none ${reduced ? "" : "animate-[mist-drift_40s_linear_infinite]"}`}
           style={{
             backgroundImage: "radial-gradient(rgba(226,232,240,0.5) 40%, transparent 41%)",
             backgroundSize: "24px 24px",
             backgroundColor: "rgba(203,213,225,0.22)",
+            opacity: lighthouseLit ? 0 : 1,
           }}
         />
       )}

@@ -16,7 +16,7 @@ export type Exit = { edge: "west" | "east" | "south" | "north"; min: number; max
  */
 export type Zone = { id: ZoneId; name: string; entered: string; exits: Exit[]; wall: boolean; gate: boolean; places: Poi[]; river: boolean };
 
-/** A zone's outdoor language chests as places, labelled `<Badge> Chest`, in the chest table's order. */
+/** A zone's outdoor language chests as places, named after the landmark they are inside, in the chest table's order. */
 export function chestPlaces(zone: ZoneId): Poi[] {
   return CHESTS.flatMap((c) => (c.zone === zone && c.at ? [{ id: c.id as PoiId, label: c.host!, ...c.at }] : []));
 }
