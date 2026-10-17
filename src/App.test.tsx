@@ -356,14 +356,14 @@ describe("App: character classes", () => {
     expect(screen.getByRole("textbox", { name: "Nickname" })).toBeInTheDocument();
   });
 
-  it("classes change no gameplay: the same HP and stamina whichever class", async () => {
+  it("classes change no gameplay: the same HP whichever class", async () => {
     const stats = async (cls: string) => {
       const user = userEvent.setup();
       const view = render(<GuestApp />);
       await solo(user);
       await user.click(radio(cls));
       await start(user);
-      const text = [screen.getByText(/^HP \d+/), screen.getByText(/^STA \d+/)].map((n) => n.textContent);
+      const text = [screen.getByText(/^HP \d+/)].map((n) => n.textContent);
       view.unmount();
       return text;
     };

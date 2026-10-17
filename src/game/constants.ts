@@ -52,12 +52,10 @@ export const SAIL_LANDING = { foggaten: { x: 24, y: 62 }, peaks: { x: 78, y: 74 
 export const RIVER_ZONE = { minX: 24, maxX: 76, minY: 28, maxY: 39 };
 
 export const MAX_HP = 100;
-export const MAX_STAMINA = 100;
 export const START_MINUTES = 19 * 60 + 29;
 export const MINUTES_PER_DAY = 1440;
 export const TICK_MS = 2000;
 export const TICK_MINUTES = 5;
-export const STAMINA_REGEN = 2;
 export const RIVER_DAMAGE = 8;
 export const RIVER_DAMAGE_MS = 1800;
 export const DRONE_DELAY_MS = 320;

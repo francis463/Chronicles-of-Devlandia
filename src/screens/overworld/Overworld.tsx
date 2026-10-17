@@ -210,7 +210,6 @@ export function Overworld({
       <TopHud
         className="md:col-span-2"
         hp={state.hp}
-        stamina={state.stamina}
         minutes={minutes}
         onMenu={() => (hasProgress ? setLeaving(true) : onMenu())}
         onCodex={() => dispatch({ type: "toggleCodex" })}

@@ -1,12 +1,11 @@
 import { CLASSES, type ClassId } from "../../game/classes";
 import { formatTime, phaseOf } from "../../game/clock";
-import { MAX_HP, MAX_STAMINA } from "../../game/constants";
+import { MAX_HP } from "../../game/constants";
 import { Button } from "../../ui/Button";
 import { Meter } from "../../ui/Meter";
 
 export function TopHud({
   hp,
-  stamina,
   minutes,
   onMenu,
   onCodex,
@@ -18,7 +17,6 @@ export function TopHud({
   className = "",
 }: {
   hp: number;
-  stamina: number;
   minutes: number;
   onMenu: () => void;
   onCodex: () => void;
@@ -37,7 +35,6 @@ export function TopHud({
     <header className={`flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b-2 border-[var(--panel-border)] bg-[var(--bg)] px-3 py-2 ${className}`}>
       <div className="flex flex-wrap items-center gap-4">
         <Meter label="HP" value={hp} max={MAX_HP} tone="accent" />
-        <Meter label="STA" value={stamina} max={MAX_STAMINA} tone="primary" />
         {playerClass && <span className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">{`Class: ${CLASSES[playerClass].name}`}</span>}
       </div>
       <h2 className="order-first w-full text-center text-sm font-bold tracking-widest sm:order-none sm:w-auto">

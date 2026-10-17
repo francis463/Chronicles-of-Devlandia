@@ -6,10 +6,8 @@ import {
   LOG,
   LOG_LIMIT,
   MAX_HP,
-  MAX_STAMINA,
   PLAYER_START,
   RIVER_DAMAGE,
-  STAMINA_REGEN,
   START_MINUTES,
   STEP,
   HIDDEN_ARTIFACT,
@@ -44,7 +42,6 @@ export const initialState: GameState = {
   player: PLAYER_START,
   drone: DRONE_START,
   hp: MAX_HP,
-  stamina: MAX_STAMINA,
   minutes: START_MINUTES,
   inspected: null,
   questComplete: false,
@@ -229,7 +226,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const exit = exitFor(state.zone, state.player, target);
       if (exit) {
         return pushLog(
-          { ...state, zone: exit.to, ...arrival(exit, state.player), inspected: null, stamina: Math.max(0, state.stamina - 1) },
+          { ...state, zone: exit.to, ...arrival(exit, state.player), inspected: null },
           ZONES[exit.to].entered,
         );
       }
@@ -243,7 +240,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
             ? "solid"
             : null;
       if (block) return pushLogOnce(state, block === "locked" ? LOG.wallLocked : LOG.wallSolid);
-      const next = { ...state, player, stamina: Math.max(0, state.stamina - 1) };
+      const next = { ...state, player };
       if (!state.questComplete && inRiver({ ...state, player })) {
         return pushLog({ ...next, questComplete: true }, LOG.questComplete);
       }
@@ -253,7 +250,6 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         minutes: advanceClock(state.minutes),
-        stamina: Math.min(MAX_STAMINA, state.stamina + STAMINA_REGEN),
       };
     case "riverDamage": {
       if (isDowned(state) || state.towerPowered || !inRiver(state)) return state;

@@ -38,9 +38,8 @@ describe("Overworld HUD", () => {
     render(<Overworld onMenu={() => {}} />);
     expect(screen.getByText("REGION: C++ PEAKS")).toBeInTheDocument();
     expect(screen.getByText("Dusk / 19:29")).toBeInTheDocument();
-    const [hp, sta] = screen.getAllByRole("meter");
+    const [hp] = screen.getAllByRole("meter");
     expect(hp).toHaveAttribute("aria-valuenow", "100");
-    expect(sta).toHaveAttribute("aria-valuenow", "100");
     expect(screen.getByText("Quest: Survey Frozen River (0/1)")).toBeInTheDocument();
     expect(screen.getByText("Entered C++ Peaks.")).toBeInTheDocument();
     expect(screen.getByText("Move: WASD / Arrows")).toBeInTheDocument();

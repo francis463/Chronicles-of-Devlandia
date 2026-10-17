@@ -64,7 +64,6 @@ export type GameState = {
   player: Point;
   drone: Point;
   hp: number;
-  stamina: number;
   minutes: number;
   inspected: PoiId | null;
   questComplete: boolean;

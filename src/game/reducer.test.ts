@@ -21,7 +21,6 @@ describe("gameReducer: initial state", () => {
     expect(s0.player).toEqual({ x: 28, y: 72 });
     expect(s0.drone).toEqual({ x: 36, y: 70 });
     expect(s0.hp).toBe(100);
-    expect(s0.stamina).toBe(100);
     expect(s0.minutes).toBe(1169);
     expect(s0.logs).toEqual([
       "Entered C++ Peaks.",
@@ -33,10 +32,9 @@ describe("gameReducer: initial state", () => {
 });
 
 describe("gameReducer: move", () => {
-  it("moves four units and spends one stamina", () => {
+  it("moves four units", () => {
     const s = gameReducer(s0, { type: "move", dir: "up" });
     expect(s.player).toEqual({ x: 28, y: 68 });
-    expect(s.stamina).toBe(99);
   });
 
   it("moves in all four directions", () => {
@@ -45,11 +43,10 @@ describe("gameReducer: move", () => {
     expect(gameReducer(s0, { type: "move", dir: "right" }).player).toEqual({ x: 32, y: 72 });
   });
 
-  it("stays clamped at a map edge and never drives stamina below 0", () => {
-    const edge = { ...s0, player: { x: 6, y: 50 }, stamina: 0 };
+  it("stays clamped at a map edge", () => {
+    const edge = { ...s0, player: { x: 6, y: 50 } };
     const s = gameReducer(edge, { type: "move", dir: "left" });
     expect(s.player.x).toBe(6);
-    expect(s.stamina).toBe(0);
   });
 
   it("completes the quest once on first entering the river", () => {
@@ -69,11 +66,9 @@ describe("gameReducer: move", () => {
 });
 
 describe("gameReducer: tick", () => {
-  it("advances five minutes and regenerates two stamina capped at 100", () => {
-    const s = gameReducer({ ...s0, stamina: 99 }, { type: "tick" });
+  it("advances five minutes", () => {
+    const s = gameReducer(s0, { type: "tick" });
     expect(s.minutes).toBe(1174);
-    expect(s.stamina).toBe(100);
-    expect(gameReducer({ ...s0, stamina: 50 }, { type: "tick" }).stamina).toBe(52);
   });
 
   it("wraps the clock at midnight", () => {
@@ -372,11 +367,10 @@ describe("gameReducer: teammates", () => {
 describe("gameReducer: the north wall", () => {
   const poi = (id: string) => POIS.find((p) => p.id === id)!;
 
-  it("a step into the locked wall stays put, costs no stamina and logs the locked line", () => {
+  it("a step into the locked wall stays put, logs the locked line", () => {
     const start = { ...s0, player: { x: 30, y: 52 } };
     const s = gameReducer(start, { type: "move", dir: "up" });
     expect(s.player).toEqual({ x: 30, y: 52 });
-    expect(s.stamina).toBe(100);
     expect(lastLog(s)).toBe(LOG.wallLocked);
     expect(s.logCount).toBe(start.logCount + 1);
   });
@@ -391,10 +385,9 @@ describe("gameReducer: the north wall", () => {
     expect(s.logs.filter((l) => l === LOG.wallLocked)).toHaveLength(1);
   });
 
-  it("through the open gate's opening a step moves and costs stamina (guard)", () => {
+  it("through the open gate's opening a step moves (guard)", () => {
     const s = gameReducer({ ...opened, player: { x: 48, y: 52 } }, { type: "move", dir: "up" });
     expect(s.player).toEqual({ x: 48, y: 48 });
-    expect(s.stamina).toBe(99);
   });
 
   it("with the gate open the wall is solid elsewhere, posts included", () => {
@@ -475,11 +468,10 @@ describe("gameReducer: zones", () => {
   const right = { type: "move", dir: "right" } as const;
 
   it("left from (6, 72) in the Peaks enters the village at (94, 72)", () => {
-    const s = gameReducer({ ...s0, player: { x: 6, y: 72 }, inspected: "gate", stamina: 50 }, left);
+    const s = gameReducer({ ...s0, player: { x: 6, y: 72 }, inspected: "gate" }, left);
     expect(s.zone).toBe("village");
     expect(s.player).toEqual({ x: 94, y: 72 });
     expect(s.drone).toEqual({ x: 86, y: 70 });
-    expect(s.stamina).toBe(49);
     expect(s.inspected).toBeNull();
     expect(lastLog(s)).toBe("Entered Dev Village.");
   });
@@ -854,7 +846,6 @@ describe("gameReducer: the Dense Forest (Review Focus 1 and 5)", () => {
     expect(s.zone).toBe("forest");
     expect(s.player).toEqual({ x: 70, y: 10 });
     expect(s.drone).toEqual({ x: 68, y: 18 });
-    expect(s.stamina).toBe(s0.stamina - 1);
     expect(s.inspected).toBeNull();
     expect(lastLog(s)).toBe("Entered Dense Forest.");
   });
@@ -986,13 +977,13 @@ describe("gameReducer: sailing to Foggaten Island", () => {
   const atIslandDock: GameState = { ...s0, zone: "foggaten", gateUnlocked: true, player: { x: ISLAND_DOCK.x + 2, y: ISLAND_DOCK.y } };
 
   it("sails from the Peaks' dock to the island once the gate is open, changing nothing else", () => {
-    const s = gameReducer({ ...atDock, hp: 77, stamina: 55, hasLoot: true, towerPowered: true, minutes: 100 }, { type: "sail", to: "foggaten" });
+    const s = gameReducer({ ...atDock, hp: 77, hasLoot: true, towerPowered: true, minutes: 100 }, { type: "sail", to: "foggaten" });
     expect(s.zone).toBe("foggaten");
     expect(s.player).toEqual(SAIL_LANDING.foggaten);
     expect(s.drone.y).toBe(SAIL_LANDING.foggaten.y);
     expect(s.drone.x).toBeLessThan(SAIL_LANDING.foggaten.x);
     expect(lastLog(s)).toBe(LOG.sailOut);
-    expect(s).toMatchObject({ hp: 77, stamina: 55, hasLoot: true, towerPowered: true, gateUnlocked: true, minutes: 100, inspected: null });
+    expect(s).toMatchObject({ hp: 77, hasLoot: true, towerPowered: true, gateUnlocked: true, minutes: 100, inspected: null });
     expect(s.badges).toEqual(atDock.badges);
   });
 
@@ -1107,8 +1098,8 @@ describe("gameReducer: the lighthouse lamp", () => {
   });
 
   it("01001000 lights it for the team, closes the terminal and changes nothing else", () => {
-    const s = gameReducer(lamp({ hp: 77, stamina: 55, minutes: 100 }), { type: "submitLamp", bits: bitsOf(72) });
-    expect(s).toMatchObject({ lighthouseLit: true, lampOpen: false, lampError: null, hp: 77, stamina: 55, minutes: 100 });
+    const s = gameReducer(lamp({ hp: 77, minutes: 100 }), { type: "submitLamp", bits: bitsOf(72) });
+    expect(s).toMatchObject({ lighthouseLit: true, lampOpen: false, lampError: null, hp: 77, minutes: 100 });
     expect(s.badges).toEqual(island.badges);
     expect(lastLog(s)).toBe(LOG.lampLit);
   });
@@ -1171,7 +1162,7 @@ describe("gameReducer: the camp signpost, the weather station and the snow cave"
       const s = gameReducer(beside(poi), { type: "interact", poi: poi.id });
       expect(s.inspected).toBe(poi.id);
       expect(s.logs).toEqual(beside(poi).logs);
-      expect({ hp: s.hp, stamina: s.stamina, minutes: s.minutes, zone: s.zone }).toEqual({ hp: 100, stamina: 100, minutes: s0.minutes, zone: "peaks" });
+      expect({ hp: s.hp, minutes: s.minutes, zone: s.zone }).toEqual({ hp: 100, minutes: s0.minutes, zone: "peaks" });
     }
   });
 
