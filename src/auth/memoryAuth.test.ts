@@ -51,4 +51,26 @@ describe("createMemoryAuth", () => {
     expect(await auth.forgot("Nobody")).toEqual({ ok: true });
     expect(auth.lastForgot).toBe("Nobody");
   });
+
+  it("setClass is remembered on the account, and the next account starts with none", async () => {
+    const auth = createMemoryAuth();
+    await auth.signUp("Kai", "password1");
+    expect(await auth.getAccount()).toMatchObject({ playerClass: null });
+    expect(await auth.setClass("healer")).toEqual({ ok: true });
+    expect(await auth.getAccount()).toMatchObject({ playerClass: "healer" });
+    await auth.logOut();
+    await auth.logIn("Kai", "password1");
+    expect(await auth.getAccount()).toMatchObject({ playerClass: "healer" });
+    await auth.logOut();
+    await auth.signUp("Ann", "password1");
+    expect(await auth.getAccount()).toMatchObject({ playerClass: null });
+  });
+
+  it("setClass fails as unreachable when the server is down and with no session as expired", async () => {
+    const auth = createMemoryAuth();
+    expect(await auth.setClass("mage")).toEqual({ ok: false, error: "expired" });
+    await auth.signUp("Kai", "password1");
+    auth.reachable = false;
+    expect(await auth.setClass("mage")).toEqual({ ok: false, error: "unreachable" });
+  });
 });

@@ -61,6 +61,20 @@ describe("the other sign-in paths", () => {
     expect(fake.calls.map((c) => c.args[0])).toEqual([{ password: "newpassword" }, { email: "a@b.com" }]);
   });
 
+  it("setClass saves the class in the user's profile data", async () => {
+    const { fake, auth } = setup();
+    expect(await auth.setClass("mage")).toEqual({ ok: true });
+    expect(fake.calls[0]).toEqual({ name: "auth.updateUser", args: [{ data: { class: "mage" } }] });
+  });
+
+  it("setClass reports an unreachable server, and any other failure as unknown", async () => {
+    const { fake, auth } = setup();
+    fake.authError = { message: "boom" };
+    expect(await auth.setClass("tank")).toEqual({ ok: false, error: "unknown" });
+    fake.authError = { name: "AuthRetryableFetchError", message: "Failed to fetch" };
+    expect(await auth.setClass("tank")).toEqual({ ok: false, error: "unreachable" });
+  });
+
   it("an expired recovery link on setPassword reads as expired", async () => {
     const { fake, auth } = setup();
     fake.authError = { message: "Auth session missing!" };
@@ -92,10 +106,24 @@ describe("getAccount and onChange", () => {
     const { fake, auth } = setup();
     fake.session = { user: { id: "u1", email: "kai@players.devlandia.invalid" } };
     fake.tableReplies.profiles = { data: { name: "Kai" }, error: null };
-    expect(await auth.getAccount()).toEqual({ userId: "u1", name: "Kai", hasRealEmail: false });
+    expect(await auth.getAccount()).toEqual({ userId: "u1", name: "Kai", hasRealEmail: false, playerClass: null });
     fake.session = { user: { id: "u2", email: "g@gmail.com" } };
     fake.tableReplies.profiles = { data: null, error: null };
-    expect(await auth.getAccount()).toEqual({ userId: "u2", name: null, hasRealEmail: true });
+    expect(await auth.getAccount()).toEqual({ userId: "u2", name: null, hasRealEmail: true, playerClass: null });
+  });
+
+  it("reads the saved class from the user's profile data; anything else is none", async () => {
+    const { fake, auth } = setup();
+    fake.tableReplies.profiles = { data: { name: "Kai" }, error: null };
+    const withMeta = (user_metadata: unknown) => {
+      fake.session = { user: { id: "u1", email: "kai@players.devlandia.invalid", user_metadata } as never };
+    };
+    withMeta({ class: "mage" });
+    expect((await auth.getAccount())?.playerClass).toBe("mage");
+    for (const bad of [undefined, {}, { class: "Mage" }, { class: 42 }, { class: "__proto__" }, { class: null }]) {
+      withMeta(bad);
+      expect((await auth.getAccount())?.playerClass).toBeNull();
+    }
   });
 
   it("rejects when the profile can't be read", async () => {

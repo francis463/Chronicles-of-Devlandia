@@ -1,7 +1,7 @@
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "./config";
 import type { RealtimeClientLike } from "./supabaseTransport";
 
-export type AuthUserLike = { id: string; email?: string | null };
+export type AuthUserLike = { id: string; email?: string | null; user_metadata?: Record<string, unknown> };
 export type SessionLike = { user: AuthUserLike };
 type ErrorLike = { code?: string; message?: string; name?: string } | null;
 
@@ -10,7 +10,7 @@ export type AuthApiLike = {
   getSession(): Promise<{ data: { session: SessionLike | null }; error: unknown }>;
   setSession(s: { access_token: string; refresh_token: string }): Promise<{ error: ErrorLike }>;
   signInWithOAuth(a: { provider: "google"; options?: { redirectTo?: string } }): Promise<{ error: ErrorLike }>;
-  updateUser(a: { password?: string; email?: string }): Promise<{ error: ErrorLike }>;
+  updateUser(a: { password?: string; email?: string; data?: { class: string } }): Promise<{ error: ErrorLike }>;
   signOut(): Promise<{ error: ErrorLike }>;
   onAuthStateChange(cb: (event: string, session: SessionLike | null) => void): { data: { subscription: { unsubscribe(): void } } };
 };

@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createMemoryAuth } from "./memoryAuth";
 import { useAuth } from "./useAuth";
 
@@ -122,5 +122,15 @@ describe("useAuth", () => {
     await new Promise((res) => setTimeout(res, 20));
     expect(status(r)).toBe("signedIn");
     expect(r.result.current.account?.name).toBe("Kai");
+  });
+
+  it("setClass is looked up on the client when called and leaves the status alone", async () => {
+    const r = setup();
+    await act(async () => void (await r.client.signUp("Kai", "password1")));
+    await waitFor(() => expect(status(r)).toBe("signedIn"));
+    const spy = vi.spyOn(r.client, "setClass");
+    await act(async () => expect(await r.result.current.setClass("tank")).toEqual({ ok: true }));
+    expect(spy).toHaveBeenCalledWith("tank");
+    expect(status(r)).toBe("signedIn");
   });
 });

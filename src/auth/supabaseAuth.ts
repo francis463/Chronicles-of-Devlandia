@@ -1,3 +1,4 @@
+import { isClassId } from "../game/classes";
 import { isInternalEmail } from "./nameRules";
 import type { SupabaseLike } from "../net/supabaseClient";
 import type { Account, AuthClient, AuthError, AuthEvent, Result } from "./authClient";
@@ -57,7 +58,13 @@ export function createSupabaseAuth(load: () => Promise<SupabaseLike>): AuthClien
       if (!user) return null;
       const { data: profile, error } = await client.from("profiles").select("name").eq("user_id", user.id).maybeSingle();
       if (error) throw new Error("Can't read the profile");
-      return { userId: user.id, name: (profile as { name?: string } | null)?.name ?? null, hasRealEmail: !!user.email && !isInternalEmail(user.email) };
+      const saved = user.user_metadata?.class;
+      return {
+        userId: user.id,
+        name: (profile as { name?: string } | null)?.name ?? null,
+        hasRealEmail: !!user.email && !isInternalEmail(user.email),
+        playerClass: isClassId(saved) ? saved : null,
+      };
     },
     onChange(cb) {
       let off: (() => void) | null = null;
@@ -85,6 +92,7 @@ export function createSupabaseAuth(load: () => Promise<SupabaseLike>): AuthClien
     setPassword: (password) =>
       authResult((c) => c.auth.updateUser({ password }), (m) => (/session/i.test(m) ? "expired" : /password/i.test(m) ? "weak-password" : "unknown")),
     addEmail: (email) => authResult((c) => c.auth.updateUser({ email })),
+    setClass: (cls) => authResult((c) => c.auth.updateUser({ data: { class: cls } })),
     async chooseName(name) {
       try {
         const client = await load();

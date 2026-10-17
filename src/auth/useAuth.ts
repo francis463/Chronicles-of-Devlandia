@@ -15,6 +15,8 @@ export type Auth = {
   setPassword: AuthClient["setPassword"];
   addEmail: AuthClient["addEmail"];
   chooseName: AuthClient["chooseName"];
+  /** Saves the class with the account; never changes who is signed in. */
+  setClass: AuthClient["setClass"];
   /** Guest lasts until the page reloads or the player goes back to the login screen. */
   playAsGuest(): void;
   leaveGuest(): void;
@@ -74,6 +76,7 @@ export function useAuth(client: AuthClient, initial?: "guest"): Auth {
       setPassword: after((password) => client.setPassword(password)),
       addEmail: after((email) => client.addEmail(email)),
       chooseName: after((name) => client.chooseName(name)),
+      setClass: (cls) => client.setClass(cls),
       playAsGuest: () => setState((s) => ({ ...s, status: "guest", account: null })),
       leaveGuest: () => setState((s) => (s.status === "guest" ? { ...s, status: "signedOut" } : s)),
       async logOut() {

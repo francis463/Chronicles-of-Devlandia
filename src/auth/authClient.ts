@@ -1,5 +1,7 @@
-/** What the app knows about whoever is signed in. `name` is null until a Google player has chosen one. */
-export type Account = { userId: string; name: string | null; hasRealEmail: boolean };
+import type { ClassId } from "../game/classes";
+
+/** What the app knows about whoever is signed in. `name` is null until a Google player has chosen one; `playerClass` is their saved class, or null. */
+export type Account = { userId: string; name: string | null; hasRealEmail: boolean; playerClass: ClassId | null };
 
 export type AuthError =
   | "wrong-credentials"
@@ -25,6 +27,8 @@ export interface AuthClient {
   setPassword(password: string): Promise<Result>;
   addEmail(email: string): Promise<Result>;
   chooseName(name: string): Promise<Result>;
+  /** Remembers the chosen class with the account (cosmetic: a failure never blocks play). */
+  setClass(cls: ClassId): Promise<Result>;
   logOut(): Promise<void>;
 }
 
