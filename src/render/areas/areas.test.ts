@@ -7,6 +7,8 @@ import { FOREST_POINTS } from "./forest";
 import { FOGGATEN, FOGGATEN_POINTS } from "./foggaten";
 import { DOCK_POINT, ICE_RECT, BRIDGE_RECT, LANDMARK_POINTS as PEAKS_POINTS, PEAKS, WILDLIFE, foxPose, goatPose } from "./peaks";
 import { REACHABLE_RECT } from "../world";
+import { DESERT_PYRAMID, DESERT_SIGNPOST, NOMAD, OASIS } from "../../game/constants";
+import { DESERT_POINTS } from "./desert";
 import { DOCK, HERMIT, ISLAND_DOCK, ISLAND_FIRE, LIGHTHOUSE, RUINS } from "../../game/constants";
 import { VILLAGE_LIFE, VILLAGE_POINTS, wandererPose } from "./village";
 import { ARCHIVE_POINT, CS_CHEST_POINT, TERMINAL_POINT, chestPoints } from "../learnPoints";
@@ -20,8 +22,8 @@ describe("areas", () => {
 
   it("the forest is an area, with a mouth in its top edge and a clear corridor above it", () => {
     expect(AREAS.forest.id).toBe("forest");
-    expect(AREAS.forest.mouths).toEqual([{ x: 192, y: 0, w: 64, h: 32 }]);
-    expect(AREAS.forest.corridors).toEqual([{ x: 192, y: -1000, w: 64, h: 1000 }]);
+    expect(AREAS.forest.mouths).toEqual([{ x: 192, y: 0, w: 64, h: 32 }, { x: 0, y: 112, w: 32, h: 32 }]);
+    expect(AREAS.forest.corridors).toEqual([{ x: 192, y: -1000, w: 64, h: 1000 }, { x: -1000, y: 112, w: 1000, h: 32 }]);
     expect(AREAS.forest.gateBox).toBeNull();
     expect(AREAS.forest.ice).toBeNull();
   });
@@ -76,7 +78,7 @@ describe("areas", () => {
     expect(AREAS.forest.props.map((p) => p.sprite).sort()).toEqual(["campfire", "explorer-down", "old-oak", "signpost"]);
     for (const [i, a] of boxes.entries()) {
       expect(a.x >= 0 && a.y >= 0 && a.x + a.w <= 320 && a.y + a.h <= 180, `prop ${i} in the world`).toBe(true);
-      expect(intersects(a, AREAS.forest.mouths[0]), `prop ${i} on the mouth`).toBe(false);
+      expect(AREAS.forest.mouths.some((m) => intersects(a, m)), `prop ${i} on a mouth`).toBe(false);
       for (const b of boxes.slice(i + 1)) expect(intersects(a, b), `props ${i} overlap`).toBe(false);
     }
     const pts = Object.values(FOREST_POINTS);
@@ -350,5 +352,58 @@ describe("the Snowy Peaks' lodge, wildlife and trail", () => {
     const near = foxPose(0, false, { x: far.x - 8, y: far.y });
     expect(near.x).toBeGreaterThan(far.x);
     expect(foxPose(0, true, { x: near.x - 4, y: near.y })).toEqual(foxPose(90_000, true, { x: 5, y: 5 }));
+  });
+});
+
+describe("the Sunbaked Desert's area", () => {
+  const D = AREAS.desert;
+  const touch = (a: Rect, b: Rect) => a.x <= b.x + b.w && b.x <= a.x + a.w && a.y <= b.y + b.h && b.y <= a.y + a.h;
+
+  it("is a plain dune area with an east mouth, its corridor beyond, no wall, gate or ice", () => {
+    expect(D).toMatchObject({ id: "desert", wall: false, gateBox: null, ice: null });
+    expect(D.mouths).toEqual([{ x: 288, y: 112, w: 32, h: 32 }]);
+    expect(D.corridors).toEqual([{ x: 320, y: 112, w: 1000, h: 32 }]);
+    for (const [x, y] of [[0, 0], [160, 90], [319, 179], [-50, -50], [400, 300]]) expect(D.terrainAt(x, y)).toBe("dune");
+  });
+
+  it("the forest's west mouth has a road that runs out through it and joins the trail", () => {
+    const west = AREAS.forest.paths.filter((r) => r.x < 0 && r.y >= 112 && r.y + r.h <= 144);
+    expect(west.length).toBeGreaterThan(0);
+    expect(AREAS.forest.paths.some((r) => touch(r, west[0]) && r !== west[0])).toBe(true);
+  });
+
+  it("its places' art points are the game places' art points", () => {
+    expect(DESERT_POINTS).toMatchObject({ nomad: toArt(NOMAD), oasis: toArt(OASIS), pyramid: toArt(DESERT_PYRAMID), signpost: toArt(DESERT_SIGNPOST) });
+  });
+
+  it("its road is one connected road from the east mouth and reaches every place", () => {
+    const seen = new Set([0]);
+    for (const queue = [0]; queue.length; ) {
+      const i = queue.pop()!;
+      D.paths.forEach((r, j) => void (!seen.has(j) && touch(D.paths[i], r) && (seen.add(j), queue.push(j))));
+    }
+    expect(seen.size).toBe(D.paths.length);
+    expect(D.paths.some((r) => r.x + r.w > 320)).toBe(true);
+    const reaches = (x: number, y: number) => D.paths.some((r) => Math.abs(x - (r.x + r.w / 2)) <= r.w / 2 + 14 && y >= r.y - 14 && y < r.y + r.h + 14);
+    for (const k of ["nomad", "oasis", "pyramid", "signpost"] as const) expect(reaches(DESERT_POINTS[k].x, DESERT_POINTS[k].y), k).toBe(true);
+  });
+
+  it("its props are inside the world, clear of each other and the mouth, and are protected", () => {
+    expect(D.props.map((p) => p.sprite).sort()).toEqual(["explorer-down", "oasis", "palm", "palm", "pyramid", "rock", "signpost"]);
+    const boxes = D.props.map((p) => spriteBox(p.sprite, p.at));
+    for (const [i, a] of boxes.entries()) {
+      expect(a.x >= 0 && a.y >= 0 && a.x + a.w <= 320 && a.y + a.h <= 180, `prop ${i} in the world`).toBe(true);
+      expect(intersects(a, D.mouths[0]), `prop ${i} on the mouth`).toBe(false);
+      for (const b of boxes.slice(i + 1)) expect(intersects(a, b), `props ${i} overlap`).toBe(false);
+      expect(D.protected).toContainEqual(a);
+    }
+    const pts = [DESERT_POINTS.nomad, DESERT_POINTS.oasis, DESERT_POINTS.pyramid, DESERT_POINTS.signpost];
+    for (const [i, a] of pts.entries())
+      for (const b of pts.slice(i + 1)) expect(Math.hypot((a.x - b.x) / 3.2, (a.y - b.y) / 1.8)).toBeGreaterThanOrEqual(12);
+  });
+
+  it("the lizard's rock is a prop and the lizard sits on its top", () => {
+    const rock = D.props.find((p) => p.sprite === "rock")!;
+    expect(DESERT_POINTS.lizardRock).toEqual(rock.at);
   });
 });

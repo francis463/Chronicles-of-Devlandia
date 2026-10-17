@@ -374,8 +374,8 @@ function palmGrid(): PixelGrid {
 
 /** A dry bush: a tangle of brown twigs. */
 function dryBushGrid(): PixelGrid {
-  return outlined(14, 10, (x, y) => {
-    const inside = ((x - 6.5) / 6.5) ** 2 + ((y - 5.5) / 4.5) ** 2 <= 1;
+  return outlined(16, 16, (x, y) => {
+    const inside = ((x - 7.5) / 7.5) ** 2 + ((y - 8.5) / 7.5) ** 2 <= 1;
     if (!inside) return null;
     return (x * 3 + y * 5) % 4 === 0 ? "d" : "b";
   });
@@ -1447,7 +1447,7 @@ export const SPRITES: Record<SpriteId, SpriteDef> = {
   },
   cactus: { w: 14, h: 20, anchor: "bottom", palette: { o: "#0b1020", c: "#3f9a4a", G: "#2a7338" }, frames: [cactusGrid()] },
   palm: { w: 24, h: 32, anchor: "bottom", palette: { o: "#0b1020", g: "#3f9a4a", L: "#6ecb63", t: "#9a6b3a", T: "#7a5128" }, frames: [palmGrid()] },
-  "dry-bush": { w: 14, h: 10, anchor: "bottom", palette: { o: "#0b1020", b: "#a8814a", d: "#7d5a2e" }, frames: [dryBushGrid()] },
+  "dry-bush": { w: 16, h: 16, anchor: "bottom", palette: { o: "#0b1020", b: "#a8814a", d: "#7d5a2e" }, frames: [dryBushGrid()] },
   oasis: {
     w: 48,
     h: 24,

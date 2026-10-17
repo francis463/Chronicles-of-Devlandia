@@ -413,7 +413,7 @@ describe("the weather station and the snow cave", () => {
 });
 
 describe("the Sunbaked Desert's art", () => {
-  const SIZES = [["cactus", 14, 20, 1], ["palm", 24, 32, 1], ["dry-bush", 14, 10, 1], ["oasis", 48, 24, 1], ["pyramid", 40, 28, 1], ["tumbleweed", 8, 8, 2], ["lizard", 12, 6, 2]] as const;
+  const SIZES = [["cactus", 14, 20, 1], ["palm", 24, 32, 1], ["dry-bush", 16, 16, 1], ["oasis", 48, 24, 1], ["pyramid", 40, 28, 1], ["tumbleweed", 8, 8, 2], ["lizard", 12, 6, 2]] as const;
 
   it("have their declared sizes, anchors and frame counts", () => {
     for (const [id, w, h, frames] of SIZES) expect([SPRITES[id].w, SPRITES[id].h, SPRITES[id].anchor, SPRITES[id].frames.length], id).toEqual([w, h, "bottom", frames]);
