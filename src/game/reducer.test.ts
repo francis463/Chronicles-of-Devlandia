@@ -3,8 +3,9 @@ import { gameReducer, initialState, isDowned, isModalOpen, reachPlaces, revealed
 import { placeInReach } from "./geometry";
 import type { ChallengeState, ChallengeTarget, GameState, Point } from "./types";
 import { NO_FLAGS } from "./team";
-import { HIDDEN_ARTIFACT, INTERACT_RADIUS, LOG, PLAYER_START, POIS } from "./constants";
+import { DOCK, HIDDEN_ARTIFACT, INTERACT_RADIUS, ISLAND_DOCK, LOG, PLAYER_START, POIS, SAIL_LANDING } from "./constants";
 import { cardFor } from "./cards";
+import { hermitLine } from "./island";
 import { isNorthOfWall } from "./wall";
 import { ZONES, type ZoneId } from "./zones";
 
@@ -542,7 +543,7 @@ describe("gameReducer: places and talking", () => {
 
   it("visiblePois: your zone's places, plus the dig spot in the forest once revealed", () => {
     expect(visiblePois(s0).map((p) => p.id)).toEqual([
-      "gate", "chest", "river", "tower", "chest-cpp-1", "chest-java", "chest-cpp-2", "chest-html", "chest-css", "chest-py-1",
+      "gate", "chest", "river", "tower", "dock", "chest-cpp-1", "chest-java", "chest-cpp-2", "chest-html", "chest-css", "chest-py-1",
     ]);
     expect(visiblePois({ ...village, clueDecoded: true }).map((p) => p.id)).toEqual([
       "villager", "signpost", "terminal", "archive", "chest-php", "chest-sql", "chest-py-2",
@@ -916,5 +917,86 @@ describe("gameReducer: the Dense Forest's places", () => {
     for (const poi of ["gate", "villager", "signpost", "terminal"] as const) expect(gameReducer(forest, { type: "interact", poi }), poi).toBe(forest);
     expect(gameReducer(s0, { type: "interact", poi: "ranger" })).toBe(s0);
     expect(gameReducer({ ...s0, zone: "village" }, { type: "interact", poi: "campfire" }).inspected).toBeNull();
+  });
+});
+
+describe("gameReducer: sailing to Foggaten Island", () => {
+  const atDock: GameState = { ...s0, gateUnlocked: true, player: { x: DOCK.x - 2, y: DOCK.y } };
+  const atIslandDock: GameState = { ...s0, zone: "foggaten", gateUnlocked: true, player: { x: ISLAND_DOCK.x + 2, y: ISLAND_DOCK.y } };
+
+  it("sails from the Peaks' dock to the island once the gate is open, changing nothing else", () => {
+    const s = gameReducer({ ...atDock, hp: 77, stamina: 55, hasLoot: true, towerPowered: true, minutes: 100 }, { type: "sail", to: "foggaten" });
+    expect(s.zone).toBe("foggaten");
+    expect(s.player).toEqual(SAIL_LANDING.foggaten);
+    expect(s.drone.y).toBe(SAIL_LANDING.foggaten.y);
+    expect(s.drone.x).toBeLessThan(SAIL_LANDING.foggaten.x);
+    expect(lastLog(s)).toBe(LOG.sailOut);
+    expect(s).toMatchObject({ hp: 77, stamina: 55, hasLoot: true, towerPowered: true, gateUnlocked: true, minutes: 100, inspected: null });
+    expect(s.badges).toEqual(atDock.badges);
+  });
+
+  it("sails back from the island's dock to the Peaks", () => {
+    const s = gameReducer(atIslandDock, { type: "sail", to: "peaks" });
+    expect(s.zone).toBe("peaks");
+    expect(s.player).toEqual(SAIL_LANDING.peaks);
+    expect(lastLog(s)).toBe(LOG.sailBack);
+  });
+
+  it("the dock waits for the gate: one locked line and no move", () => {
+    const locked = { ...atDock, gateUnlocked: false };
+    const s = gameReducer(locked, { type: "sail", to: "foggaten" });
+    expect(s.zone).toBe("peaks");
+    expect(lastLog(s)).toBe(LOG.dockLocked);
+    expect(gameReducer(s, { type: "sail", to: "foggaten" }).logCount).toBe(s.logCount);
+  });
+
+  it("refuses from far away, with a terminal or the Codex open, and for any other destination", () => {
+    const far = { ...atDock, player: { x: 20, y: 20 } };
+    expect(gameReducer(far, { type: "sail", to: "foggaten" })).toBe(far);
+    expect(gameReducer({ ...atDock, codexOpen: true }, { type: "sail", to: "foggaten" })).toEqual({ ...atDock, codexOpen: true });
+    expect(gameReducer({ ...atDock, challenge: openOn("gate") }, { type: "sail", to: "foggaten" }).zone).toBe("peaks");
+    for (const to of ["village", "forest", "peaks"] as const) expect(gameReducer(atDock, { type: "sail", to })).toBe(atDock);
+    expect(gameReducer(atIslandDock, { type: "sail", to: "foggaten" })).toBe(atIslandDock);
+    expect(gameReducer(atIslandDock, { type: "sail", to: "forest" })).toBe(atIslandDock);
+    expect(gameReducer({ ...atDock, zone: "village" }, { type: "sail", to: "foggaten" }).zone).toBe("village");
+    expect(gameReducer({ ...atDock, hp: 0 }, { type: "sail", to: "foggaten" }).zone).toBe("peaks");
+  });
+
+  it("interact on a dock does what sail does, including the locked line", () => {
+    expect(gameReducer(atDock, { type: "interact", poi: "dock" }).zone).toBe("foggaten");
+    expect(gameReducer(atIslandDock, { type: "interact", poi: "island-dock" }).zone).toBe("peaks");
+    const locked = gameReducer({ ...atDock, gateUnlocked: false }, { type: "interact", poi: "dock" });
+    expect(locked.zone).toBe("peaks");
+    expect(lastLog(locked)).toBe(LOG.dockLocked);
+  });
+
+  it("pressing the dock's map button from far away only shows its card", () => {
+    const far: GameState = { ...s0, gateUnlocked: true, player: { x: 20, y: 20 } };
+    const s = gameReducer(far, { type: "interact", poi: "dock" });
+    expect(s.zone).toBe("peaks");
+    expect(s.player).toEqual(far.player);
+    expect(s.inspected).toBe("dock");
+  });
+
+  it("the island's places inspect, and the hermit speaks once", () => {
+    const island: GameState = { ...s0, zone: "foggaten" };
+    for (const poi of ["lighthouse", "island-fire", "ruins"] as const) {
+      expect(gameReducer(island, { type: "interact", poi }).inspected, poi).toBe(poi);
+    }
+    const once = gameReducer(island, { type: "interact", poi: "hermit" });
+    expect(once.inspected).toBe("hermit");
+    expect(lastLog(once)).toBe(`Hermit: "${hermitLine(island)}"`);
+    expect(gameReducer(once, { type: "interact", poi: "hermit" }).logCount).toBe(once.logCount);
+  });
+
+  it("the island's places do not answer from another zone", () => {
+    expect(gameReducer(s0, { type: "interact", poi: "hermit" })).toBe(s0);
+    expect(gameReducer({ ...s0, zone: "foggaten" }, { type: "interact", poi: "dock" })).toEqual({ ...s0, zone: "foggaten" });
+  });
+
+  it("there is no way off the island by walking and no hazard on it", () => {
+    const island: GameState = { ...s0, zone: "foggaten", player: { x: 94, y: 70 } };
+    expect(gameReducer(island, { type: "move", dir: "right" }).player).toEqual(island.player);
+    expect(gameReducer(island, { type: "riverDamage" }).hp).toBe(island.hp);
   });
 });

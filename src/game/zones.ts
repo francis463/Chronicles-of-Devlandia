@@ -1,8 +1,8 @@
 import { CHESTS } from "../learn/chests";
-import { ADA, ARCHIVE, BOUNDS, CAMPFIRE, FOREST_SIGNPOST, LOG, OLD_OAK, POIS, RANGER, SIGNPOST, TERMINAL } from "./constants";
+import { ADA, ARCHIVE, BOUNDS, CAMPFIRE, DOCK, FOREST_SIGNPOST, HERMIT, ISLAND_DOCK, ISLAND_FIRE, LIGHTHOUSE, LOG, OLD_OAK, POIS, RANGER, RUINS, SIGNPOST, TERMINAL } from "./constants";
 import type { Poi, PoiId, Point } from "./types";
 
-export type ZoneId = "peaks" | "village" | "forest";
+export type ZoneId = "peaks" | "village" | "forest" | "foggaten";
 
 /**
  * Where a zone's edge opens onto its neighbour. `min`/`max` are the rows (inclusive) a horizontal step
@@ -32,7 +32,7 @@ export const ZONES: Record<ZoneId, Zone> = {
     ],
     wall: true,
     gate: true,
-    places: [...POIS, ...chestPlaces("peaks")],
+    places: [...POIS, DOCK, ...chestPlaces("peaks")],
     river: true,
   },
   village: {
@@ -53,6 +53,17 @@ export const ZONES: Record<ZoneId, Zone> = {
     wall: false,
     gate: false,
     places: [RANGER, CAMPFIRE, OLD_OAK, FOREST_SIGNPOST, ...chestPlaces("forest")],
+    river: false,
+  },
+  // No edge leads here: the island is entered and left by boat, from a dock (the `sail` action).
+  foggaten: {
+    id: "foggaten",
+    name: "Foggaten Island",
+    entered: LOG.enteredFoggaten,
+    exits: [],
+    wall: false,
+    gate: false,
+    places: [ISLAND_DOCK, LIGHTHOUSE, HERMIT, ISLAND_FIRE, RUINS],
     river: false,
   },
 };

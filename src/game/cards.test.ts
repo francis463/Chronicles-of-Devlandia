@@ -5,6 +5,7 @@ import { initialState } from "./reducer";
 import type { GameState } from "./types";
 import { rangerLine } from "./forest";
 import { adaLine } from "./village";
+import { hermitLine } from "./island";
 
 const village: GameState = { ...initialState, zone: "village" };
 
@@ -47,5 +48,25 @@ describe("cardFor", () => {
     expect(cardFor({ ...village, inspected: "archive", archiveOpen: true })?.y).toBe(66);
     const found = { ...initialState, clueDecoded: true, artifactFound: true, inspected: "artifact" as const };
     expect(cardFor(found)?.y).toBe(HIDDEN_ARTIFACT.y);
+  });
+});
+
+describe("cardFor: Foggaten Island", () => {
+  const island: GameState = { ...initialState, zone: "foggaten" };
+
+  it("every place on the island has a card titled with its label", () => {
+    for (const [id, title] of [["island-dock", "Dock"], ["lighthouse", "Lighthouse"], ["hermit", "Hermit"], ["island-fire", "Campfire"], ["ruins", "Ruins"]] as const) {
+      const card = cardFor({ ...island, inspected: id });
+      expect(card?.title, id).toBe(title);
+      expect(card?.text.length, id).toBeGreaterThan(10);
+    }
+  });
+
+  it("the hermit's card is his current hint", () => {
+    expect(cardFor({ ...island, inspected: "hermit" })?.text).toBe(hermitLine(island));
+  });
+
+  it("the Peaks' dock has a card", () => {
+    expect(cardFor({ ...initialState, inspected: "dock" })?.title).toBe("Dock");
   });
 });

@@ -202,6 +202,7 @@ export const EXIT_SIGNS: Record<ZoneId, ReadonlyArray<{ id: MapCaptionId; text: 
   ],
   village: [{ id: "east-exit", text: "C++ Peaks →" }],
   forest: [{ id: "north-exit", text: "↑ C++ Peaks" }],
+  foggaten: [],
 };
 
 /** A zone's exit signs as world-layer edges, for labelLayout to avoid. */

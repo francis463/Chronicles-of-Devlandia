@@ -19,7 +19,7 @@ describe("zones", () => {
   });
 
   it("every arrival point is even, inside the bounds, south of the wall and outside the river", () => {
-    for (const z of Object.values(ZONES)) {
+    for (const z of Object.values(ZONES).filter((zone) => zone.exits.length > 0)) {
       for (let y = 62; y <= 78; y += 2) {
         const { player, drone } = arrival(z.exits[0], { x: z.exits[0].edge === "west" ? 6 : 94, y });
         const where = `${z.id} y ${y}`;
@@ -56,8 +56,8 @@ const NORTH: Exit = { edge: "north", min: 62, max: 78, to: "peaks" };
 const WEST: Exit = { edge: "west", min: 62, max: 78, to: "village" };
 
 describe("the Dense Forest zone", () => {
-  it("has three zones, the forest is named Dense Forest and has no wall, gate or river", () => {
-    expect(Object.keys(ZONES).sort()).toEqual(["forest", "peaks", "village"]);
+  it("has four zones, the forest is named Dense Forest and has no wall, gate or river", () => {
+    expect(Object.keys(ZONES).sort()).toEqual(["foggaten", "forest", "peaks", "village"]);
     expect(ZONES.forest).toMatchObject({ name: "Dense Forest", wall: false, gate: false, river: false });
     expect(ZONES.peaks).toMatchObject({ wall: true, gate: true, river: true });
     expect(ZONES.village).toMatchObject({ wall: true, gate: false, river: false });
@@ -132,5 +132,18 @@ describe("arrival on vertical edges", () => {
         expect(player.x).toBe(x);
       }
     }
+  });
+});
+
+describe("Foggaten Island", () => {
+  it("is a zone with no exits, wall, gate or river, and five places and no chest", () => {
+    expect(ZONES.foggaten).toMatchObject({ id: "foggaten", name: "Foggaten Island", exits: [], wall: false, gate: false, river: false });
+    expect(ZONES.foggaten.places.map((p) => p.id)).toEqual(["island-dock", "lighthouse", "hermit", "island-fire", "ruins"]);
+    expect(ZONES.foggaten.places.some((p) => p.id.startsWith("chest"))).toBe(false);
+  });
+
+  it("the Peaks has a dock", () => {
+    expect(ZONES.peaks.places.map((p) => p.id)).toContain("dock");
+    expect(ZONES.peaks.places.find((p) => p.id === "dock")).toMatchObject({ label: "Dock", x: 88, y: 62 });
   });
 });

@@ -3,6 +3,7 @@ import { HIDDEN_ARTIFACT, INSPECT_COPY } from "./constants";
 import type { GameState } from "./types";
 import { rangerLine } from "./forest";
 import { adaLine } from "./village";
+import { hermitLine, ISLAND_COPY } from "./island";
 import { ZONES } from "./zones";
 
 export type Card = { title: string; text: string; y: number };
@@ -35,6 +36,15 @@ export function cardFor(s: GameState): Card | null {
       return card(place.label, adaLine(s));
     case "ranger":
       return card(place.label, rangerLine(s));
+    case "hermit":
+      return card(place.label, hermitLine(s));
+    case "dock":
+      return card(place.label, s.gateUnlocked ? ISLAND_COPY.dock.default : ISLAND_COPY.dock.locked);
+    case "island-dock":
+    case "lighthouse":
+    case "island-fire":
+    case "ruins":
+      return card(place.label, ISLAND_COPY[place.id]);
     case "campfire":
     case "old-oak":
     case "forest-signpost":

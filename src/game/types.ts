@@ -21,6 +21,12 @@ export type PoiId =
   | "forest-signpost"
   | "terminal"
   | "archive"
+  | "dock"
+  | "island-dock"
+  | "lighthouse"
+  | "hermit"
+  | "island-fire"
+  | "ruins"
   | Exclude<ChestId, "chest-cs">;
 
 export type Poi = { id: PoiId; label: string } & Point;
@@ -86,6 +92,8 @@ export type GameAction =
   | { type: "riverDamage" }
   | { type: "droneFollow" }
   | { type: "interact"; poi: PoiId }
+  /** Board a boat at the dock you stand by (Peaks ↔ Foggaten Island). */
+  | { type: "sail"; to: ZoneId }
   | { type: "closeInspection" }
   | { type: "openCipher" }
   | { type: "submitChallenge"; value: SubmitValue }

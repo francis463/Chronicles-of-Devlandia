@@ -13,8 +13,12 @@ import {
   START_MINUTES,
   STEP,
   HIDDEN_ARTIFACT,
+  DOCK,
+  INTERACT_RADIUS,
+  ISLAND_DOCK,
+  SAIL_LANDING,
 } from "./constants";
-import { clampPlayer, isInRiver } from "./geometry";
+import { clampPlayer, distance, isInRiver } from "./geometry";
 import { circuitError } from "./logic";
 import { accessCode } from "../learn/access";
 import { ARCHIVE_LOCK } from "../learn/bank/builtin";
@@ -25,8 +29,9 @@ import { challengeOf } from "./challenges";
 import { flagsOf, mergeFlags, newlySet, teammateLog } from "./team";
 import type { ChallengeState, Direction, GameAction, GameState, Poi, Point } from "./types";
 import { crossesWall, isNorthOfWall, wallBlock } from "./wall";
-import { ZONES, arrival, exitFor } from "./zones";
+import { ZONES, arrival, exitFor, type ZoneId } from "./zones";
 import { rangerLine } from "./forest";
+import { hermitLine } from "./island";
 import { adaLine } from "./village";
 
 export const initialState: GameState = {
@@ -99,6 +104,22 @@ function pushLog(state: GameState, message: string): GameState {
     logs: [...state.logs, message].slice(-LOG_LIMIT),
     logCount: state.logCount + 1,
   };
+}
+
+/** The dock you can board a boat at in each zone, where it leads, and what the log says. */
+const DOCKS: Partial<Record<ZoneId, { dock: Poi; to: keyof typeof SAIL_LANDING; line: string }>> = {
+  peaks: { dock: DOCK, to: "foggaten", line: LOG.sailOut },
+  foggaten: { dock: ISLAND_DOCK, to: "peaks", line: LOG.sailBack },
+};
+
+/** Sails to the other island: only from beside your zone's dock, never with a window open, and the Peaks' dock waits for the gate. */
+function sail(state: GameState, to: ZoneId): GameState {
+  const route = DOCKS[state.zone];
+  if (!route || route.to !== to || isDowned(state) || isModalOpen(state)) return state;
+  if (distance(state.player, route.dock) > INTERACT_RADIUS) return state;
+  if (state.zone === "peaks" && !state.gateUnlocked) return pushLogOnce(state, LOG.dockLocked);
+  const landing = SAIL_LANDING[route.to];
+  return pushLog({ ...state, zone: route.to, player: landing, drone: { x: landing.x - 4, y: landing.y }, inspected: null }, route.line);
 }
 
 const opened = (target: ChallengeTarget): ChallengeState => ({ target, error: null, wrongTries: 0, solved: false, lastWrong: null });
@@ -232,6 +253,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           y: state.drone.y + (state.player.y - state.drone.y) * DRONE_FOLLOW,
         },
       };
+    case "sail":
+      return sail(state, action.to);
     case "interact": {
       if (isDowned(state) || isModalOpen(state)) return state;
       // Only places in your zone answer (a crafted action, or a stale button after crossing, does nothing).
@@ -246,6 +269,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         return pushLog({ ...state, artifactFound: true, inspected: "artifact" }, LOG.artifactFound);
       }
       if (action.poi === "villager") return pushLogOnce({ ...state, inspected: "villager" }, `Ada: "${adaLine(state)}"`);
+      if (action.poi === "dock" || action.poi === "island-dock") {
+        const route = DOCKS[state.zone]!;
+        // The map's dock button works from anywhere, but boarding needs you beside it.
+        return distance(state.player, route.dock) > INTERACT_RADIUS ? { ...state, inspected: action.poi } : sail(state, route.to);
+      }
+      if (action.poi === "hermit") return pushLogOnce({ ...state, inspected: "hermit" }, `Hermit: "${hermitLine(state)}"`);
+      if (action.poi === "lighthouse" || action.poi === "island-fire" || action.poi === "ruins") return { ...state, inspected: action.poi };
       if (action.poi === "ranger") return pushLogOnce({ ...state, inspected: "ranger" }, `Ranger: "${rangerLine(state)}"`);
       if (action.poi === "signpost" || action.poi === "campfire" || action.poi === "old-oak" || action.poi === "forest-signpost")
         return { ...state, inspected: action.poi };

@@ -26,6 +26,15 @@ export const FOREST_SIGNPOST: Poi = { id: "forest-signpost", label: "Signpost", 
 /** The village's Syntax Terminal (it prints the Archive's access code) and the Archive (the C# chest is inside). */
 export const TERMINAL: Poi = { id: "terminal", label: "Syntax Terminal", x: 68, y: 60 };
 export const ARCHIVE: Poi = { id: "archive", label: "Archive", x: 55, y: 66 };
+/** The Peaks' dock on the east shore, and Foggaten Island's: its dock, lighthouse, hermit, campfire and ruins. */
+export const DOCK: Poi = { id: "dock", label: "Dock", x: 88, y: 62 };
+export const ISLAND_DOCK: Poi = { id: "island-dock", label: "Dock", x: 12, y: 62 };
+export const LIGHTHOUSE: Poi = { id: "lighthouse", label: "Lighthouse", x: 50, y: 28 };
+export const HERMIT: Poi = { id: "hermit", label: "Hermit", x: 58, y: 62 };
+export const ISLAND_FIRE: Poi = { id: "island-fire", label: "Campfire", x: 44, y: 66 };
+export const RUINS: Poi = { id: "ruins", label: "Ruins", x: 28, y: 50 };
+/** Where you and the drone land after sailing: a few steps in from the other island's dock. */
+export const SAIL_LANDING = { foggaten: { x: 18, y: 62 }, peaks: { x: 82, y: 62 } } as const;
 export const RIVER_ZONE = { minX: 24, maxX: 76, minY: 28, maxY: 39 };
 
 export const MAX_HP = 100;
@@ -71,6 +80,10 @@ export const LOG = {
   enteredPeaks: "Entered C++ Peaks.",
   enteredVillage: "Entered Dev Village.",
   enteredForest: "Entered Dense Forest.",
+  enteredFoggaten: "Fog rolls over Foggaten Island. A lighthouse stands dark at the far end.",
+  sailOut: "You sail through the fog to Foggaten Island.",
+  sailBack: "You sail back to the Peaks.",
+  dockLocked: "The boatman waits for the gate to open",
   badge: (badge: string) => `Earned the ${badge} Badge.`,
   matcher: (code: string) => `Syntax Terminal: access code ${code}.`,
   archiveUnsealed: "Archive unsealed.",
