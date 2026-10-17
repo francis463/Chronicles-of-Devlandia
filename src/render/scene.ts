@@ -140,17 +140,19 @@ const BEAM_LENGTH = 60;
 const BEAM_SWEEP_MS = 2000;
 
 /**
- * The lit lighthouse's light: a glow around the lamp (full by night, half by day) and a beam of 60 pixels that fades
+ * The lit lighthouse's light: a glow around the lamp (full by night, half by day) and a beam of 60 pixels, widening into a cone, that fades
  * with distance. It points right for 2 s, then left for 2 s; with reduced motion it stays pointing right.
  */
 function lighthouseLight(t: number, reduced: boolean, strength: number): Pixel[] {
   const dir = reduced || Math.floor(t / BEAM_SWEEP_MS) % 2 === 0 ? 1 : -1;
-  const beam = Array.from({ length: BEAM_LENGTH }, (_, i): Pixel => ({
-    x: LAMP_POINT.x + dir * (i + 8),
-    y: LAMP_POINT.y,
-    color: LAMPLIGHT,
-    alpha: Math.round((0.5 - (0.45 * i) / (BEAM_LENGTH - 1)) * 1000) / 1000,
-  })).filter((p) => p.x >= 0 && p.x < WORLD.width);
+  // A cone: one row at the lamp, widening by a row each side every 15 pixels.
+  const beam = Array.from({ length: BEAM_LENGTH }, (_, i) => {
+    const alpha = Math.round((0.5 - (0.45 * i) / (BEAM_LENGTH - 1)) * 1000) / 1000;
+    const spread = Math.floor(i / 15);
+    return Array.from({ length: 2 * spread + 1 }, (_, k): Pixel => ({ x: LAMP_POINT.x + dir * (i + 8), y: LAMP_POINT.y + k - spread, color: LAMPLIGHT, alpha }));
+  })
+    .flat()
+    .filter((p) => p.x >= 0 && p.x < WORLD.width);
   return [...glow(LAMP_POINT, LAMPLIGHT, Math.max(0.5, strength)), ...beam];
 }
 
