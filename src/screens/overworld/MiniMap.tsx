@@ -56,9 +56,9 @@ export function paintMiniTerrain(ctx: Ctx2D, width: number, height: number, zone
   }
 }
 
-const CELL_W = 64; // w-16
-const CELL_H = 36; // h-9: 16:9, centred in the box's 54 px (9 px above and below)
-const CELL_TOP = 9;
+const CELL_W = 48; // w-12
+const CELL_H = 28; // h-7: about 16:9, centred in the box's 54 px (13 px above and below)
+const CELL_TOP = 13;
 /** The world map, west to east. The forest lies south of the Peaks and Foggaten Island east of them; the cells keep one row to fit the sidebar. */
 const CELLS: Array<{ zone: ZoneId; left: number; places: Poi[] }> = [
   { zone: "village", left: 0, places: [ADA, SIGNPOST] },
@@ -96,7 +96,7 @@ function MiniCell({ zone, left, current, children }: { zone: ZoneId; left: numbe
     paintMiniTerrain(ctx, canvas.width, canvas.height, zone);
   }, [zone]);
   return (
-    <div data-testid={`minimap-cell-${zone}`} data-current={current ? "true" : undefined} className="absolute h-9 w-16" style={{ left, top: CELL_TOP }}>
+    <div data-testid={`minimap-cell-${zone}`} data-current={current ? "true" : undefined} className="absolute h-7 w-12" style={{ left, top: CELL_TOP }}>
       <canvas ref={terrain} aria-hidden="true" className="absolute inset-0 h-full w-full" />
       {/* An overlay, not the cell's own shadow: the opaque canvas would paint over that. */}
       {current && <div aria-hidden="true" data-testid="minimap-current" className="pointer-events-none absolute inset-0 shadow-[inset_0_0_0_1px_var(--accent)]" />}
@@ -136,7 +136,7 @@ export function MiniMap({
       <div
         aria-label="Mini-map"
         role="img"
-        className="relative h-14 w-[258px] flex-shrink-0 overflow-hidden rounded border border-[var(--panel-border)] bg-[var(--bg)]"
+        className="relative h-14 w-[194px] flex-shrink-0 overflow-hidden rounded border border-[var(--panel-border)] bg-[var(--bg)]"
       >
         {CELLS.map((cell) => (
           <MiniCell key={cell.zone} zone={cell.zone} left={cell.left} current={cell.zone === zone}>

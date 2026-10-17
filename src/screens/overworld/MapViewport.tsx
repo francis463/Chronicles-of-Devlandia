@@ -338,9 +338,9 @@ export function MapViewport({
           aria-hidden="true"
           className={`pointer-events-none absolute inset-0 z-[30] ${reduced ? "" : "animate-[mist-drift_40s_linear_infinite]"}`}
           style={{
-            backgroundImage: "radial-gradient(rgba(226,232,240,0.28) 40%, transparent 41%)",
+            backgroundImage: "radial-gradient(rgba(226,232,240,0.5) 40%, transparent 41%)",
             backgroundSize: "24px 24px",
-            backgroundColor: "rgba(203,213,225,0.16)",
+            backgroundColor: "rgba(203,213,225,0.22)",
           }}
         />
       )}

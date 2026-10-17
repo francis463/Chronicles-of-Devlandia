@@ -71,20 +71,20 @@ describe("mini-map terrain", () => {
     expect(box.querySelector(".border-dashed")).toBeNull();
   });
 
-  it("draws three cells in a row, Village, Peaks and Forest, each 64 × 36 and centred, and outlines yours", () => {
+  it("draws four cells in a row, Village, Peaks, Forest and Foggaten, each 48 × 28 and centred, and outlines yours", () => {
     render(<MiniMap zone="village" player={{ x: 50, y: 70 }} artifactFound={false} badges={[]} archiveOpen={false} />);
     const village = screen.getByTestId("minimap-cell-village");
     const peaks = screen.getByTestId("minimap-cell-peaks");
     expect(village.style.left).toBe("0px");
     expect(village).toHaveAttribute("data-current", "true");
     expect(within(village).getByTestId("minimap-current")).toBeInTheDocument();
-    expect(peaks.style.left).toBe("64px");
+    expect(peaks.style.left).toBe("48px");
     const forest = screen.getByTestId("minimap-cell-forest");
-    expect(forest.style.left).toBe("128px");
+    expect(forest.style.left).toBe("96px");
     for (const cell of [village, peaks, forest]) {
-      expect(cell.className).toContain("w-16");
-      expect(cell.className).toContain("h-9");
-      expect(cell.style.top).toBe("9px");
+      expect(cell.className).toContain("w-12");
+      expect(cell.className).toContain("h-7");
+      expect(cell.style.top).toBe("13px");
     }
     expect(forest).not.toHaveAttribute("data-current");
     expect(peaks).not.toHaveAttribute("data-current");
@@ -189,13 +189,13 @@ describe("mini-map: the Foggaten Island cell", () => {
     render(<MiniMap zone="peaks" player={{ x: 50, y: 50 }} {...base} />);
     expect(screen.getAllByTestId(/^minimap-cell-/)).toHaveLength(4);
     const island = screen.getByTestId("minimap-cell-foggaten");
-    expect(island.style.left).toBe("192px");
-    expect(island.style.top).toBe("9px");
+    expect(island.style.left).toBe("144px");
+    expect(island.style.top).toBe("13px");
     expect(island).not.toHaveAttribute("data-current");
     expect(island.querySelectorAll("div.border").length).toBe(5);
     expect(screen.getByTestId("minimap-cell-village").style.left).toBe("0px");
-    expect(screen.getByTestId("minimap-cell-peaks").style.left).toBe("64px");
-    expect(screen.getByTestId("minimap-cell-forest").style.left).toBe("128px");
+    expect(screen.getByTestId("minimap-cell-peaks").style.left).toBe("48px");
+    expect(screen.getByTestId("minimap-cell-forest").style.left).toBe("96px");
   });
 
   it("shows a teammate on the island there and nowhere else, and outlines the cell when you are there", () => {

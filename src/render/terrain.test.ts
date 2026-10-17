@@ -235,3 +235,15 @@ describe("the north wall", () => {
     for (const d of interior) expect(intersects(grow(boxOf(d), 4), band), key(d)).toBe(false);
   });
 });
+
+describe("decorations at sea", () => {
+  it("no tree or bush stands in the water, on the island or the Peaks' east shore; only reef rocks do", () => {
+    for (const zone of ["foggaten", "peaks"] as const) {
+      const area = AREAS[zone];
+      const all = decorations({ x: -64, y: -64, w: WORLD.width + 128, h: WORLD.height + 128 }, area);
+      const wet = all.filter((d) => area.terrainAt(d.at.x, d.at.y) === "sea");
+      expect(wet.length, zone).toBeGreaterThan(0);
+      for (const d of wet) expect(d.sprite, `${zone} ${d.sprite}@${d.at.x},${d.at.y}`).toBe("rock");
+    }
+  });
+});

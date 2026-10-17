@@ -33,6 +33,7 @@ The touch controls only appear on touch screens; keyboard players never see them
 - **Dev Village:** walk left off the map near base camp, through the gap in the hedge. Ada (`[V] Ada`, or `E` next to her) gives a hint for your next step. The signpost (`[P] Signpost`) points the way back east to the Peaks.
 - **Dense Forest:** walk down off the map at the south of the Peaks, through the gap in the trees (the `Forest ↓` sign). The forest has no wall and no fog. The ranger (`[R] Ranger`) gives hints for your next step, and the campfire, the old oak and the signpost (`[F]`, `[O]`, `[P]`) can be inspected. The signpost and the north gap lead back to the Peaks. A JavaScript chest stands in the forest's west.
 - **Terminal Gate:** press `E` next to it, or click `[G] Gate`. Fix the CSS property to open the gate. Stuck? Click `[ USE HINT ITEM ]`.
+- **Foggaten Island:** once the Terminal Gate is solved, the boatman at the Peaks' east dock (`[B] Dock`, on the shore) sails you across (until then it only says he is waiting for the gate). The island is one foggy screen: a hermit (`[H]`) gives hints for your next step, and an unlit lighthouse, a campfire and some ruins (`[L]`, `[F]`, `[R]`) can be inspected. The island's own dock sails you back. A slow mist drifts over it (still if your device is set to reduce motion), and the crossing fades to black for under a second. Nothing on the island changes your HP, stamina, speed or the quest, and it holds no chest yet. This is the first of several phases: a sailing mini-game, a lighthouse puzzle and a 12th chest, and a second island come next.
 - **Code chests:** 6 in the Peaks (3 of them north of the wall, so they wait for the gate), 4 in Dev Village (one inside the Archive) and 1 in the Dense Forest. Press `E` next to a chest or click its button; on a phone a chest's name shows when you're next to it. Each chest asks one question, picked at random for each game from a bank of 6: fill the blank in a snippet, or pick one of four answers (some ask what a snippet prints). A right answer earns that language's badge, and the chest stays open so you can review it.
 - **Typing or Blocks:** every code blank has a `Type` / `Blocks` switch. In Blocks mode, tap a tile to put it in the blank, drag it there with the mouse, or on a touch screen hold it and drag. `[ UNDO ]` and `[ RESET ]` step back through your edits.
 - **Live syntax check:** as you type, a line under the code says when what's in the blank can't be valid there (an unclosed quote, a word that isn't an SQL keyword…). It never tells you whether the answer is right. `[ SUBMIT CODE ]` waits until the blank passes the check, and after two wrong answers the drone shows its tip.
@@ -46,13 +47,13 @@ The touch controls only appear on touch screens; keyboard players never see them
 - The clock advances 5 in-game minutes every 2 seconds and cycles through day, dusk and night.
 - **Commands:** the side panel has a `LOG` tab and a `CHAT` tab (`COMMANDS` in a solo game). Type `/help` to see what runs where you are:
   - `/where` where your teammates are · `/time` the game clock · `/badges [name]` your badges, or what you know of a teammate's
-  - `/ping [place]` mark your spot, or a place (`gate`, `tower`, `cache`, `river`, `ada`, `signpost`, `terminal`, `archive`, or a chest such as `html`, `cpp1`, `sql`), for your team
+  - `/ping [place]` mark your spot, or a place (`gate`, `tower`, `cache`, `river`, `dock`, `pier`, `lighthouse`, `hermit`, `ada`, `signpost`, `terminal`, `archive`, or a chest such as `html`, `cpp1`, `sql`), for your team
   - `/weather snow|clear` snowfall and `/light day|night|auto` lighting, on your own map only
   - `/mute name` and `/unmute name` hide or show a teammate's messages (in the lobby, use the `[ Mute ]` button on their row)
 
   Commands answer only you (and `/ping` shows a ring on everyone's maps for 5 seconds). None of them can skip a puzzle or change anyone else's game.
 
-The map is drawn in pixel art on a canvas: snowy peaks, the frozen river, the meadow and the dense forest, with your hooded explorer and your AI drone. In team games your teammates are explorers in their own colours. Bushes, rocks and trees mark the edge of the walkable area, with a gap in the hedge where the path leads west, and a stone wall with a barred gate closes off the north. Dev Village has huts, a well and fences around a dirt square. The mini-map shows the village, the Peaks and the forest side by side, with yours outlined. Pixels stay sharp at any screen size; on some laptop scaling settings (such as Windows at 125 %) the map is drawn a little smaller to keep them sharp. If your device is set to reduce motion, characters step instead of gliding and the blinking lights, pulses and glints stay still.
+The map is drawn in pixel art on a canvas: snowy peaks, the frozen river, the meadow and the dense forest, with your hooded explorer and your AI drone. In team games your teammates are explorers in their own colours. Bushes, rocks and trees mark the edge of the walkable area, with a gap in the hedge where the path leads west, and a stone wall with a barred gate closes off the north. Dev Village has huts, a well and fences around a dirt square. The mini-map shows the village, the Peaks, the forest and Foggaten Island side by side, with yours outlined. Pixels stay sharp at any screen size; on some laptop scaling settings (such as Windows at 125 %) the map is drawn a little smaller to keep them sharp. If your device is set to reduce motion, characters step instead of gliding and the blinking lights, pulses and glints stay still.
 
 ## Accounts and saved badges
 
@@ -71,7 +72,7 @@ From the main menu choose **TEAM LOBBY**, type a nickname and pick a connection:
 
 One player presses **[ Create Room ]** and reads out the 4-letter room code; the others type it and press **[ Join ]**. The host (the creator) presses **[ Start Expedition ]** once at least 2 players are in. A player who joins after the start drops straight into the game. 
 
-In the game, teammates appear as colored dots with their names, and the top bar shows `ROOM <CODE> · <N> online`. A teammate in another zone (Peaks, Dev Village or Dense Forest) shows only on the mini-map.
+In the game, teammates appear as colored dots with their names, and the top bar shows `ROOM <CODE> · <N> online`. A teammate in another zone (Peaks, Dev Village, Dense Forest or Foggaten Island) shows only on the mini-map.
 
 - **Shared by the team:** surveying the river, the Supply Cache loot, the decoded clue, the Golden Semicolon, the north gate, the signal tower (its lifted fog and the bridge), the Archive, and the clock. Everyone's Syntax Terminal prints the same access code, so once one player unseals the Archive it's open for all.
 - **Your own:** your zone, position, HP, stamina, terminals and badges. Badges are personal: each explorer opens their own chest.
@@ -100,7 +101,7 @@ The menu's **Leaderboards** button shows the top 20 players by badges earned (ou
 ## Project layout
 
 ```
-src/game/      pure game rules: constants, classes, geometry, clock, cipher, logic, challenges, roll, cards, team, wall, zones, village, forest, reducer
+src/game/      pure game rules: constants, classes, geometry, clock, cipher, logic, challenges, roll, cards, team, wall, zones, village, forest, island, reducer
 src/learn/     the challenge engine and question bank: live check, shuffling, access codes, the 11 chests and their questions
 src/chat/      chat rules and commands: text cleaning and masking, display names, ping places, the command line
 src/hooks/     keyboard controls, game timers, team session, chat feed, pings
