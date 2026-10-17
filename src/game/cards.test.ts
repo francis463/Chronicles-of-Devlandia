@@ -5,7 +5,7 @@ import { initialState } from "./reducer";
 import type { GameState } from "./types";
 import { rangerLine } from "./forest";
 import { adaLine } from "./village";
-import { hermitLine } from "./island";
+import { ISLAND_COPY, hermitLine } from "./island";
 
 const village: GameState = { ...initialState, zone: "village" };
 
@@ -63,6 +63,11 @@ describe("cardFor: Foggaten Island", () => {
       expect(card?.title, id).toBe(title);
       expect(card?.text.length, id).toBeGreaterThan(10);
     }
+  });
+
+  it("the lighthouse's card changes once the lamp is lit", () => {
+    expect(cardFor({ ...island, inspected: "lighthouse" })?.text).toBe(ISLAND_COPY.lighthouse);
+    expect(cardFor({ ...island, lighthouseLit: true, inspected: "lighthouse" })?.text).toBe(ISLAND_COPY.lighthouseLit);
   });
 
   it("the hermit's card is his current hint", () => {

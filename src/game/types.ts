@@ -1,5 +1,6 @@
 import type { ChallengeTarget, ChestId, SubmitValue } from "../learn/types";
 import type { Picks } from "../learn/chests";
+import type { Bits8 } from "./lamp";
 import type { Bits } from "./logic";
 import type { TeamFlags } from "./team";
 import type { ZoneId } from "./zones";
@@ -64,6 +65,11 @@ export type GameState = {
   logicOpen: boolean;
   logicError: string | null;
   logicHintRevealed: boolean;
+  /** The Lighthouse Lamp terminal: open, its last error, wrong runs so far, and whether the drone's tip shows. */
+  lampOpen: boolean;
+  lampError: string | null;
+  lampTries: number;
+  lampHintRevealed: boolean;
   /** Which bank challenge each chest asks this game. */
   picks: Picks;
   /** The per-game shuffle seed for options, tiles and labels. */
@@ -80,6 +86,7 @@ export type GameState = {
   accessCode: string;
   /** Shared with the team. */
   archiveOpen: boolean;
+  lighthouseLit: boolean;
   codexOpen: boolean;
   logs: string[];
   /** Total entries ever logged; gives each visible entry a stable identity. */
@@ -104,6 +111,10 @@ export type GameAction =
   | { type: "submitLogic"; bits: Bits }
   | { type: "closeLogic" }
   | { type: "revealLogicHint" }
+  | { type: "submitLamp"; bits: Bits8 }
+  | { type: "closeLamp" }
+  | { type: "resetLamp" }
+  | { type: "revealLampHint" }
   | { type: "teamSync"; flags: TeamFlags; by: string }
   | { type: "note"; text: string }
   | { type: "respawn" };

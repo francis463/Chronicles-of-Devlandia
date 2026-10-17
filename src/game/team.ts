@@ -18,6 +18,7 @@ export type TeamFlags = {
   gateUnlocked: boolean;
   towerPowered: boolean;
   archiveOpen: boolean;
+  lighthouseLit: boolean;
 };
 export type FlagKey = keyof TeamFlags;
 
@@ -61,9 +62,11 @@ export const JOIN_TIMEOUT_MS = 12_000;
 export const POS_INTERVAL_MS = 250;
 const MAX_START_SKEW_MS = 86_400_000;
 
-const FLAG_KEYS: FlagKey[] = ["questComplete", "hasLoot", "clueDecoded", "artifactFound", "gateUnlocked", "towerPowered", "archiveOpen"];
-/** Every version sends these; newer flags are optional so older clients' messages still parse. */
-const REQUIRED_FLAGS: FlagKey[] = FLAG_KEYS.filter((k) => k !== "archiveOpen");
+const FLAG_KEYS: FlagKey[] = ["questComplete", "hasLoot", "clueDecoded", "artifactFound", "gateUnlocked", "towerPowered", "archiveOpen", "lighthouseLit"];
+/** Newer flags are optional on the wire, so older clients' messages still parse (missing or odd means false). */
+const OPTIONAL_FLAGS: FlagKey[] = ["archiveOpen", "lighthouseLit"];
+/** Every version sends these. */
+const REQUIRED_FLAGS: FlagKey[] = FLAG_KEYS.filter((k) => !OPTIONAL_FLAGS.includes(k));
 
 export const NO_FLAGS: TeamFlags = {
   questComplete: false,
@@ -73,6 +76,7 @@ export const NO_FLAGS: TeamFlags = {
   gateUnlocked: false,
   towerPowered: false,
   archiveOpen: false,
+  lighthouseLit: false,
 };
 
 const TEAMMATE_LOG: Record<FlagKey, (name: string) => string> = {
@@ -83,6 +87,7 @@ const TEAMMATE_LOG: Record<FlagKey, (name: string) => string> = {
   gateUnlocked: (n) => `${n} opened the gate.`,
   towerPowered: (n) => `${n} powered the signal tower. The fog lifts and the bridge returns.`,
   archiveOpen: (n) => `${n} unsealed the Archive.`,
+  lighthouseLit: (n) => `${n} lit the lighthouse. Its beam sweeps the fog.`,
 };
 
 // ── Flags ─────────────────────────────────────────────────────────────────
@@ -153,10 +158,10 @@ function parseZone(v: unknown): ZoneId | null {
   return v === "peaks" || v === "village" || v === "forest" || v === "foggaten" ? v : null;
 }
 
-/** The six original flags must be booleans; `archiveOpen` is read leniently (missing or odd means false). */
+/** The six original flags must be booleans; the newer ones are read leniently (missing or odd means false). */
 function parseFlags(v: unknown): TeamFlags | null {
   if (!isObj(v) || !REQUIRED_FLAGS.every((k) => typeof v[k] === "boolean")) return null;
-  return { ...(Object.fromEntries(REQUIRED_FLAGS.map((k) => [k, v[k]])) as Omit<TeamFlags, "archiveOpen">), archiveOpen: v.archiveOpen === true };
+  return Object.fromEntries(FLAG_KEYS.map((k) => [k, OPTIONAL_FLAGS.includes(k) ? v[k] === true : v[k]])) as TeamFlags;
 }
 
 export function parsePresence(raw: unknown, now: number): PresenceMeta | null {

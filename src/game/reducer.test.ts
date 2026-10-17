@@ -3,7 +3,8 @@ import { gameReducer, initialState, isDowned, isModalOpen, reachPlaces, revealed
 import { placeInReach } from "./geometry";
 import type { ChallengeState, ChallengeTarget, GameState, Point } from "./types";
 import { NO_FLAGS } from "./team";
-import { DOCK, HIDDEN_ARTIFACT, INTERACT_RADIUS, ISLAND_DOCK, LOG, PLAYER_START, POIS, SAIL_LANDING } from "./constants";
+import { DOCK, HIDDEN_ARTIFACT, INTERACT_RADIUS, ISLAND_DOCK, LIGHTHOUSE, LOG, PLAYER_START, POIS, SAIL_LANDING } from "./constants";
+import type { Bits8 } from "./lamp";
 import { cardFor } from "./cards";
 import { hermitLine } from "./island";
 import { isNorthOfWall } from "./wall";
@@ -1006,5 +1007,97 @@ describe("gameReducer: sailing to Foggaten Island", () => {
     const island: GameState = { ...s0, zone: "foggaten", player: { x: 94, y: 70 } };
     expect(gameReducer(island, { type: "move", dir: "right" }).player).toEqual(island.player);
     expect(gameReducer(island, { type: "riverDamage" }).hp).toBe(island.hp);
+  });
+});
+
+describe("gameReducer: the lighthouse lamp", () => {
+  const bitsOf = (n: number): Bits8 => n.toString(2).padStart(8, "0").split("").map(Number) as Bits8;
+  const island: GameState = { ...s0, zone: "foggaten", gateUnlocked: true, player: { x: LIGHTHOUSE.x + 2, y: LIGHTHOUSE.y } };
+  const lamp = (over: Partial<GameState> = {}): GameState => ({ ...island, lampOpen: true, ...over });
+  const interact = (s: GameState) => gameReducer(s, { type: "interact", poi: "lighthouse" });
+
+  it("starts unlit with the lamp terminal closed", () => {
+    expect([s0.lighthouseLit, s0.lampOpen, s0.lampError, s0.lampTries, s0.lampHintRevealed]).toEqual([false, false, null, 0, false]);
+  });
+
+  it("E at the unlit lighthouse opens the lamp terminal, a modal", () => {
+    const s = interact(island);
+    expect(s).toMatchObject({ lampOpen: true, inspected: "lighthouse", lampError: null, lampTries: 0 });
+    expect(lastLog(s)).toBe(LOG.lampOpened);
+    expect(isModalOpen(s)).toBe(true);
+  });
+
+  it("needs you beside it: from far away only the card shows", () => {
+    const s = interact({ ...island, player: { x: 10, y: 10 } });
+    expect(s.lampOpen).toBe(false);
+    expect(s.inspected).toBe("lighthouse");
+  });
+
+  it("does not open over another modal", () => {
+    for (const over of [{ codexOpen: true }, { logicOpen: true }, { challenge: openOn("gate") }]) {
+      const s: GameState = { ...island, ...over };
+      expect(interact(s)).toBe(s);
+    }
+  });
+
+  it("once lit it only inspects, and says so", () => {
+    const s = interact({ ...island, lighthouseLit: true });
+    expect(s).toMatchObject({ lampOpen: false, inspected: "lighthouse" });
+    expect(lastLog(s)).toBe(LOG.lighthouseOnline);
+  });
+
+  it("01001000 lights it for the team, closes the terminal and changes nothing else", () => {
+    const s = gameReducer(lamp({ hp: 77, stamina: 55, minutes: 100 }), { type: "submitLamp", bits: bitsOf(72) });
+    expect(s).toMatchObject({ lighthouseLit: true, lampOpen: false, lampError: null, hp: 77, stamina: 55, minutes: 100 });
+    expect(s.badges).toEqual(island.badges);
+    expect(lastLog(s)).toBe(LOG.lampLit);
+  });
+
+  it("every other setting from 0 to 255 leaves it dark with the terminal open", () => {
+    for (let n = 0; n < 256; n++) {
+      if (n === 72) continue;
+      const s = gameReducer(lamp(), { type: "submitLamp", bits: bitsOf(n) });
+      expect(s.lighthouseLit, String(n)).toBe(false);
+      expect(s.lampOpen, String(n)).toBe(true);
+      expect(s.lampError, String(n)).toMatch(/^The lamp sent "(.|\?)"\. It should send "H"\./);
+    }
+  });
+
+  it("the drone's tip comes on the second wrong run", () => {
+    const first = gameReducer(lamp(), { type: "submitLamp", bits: bitsOf(75) });
+    expect(first).toMatchObject({ lampTries: 1, lampHintRevealed: false, lampError: 'The lamp sent "K". It should send "H".' });
+    const second = gameReducer(first, { type: "submitLamp", bits: bitsOf(0) });
+    expect(second).toMatchObject({ lampTries: 2, lampHintRevealed: true, lampError: 'The lamp sent "?". It should send "H". The drone has a tip below.' });
+  });
+
+  it("ignores crafted submissions and a submission with no terminal open", () => {
+    const open = lamp();
+    for (const bits of [[0, 1, 0, 0, 1, 0, 0], [0, 1, 0, 0, 1, 0, 0, 0, 0], [2, 0, 0, 0, 0, 0, 0, 0], "01001000", null]) {
+      expect(gameReducer(open, { type: "submitLamp", bits: bits as unknown as Bits8 })).toBe(open);
+    }
+    expect(gameReducer(island, { type: "submitLamp", bits: bitsOf(72) })).toBe(island);
+  });
+
+  it("close, reset and the hint item each do one thing", () => {
+    const wrong = gameReducer(lamp(), { type: "submitLamp", bits: bitsOf(1) });
+    expect(gameReducer(wrong, { type: "resetLamp" })).toMatchObject({ lampOpen: true, lampError: null, lampTries: 1 });
+    expect(gameReducer(wrong, { type: "closeLamp" })).toMatchObject({ lampOpen: false, lampError: null });
+    expect(gameReducer(lamp(), { type: "revealLampHint" }).lampHintRevealed).toBe(true);
+  });
+
+  it("while it is open the Codex, sailing, other places and movement are refused", () => {
+    const s = lamp({ player: { x: ISLAND_DOCK.x + 2, y: ISLAND_DOCK.y } });
+    expect(gameReducer(s, { type: "toggleCodex" })).toBe(s);
+    expect(gameReducer(s, { type: "sail", to: "peaks" })).toBe(s);
+    expect(gameReducer(s, { type: "interact", poi: "island-dock" })).toBe(s);
+    expect(gameReducer(s, { type: "move", dir: "up" }).player).toEqual(s.player);
+  });
+
+  it("a teammate lighting it closes your terminal and logs only their line; it never goes dark", () => {
+    const open = lamp();
+    const synced = gameReducer(open, { type: "teamSync", flags: { ...NO_FLAGS, lighthouseLit: true }, by: "Kai" });
+    expect(synced).toMatchObject({ lighthouseLit: true, lampOpen: false });
+    expect(lastLog(synced)).toBe("Kai lit the lighthouse. Its beam sweeps the fog.");
+    expect(gameReducer(synced, { type: "teamSync", flags: NO_FLAGS, by: "Mia" })).toBe(synced);
   });
 });

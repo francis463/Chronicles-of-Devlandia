@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ADA, CAMPFIRE, FOREST_SIGNPOST, HIDDEN_ARTIFACT, OLD_OAK, POIS, RANGER, SIGNPOST } from "./constants";
+import { ADA, CAMPFIRE, FOREST_SIGNPOST, HIDDEN_ARTIFACT, LIGHTHOUSE, OLD_OAK, POIS, RANGER, SIGNPOST } from "./constants";
 import { clampPlayer, distance, interactLabel, isInRiver, nearestPoi, placeInReach, poiInRange, promptText } from "./geometry";
 import { initialState } from "./reducer";
 import type { GameState } from "./types";
@@ -77,5 +77,13 @@ describe("geometry", () => {
     expect(promptText({ ...village, archiveOpen: true, badges: ["chest-cs"] }, place("archive"))).toBe("[E] Review C# Chest");
     const gate = POIS.find((p) => p.id === "gate")!;
     expect([promptText(initialState, gate), interactLabel(initialState, gate)]).toEqual(["[E] Inspect Terminal Gate", "Terminal Gate"]);
+  });
+});
+
+describe("the lighthouse's verb", () => {
+  it("is Light the Lamp until the lamp is lit, then Inspect Lighthouse", () => {
+    const island: GameState = { ...initialState, zone: "foggaten" };
+    expect(promptText(island, LIGHTHOUSE)).toBe("[E] Light the Lamp");
+    expect(promptText({ ...island, lighthouseLit: true }, LIGHTHOUSE)).toBe("[E] Inspect Lighthouse");
   });
 });

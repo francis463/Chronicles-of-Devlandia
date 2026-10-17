@@ -40,8 +40,9 @@ export function cardFor(s: GameState): Card | null {
       return card(place.label, hermitLine(s));
     case "dock":
       return card(place.label, s.gateUnlocked ? ISLAND_COPY.dock.default : ISLAND_COPY.dock.locked);
-    case "island-dock":
     case "lighthouse":
+      return card(place.label, s.lighthouseLit ? ISLAND_COPY.lighthouseLit : ISLAND_COPY.lighthouse);
+    case "island-dock":
     case "island-fire":
     case "ruins":
       return card(place.label, ISLAND_COPY[place.id]);

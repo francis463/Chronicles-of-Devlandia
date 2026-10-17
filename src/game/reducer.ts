@@ -15,10 +15,12 @@ import {
   HIDDEN_ARTIFACT,
   DOCK,
   INTERACT_RADIUS,
+  LIGHTHOUSE,
   ISLAND_DOCK,
   SAIL_LANDING,
 } from "./constants";
 import { clampPlayer, distance, isInRiver } from "./geometry";
+import { isBits8, lampError } from "./lamp";
 import { circuitError } from "./logic";
 import { accessCode } from "../learn/access";
 import { ARCHIVE_LOCK } from "../learn/bank/builtin";
@@ -51,6 +53,10 @@ export const initialState: GameState = {
   logicOpen: false,
   logicError: null,
   logicHintRevealed: false,
+  lampOpen: false,
+  lampError: null,
+  lampTries: 0,
+  lampHintRevealed: false,
   picks: Object.fromEntries(CHEST_IDS.map((id) => [id, 0])) as Picks,
   seed: 0,
   badges: [],
@@ -61,6 +67,7 @@ export const initialState: GameState = {
   matcherSolved: false,
   accessCode: accessCode(0),
   archiveOpen: false,
+  lighthouseLit: false,
   codexOpen: false,
   logs: INITIAL_LOGS,
   logCount: INITIAL_LOGS.length,
@@ -69,7 +76,7 @@ export const initialState: GameState = {
 export const isDowned = (s: GameState) => s.hp <= 0;
 
 /** True while a challenge terminal, the tower's logic lock or the Codex is open: movement, time and hazards pause. */
-export const isModalOpen = (s: GameState) => s.challenge !== null || s.logicOpen || s.codexOpen;
+export const isModalOpen = (s: GameState) => s.challenge !== null || s.logicOpen || s.lampOpen || s.codexOpen;
 
 /** Hidden points of interest that are currently diggable: the artifact, after decoding, until found. */
 /** What you can use in your zone: its places, plus the dig spot in the Peaks once revealed. */
@@ -275,7 +282,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         return distance(state.player, route.dock) > INTERACT_RADIUS ? { ...state, inspected: action.poi } : sail(state, route.to);
       }
       if (action.poi === "hermit") return pushLogOnce({ ...state, inspected: "hermit" }, `Hermit: "${hermitLine(state)}"`);
-      if (action.poi === "lighthouse" || action.poi === "island-fire" || action.poi === "ruins") return { ...state, inspected: action.poi };
+      if (action.poi === "lighthouse") {
+        if (state.lighthouseLit) return pushLog({ ...state, inspected: "lighthouse" }, LOG.lighthouseOnline);
+        // The map's button works from anywhere; the lamp lock needs you beside the lighthouse.
+        if (distance(state.player, LIGHTHOUSE) > INTERACT_RADIUS) return { ...state, inspected: "lighthouse" };
+        return pushLog({ ...state, inspected: "lighthouse", lampOpen: true, lampError: null, lampTries: 0, lampHintRevealed: false }, LOG.lampOpened);
+      }
+      if (action.poi === "island-fire" || action.poi === "ruins") return { ...state, inspected: action.poi };
       if (action.poi === "ranger") return pushLogOnce({ ...state, inspected: "ranger" }, `Ranger: "${rangerLine(state)}"`);
       if (action.poi === "signpost" || action.poi === "campfire" || action.poi === "old-oak" || action.poi === "forest-signpost")
         return { ...state, inspected: action.poi };
@@ -343,7 +356,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, logicError: null };
     case "toggleCodex":
       if (state.codexOpen) return { ...state, codexOpen: false };
-      return state.challenge === null && !state.logicOpen ? { ...state, codexOpen: true } : state;
+      return state.challenge === null && !state.logicOpen && !state.lampOpen ? { ...state, codexOpen: true } : state;
     case "submitLogic": {
       const error = circuitError(action.bits);
       if (error) return { ...state, logicError: error };
@@ -353,6 +366,19 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, logicOpen: false, logicError: null };
     case "revealLogicHint":
       return { ...state, logicHintRevealed: true };
+    case "submitLamp": {
+      if (!state.lampOpen || !isBits8(action.bits)) return state;
+      const error = lampError(action.bits);
+      if (!error) return pushLog({ ...state, lighthouseLit: true, lampOpen: false, lampError: null }, LOG.lampLit);
+      const lampTries = state.lampTries + 1;
+      return { ...state, lampTries, lampError: lampTries >= 2 ? error + DRONE_NOTE : error, lampHintRevealed: state.lampHintRevealed || lampTries >= 2 };
+    }
+    case "closeLamp":
+      return { ...state, lampOpen: false, lampError: null };
+    case "resetLamp":
+      return { ...state, lampError: null };
+    case "revealLampHint":
+      return { ...state, lampHintRevealed: true };
     case "teamSync": {
       const before = flagsOf(state);
       const added = newlySet(before, mergeFlags(before, action.flags));
@@ -364,7 +390,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         (target === "gate" && merged.gateUnlocked) ||
         (target === "cipher" && merged.clueDecoded) ||
         (target === "archive" && merged.archiveOpen);
-      const synced = stale ? { ...merged, challenge: null } : merged;
+      const closed = merged.lampOpen && merged.lighthouseLit ? { ...merged, lampOpen: false, lampError: null } : merged;
+      const synced = stale ? { ...closed, challenge: null } : closed;
       return added.reduce((s, key) => pushLog(s, teammateLog(action.by, key)), synced);
     }
     case "note":
