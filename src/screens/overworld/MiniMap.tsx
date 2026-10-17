@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react";
-import { ADA, ARCHIVE, CAMPFIRE, FOREST_SIGNPOST, HIDDEN_ARTIFACT, OLD_OAK, POIS, RANGER, SIGNPOST } from "../../game/constants";
+import { ADA, ARCHIVE, CAMPFIRE, FOREST_SIGNPOST, HERMIT, HIDDEN_ARTIFACT, ISLAND_DOCK, ISLAND_FIRE, LIGHTHOUSE, OLD_OAK, POIS, RANGER, RUINS, SIGNPOST } from "../../game/constants";
 import { WALL_Y } from "../../game/wall";
 import type { Poi, Point } from "../../game/types";
 import type { ZoneId } from "../../game/zones";
@@ -59,11 +59,12 @@ export function paintMiniTerrain(ctx: Ctx2D, width: number, height: number, zone
 const CELL_W = 64; // w-16
 const CELL_H = 36; // h-9: 16:9, centred in the box's 54 px (9 px above and below)
 const CELL_TOP = 9;
-/** The world map, west to east. The forest lies south of the Peaks; the cells keep one row to fit the sidebar. */
+/** The world map, west to east. The forest lies south of the Peaks and Foggaten Island east of them; the cells keep one row to fit the sidebar. */
 const CELLS: Array<{ zone: ZoneId; left: number; places: Poi[] }> = [
   { zone: "village", left: 0, places: [ADA, SIGNPOST] },
   { zone: "peaks", left: CELL_W, places: POIS },
   { zone: "forest", left: 2 * CELL_W, places: [RANGER, CAMPFIRE, OLD_OAK, FOREST_SIGNPOST] },
+  { zone: "foggaten", left: 3 * CELL_W, places: [ISLAND_DOCK, LIGHTHOUSE, HERMIT, ISLAND_FIRE, RUINS] },
 ];
 
 const at = (p: Point) => ({ left: `${p.x}%`, top: `${p.y}%` });
@@ -135,7 +136,7 @@ export function MiniMap({
       <div
         aria-label="Mini-map"
         role="img"
-        className="relative h-14 w-[194px] flex-shrink-0 overflow-hidden rounded border border-[var(--panel-border)] bg-[var(--bg)]"
+        className="relative h-14 w-[258px] flex-shrink-0 overflow-hidden rounded border border-[var(--panel-border)] bg-[var(--bg)]"
       >
         {CELLS.map((cell) => (
           <MiniCell key={cell.zone} zone={cell.zone} left={cell.left} current={cell.zone === zone}>

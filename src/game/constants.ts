@@ -29,8 +29,8 @@ export const ARCHIVE: Poi = { id: "archive", label: "Archive", x: 55, y: 66 };
 /** The Peaks' dock on the east shore, and Foggaten Island's: its dock, lighthouse, hermit, campfire and ruins. */
 export const DOCK: Poi = { id: "dock", label: "Dock", x: 92, y: 74 };
 export const ISLAND_DOCK: Poi = { id: "island-dock", label: "Dock", x: 8, y: 62 };
-export const LIGHTHOUSE: Poi = { id: "lighthouse", label: "Lighthouse", x: 50, y: 38 };
-export const HERMIT: Poi = { id: "hermit", label: "Hermit", x: 58, y: 62 };
+export const LIGHTHOUSE: Poi = { id: "lighthouse", label: "Lighthouse", x: 50, y: 46 };
+export const HERMIT: Poi = { id: "hermit", label: "Hermit", x: 68, y: 62 };
 export const ISLAND_FIRE: Poi = { id: "island-fire", label: "Campfire", x: 44, y: 66 };
 export const RUINS: Poi = { id: "ruins", label: "Ruins", x: 28, y: 50 };
 /** Where you and the drone land after sailing: a few steps in from the other island's dock. */

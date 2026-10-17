@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POIS } from "../../game/constants";
@@ -408,5 +408,44 @@ describe("MapViewport: the Dense Forest", () => {
     rerender(<MapViewport {...props({ zone: "forest" })} />);
     expect(screen.getByTestId("zone-fade")).not.toBe(fade);
     expect(screen.getByTestId("world-layer")).not.toBe(layer);
+  });
+});
+
+describe("MapViewport on Foggaten Island", () => {
+  const island = (over: Partial<Props> = {}) => props({ zone: "foggaten", player: { x: 30, y: 70 }, drone: { x: 34, y: 68 }, ...over });
+  const reduceMotion = () => {
+    window.matchMedia = ((query: string) => ({ media: query, matches: true, addEventListener: () => {}, removeEventListener: () => {} })) as unknown as typeof window.matchMedia;
+  };
+
+  it("shows the island's caption and buttons", () => {
+    render(<MapViewport {...island()} />);
+    expect(screen.getByText("(Foggaten Island Biome)")).toBeInTheDocument();
+    for (const name of ["[B] Dock", "[L] Lighthouse", "[H] Hermit", "[F] Campfire", "[R] Ruins"]) expect(screen.getByRole("button", { name })).toBeInTheDocument();
+  });
+
+  it("drifts a mist over the island only, hidden from assistive tech, and holds it still with reduced motion", () => {
+    const { rerender } = render(<MapViewport {...props()} />);
+    expect(screen.queryByTestId("mist")).toBeNull();
+    rerender(<MapViewport {...island()} />);
+    const mist = screen.getByTestId("mist");
+    expect(mist).toHaveAttribute("aria-hidden", "true");
+    expect(mist.className).toContain("pointer-events-none");
+    expect(mist.className).toContain("animate-[mist-drift");
+    cleanup();
+    reduceMotion();
+    render(<MapViewport {...island()} />);
+    expect(screen.getByTestId("mist").className).not.toContain("mist-drift");
+  });
+
+  it("covers the map with the crossing fade only while a boat crossing is under way", () => {
+    vi.useFakeTimers();
+    const { rerender } = render(<MapViewport {...props()} />);
+    expect(screen.getByTestId("crossing-fade").style.opacity).toBe("0");
+    expect(screen.getByTestId("crossing-fade")).toHaveAttribute("aria-hidden", "true");
+    rerender(<MapViewport {...island()} />);
+    expect(screen.getByTestId("crossing-fade").style.opacity).toBe("1");
+    act(() => void vi.advanceTimersByTime(700));
+    expect(screen.getByTestId("crossing-fade").style.opacity).toBe("0");
+    vi.useRealTimers();
   });
 });

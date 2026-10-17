@@ -732,3 +732,28 @@ describe("Overworld: saved badges", () => {
     expect(screen.getAllByText(LOG.saveFailed)).toHaveLength(1);
   });
 });
+
+describe("Overworld Foggaten Island", () => {
+  const atDock = { player: { x: 92, y: 74 } };
+
+  it("sailing from the Peaks' dock with the gate open lands on the island, and sailing back returns", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} initial={{ ...atDock, gateUnlocked: true }} />);
+    await user.click(screen.getByRole("button", { name: "[B] Dock" }));
+    expect(screen.getByText("(Foggaten Island Biome)")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "[H] Hermit" })).toBeInTheDocument();
+    expect(screen.getByText(LOG.sailOut)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "[B] Dock" }));
+    expect(screen.getByText("(Snowy Peaks Biome)")).toBeInTheDocument();
+    expect(screen.getByText(LOG.sailBack)).toBeInTheDocument();
+  });
+
+  it("with the gate closed the dock is locked and the zone does not change", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} initial={atDock} />);
+    await user.click(screen.getByRole("button", { name: "[B] Dock" }));
+    expect(screen.getByText(LOG.dockLocked)).toBeInTheDocument();
+    expect(screen.getByText("(Snowy Peaks Biome)")).toBeInTheDocument();
+    expect(screen.queryByText("(Foggaten Island Biome)")).toBeNull();
+  });
+});

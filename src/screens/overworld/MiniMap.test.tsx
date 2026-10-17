@@ -62,7 +62,7 @@ describe("mini-map terrain", () => {
     render(<MiniMap zone="peaks" player={{ x: 28, y: 72 }} artifactFound={false} teammates={[{ id: "k", name: "Kai", color: "#a78bfa", x: 60, y: 60, zone: "peaks" }]} badges={[]} archiveOpen={false} />);
     const box = screen.getByRole("img", { name: "Mini-map" });
     const canvases = [...box.querySelectorAll("canvas")];
-    expect(canvases).toHaveLength(3);
+    expect(canvases).toHaveLength(4);
     for (const canvas of canvases) {
       expect(canvas).toHaveAttribute("aria-hidden", "true");
       expect(canvas.parentElement!.firstElementChild).toBe(canvas);
@@ -179,5 +179,32 @@ describe("mini-map artifact", () => {
     const dot = (cell: string) => screen.getByTestId(`minimap-cell-${cell}`).querySelectorAll(".rotate-45.bg-\\[var\\(--accent\\)\\]");
     expect(dot("forest")).toHaveLength(1);
     expect(dot("peaks")).toHaveLength(0);
+  });
+});
+
+describe("mini-map: the Foggaten Island cell", () => {
+  const base = { artifactFound: false, badges: [] as never[], archiveOpen: false };
+
+  it("is a fourth cell east of the forest with the island's places, and the other three stay put", () => {
+    render(<MiniMap zone="peaks" player={{ x: 50, y: 50 }} {...base} />);
+    expect(screen.getAllByTestId(/^minimap-cell-/)).toHaveLength(4);
+    const island = screen.getByTestId("minimap-cell-foggaten");
+    expect(island.style.left).toBe("192px");
+    expect(island.style.top).toBe("9px");
+    expect(island).not.toHaveAttribute("data-current");
+    expect(island.querySelectorAll("div.border").length).toBe(5);
+    expect(screen.getByTestId("minimap-cell-village").style.left).toBe("0px");
+    expect(screen.getByTestId("minimap-cell-peaks").style.left).toBe("64px");
+    expect(screen.getByTestId("minimap-cell-forest").style.left).toBe("128px");
+  });
+
+  it("shows a teammate on the island there and nowhere else, and outlines the cell when you are there", () => {
+    const teammates = [{ id: "k", name: "Kai", color: "#a78bfa", x: 40, y: 60, zone: "foggaten" as const }];
+    render(<MiniMap zone="foggaten" player={{ x: 20, y: 60 }} {...base} teammates={teammates} />);
+    const island = screen.getByTestId("minimap-cell-foggaten");
+    expect(island).toHaveAttribute("data-current", "true");
+    expect(within(island).getByTestId("minimap-teammate-Kai")).toBeInTheDocument();
+    expect(within(island).getByTestId("minimap-player")).toBeInTheDocument();
+    expect(within(screen.getByTestId("minimap-cell-peaks")).queryByTestId("minimap-teammate-Kai")).toBeNull();
   });
 });

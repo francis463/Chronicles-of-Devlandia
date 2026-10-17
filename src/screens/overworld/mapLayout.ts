@@ -2,7 +2,9 @@ import type { PoiId, Point } from "../../game/types";
 import type { ZoneId } from "../../game/zones";
 import { CHESTS } from "../../learn/chests";
 import type { ChestId } from "../../learn/types";
+import { FOGGATEN_POINTS } from "../../render/areas/foggaten";
 import { FOREST_POINTS } from "../../render/areas/forest";
+import { DOCK_POINT } from "../../render/areas/peaks";
 import { VILLAGE_POINTS } from "../../render/areas/village";
 import { ARCHIVE_POINT, TERMINAL_POINT } from "../../render/learnPoints";
 import { spriteBox, type SpriteId } from "../../render/sprites";
@@ -115,6 +117,12 @@ export const LANDMARK_CAPTIONS: readonly LandmarkCaption[] = [
   { id: "campfire", zone: "forest", sprite: "campfire", point: FOREST_POINTS.campfire, texts: ["[F] Campfire"], prefer: "below" },
   { id: "old-oak", zone: "forest", sprite: "old-oak", point: FOREST_POINTS.oak, texts: ["[O] Old Oak"], prefer: "above" },
   { id: "forest-signpost", zone: "forest", sprite: "signpost", point: FOREST_POINTS.signpost, texts: ["[P] Signpost"], prefer: "below" },
+  { id: "dock", zone: "peaks", sprite: "dock", point: DOCK_POINT, texts: ["[B] Dock"], prefer: "below" },
+  { id: "island-dock", zone: "foggaten", sprite: "dock", point: FOGGATEN_POINTS.dock, texts: ["[B] Dock"], prefer: "below" },
+  { id: "lighthouse", zone: "foggaten", sprite: "lighthouse", point: FOGGATEN_POINTS.lighthouse, texts: ["[L] Lighthouse"], prefer: "above" },
+  { id: "hermit", zone: "foggaten", sprite: "explorer-down", point: FOGGATEN_POINTS.hermit, texts: ["[H] Hermit"], prefer: "above" },
+  { id: "island-fire", zone: "foggaten", sprite: "campfire", point: FOGGATEN_POINTS.fire, texts: ["[F] Campfire"], prefer: "below" },
+  { id: "ruins", zone: "foggaten", sprite: "ruins", point: FOGGATEN_POINTS.ruins, texts: ["[R] Ruins"], prefer: "above" },
   { id: "terminal", zone: "village", sprite: "syntax-terminal", point: TERMINAL_POINT, texts: ["Terminal"], prefer: "below" },
   { id: "archive", zone: "village", sprite: "archive", point: ARCHIVE_POINT, texts: ["Archive", "C#", "C# ✓"], prefer: "above" },
   ...CHESTS.flatMap((c): LandmarkCaption[] =>
@@ -167,13 +175,14 @@ export function landmarkCaptions(world: WorldRect, map: MapArea, state: MapState
 export const MAP_CAPTIONS = [
   { id: "peaks", zone: "peaks", at: { x: 40, y: 4 }, align: "centre" },
   { id: "river", zone: "peaks", at: { x: 42, y: 22 }, align: "centre" },
-  { id: "forest", zone: "peaks", at: { x: 97, y: 98 }, align: "right-bottom" },
+  { id: "forest", zone: "peaks", at: { x: 76, y: 98 }, align: "right-bottom" },
   { id: "village", zone: "village", at: { x: 40, y: 4 }, align: "centre" },
   { id: "west-exit", zone: "peaks", at: { x: 1, y: 88 }, align: "left-centre" },
   { id: "east-exit", zone: "village", at: { x: 99, y: 88 }, align: "right-centre" },
   { id: "south-exit", zone: "peaks", at: { x: 70, y: 85 }, align: "centre" },
   { id: "dense-forest", zone: "forest", at: { x: 40, y: 4 }, align: "centre" },
   { id: "north-exit", zone: "forest", at: { x: 64, y: 18 }, align: "centre" },
+  { id: "foggaten", zone: "foggaten", at: { x: 40, y: 4 }, align: "centre" },
 ] as const satisfies ReadonlyArray<{ id: string; zone: ZoneId; at: Point; align: "centre" | "right-bottom" | "left-centre" | "right-centre" }>;
 export type MapCaptionId = (typeof MAP_CAPTIONS)[number]["id"];
 

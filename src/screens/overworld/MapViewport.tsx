@@ -6,6 +6,8 @@ import { chestById } from "../../learn/chests";
 import type { ChestId } from "../../learn/types";
 import type { Poi, PoiId, Point } from "../../game/types";
 import type { ZoneId } from "../../game/zones";
+import { useCrossingFade } from "../../hooks/useCrossingFade";
+import { useReducedMotion } from "../../hooks/useReducedMotion";
 import type { ActivePing } from "../../hooks/usePings";
 import type { Teammate } from "../../hooks/useTeamSession";
 import type { SceneInput } from "../../render/scene";
@@ -261,6 +263,8 @@ export function MapViewport({
   card: Card | null;
 }) {
   const [mapRef, size] = useMapSize();
+  const reduced = useReducedMotion();
+  const { fading } = useCrossingFade(zone, reduced);
   const world = fitWorld(size);
   const map = { width: size.width, height: size.height };
   const worldSize = { width: world.width, height: world.height };
@@ -319,13 +323,35 @@ export function MapViewport({
         className="pointer-events-none absolute inset-0 z-[5] bg-[var(--panel)] opacity-0 animate-[zone-fade_200ms_ease-out] motion-reduce:hidden"
       />
 
+      {/* The boat crossing: the map goes dark for 700 ms between the Peaks and the island. */}
+      <div
+        data-testid="crossing-fade"
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-[40] bg-black transition-opacity duration-300 ease-linear"
+        style={{ opacity: fading ? 1 : 0 }}
+      />
+
+      {/* The island's mist: a slow, pixel-patterned drift over the scene. It hides nothing and changes no gameplay. */}
+      {zone === "foggaten" && (
+        <div
+          data-testid="mist"
+          aria-hidden="true"
+          className={`pointer-events-none absolute inset-0 z-[30] ${reduced ? "" : "animate-[mist-drift_40s_linear_infinite]"}`}
+          style={{
+            backgroundImage: "radial-gradient(rgba(226,232,240,0.28) 40%, transparent 41%)",
+            backgroundSize: "24px 24px",
+            backgroundColor: "rgba(203,213,225,0.16)",
+          }}
+        />
+      )}
+
       {/* Fog of war around the player; the powered signal tower fades it out, and the forest has none. */}
       <div
         data-testid="fog"
         className="pointer-events-none absolute inset-0 z-10 transition-opacity duration-1000 ease-linear motion-reduce:transition-none"
         style={{
           background: `radial-gradient(circle farthest-corner at ${fogX}px ${fogY}px, transparent 0%, transparent 15%, rgba(15,23,42,0.35) 32%, rgba(15,23,42,0.7) 62%)`,
-          opacity: towerPowered || zone === "forest" ? 0 : 1,
+          opacity: towerPowered || zone === "forest" || zone === "foggaten" ? 0 : 1,
         }}
       />
 
@@ -340,6 +366,7 @@ export function MapViewport({
             <MapCaption id="peaks" text="(Snowy Peaks Biome)" world={world} />
             <MapCaption id="river" text={towerPowered ? "Bridge" : "Frozen River"} world={world} />
             <MapCaption id="forest" text="(Dense Forests Biome)" world={world} />
+            <LandmarkButton hit={hits.dock} name={caption("dock")} color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "dock"} onClick={() => onInteract("dock")} />
 
             <LandmarkButton hit={hits.tower} name={caption("tower")} color="var(--primary-border)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "tower"} onClick={() => onInteract("tower")} />
             <LandmarkButton hit={hits.chest} name={caption("chest")} color="var(--accent)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "chest"} onClick={() => onInteract("chest")} />
@@ -353,6 +380,16 @@ export function MapViewport({
             <LandmarkButton hit={hits.campfire} name={caption("campfire")} color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "campfire"} onClick={() => onInteract("campfire")} />
             <LandmarkButton hit={hits["old-oak"]} name={caption("old-oak")} color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "old-oak"} onClick={() => onInteract("old-oak")} />
             <LandmarkButton hit={hits["forest-signpost"]} name={caption("forest-signpost")} color="var(--text)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "forest-signpost"} onClick={() => onInteract("forest-signpost")} />
+          </>
+        ) : zone === "foggaten" ? (
+          <>
+            <MapCaption id="foggaten" text="(Foggaten Island Biome)" world={world} />
+
+            <LandmarkButton hit={hits["island-dock"]} name={caption("island-dock")} color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "island-dock"} onClick={() => onInteract("island-dock")} />
+            <LandmarkButton hit={hits.lighthouse} name={caption("lighthouse")} color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "lighthouse"} onClick={() => onInteract("lighthouse")} />
+            <LandmarkButton hit={hits.hermit} name={caption("hermit")} color="var(--accent-border)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "hermit"} onClick={() => onInteract("hermit")} />
+            <LandmarkButton hit={hits["island-fire"]} name={caption("island-fire")} color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "island-fire"} onClick={() => onInteract("island-fire")} />
+            <LandmarkButton hit={hits.ruins} name={caption("ruins")} color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "ruins"} onClick={() => onInteract("ruins")} />
           </>
         ) : (
           <>

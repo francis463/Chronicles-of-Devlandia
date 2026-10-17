@@ -26,8 +26,8 @@ const TABLE = [
   ["js", "forest", 18, 78, "the JavaScript Chest"],
   ["dock", "peaks", 92, 74, "the Dock"],
   ["pier", "foggaten", 8, 62, "the island's Dock"],
-  ["lighthouse", "foggaten", 50, 38, "the Lighthouse"],
-  ["hermit", "foggaten", 58, 62, "the Hermit"],
+  ["lighthouse", "foggaten", 50, 46, "the Lighthouse"],
+  ["hermit", "foggaten", 68, 62, "the Hermit"],
 ] as const;
 
 describe("ping places", () => {
