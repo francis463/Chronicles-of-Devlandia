@@ -20,6 +20,7 @@ const MENU_SCENE: SceneInput = {
   artifactFound: false,
   towerPowered: false,
   archiveOpen: false,
+  lighthouseLit: false,
   matcherSolved: false,
   earned: [],
   minutes: START_MINUTES,

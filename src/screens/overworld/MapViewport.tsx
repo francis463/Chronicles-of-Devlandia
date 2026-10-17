@@ -217,6 +217,7 @@ export function MapViewport({
   badges,
   matcherSolved,
   archiveOpen,
+  lighthouseLit,
   teammates = [],
   pings = [],
   lightMode,
@@ -244,6 +245,7 @@ export function MapViewport({
   badges: ChestId[];
   matcherSolved: boolean;
   archiveOpen: boolean;
+  lighthouseLit: boolean;
   teammates?: Teammate[];
   /** Team signals in any zone; only this zone's are drawn. */
   pings?: ActivePing[];
@@ -296,6 +298,7 @@ export function MapViewport({
     artifactFound,
     towerPowered,
     archiveOpen,
+    lighthouseLit,
     matcherSolved,
     earned: badges,
     minutes,

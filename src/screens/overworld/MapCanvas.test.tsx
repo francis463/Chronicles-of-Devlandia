@@ -19,6 +19,7 @@ const input: SceneInput = {
   towerPowered: false,
   minutes: 19 * 60,
   archiveOpen: false,
+  lighthouseLit: false,
   matcherSolved: false,
   earned: [],
 };

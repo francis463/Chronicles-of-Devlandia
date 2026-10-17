@@ -254,32 +254,37 @@ describe("Foggaten Island art", () => {
   it("the dock, lighthouse and ruins have their declared sizes and a bottom anchor", () => {
     for (const [id, w, h] of [["dock", 24, 14], ["lighthouse", 22, 44], ["ruins", 22, 16]] as const) {
       expect([SPRITES[id].w, SPRITES[id].h, SPRITES[id].anchor], id).toEqual([w, h, "bottom"]);
-      expect(SPRITES[id].frames, id).toHaveLength(1);
+      expect(SPRITES[id].frames, id).toHaveLength(id === "lighthouse" ? 2 : 1);
     }
   });
 
   it("every edge of the new sprites is the shared dark outline", () => {
     for (const id of ["dock", "lighthouse", "ruins"] as const) {
-      const frame = SPRITES[id].frames[0];
-      const solid = (x: number, y: number) => y >= 0 && y < frame.length && x >= 0 && x < frame[y].length && frame[y][x] !== ".";
-      frame.forEach((row, y) =>
-        [...row].forEach((ch, x) => {
-          if (ch === ".") return;
-          const edge = !solid(x - 1, y) || !solid(x + 1, y) || !solid(x, y - 1) || !solid(x, y + 1);
-          if (edge) expect(SPRITES[id].palette[ch], `${id} edge at ${x},${y}`).toBe(OUTLINE);
-        }),
-      );
+      for (const frame of SPRITES[id].frames) {
+        const solid = (x: number, y: number) => y >= 0 && y < frame.length && x >= 0 && x < frame[y].length && frame[y][x] !== ".";
+        frame.forEach((row, y) =>
+          [...row].forEach((ch, x) => {
+            if (ch === ".") return;
+            const edge = !solid(x - 1, y) || !solid(x + 1, y) || !solid(x, y - 1) || !solid(x, y + 1);
+            if (edge) expect(SPRITES[id].palette[ch], `${id} edge at ${x},${y}`).toBe(OUTLINE);
+          }),
+        );
+      }
     }
   });
 
-  it("the lighthouse's lamp is a single dark glass, with no lit colour (a later phase lights it)", () => {
-    const glass = SPRITES.lighthouse.palette.k;
-    expect(luminance(glass)).toBeLessThan(70);
-    expect(SPRITES.lighthouse.frames[0].join("")).toContain("k");
-    for (const [ch, hex] of Object.entries(SPRITES.lighthouse.palette)) {
-      const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
-      expect(r > 200 && g > 170 && b < 130, `${ch} looks like lamplight`).toBe(false);
-    }
+  it("the lighthouse's lamp is dark glass in frame 0 and warm lamplight in frame 1, and only the lamp room differs", () => {
+    const [dark, lit] = SPRITES.lighthouse.frames;
+    expect(luminance(SPRITES.lighthouse.palette.k)).toBeLessThan(70);
+    expect(dark.join("")).toContain("k");
+    expect(dark.join("")).not.toContain("y");
+    expect(lit.join("")).toContain("y");
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(SPRITES.lighthouse.palette.y.slice(i, i + 2), 16));
+    expect(r > 200 && g > 170 && b < 130, "y looks like lamplight").toBe(true);
+    dark.forEach((row, y) => {
+      if (y < 6 || y > 12) expect(lit[y], `row ${y}`).toBe(row);
+    });
+    expect(lit).not.toEqual(dark);
   });
 
   it("the sea and sand textures are 16 x 16, differ from each other and from every other texture", () => {

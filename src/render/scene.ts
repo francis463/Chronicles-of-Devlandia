@@ -3,6 +3,7 @@ import { phaseOf } from "../game/clock";
 import type { Phase, Point } from "../game/types";
 import type { ZoneId } from "../game/zones";
 import { AREAS } from "./areas";
+import { LAMP_POINT } from "./areas/foggaten";
 import { FOREST_POINTS } from "./areas/forest";
 import { DOCK_POINT } from "./areas/peaks";
 import type { Pose } from "./motion";
@@ -48,6 +49,7 @@ export type SceneInput = {
   towerPowered: boolean;
   minutes: number;
   archiveOpen: boolean;
+  lighthouseLit: boolean;
   matcherSolved: boolean;
   /** Your badges: their chests draw open. */
   earned: ChestId[];
@@ -131,6 +133,25 @@ function forestLeaves(t: number, reduced: boolean, strength: number): Pixel[] {
     Array.from({ length: 20 }, (_, k): Pixel => ({ x: at.x + (k % 5), y: at.y + Math.floor(k / 5), color: DAPPLE, alpha })),
   );
   return [...dapples, ...leaves];
+}
+
+const LAMPLIGHT = "#fde047";
+const BEAM_LENGTH = 60;
+const BEAM_SWEEP_MS = 2000;
+
+/**
+ * The lit lighthouse's light: a glow around the lamp (full by night, half by day) and a beam of 60 pixels that fades
+ * with distance. It points right for 2 s, then left for 2 s; with reduced motion it stays pointing right.
+ */
+function lighthouseLight(t: number, reduced: boolean, strength: number): Pixel[] {
+  const dir = reduced || Math.floor(t / BEAM_SWEEP_MS) % 2 === 0 ? 1 : -1;
+  const beam = Array.from({ length: BEAM_LENGTH }, (_, i): Pixel => ({
+    x: LAMP_POINT.x + dir * (i + 8),
+    y: LAMP_POINT.y,
+    color: LAMPLIGHT,
+    alpha: Math.round((0.5 - (0.45 * i) / (BEAM_LENGTH - 1)) * 1000) / 1000,
+  })).filter((p) => p.x >= 0 && p.x < WORLD.width);
+  return [...glow(LAMP_POINT, LAMPLIGHT, Math.max(0.5, strength)), ...beam];
 }
 
 const placed = (sprite: SpriteId, at: ArtPoint, extra: Partial<Drawable> = {}): Drawable => {
@@ -241,6 +262,12 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
       }
       if (digging && !reduced && t % 1500 < 250) light.push({ x: dig.x + 2, y: dig.y - 2, color: WHITE, alpha: 1 });
       return { zone: input.zone, glints: [], flat, upright, drone, tint: forestTint(PHASE_TINT[phase]), light, snow };
+    }
+    if (input.zone === "foggaten") {
+      const lighthouse = upright.find((d) => d.sprite === "lighthouse");
+      if (lighthouse) lighthouse.frame = input.lighthouseLit ? 1 : 0;
+      const light = input.lighthouseLit ? lighthouseLight(t, reduced, strength) : [];
+      return { zone: input.zone, glints: [], flat: [], upright, drone, tint: PHASE_TINT[phase], light, snow };
     }
     return { zone: input.zone, glints: [], flat: [], upright, drone, tint: PHASE_TINT[phase], light: [], snow };
   }

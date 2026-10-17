@@ -245,6 +245,7 @@ export function Overworld({
           badges={state.badges}
           matcherSolved={state.matcherSolved}
           archiveOpen={state.archiveOpen}
+          lighthouseLit={state.lighthouseLit}
           teammates={team?.teammates.filter((t) => t.zone === state.zone)}
           pings={pings}
           lightMode={view.light}

@@ -12,6 +12,9 @@ export const FOGGATEN_POINTS = {
   ruins: toArt(RUINS),
 } as const;
 
+/** The lamp room's centre: the lit lighthouse's glow and beam start here. */
+export const LAMP_POINT = { x: spriteBox("lighthouse", FOGGATEN_POINTS.lighthouse).x + 11, y: spriteBox("lighthouse", FOGGATEN_POINTS.lighthouse).y + 9 } as const;
+
 const PROPS: Prop[] = [
   { sprite: "dock", at: FOGGATEN_POINTS.dock },
   { sprite: "lighthouse", at: FOGGATEN_POINTS.lighthouse },

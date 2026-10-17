@@ -87,12 +87,12 @@ function dockGrid(): PixelGrid {
   });
 }
 
-/** The lighthouse: a banded tower on a gallery, with a dark, unlit lamp room and a cap. */
-function lighthouseGrid(): PixelGrid {
+/** The lighthouse: a banded tower on a gallery, with a cap and a lamp room that is dark glass, or warm lamplight when lit. */
+function lighthouseGrid(lit = false): PixelGrid {
   const span = (half: number, x: number) => x >= 11 - half && x <= 10 + half;
   return outlined(22, 44, (x, y) => {
     if (y >= 1 && y <= 5) return span(y, x) ? "c" : null;
-    if (y >= 6 && y <= 12) return x >= 7 && x <= 14 ? "k" : null;
+    if (y >= 6 && y <= 12) return x >= 7 && x <= 14 ? (lit ? "y" : "k") : null;
     if (y === 13) return span(7, x) ? "g" : null;
     if (y === 14) return span(6, x) ? "g" : null;
     if (y >= 15) {
@@ -1035,8 +1035,8 @@ export const SPRITES: Record<SpriteId, SpriteDef> = {
     w: 22,
     h: 44,
     anchor: "bottom",
-    palette: { o: "#0b1020", c: "#475569", k: "#1e293b", g: "#94a3b8", w: "#e2e8f0", W: "#b6c2d4", r: "#b91c1c", R: "#7f1d1d", d: "#5b3a1e" },
-    frames: [lighthouseGrid()],
+    palette: { o: "#0b1020", c: "#475569", k: "#1e293b", g: "#94a3b8", w: "#e2e8f0", W: "#b6c2d4", r: "#b91c1c", R: "#7f1d1d", d: "#5b3a1e", y: "#fde047" },
+    frames: [lighthouseGrid(), lighthouseGrid(true)],
   },
   ruins: {
     w: 22,

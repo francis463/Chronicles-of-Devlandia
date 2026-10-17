@@ -40,6 +40,7 @@ const props = (over: Partial<Props> = {}): Props => ({
   badges: [],
   matcherSolved: false,
   archiveOpen: false,
+  lighthouseLit: false,
   ...over,
 });
 
@@ -416,6 +417,11 @@ describe("MapViewport on Foggaten Island", () => {
   const reduceMotion = () => {
     window.matchMedia = ((query: string) => ({ media: query, matches: true, addEventListener: () => {}, removeEventListener: () => {} })) as unknown as typeof window.matchMedia;
   };
+
+  it("hands the lamp's state to the canvas", () => {
+    render(<MapViewport {...island({ lighthouseLit: true })} />);
+    expect(drawn.at(-1)?.input.lighthouseLit).toBe(true);
+  });
 
   it("shows the island's caption and buttons", () => {
     render(<MapViewport {...island()} />);

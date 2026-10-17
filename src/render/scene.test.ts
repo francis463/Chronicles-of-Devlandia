@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { AREAS } from "./areas";
 import { FOREST_POINTS } from "./areas/forest";
+import { LAMP_POINT } from "./areas/foggaten";
 import { PHASE_TINT, buildScene, type Poses, type SceneInput } from "./scene";
 import { LIGHTS, SPRITES, spriteBox, type SpriteId } from "./sprites";
 import { BRIDGE_RECT, decorations } from "./terrain";
@@ -26,6 +27,7 @@ const base: SceneInput = {
   towerPowered: false,
   minutes: DUSK,
   archiveOpen: false,
+  lighthouseLit: false,
   matcherSolved: false,
   earned: [],
 };
@@ -492,6 +494,49 @@ describe("scene: the forest's leaves and dappled light", () => {
       const s = scene({ zone, minutes: DAY }, 1234);
       expect(leaves(s)).toEqual([]);
       expect(dapples(s)).toEqual([]);
+    }
+  });
+});
+
+describe("scene: the lit lighthouse", () => {
+  const LAMP = "#fde047";
+  const island = (lit: boolean, t = 0, reduced = false, over: Partial<SceneInput> = {}) => scene({ zone: "foggaten", lighthouseLit: lit, minutes: DAY, ...over }, t, reduced);
+  const lamplight = (s: ReturnType<typeof scene>) => s.light.filter((p) => p.color === LAMP);
+  const beam = (s: ReturnType<typeof scene>) => lamplight(s).filter((p) => p.y === LAMP_POINT.y && Math.abs(p.x - LAMP_POINT.x) > 6);
+  const frameOf = (s: ReturnType<typeof scene>) => s.upright.find((d) => d.sprite === "lighthouse")!.frame;
+
+  it("is drawn dark and gives no light until the lamp is lit, then lit with a glow", () => {
+    expect(frameOf(island(false))).toBe(0);
+    expect(island(false).light).toEqual([]);
+    expect(frameOf(island(true))).toBe(1);
+    expect(lamplight(island(true)).some((p) => Math.abs(p.x - LAMP_POINT.x) <= 6 && Math.abs(p.y - LAMP_POINT.y) <= 6)).toBe(true);
+    expect(frameOf(island(false))).toBe(0);
+  });
+
+  it("the beam sweeps right, then left, every 4 seconds, with alpha between 0.05 and 0.5, inside the world", () => {
+    const right = beam(island(true, 0));
+    const left = beam(island(true, 2500));
+    expect(right.length).toBeGreaterThan(20);
+    expect(right.every((p) => p.x > LAMP_POINT.x)).toBe(true);
+    expect(left.every((p) => p.x < LAMP_POINT.x)).toBe(true);
+    expect(beam(island(true, 4000)).every((p) => p.x > LAMP_POINT.x)).toBe(true);
+    for (const p of [...right, ...left]) {
+      expect(p.alpha).toBeGreaterThanOrEqual(0.05);
+      expect(p.alpha).toBeLessThanOrEqual(0.5);
+      expect(p.x >= 0 && p.x < 320 && p.y >= 0 && p.y < 180).toBe(true);
+    }
+  });
+
+  it("with reduced motion the beam is steady, pointing right, and the glow is by day at half strength", () => {
+    for (const t of [0, 2500, 5000]) expect(beam(island(true, t, true)).every((p) => p.x > LAMP_POINT.x)).toBe(true);
+    expect(JSON.stringify(island(true, 0, true).light)).toBe(JSON.stringify(island(true, 2500, true).light));
+  });
+
+  it("no other zone changes when the lamp is lit", () => {
+    for (const zone of ["peaks", "village", "forest"] as const) {
+      const on = scene({ zone, lighthouseLit: true, minutes: DAY }, 1234);
+      const off = scene({ zone, lighthouseLit: false, minutes: DAY }, 1234);
+      expect(JSON.stringify(on)).toBe(JSON.stringify(off));
     }
   });
 });
