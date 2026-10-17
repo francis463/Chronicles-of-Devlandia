@@ -28,7 +28,8 @@ import { Panel } from "../../ui/Panel";
 import { ChallengeTerminal } from "../ChallengeTerminal";
 import { ChatPanel } from "../chat/ChatPanel";
 import { Codex } from "../Codex";
-import { Finale } from "../Finale";
+import { Certificate } from "../Certificate";
+import { Finale, playedFor } from "../Finale";
 import { Help } from "../Help";
 import { LeaveConfirm } from "./LeaveConfirm";
 import { LampModal } from "../LampModal";
@@ -52,6 +53,7 @@ export function Overworld({
   playerClass,
   hard = false,
   onNewGamePlus,
+  playerName = "",
 }: {
   onMenu: () => void;
   initial?: Partial<GameState>;
@@ -67,6 +69,8 @@ export function Overworld({
   hard?: boolean;
   /** The finale's [ NEW GAME+ ]: start a fresh hard run (solo games only). */
   onNewGamePlus?: () => void;
+  /** The signed-in player's name, which the certificate starts with (a guest types theirs). */
+  playerName?: string;
   /** Team mode: shared progress, teammates on the map and the team clock. */
   team?: TeamSession;
   /** The team's conversation, when the lobby already started one; without it the game keeps its own. */
@@ -99,6 +103,7 @@ export function Overworld({
   // [=] Menu with progress asks first; while it asks, play pauses and it owns the keys.
   const [leaving, setLeaving] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [certificateOpen, setCertificateOpen] = useState(false);
   const hasProgress = state.badges.length > 0 || state.matcherSolved || Object.values(flagsOf(state)).some(Boolean);
   useGameTimers(state, dispatch, leaving || helpOpen);
   const downed = isDowned(state);
@@ -334,13 +339,17 @@ export function Overworld({
           onClose={() => dispatch({ type: "toggleCodex" })}
         />
       )}
-      {state.finaleOpen && (
+      {state.finaleOpen && certificateOpen && (
+        <Certificate name={playerName} badges={state.badges} played={playedFor(minutes)} hard={state.hard} onBack={() => setCertificateOpen(false)} />
+      )}
+      {state.finaleOpen && !certificateOpen && (
         <Finale
           badges={state.badges}
           minutes={minutes}
           hints={state.hintsRevealed.length}
           hard={state.hard}
           onClose={() => dispatch({ type: "closeFinale" })}
+          onCertificate={() => setCertificateOpen(true)}
           onNewGamePlus={team ? undefined : onNewGamePlus}
         />
       )}

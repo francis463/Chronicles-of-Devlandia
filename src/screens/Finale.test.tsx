@@ -35,6 +35,15 @@ describe("Finale", () => {
     expect(screen.getByText(/mastered the hard run/i)).toBeInTheDocument();
   });
 
+  it("offers [ Get certificate ] when given a handler", async () => {
+    const onCertificate = vi.fn();
+    const { rerender } = render(<Finale {...base} />);
+    expect(screen.queryByRole("button", { name: "[ Get certificate ]" })).toBeNull();
+    rerender(<Finale {...base} onCertificate={onCertificate} />);
+    await userEvent.click(screen.getByRole("button", { name: "[ Get certificate ]" }));
+    expect(onCertificate).toHaveBeenCalledTimes(1);
+  });
+
   it("playedFor reads minutes and hours of game time", () => {
     expect(playedFor(START_MINUTES + 45)).toBe("45 min");
     expect(playedFor(START_MINUTES + 125)).toBe("2 h 5 min");

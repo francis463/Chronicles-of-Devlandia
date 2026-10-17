@@ -865,6 +865,16 @@ describe("Overworld: the finale, the crown and New Game+", () => {
     expect(screen.queryByRole("button", { name: "[ NEW GAME+ ]" })).toBeNull();
   });
 
+  it("[ Get certificate ] swaps the finale for the certificate, with the signed-in name, and Back returns", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} initial={all} playerName="Ada" />);
+    await user.click(screen.getByRole("button", { name: "[ Get certificate ]" }));
+    expect(screen.getByRole("dialog", { name: /certificate/i })).toBeInTheDocument();
+    expect(screen.getByLabelText("Name on the certificate")).toHaveValue("Ada");
+    await user.click(screen.getByRole("button", { name: "[ Back ]" }));
+    expect(screen.getByRole("dialog", { name: /master of devlandia/i })).toBeInTheDocument();
+  });
+
   it("a hard run says so in the top bar", () => {
     render(<Overworld onMenu={() => {}} hard />);
     expect(screen.getByText("Hard mode")).toBeInTheDocument();

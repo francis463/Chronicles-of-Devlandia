@@ -23,6 +23,7 @@ export function Finale({
   hints,
   hard,
   onClose,
+  onCertificate,
   onNewGamePlus,
 }: {
   badges: readonly ChestId[];
@@ -30,6 +31,8 @@ export function Finale({
   hints: number;
   hard: boolean;
   onClose: () => void;
+  /** Opens the printable certificate. */
+  onCertificate?: () => void;
   /** Absent in team games, where a run is shared. */
   onNewGamePlus?: () => void;
 }) {
@@ -65,6 +68,11 @@ export function Finale({
           <button type="button" data-autofocus onClick={onClose} className={`${BUTTON} border-[var(--primary-border)] text-[var(--primary-border)]`}>
             [ Keep exploring ]
           </button>
+          {onCertificate && (
+            <button type="button" onClick={onCertificate} className={`${BUTTON} border-[var(--success-border)] text-[var(--success-border)]`}>
+              [ Get certificate ]
+            </button>
+          )}
           {onNewGamePlus && !hard && (
             <button type="button" onClick={onNewGamePlus} className={`${BUTTON} border-[var(--accent-border)] text-[var(--accent)]`}>
               [ NEW GAME+ ]

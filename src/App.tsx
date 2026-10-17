@@ -154,12 +154,13 @@ export default function App({
           onBadgeEarned={hardRun ? undefined : onBadgeEarned}
           saveFailed={hardRun ? false : saver.failed}
           hard={hardRun}
+          playerName={userName ?? ""}
           onNewGamePlus={() => setHardRun(true)}
         />
       )}
       {screen === "lobby" &&
         (team.phase === "playing" ? (
-          <Overworld key={`team-${team.room}`} playerClass={playerClass} team={team} chat={chat} onMenu={leaveTeam} saved={loadedRows} onBadgeEarned={onBadgeEarned} saveFailed={saver.failed} />
+          <Overworld key={`team-${team.room}`} playerClass={playerClass} team={team} chat={chat} playerName={userName ?? ""} onMenu={leaveTeam} saved={loadedRows} onBadgeEarned={onBadgeEarned} saveFailed={saver.failed} />
         ) : (
           <TeamLobby session={team} onBack={leaveTeam} chat={chat} defaultNickname={userName ?? undefined} playerClass={playerClass} />
         ))}
