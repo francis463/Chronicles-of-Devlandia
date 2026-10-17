@@ -125,7 +125,19 @@ describe("team clock", () => {
 
 describe("validation of teammate input", () => {
   it("accepts a well-formed presence meta", () => {
-    expect(parsePresence(meta("a", 1), NOW)).toEqual(meta("a", 1));
+    expect(parsePresence(meta("a", 1), NOW)).toEqual({ ...meta("a", 1), cls: "warrior" });
+  });
+
+  it("reads a teammate's class, and anything that is not one of the six is the warrior", () => {
+    expect(parsePresence({ ...meta("a", 1), cls: "mage" }, NOW)?.cls).toBe("mage");
+    for (const bad of [undefined, 42, {}, "Mage", "__proto__", "toString", null]) {
+      expect(parsePresence({ ...meta("a", 1), cls: bad }, NOW)?.cls).toBe("warrior");
+    }
+  });
+
+  it("keeps each player's class when ranking", () => {
+    const ranked = rankPlayers([meta("a", 1, { cls: "tank" }), meta("b", 2, { cls: "healer" })]);
+    expect(ranked.map((p) => p.cls)).toEqual(["tank", "healer"]);
   });
 
   it("rejects out-of-range positions, bad flags, bad names and implausible start times", () => {

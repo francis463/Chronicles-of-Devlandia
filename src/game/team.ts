@@ -2,6 +2,7 @@ import { RAW_CHAT_MAX, CHAT_MAX, chatLength, cleanChat, maskRude } from "../chat
 import { isPingPlace, placeSpot, type PingPlace } from "../chat/places";
 import { CHEST_IDS } from "../learn/chests";
 import type { ChestId } from "../learn/types";
+import { classOrDefault, type ClassId } from "./classes";
 import { BOUNDS, MINUTES_PER_DAY, START_MINUTES, TICK_MINUTES, TICK_MS } from "./constants";
 import type { GameState } from "./types";
 import type { ZoneId } from "./zones";
@@ -30,6 +31,8 @@ export type PresenceMeta = {
   y: number;
   /** Where they are; null means a zone this version doesn't know (shown nowhere, still in the team). */
   zone: ZoneId | null;
+  /** Their class. Older clients send none; read it with classOrDefault. */
+  cls?: ClassId;
 };
 
 export type TeamMessage =
@@ -162,7 +165,7 @@ export function parsePresence(raw: unknown, now: number): PresenceMeta | null {
   const flags = parseFlags(raw.flags);
   const startedAt = raw.startedAt === null ? null : isStart(raw.startedAt, now) ? raw.startedAt : undefined;
   if (!name || !flags || startedAt === undefined || !isX(raw.x) || !isY(raw.y)) return null;
-  return { id: raw.id, name, joinedAt: raw.joinedAt, startedAt, flags, x: raw.x, y: raw.y, zone: parseZone(raw.zone) };
+  return { id: raw.id, name, joinedAt: raw.joinedAt, startedAt, flags, x: raw.x, y: raw.y, zone: parseZone(raw.zone), cls: classOrDefault(raw.cls) };
 }
 
 export function parseMessage(raw: unknown, now: number): TeamMessage | null {
