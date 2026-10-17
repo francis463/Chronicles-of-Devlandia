@@ -68,7 +68,14 @@ export type SpriteId =
   | "shipwreck"
   | "pier"
   | "crab"
-  | "shell";
+  | "shell"
+  | "birch"
+  | "stump"
+  | "log"
+  | "mushroom"
+  | "fern"
+  | "flowers"
+  | "owl";
 /** bottom: bottom-centre on the art point; centre: centred on it; hover: centred 12 px above it. */
 export type SpriteDef = { w: number; h: number; frames: PixelGrid[]; palette: Palette; anchor: "bottom" | "centre" | "hover" };
 export type TextureId = "ice" | "mountains" | "snow" | "forest" | "meadow" | "path" | "bank" | "sand" | "sea" | "dune" | "beach";
@@ -476,6 +483,91 @@ function chickenGrid(frame: 0 | 1): PixelGrid {
     poly([[10, 3 + dip], [12, 4 + dip], [10, 5 + dip]], "b"),
     rect(10, 6 + dip, 10, 6 + dip, "r"),
     rect(9, 4 + dip, 9, 4 + dip, "k"),
+  ]);
+}
+
+/** A birch: a pale, mottled trunk under a light, rounded crown. */
+function birchGrid(): PixelGrid {
+  return creature(14, 22, [
+    rect(5, 9, 8, 21, "w"),
+    ...[[6, 12], [7, 15], [6, 18], [7, 20]].map(([x, y]) => rect(x, y, x, y, "k")),
+    ell(6.5, 6, 6.3, 6, "g"),
+    ell(4.8, 4.6, 3.2, 3, "L"),
+    ell(9, 8.4, 3.2, 2.6, "G"),
+  ]);
+}
+
+/** A cut stump: pale rings on top of a short bark trunk. */
+function stumpGrid(): PixelGrid {
+  return creature(12, 9, [
+    rect(1, 3, 10, 8, "t"),
+    rect(3, 5, 3, 7, "T"),
+    rect(8, 4, 8, 7, "T"),
+    ell(5.5, 3, 5.5, 2.8, "R"),
+    ell(5.5, 3, 3, 1.5, "t"),
+  ]);
+}
+
+/** A fallen log lying on its side: bark along the top, pale rings at the cut end. */
+function logGrid(): PixelGrid {
+  return creature(20, 9, [
+    rect(1, 2, 16, 7, "t"),
+    rect(2, 3, 14, 3, "T"),
+    rect(2, 6, 14, 6, "T"),
+    ell(16, 4.5, 2.6, 2.8, "R"),
+    ell(16, 4.5, 1.2, 1.3, "t"),
+  ]);
+}
+
+/** A red toadstool: a spotted cap on a pale stem. */
+function mushroomGrid(): PixelGrid {
+  return creature(11, 10, [
+    rect(4, 6, 6, 9, "c"),
+    ell(5, 3.6, 5.2, 3.4, "r"),
+    rect(3, 3, 3, 3, "w"),
+    rect(7, 2, 7, 2, "w"),
+    rect(6, 4, 6, 4, "w"),
+    rect(4, 2, 4, 2, "w"),
+  ]);
+}
+
+/** A fern: a clump of broad, pointed fronds. */
+function fernGrid(): PixelGrid {
+  return creature(16, 11, [
+    ell(8, 8.5, 7.4, 2.4, "g"),
+    poly([[1, 9], [3, 2], [6, 9]], "G"),
+    poly([[10, 9], [13, 2], [15, 9]], "G"),
+    poly([[4, 9], [8, 0], [12, 9]], "L"),
+    rect(7, 5, 8, 8, "g"),
+  ]);
+}
+
+/** A tuft of grass with three flowers: yellow, pink and white. */
+function flowersGrid(): PixelGrid {
+  const head = (x: number, y: number, c: string) => [ell(x + 1.5, y + 1.5, 2.1, 2.1, c)];
+  return creature(17, 11, [
+    ell(8.5, 9, 8, 2.2, "g"),
+    rect(2, 5, 2, 8, "G"),
+    rect(8, 4, 8, 8, "G"),
+    rect(14, 5, 14, 8, "G"),
+    ...head(0, 2, "y"),
+    ...head(7, 0, "p"),
+    ...head(13, 2, "w"),
+  ]);
+}
+
+/** A perched owl: brown, ear tufts, big yellow eyes that shut for a blink in the second frame. */
+function owlGrid(frame: 0 | 1): PixelGrid {
+  return creature(10, 12, [
+    rect(3, 10, 3, 11, "a"),
+    rect(6, 10, 6, 11, "a"),
+    ell(5, 6.5, 4.4, 4.8, "b"),
+    poly([[1, 3], [2, 0], [4, 2]], "b"),
+    poly([[6, 2], [8, 0], [9, 3]], "b"),
+    ell(5, 8.4, 2.4, 2.6, "B"),
+    rect(2, 4, 3, 5, frame === 0 ? "y" : "b"),
+    rect(6, 4, 7, 5, frame === 0 ? "y" : "b"),
+    rect(4, 5, 5, 6, "a"),
   ]);
 }
 
@@ -1542,6 +1634,13 @@ export const SPRITES: Record<SpriteId, SpriteDef> = {
   pier: { w: 40, h: 14, anchor: "bottom", palette: { o: "#0b1020", p: "#b07a45", P: "#8f5f33", k: "#5b3a1e" }, frames: [pierGrid()] },
   crab: { w: 16, h: 10, anchor: "bottom", palette: { o: "#0b1020", c: "#e5533d", e: "#f8fafc" }, frames: [crabGrid(0), crabGrid(1)] },
   shell: { w: 6, h: 5, anchor: "bottom", palette: { o: "#0b1020", q: "#f9a8d4", Q: "#f472b6" }, frames: [shellGrid()] },
+  birch: { w: 14, h: 22, anchor: "bottom", palette: { o: "#0b1020", g: "#3fa34d", G: "#2f7d3a", L: "#6cc36a", w: "#e7e5e4", k: "#44403c" }, frames: [birchGrid()] },
+  stump: { w: 12, h: 9, anchor: "bottom", palette: { o: "#0b1020", t: "#7c4a1e", T: "#5b3a1e", R: "#c08a52" }, frames: [stumpGrid()] },
+  log: { w: 20, h: 9, anchor: "bottom", palette: { o: "#0b1020", t: "#7c4a1e", T: "#5b3a1e", R: "#c08a52" }, frames: [logGrid()] },
+  mushroom: { w: 11, h: 10, anchor: "bottom", palette: { o: "#0b1020", r: "#dc2626", w: "#f8fafc", c: "#e7d9c4" }, frames: [mushroomGrid()] },
+  fern: { w: 16, h: 11, anchor: "bottom", palette: { o: "#0b1020", g: "#2f7d3a", G: "#1e5a2a", L: "#4caf50" }, frames: [fernGrid()] },
+  flowers: { w: 17, h: 11, anchor: "bottom", palette: { o: "#0b1020", g: "#3f7d3a", G: "#2d5f2a", y: "#fde047", p: "#f472b6", w: "#f8fafc" }, frames: [flowersGrid()] },
+  owl: { w: 10, h: 12, anchor: "bottom", palette: { o: "#0b1020", b: "#8b5e34", B: "#d6b98a", y: "#fde047", a: "#f59e0b" }, frames: [owlGrid(0), owlGrid(1)] },
   lizard: { w: 14, h: 9, anchor: "bottom", palette: { o: "#0b1020", z: "#6b8f3a", Z: "#8fb34a", e: "#f5d547" }, frames: [lizardGrid(0), lizardGrid(1)] },
 };
 
@@ -1568,22 +1667,22 @@ export const TEXTURES: Record<TextureId, { grid: PixelGrid; palette: Palette }> 
     ],
   },
   forest: {
-    palette: { f: "#24452a", l: "#2d5634", d: "#1b3520" },
+    palette: { f: "#24452a", l: "#2d5634", d: "#1b3520", m: "#36653a", p: "#4a5d3a" },
     grid: [
-      "ffffffdfflffffff",
-      "flffffflffffffff",
+      "ffffffdfflffmmff",
+      "flffffflfffmmfff",
       "fffffffffffffffl",
       "dlfffffdlfffffff",
-      "fffffffffdfdfdff",
-      "fffdfffffllflffd",
-      "ffdlfffffffffflf",
-      "ffffffdffflfdfdf",
+      "fffpffffffdfdfdf",
+      "fffdfffmmllflffd",
+      "ffdlffmmmffffflf",
+      "ffffffdfmflfdfdf",
       "ffffffffffffffff",
       "dffffffffffffflf",
-      "fffffdfffffdlffd",
+      "fffffdfffpffdlfd",
       "fdffffffflffffff",
-      "dffflffffffffffl",
-      "dfdffffdffffdfff",
+      "dffflfmmfffffffl",
+      "dfdffffmmfffdfff",
       "fffdlffffldfdflf",
       "fflfdflfffffdddf",
     ],

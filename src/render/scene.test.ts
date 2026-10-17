@@ -190,7 +190,7 @@ describe("scene: zones", () => {
   });
 
   it("the village scene's interior decorations are the village's own, even after a Peaks scene", () => {
-    const DECOR: string[] = ["pine", "tree", "rock", "bush", "snow-rock"];
+    const DECOR: string[] = ["pine", "tree", "rock", "bush", "snow-rock", "birch", "stump", "log", "mushroom", "fern", "flowers"];
     const drawn = (s: ReturnType<typeof scene>) =>
       new Set(s.upright.filter((d) => DECOR.includes(d.sprite)).map((d) => `${d.sprite}@${d.x},${d.y}`));
     const peaks = drawn(scene());
@@ -425,7 +425,7 @@ describe("scene: the Dense Forest", () => {
 
   it("the ranger and the explorer are y-sorted together", () => {
     const s = forest({ player: { x: 60, y: 80 } });
-    const feet = s.upright.map((d) => d.y + SPRITES[d.sprite].h - 1);
+    const feet = s.upright.filter((d) => d.sprite !== "owl").map((d) => d.y + SPRITES[d.sprite].h - 1);
     expect(feet).toEqual([...feet].sort((a, b) => a - b));
   });
 

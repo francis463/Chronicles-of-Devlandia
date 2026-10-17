@@ -89,7 +89,7 @@ describe("decorations", () => {
     const area = AREAS[id];
     const touching = decorations(VIEW, area).filter((d) => intersects(boxOf(d), WORLD_RECT) && !intersects(boxOf(d), REACHABLE_RECT));
     // The forest has no hedge on top: trees from the scenery above reach into its top rows.
-    for (const d of touching) expect(["bush", "rock", "snow-rock", ...(id === "forest" || id === "village" ? ["tree"] : []), ...(id === "desert" ? ["dry-bush", "cactus"] : []), ...(id === "beach" ? ["palm"] : [])], key(d)).toContain(d.sprite);
+    for (const d of touching) expect(["bush", "rock", "snow-rock", ...(id === "forest" || id === "village" ? ["tree", "birch", "stump", "log", "mushroom", "fern", "flowers"] : []), ...(id === "desert" ? ["dry-bush", "cactus"] : []), ...(id === "beach" ? ["palm"] : [])], key(d)).toContain(d.sprite);
     const covers = (x: number, y: number) => touching.some((d) => intersects(boxOf(d), { x, y, w: 1, h: 1 }));
     // The Peaks' bottom hedge is open at its south exit (art x 192–255); everywhere clear of it the hedge is closed.
     for (let x = 0; x < WORLD.width; x += 4) {
@@ -148,7 +148,7 @@ describe("decorations", () => {
     const above = decorations(VIEW, FOREST).filter((d) => boxOf(d).y + boxOf(d).h <= 0);
     expect(above.length).toBeGreaterThan(5);
     for (const d of above) {
-      expect(d.sprite, key(d)).toBe("tree");
+      expect(["tree", "birch"], key(d)).toContain(d.sprite);
       expect(FOREST.corridors.some((c) => intersects(boxOf(d), c)), key(d)).toBe(false);
     }
   });

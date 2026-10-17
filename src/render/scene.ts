@@ -6,6 +6,7 @@ import { AREAS } from "./areas";
 import { FOGGATEN_POINTS, LAMP_POINT } from "./areas/foggaten";
 import { BEACH_SHELLS } from "./areas/beach";
 import { DESERT_POINTS } from "./areas/desert";
+import { FOREST_POINTS } from "./areas/forest";
 import { CAVE_POINT, WILDLIFE, foxPose, goatPose } from "./areas/peaks";
 import { VILLAGE_LIFE, wandererPose } from "./areas/village";
 import { DOCK_POINT } from "./areas/peaks";
@@ -137,6 +138,34 @@ function forestLeaves(t: number, reduced: boolean, strength: number): Pixel[] {
     Array.from({ length: 20 }, (_, k): Pixel => ({ x: at.x + (k % 5), y: at.y + Math.floor(k / 5), color: DAPPLE, alpha })),
   );
   return [...dapples, ...leaves];
+}
+
+const FIREFLY = "#fde047";
+const FIREFLY_COUNT = 14;
+const MIST = "#e8f3ef";
+
+/**
+ * The forest's living air at time `t` (ms): fourteen fireflies that wander and pulse once dusk falls (brighter at night),
+ * and three low banks of mist that drift right through the daylight hours. Both hold still when motion is reduced.
+ */
+function forestAir(t: number, reduced: boolean, strength: number): Pixel[] {
+  const seconds = reduced ? 0 : t / 1000;
+  if (strength > 0) {
+    return Array.from({ length: FIREFLY_COUNT }, (_, i): Pixel => ({
+      x: Math.round(((i * 83 + 29) % (WORLD.width - 20)) + 10 + 5 * Math.sin(seconds * 0.7 + i * 2)),
+      y: Math.round(((i * 61 + 41) % (WORLD.height - 40)) + 20 + 4 * Math.cos(seconds * 0.5 + i * 3)),
+      color: FIREFLY,
+      alpha: Math.round(strength * (0.35 + 0.65 * Math.max(0, Math.sin(seconds * 1.6 + i * 1.7))) * 100) / 100,
+    }));
+  }
+  return [0, 1, 2].flatMap((bank) =>
+    Array.from({ length: 24 * 3 }, (_, k): Pixel => ({
+      x: (((k % 24) + bank * 97 + Math.floor(3 * seconds)) % WORLD.width),
+      y: 118 + bank * 22 + Math.floor(k / 24),
+      color: MIST,
+      alpha: 0.1,
+    })),
+  );
 }
 
 const GRAIN = "#f5d78e";
@@ -441,7 +470,13 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
       const flame = reduced ? 0 : Math.floor(t / 400) % 2;
       const fire = upright.find((d) => d.sprite === "campfire");
       if (fire) fire.frame = flame;
-      const light = [...glow(LIGHTS.campfire, CAMPFIRE_GLOW, strength * (flame === 0 ? 1 : 0.8)), ...forestLeaves(t, reduced, strength)];
+      // At dusk and night an owl blinks from the old oak's branches (drawn right after it, so it sits in the crown).
+      if (strength > 0) {
+        const oak = upright.findIndex((d) => d.sprite === "old-oak");
+        const owl = placed("owl", { x: FOREST_POINTS.oak.x + 8, y: FOREST_POINTS.oak.y - 30 }, { frame: !reduced && Math.floor(t / 1000) % 5 === 0 ? 1 : 0 });
+        if (oak >= 0) upright.splice(oak + 1, 0, owl);
+      }
+      const light = [...glow(LIGHTS.campfire, CAMPFIRE_GLOW, strength * (flame === 0 ? 1 : 0.8)), ...forestLeaves(t, reduced, strength), ...forestAir(t, reduced, strength)];
       return { zone: input.zone, glints: [], flat: [], upright, drone, tint: forestTint(PHASE_TINT[phase]), light, snow };
     }
     if (input.zone === "village") {
