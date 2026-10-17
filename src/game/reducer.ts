@@ -33,6 +33,7 @@ import { crossesWall, isNorthOfWall, wallBlock } from "./wall";
 import { ZONES, arrival, exitFor, type ZoneId } from "./zones";
 import { FISHER_LINE } from "./beach";
 import { NOMAD_LINE } from "./desert";
+import { goToNote } from "../learn/codexModel";
 import { rangerLine } from "./forest";
 import { hermitLine } from "./island";
 import { adaLine } from "./village";
@@ -365,6 +366,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case "toggleCodex":
       if (state.codexOpen) return { ...state, codexOpen: false };
       return state.challenge === null && !state.logicOpen && !state.lampOpen ? { ...state, codexOpen: true } : state;
+    case "goTo": {
+      if (state.challenge !== null || state.logicOpen || state.lampOpen) return state;
+      return pushLogOnce({ ...state, codexOpen: false }, goToNote(action.chest));
+    }
     case "submitLogic": {
       const error = circuitError(action.bits);
       if (error) return { ...state, logicError: error };

@@ -502,6 +502,16 @@ describe("Overworld village", () => {
 });
 
 describe("Overworld: the Codex and leaving", () => {
+  it("Go there closes the Codex, logs where the chest is and rings it on the map when you are in its zone", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} initial={{ zone: "village" }} />);
+    await user.click(screen.getByRole("button", { name: "[C] Codex" }));
+    await user.click(screen.getByRole("button", { name: /^Go to SQL:/ }));
+    expect(screen.queryByRole("dialog", { name: /CODEX/ })).toBeNull();
+    expect(screen.getByText("Head to the Windmill in Dev Village, west of the Peaks.")).toBeInTheDocument();
+    expect(screen.getByTestId("ping-guide")).toBeInTheDocument();
+  });
+
   it("the top bar has [C] Codex at least 16 px from [=] Menu, and it opens the Codex", async () => {
     const user = setup();
     render(<Overworld onMenu={() => {}} />);

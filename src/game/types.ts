@@ -112,6 +112,8 @@ export type GameAction =
   | { type: "closeChallenge" }
   | { type: "resetLogic" }
   | { type: "toggleCodex" }
+  /** The Codex's "Go there": close it and log where the chest is. */
+  | { type: "goTo"; chest: ChestId }
   | { type: "submitLogic"; bits: Bits }
   | { type: "closeLogic" }
   | { type: "revealLogicHint" }

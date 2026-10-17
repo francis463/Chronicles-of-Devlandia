@@ -17,6 +17,7 @@ import { LOG, TICK_MS } from "../../game/constants";
 import { flagsOf, teamMinutes } from "../../game/team";
 import { ZONES } from "../../game/zones";
 import { chestById, chestChallenge } from "../../learn/chests";
+import { goToSpot } from "../../learn/codexModel";
 import { seedFromSaved, type SavedBadge } from "../../progress/progress";
 import type { BlankMode, ChestId } from "../../learn/types";
 import { useNow } from "../../hooks/useNow";
@@ -122,6 +123,11 @@ export function Overworld({
   // `snow: undefined` is the default (the Peaks snow, other zones do not); /weather snow and /weather clear set it for every zone.
   const [view, setView] = useState<{ snow: boolean | undefined; light: "auto" | "day" | "night" }>({ snow: undefined, light: "auto" });
   const { pings, add: addPing } = usePings();
+  // The Codex's "Go there": the game logs where the chest is, and a ring marks its landmark when you are in that zone.
+  const goTo = (chest: ChestId) => {
+    dispatch({ type: "goTo", chest });
+    addPing({ id: "guide", name: chestById(chest).host ?? "Archive", color: "#fde047", ...goToSpot(chest) });
+  };
 
   // ── Team mode ──
   const publishPosition = team?.publishPosition;
@@ -304,6 +310,10 @@ export function Overworld({
           answered={state.answered}
           picks={state.picks}
           team={team !== undefined}
+          progress={state}
+          zone={state.zone}
+          player={state.player}
+          onGoTo={goTo}
           onClose={() => dispatch({ type: "toggleCodex" })}
         />
       )}

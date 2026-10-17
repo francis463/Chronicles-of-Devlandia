@@ -992,6 +992,21 @@ describe("gameReducer: chests hosted in landmarks", () => {
   });
 });
 
+describe("gameReducer: Codex 'Go there'", () => {
+  it("goTo closes the Codex and logs the note, once", () => {
+    const open = gameReducer(s0, { type: "toggleCodex" });
+    const s = gameReducer(open, { type: "goTo", chest: "chest-sql" });
+    expect(s.codexOpen).toBe(false);
+    expect(lastLog(s)).toBe("Head to the Windmill in Dev Village, west of the Peaks.");
+    expect(gameReducer(s, { type: "goTo", chest: "chest-sql" }).logCount).toBe(s.logCount);
+  });
+
+  it("goTo does nothing while a terminal is open", () => {
+    const busy: GameState = { ...s0, challenge: openOn("gate") };
+    expect(gameReducer(busy, { type: "goTo", chest: "chest-sql" })).toBe(busy);
+  });
+});
+
 describe("gameReducer: sailing to Foggaten Island", () => {
   const atDock: GameState = { ...s0, gateUnlocked: true, player: { x: DOCK.x - 2, y: DOCK.y } };
   const atIslandDock: GameState = { ...s0, zone: "foggaten", gateUnlocked: true, player: { x: ISLAND_DOCK.x + 2, y: ISLAND_DOCK.y } };
