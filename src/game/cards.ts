@@ -1,7 +1,7 @@
 import { chestById, chestChallenge, CHESTS, type Chest } from "../learn/chests";
 import { FOREST_DIRECTIONS, HIDDEN_ARTIFACT, INSPECT_COPY, SNOW_CAVE } from "./constants";
 import type { GameState } from "./types";
-import { BEACH_COPY, FISHER_LINE } from "./beach";
+import { BEACH_COPY, CASTLE_COPY, FISHER_LINE } from "./beach";
 import { DESERT_COPY, nomadSays } from "./desert";
 import { DESERT_LORE, JAR_CARD } from "./desertLore";
 import { rangerSays } from "./forest";
@@ -61,6 +61,8 @@ export function cardFor(s: GameState): Card | null {
     case "jar-2":
     case "jar-3":
       return card(place.label, s.jars.includes(place.id) ? JAR_CARD.picked : JAR_CARD.far);
+    case "sandcastle":
+      return card(place.label, s.sandcastleBuilt ? CASTLE_COPY.built : CASTLE_COPY.unbuilt);
     case "fisher":
       return card(place.label, FISHER_LINE);
     case "beach-signpost":

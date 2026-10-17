@@ -76,6 +76,7 @@ export const initialState: GameState = {
   rangerFed: false,
   jars: [],
   nomadServed: false,
+  sandcastleBuilt: false,
   codexOpen: false,
   finaleOpen: false,
   finaleSeen: false,
@@ -218,6 +219,14 @@ function submitMatcher(state: GameState, open: ChallengeState, c: Challenge, val
   return pushLog({ ...state, matcherSolved: true, challenge: { ...open, solved: true, error: null } }, LOG.matcher(state.accessCode));
 }
 
+/** The sandcastle: the right order finishes the castle (its flag goes up) and shows the success view. */
+function submitSandcastle(state: GameState, open: ChallengeState, c: Challenge, value: SubmitValue): GameState {
+  const verdict = judge(c, value);
+  if (!verdict || c.kind !== "match") return state;
+  if (!verdict.right) return missed(state, open, c, verdict.error, value);
+  return pushLog({ ...state, sandcastleBuilt: true, challenge: { ...open, solved: true, error: null } }, LOG.castleBuilt);
+}
+
 /** The Archive's keypad: only a well-formed code is compared; the right one unseals the Archive for good. */
 function submitKeypad(state: GameState, open: ChallengeState, value: SubmitValue): GameState {
   if (typeof value !== "string" || ARCHIVE_LOCK.live.kind !== "pattern") return state;
@@ -315,6 +324,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       }
       if (action.poi === "fisher") return pushLogOnce({ ...state, inspected: "fisher" }, `Fisher: "${FISHER_LINE}"`);
       if (action.poi === "beach-signpost") return { ...state, inspected: action.poi };
+      if (action.poi === "sandcastle") return state.sandcastleBuilt ? { ...state, inspected: "sandcastle" } : { ...state, inspected: "sandcastle", challenge: opened("sandcastle") };
       if (action.poi === "nomad") {
         const talked = pushLogOnce({ ...state, inspected: "nomad" }, `Nomad: "${nomadSays(state)}"`);
         // Three jars in hand: she shares the water, and it restores you in full.
@@ -397,6 +407,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       }
       if (isChest(open.target)) return submitChest(state, open, open.target, c, action.value);
       if (open.target === "matcher") return submitMatcher(state, open, c, action.value);
+      if (open.target === "sandcastle") return submitSandcastle(state, open, c, action.value);
       if (open.target === "archive") return submitKeypad(state, open, action.value);
       return state;
     }

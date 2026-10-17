@@ -186,7 +186,7 @@ describe("the Sunny Beach zone", () => {
     expect(exitFor("beach", { x: 6, y: 86 }, { x: 2, y: 86 })).toBeNull();
   });
   it("its places are the fisher, the signpost and the pier and shipwreck chests", () => {
-    expect(ZONES.beach.places.map((p) => p.id)).toEqual(["fisher", "beach-signpost", "chest-cpp-1", "chest-cpp-2"]);
-    expect(ZONES.beach.places.map((p) => p.label)).toEqual(["Fisher", "Signpost", "Pier", "Shipwreck"]);
+    expect(ZONES.beach.places.map((p) => p.id)).toEqual(["fisher", "beach-signpost", "sandcastle", "chest-cpp-1", "chest-cpp-2"]);
+    expect(ZONES.beach.places.map((p) => p.label)).toEqual(["Fisher", "Signpost", "Sandcastle", "Pier", "Shipwreck"]);
   });
 });

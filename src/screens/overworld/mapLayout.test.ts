@@ -61,7 +61,7 @@ const GROUPS = {
   forest: ["dense-forest", "north-exit", "forest-west-exit", "forest-east-exit", "ranger", "campfire", "forest-signpost"],
   foggaten: ["foggaten", "island-dock", "lighthouse", "hermit", "island-fire"],
   desert: ["desert", "desert-east-exit", "nomad", "desert-signpost"],
-  beach: ["beach", "beach-west-exit", "fisher", "beach-signpost"],
+  beach: ["beach", "beach-west-exit", "fisher", "beach-signpost", "sandcastle"],
 };
 const quietGroups = (zone: "peaks" | "village" | "forest" | "foggaten" | "desert" | "beach") => LANDMARK_CAPTIONS.filter((l) => l.zone === zone && l.quiet).map((l) => l.id as string);
 /** A hosted chest's caption is its landmark's: always shown. */

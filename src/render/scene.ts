@@ -4,7 +4,8 @@ import type { Phase, Point } from "../game/types";
 import type { ZoneId } from "../game/zones";
 import { AREAS } from "./areas";
 import { FOGGATEN_POINTS, LAMP_POINT } from "./areas/foggaten";
-import { BEACH_SHELLS } from "./areas/beach";
+import { BEACH_POINTS, BEACH_SHELLS, TIDE_SHELLS } from "./areas/beach";
+import { tideStrips } from "../game/tide";
 import { DESERT_POINTS, JAR_POINTS, camelPose, fennecPose, scorpionPose, snakePose } from "./areas/desert";
 import { FOREST_POINTS, MUSHROOM_POINTS, deerPose, rabbitPose, squirrelPose } from "./areas/forest";
 import { CAVE_POINT, WILDLIFE, foxPose, goatPose } from "./areas/peaks";
@@ -63,6 +64,8 @@ export type SceneInput = {
   jars?: readonly string[];
   /** Every badge earned: your explorer wears a crown and the village lights fireworks. */
   master?: boolean;
+  /** The Sunny Beach's sandcastle puzzle is solved: the castle stands finished. */
+  sandcastleBuilt?: boolean;
   /** Your own view's lighting: "day" or "night" draws as that phase whatever the clock says. */
   lightMode?: "auto" | "day" | "night";
   /** Your own view's weather: snowfall over the whole world. */
@@ -281,17 +284,53 @@ const SEA_GLINT = "#e0f2fe";
  * The beach's water at time `t` (ms): foam washing in and out along the shoreline (a wavering white line every third row) and
  * twelve glints twinkling on the sea. Both hold still when motion is reduced (the glints show every third one).
  */
-function beachWater(t: number, reduced: boolean): Pixel[] {
+function beachWater(t: number, reduced: boolean, strips = 0): Pixel[] {
   const seconds = reduced ? 0 : t / 1000;
   const foam = Array.from({ length: 56 }, (_, k): Pixel[] => {
     const y = 12 + k * 3;
-    const x = 298 + Math.round(3 * Math.sin(seconds * 1.1 + y / 9));
+    // The foam rides the tide: each strip of shallow water pushes the waterline 8 px up the sand.
+    const x = 298 - 8 * strips + Math.round(3 * Math.sin(seconds * 1.1 + y / 9));
     return [0, 1, 2].map((j) => ({ x: x + j, y, color: FOAM, alpha: 0.55 }));
   }).flat();
   const glints = Array.from({ length: 12 }, (_, i): Pixel[] =>
     (reduced ? i % 3 === 0 : (t + i * 170) % 1800 < 300) ? [{ x: 306 + ((i * 5) % 12), y: 14 + ((i * 29) % 160), color: SEA_GLINT, alpha: 0.9 }] : [],
   ).flat();
   return [...foam, ...glints];
+}
+
+const STRIP_ROWS = Array.from({ length: 21 }, (_, i) => 18 + i * 8);
+
+/** The tide's shallow water: `strips` columns of 8 px tiles up the shore from the sea, the outermost with a foam edge. Nothing blocks you: it only looks wet. */
+function tideTiles(strips: number): Drawable[] {
+  return Array.from({ length: strips }, (_, k) => k + 1).flatMap((k) =>
+    STRIP_ROWS.map((y) => placed("shallow", { x: 303 - 8 * k + 4, y: y + 8 }, { frame: k === strips ? 1 : 0 })),
+  );
+}
+
+const ROPE = "#a16207";
+const LINE = "#e2e8f0";
+
+/**
+ * The pier's life at time `t` (ms): two lanterns that glow from dusk, an angler's line dropping into the sea with a bobber that bobs,
+ * a mooring rope down to a rowboat that rocks on the water. Everything holds still when motion is reduced.
+ */
+function pierLife(t: number, reduced: boolean, strength: number): { lanterns: Drawable[]; rowboat: Drawable; light: Pixel[] } {
+  const box = spriteBox("pier", BEACH_POINTS.pier);
+  const bob = reduced ? 0 : Math.round(Math.sin(t / 650));
+  const lanterns = [box.x + 5, box.x + 35].map((x) => placed("lantern", { x, y: box.y + 3 }));
+  const lineX = box.x + 37;
+  const line = Array.from({ length: 14 }, (_, i): Pixel => ({ x: lineX, y: box.y + 4 + i, color: LINE, alpha: 0.85 }));
+  const bobber: Pixel[] = [{ x: lineX, y: box.y + 18 + bob, color: "#dc2626", alpha: 1 }, { x: lineX, y: box.y + 19 + bob, color: "#f8fafc", alpha: 1 }];
+  const from = { x: box.x + 38, y: box.y + 13 };
+  const to = { x: 311, y: 134 + bob - 4 };
+  const rope = Array.from({ length: 12 }, (_, i): Pixel => ({
+    x: Math.round(from.x + ((to.x - from.x) * i) / 11),
+    y: Math.round(from.y + ((to.y - from.y) * i) / 11),
+    color: ROPE,
+    alpha: 0.9,
+  }));
+  const lamps = strength > 0 ? lanterns.flatMap((l) => glow({ x: l.x + 3, y: l.y + 2 }, LANTERN_LIGHT, strength)) : [];
+  return { lanterns, rowboat: placed("rowboat", { x: 312, y: 134 + bob }), light: [...line, ...bobber, ...rope, ...lamps] };
 }
 
 /** The crab: it shuffles back and forth along the sand at 10 art px a second; it rests in a fixed spot when motion is reduced. */
@@ -625,8 +664,15 @@ function buildBaseScene(input: SceneInput, poses: Poses, t: number, reduced: boo
       return { zone: input.zone, glints: [], flat: [], upright: [...withWeed, ...vultures(t, reduced)], drone, tint, light: [...desertAir(t, reduced), ...desertSky(t, reduced, strength)], snow };
     }
     if (input.zone === "beach") {
-      const withLife = [...upright, ...BEACH_SHELLS.map((at) => placed("shell", at)), ...birds(t, reduced), crab(t, reduced)].sort(byFeet);
-      return { zone: input.zone, glints: [], flat: [], upright: withLife, drone, tint: PHASE_TINT[phase], light: beachWater(t, reduced), snow };
+      const strips = tideStrips(input.minutes);
+      const pier = pierLife(t, reduced, strength);
+      const castle = input.sandcastleBuilt ? 1 : 0;
+      const props = upright.map((d) => (d.sprite === "sandcastle" ? { ...d, frame: castle } : d));
+      const bare = strips === 0 ? TIDE_SHELLS.map((at) => placed("shell", at)) : [];
+      const withLife = [...props, ...BEACH_SHELLS.map((at) => placed("shell", at)), ...bare, ...birds(t, reduced), crab(t, reduced), pier.rowboat].sort(byFeet);
+      // The lanterns stand on the planks: drawn right after the pier, so the planks do not hide them.
+      withLife.splice(withLife.findIndex((d) => d.sprite === "pier") + 1, 0, ...pier.lanterns);
+      return { zone: input.zone, glints: [], flat: tideTiles(strips), upright: withLife, drone, tint: PHASE_TINT[phase], light: [...beachWater(t, reduced, strips), ...pier.light], snow };
     }
     if (input.zone === "foggaten") {
       const lighthouse = upright.find((d) => d.sprite === "lighthouse");

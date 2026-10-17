@@ -886,3 +886,27 @@ describe("Overworld: the finale, the crown and New Game+", () => {
     expect(screen.queryByText("Hard mode")).toBeNull();
   });
 });
+
+describe("Overworld: the beach's tide tag", () => {
+  it("shows the tide in the top bar on the Sunny Beach only", () => {
+    const { unmount } = render(<Overworld onMenu={() => {}} initial={{ zone: "beach", player: { x: 50, y: 70 } }} />);
+    expect(screen.getByText("· Tide: Low")).toBeInTheDocument();
+    unmount();
+    render(<Overworld onMenu={() => {}} />);
+    expect(screen.queryByText(/Tide:/)).toBeNull();
+  });
+
+  it("the sandcastle's map button opens its puzzle, and the drawn castle is unfinished until it is solved", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} initial={{ zone: "beach", player: { x: 56, y: 80 } }} />);
+    expect(drawn[drawn.length - 1].input.sandcastleBuilt).toBe(false);
+    await user.click(screen.getByRole("button", { name: "Sandcastle" }));
+    expect(screen.getByRole("dialog", { name: /sandcastle/i })).toBeInTheDocument();
+  });
+
+  it("a finished castle is drawn finished and its button says so", () => {
+    render(<Overworld onMenu={() => {}} initial={{ zone: "beach", player: { x: 56, y: 80 }, sandcastleBuilt: true }} />);
+    expect(drawn[drawn.length - 1].input.sandcastleBuilt).toBe(true);
+    expect(screen.getByRole("button", { name: "Sandcastle, finished" })).toBeInTheDocument();
+  });
+});

@@ -1,5 +1,5 @@
 import { CHESTS } from "../learn/chests";
-import { ADA, ARCHIVE, BEACH_SIGNPOST, BOUNDS, CAMPFIRE, DESERT_SIGNPOST, DOCK, FISHER, FOREST_SIGNPOST, HERMIT, ISLAND_DOCK, ISLAND_FIRE, LIGHTHOUSE, LOG, NOMAD, PEAKS_SIGNPOST, POIS, RANGER, SIGNPOST, TERMINAL, WEATHER_STATION } from "./constants";
+import { ADA, ARCHIVE, BEACH_SIGNPOST, BOUNDS, CAMPFIRE, DESERT_SIGNPOST, DOCK, FISHER, FOREST_SIGNPOST, HERMIT, ISLAND_DOCK, ISLAND_FIRE, LIGHTHOUSE, LOG, NOMAD, PEAKS_SIGNPOST, POIS, RANGER, SANDCASTLE_POI, SIGNPOST, TERMINAL, WEATHER_STATION } from "./constants";
 import { DESERT_JARS, DESERT_LORE } from "./desertLore";
 import { FOREST_LORE, FOREST_MUSHROOMS } from "./forestLore";
 import type { Poi, PoiId, Point } from "./types";
@@ -78,7 +78,7 @@ export const ZONES: Record<ZoneId, Zone> = {
     exits: [{ edge: "west", min: 62, max: 78, to: "forest" }],
     wall: false,
     gate: false,
-    places: [FISHER, BEACH_SIGNPOST, ...chestPlaces("beach")],
+    places: [FISHER, BEACH_SIGNPOST, SANDCASTLE_POI, ...chestPlaces("beach")],
     river: false,
   },
   // No edge leads here: the island is entered and left by boat, from a dock (the `sail` action).

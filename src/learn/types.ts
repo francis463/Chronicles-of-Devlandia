@@ -15,7 +15,7 @@ export type ChestId =
   | "chest-cs"
   | "chest-js";
 
-export type ChallengeTarget = ChestId | "gate" | "cipher" | "matcher" | "archive";
+export type ChallengeTarget = ChestId | "gate" | "cipher" | "matcher" | "archive" | "sandcastle";
 
 /**
  * What the live check knows about a blank: a closed set (`legal`, complete), an open set

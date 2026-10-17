@@ -44,6 +44,8 @@ export const NOMAD: Poi = { id: "nomad", label: "Nomad", x: 62, y: 70 };
 export const OASIS: Point = { x: 42, y: 52 };
 /** Sunny Beach: a signpost by the way back west, a fisher, a pier into the sea and a shipwreck up the shore. */
 export const BEACH_SIGNPOST: Poi = { id: "beach-signpost", label: "Signpost", x: 14, y: 58 };
+/** The sandcastle on the Sunny Beach: a build-it-in-order puzzle. */
+export const SANDCASTLE_POI: Poi = { id: "sandcastle", label: "Sandcastle", x: 58, y: 84 };
 export const FISHER: Poi = { id: "fisher", label: "Fisher", x: 34, y: 72 };
 export const BEACH_PIER: Point = { x: 90, y: 62 };
 export const SHIPWRECK: Point = { x: 60, y: 30 };
@@ -104,6 +106,7 @@ export const LOG = {
   sailOut: "You sail through the fog to Foggaten Island.",
   sailBack: "You sail back to the Peaks.",
   dockLocked: "The boatman waits for the gate to open",
+  castleBuilt: "The sandcastle stands finished, a flag on its tallest tower.",
   finale: "All 11 badges earned: you are a Master of Devlandia!",
   hardMiss: `Hard mode: -${HARD_WRONG_DAMAGE} HP.`,
   badge: (badge: string) => `Earned the ${badge} Badge.`,

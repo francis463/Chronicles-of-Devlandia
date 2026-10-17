@@ -159,6 +159,7 @@ export const LANDMARK_CAPTIONS: readonly LandmarkCaption[] = [
   { id: "nomad", zone: "desert", sprite: "explorer-down", point: DESERT_POINTS.nomad, texts: ["[N] Nomad"], prefer: "below" },
   { id: "desert-signpost", zone: "desert", sprite: "signpost", point: DESERT_POINTS.signpost, texts: ["[S] Signpost"], prefer: "above" },
   { id: "fisher", zone: "beach", sprite: "explorer-down", point: BEACH_POINTS.fisher, texts: ["[F] Fisher"], prefer: "below" },
+  { id: "sandcastle", zone: "beach", sprite: "sandcastle", point: BEACH_POINTS.sandcastle, texts: ["[C] Sandcastle", "Sandcastle ✓"], prefer: "below" },
   { id: "beach-signpost", zone: "beach", sprite: "signpost", point: BEACH_POINTS.signpost, texts: ["[S] Signpost"], prefer: "above" },
   { id: "terminal", zone: "village", sprite: "syntax-terminal", point: TERMINAL_POINT, texts: ["Terminal"], prefer: "below" },
   { id: "archive", zone: "village", sprite: "archive", point: ARCHIVE_POINT, texts: ["Archive", "C#", "C# ✓"], prefer: "above" },
@@ -175,7 +176,7 @@ export const FOREST_SCENERY = [...FOREST_LORE, ...FOREST_MUSHROOMS].map((p) => (
 export const DESERT_SCENERY = [...DESERT_LORE, ...DESERT_JARS].map((p) => ({ id: p.id, label: p.label, prefer: LANDMARK_CAPTIONS.find((l) => l.id === p.id)!.prefer }));
 
 /** What the map captions depend on. `reach` is the place in reach, whose chest caption shows at 1×. */
-export type MapState = { hasLoot: boolean; towerPowered: boolean; badges?: readonly ChestId[]; archiveOpen?: boolean; reach?: PoiId | null };
+export type MapState = { sandcastleBuilt?: boolean; hasLoot: boolean; towerPowered: boolean; badges?: readonly ChestId[]; archiveOpen?: boolean; reach?: PoiId | null };
 
 /** Chest captions always show on maps at this scale and larger. */
 export const CHEST_CAPTION_SCALE = 2;
@@ -185,6 +186,7 @@ export function captionText(l: LandmarkCaption, state: MapState): string {
   const earned = (id: ChestId) => !!state.badges?.includes(id);
   if (l.id === "tower") return l.texts[state.towerPowered ? 1 : 0];
   if (l.id === "chest") return l.texts[state.hasLoot ? 1 : 0];
+  if (l.id === "sandcastle") return l.texts[state.sandcastleBuilt ? 1 : 0];
   if (l.id === "archive") return l.texts[!state.archiveOpen ? 0 : earned("chest-cs") ? 2 : 1];
   if (l.chest) return l.texts[earned(l.chest) ? 1 : 0];
   return l.texts[0];

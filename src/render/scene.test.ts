@@ -1020,3 +1020,62 @@ describe("scene: a Master of Devlandia's crown and the village fireworks", () =>
     expect(sparks(run("village", { master: true }, 500, true))).toHaveLength(16);
   });
 });
+
+describe("scene: the Sunny Beach's tide, pier and sandcastle", () => {
+  const beach = (over: Partial<SceneInput> = {}, t = 0, reduced = false) => scene({ zone: "beach", player: { x: 50, y: 70 }, ...over }, t, reduced);
+  const HIGH = 180;
+  const LOW = 540;
+  const tiles = (s: ReturnType<typeof scene>) => s.flat.filter((d) => d.sprite === "shallow");
+  const up = (s: ReturnType<typeof scene>, id: string) => s.upright.filter((d) => d.sprite === id);
+
+  it("the shallow water covers more of the shore as the tide comes in, none at low tide", () => {
+    expect(tiles(beach({ minutes: LOW }))).toHaveLength(0);
+    const rising = tiles(beach({ minutes: 0 })).length;
+    const high = tiles(beach({ minutes: HIGH })).length;
+    expect(rising).toBeGreaterThan(0);
+    expect(high).toBe(rising * 2);
+    for (const d of tiles(beach({ minutes: HIGH }))) expect(d.x + SPRITES.shallow.w).toBeLessThanOrEqual(303 + 1);
+  });
+
+  it("the outermost column has the foam edge, and the shallows are drawn on the beach only", () => {
+    const strips = tiles(beach({ minutes: HIGH }));
+    const edge = strips.filter((d) => d.frame === 1);
+    expect(edge).toHaveLength(strips.length / 2);
+    expect(Math.min(...edge.map((d) => d.x))).toBeLessThan(Math.min(...strips.filter((d) => d.frame === 0).map((d) => d.x)));
+    for (const zone of ["village", "forest", "desert", "peaks"] as const) expect(tiles(scene({ zone, minutes: HIGH }, 0)), zone).toHaveLength(0);
+  });
+
+  it("low tide uncovers three extra shells, which the water hides again", () => {
+    expect(up(beach({ minutes: LOW }), "shell").length).toBe(up(beach({ minutes: HIGH }), "shell").length + 3);
+  });
+
+  it("two lanterns stand on the pier right after it, glowing from dusk", () => {
+    const s = beach({ minutes: 12 * 60 });
+    const names = s.upright.map((d) => d.sprite);
+    expect(up(s, "lantern")).toHaveLength(2);
+    expect(names.slice(names.indexOf("pier") + 1, names.indexOf("pier") + 3)).toEqual(["lantern", "lantern"]);
+    const glow = (m: number) => beach({ minutes: m }).light.filter((p) => p.color === "#fbbf24").length;
+    expect(glow(12 * 60)).toBe(0);
+    expect(glow(23 * 60)).toBeGreaterThan(0);
+  });
+
+  it("a rowboat rocks beside the pier, an angler's line hangs with a bobber, and all hold still when motion is reduced", () => {
+    const boatY = (t: number, reduced = false) => up(beach({ minutes: DAY }, t, reduced), "rowboat")[0].y;
+    expect(up(beach(), "rowboat")).toHaveLength(1);
+    expect(new Set([0, 500, 1000, 1500, 2000, 2500].map((t) => boatY(t))).size).toBeGreaterThan(1);
+    expect(boatY(0, true)).toBe(boatY(2000, true));
+    const bobber = (t: number, reduced = false) => beach({ minutes: DAY }, t, reduced).light.filter((p) => p.color === "#dc2626").map((p) => p.y);
+    expect(bobber(0)).toHaveLength(1);
+    expect(bobber(0, true)).toEqual(bobber(2000, true));
+    expect(beach({ minutes: DAY }).light.filter((p) => p.color === "#e2e8f0").length).toBeGreaterThanOrEqual(14);
+  });
+
+  it("the sandcastle is unfinished until its puzzle is solved, then wears its flag", () => {
+    expect(up(beach(), "sandcastle")[0].frame).toBe(0);
+    expect(up(beach({ sandcastleBuilt: true }), "sandcastle")[0].frame).toBe(1);
+  });
+
+  it("only the beach has a rowboat", () => {
+    for (const zone of ["village", "forest", "desert", "peaks", "foggaten"] as const) expect(up(scene({ zone, minutes: DAY }, 0), "rowboat"), zone).toHaveLength(0);
+  });
+});

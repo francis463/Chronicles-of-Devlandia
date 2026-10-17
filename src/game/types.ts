@@ -38,6 +38,7 @@ export type PoiId =
   | "forest-brook"
   | "fairy-ring"
   | "hollow-tree"
+  | "sandcastle"
   | MushroomId
   | "caravan-camp"
   | "desert-well"
@@ -115,6 +116,8 @@ export type GameState = {
   /** Which of the nomad's water jars you have picked up, and whether she has had her water. */
   jars: JarId[];
   nomadServed: boolean;
+  /** The Sunny Beach's sandcastle puzzle, solved: the castle stands finished, with its flag. */
+  sandcastleBuilt: boolean;
   codexOpen: boolean;
   /** The Master of Devlandia finale: open now, and whether it has been shown this game. */
   finaleOpen: boolean;

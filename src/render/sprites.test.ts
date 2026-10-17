@@ -448,7 +448,7 @@ describe("the Sunbaked Desert's art", () => {
 });
 
 describe("the Sunny Beach's art", () => {
-  const SIZES = [["umbrella", 16, 16, 1], ["sandcastle", 14, 10, 1], ["boat", 28, 12, 1], ["shipwreck", 36, 24, 1], ["pier", 40, 14, 1], ["crab", 16, 10, 2], ["shell", 6, 5, 1]] as const;
+  const SIZES = [["umbrella", 16, 16, 1], ["sandcastle", 14, 14, 2], ["boat", 28, 12, 1], ["shipwreck", 36, 24, 1], ["pier", 40, 14, 1], ["crab", 16, 10, 2], ["shell", 6, 5, 1]] as const;
 
   it("have their declared sizes, anchors and frame counts", () => {
     for (const [id, w, h, frames] of SIZES) expect([SPRITES[id].w, SPRITES[id].h, SPRITES[id].anchor, SPRITES[id].frames.length], id).toEqual([w, h, "bottom", frames]);
@@ -542,5 +542,30 @@ describe("the Sunbaked Desert's new art", () => {
 
   it("the animated ones' frames differ", () => {
     for (const id of ["scorpion", "camel", "snake", "vulture", "fennec", "jar"] as const) expect(SPRITES[id].frames[0], id).not.toEqual(SPRITES[id].frames[1]);
+  });
+});
+
+describe("the Sunny Beach's tide and pier art", () => {
+  it("the rowboat is 20 x 10 with the shared outline, and the shallow-water tile is two 8 x 8 frames", () => {
+    expect([SPRITES.rowboat.w, SPRITES.rowboat.h, SPRITES.rowboat.frames.length]).toEqual([20, 10, 1]);
+    const { frames, palette } = SPRITES.rowboat;
+    const grid = frames[0];
+    const solid = (x: number, y: number) => x >= 0 && y >= 0 && x < 20 && y < 10 && grid[y][x] !== ".";
+    for (let y = 0; y < 10; y++)
+      for (let x = 0; x < 20; x++) if (solid(x, y) && (!solid(x - 1, y) || !solid(x + 1, y) || !solid(x, y - 1) || !solid(x, y + 1))) expect(palette[grid[y][x]], `${x},${y}`).toBe(OUTLINE);
+    expect([SPRITES.shallow.w, SPRITES.shallow.h, SPRITES.shallow.frames.length]).toEqual([8, 8, 2]);
+    for (const f of SPRITES.shallow.frames) {
+      expect(f).toHaveLength(8);
+      for (const row of f) expect(row).toHaveLength(8);
+    }
+    expect(SPRITES.shallow.frames[1].every((r) => r[0] === "f")).toBe(true);
+    expect(SPRITES.shallow.frames[0]).not.toEqual(SPRITES.shallow.frames[1]);
+  });
+
+  it("the finished sandcastle differs from the unfinished one and rises higher", () => {
+    const [unbuilt, built] = SPRITES.sandcastle.frames;
+    expect(unbuilt).not.toEqual(built);
+    const top = (g: readonly string[]) => g.findIndex((r) => /[^.]/.test(r));
+    expect(top(built)).toBeLessThan(top(unbuilt));
   });
 });

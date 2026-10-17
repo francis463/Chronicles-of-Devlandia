@@ -951,7 +951,7 @@ describe("gameReducer: the Sunbaked Desert's places", () => {
 describe("gameReducer: the Sunny Beach's places", () => {
   const beach: GameState = { ...s0, zone: "beach" };
   it("the beach's places are the fisher, signpost and the pier and shipwreck chests", () => {
-    expect(reachPlaces(beach).map((p) => p.id)).toEqual(["fisher", "beach-signpost", "chest-cpp-1", "chest-cpp-2"]);
+    expect(reachPlaces(beach).map((p) => p.id)).toEqual(["fisher", "beach-signpost", "sandcastle", "chest-cpp-1", "chest-cpp-2"]);
   });
   it("the fisher speaks once; the signpost inspects and logs nothing", () => {
     const once = gameReducer(beach, { type: "interact", poi: "fisher" });

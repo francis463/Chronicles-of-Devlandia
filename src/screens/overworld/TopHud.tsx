@@ -17,6 +17,7 @@ export function TopHud({
   region,
   playerClass,
   hard = false,
+  tide,
   className = "",
 }: {
   hp: number;
@@ -35,6 +36,8 @@ export function TopHud({
   playerClass?: ClassId;
   /** A New Game+ run: the top bar says so. */
   hard?: boolean;
+  /** On the Sunny Beach: the tide's name (Low, Rising, High or Falling). */
+  tide?: string;
   className?: string;
 }) {
   return (
@@ -62,6 +65,7 @@ export function TopHud({
         <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-[var(--text-muted)]">
           <PhaseIcon phase={phaseOf(minutes)} />
           <span>{`${phaseOf(minutes)} / ${formatTime(minutes)}`}</span>
+          {tide && <span className="text-[var(--primary-border)]">{`· Tide: ${tide}`}</span>}
         </span>
         <Button variant="ghost" className="px-2 py-1 text-[10px] pointer-coarse:min-h-11" onClick={onHelp}>
           [?] Help

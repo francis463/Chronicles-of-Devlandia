@@ -221,6 +221,7 @@ export function MapViewport({
   badges,
   mushrooms = [],
   jars = [],
+  sandcastleBuilt = false,
   matcherSolved,
   archiveOpen,
   lighthouseLit,
@@ -253,6 +254,8 @@ export function MapViewport({
   mushrooms?: readonly PoiId[];
   /** The nomad's water jars you have picked up: they leave the map. */
   jars?: readonly PoiId[];
+  /** The sandcastle puzzle is solved: the castle draws finished, and its caption gets a tick. */
+  sandcastleBuilt?: boolean;
   matcherSolved: boolean;
   archiveOpen: boolean;
   lighthouseLit: boolean;
@@ -285,7 +288,7 @@ export function MapViewport({
     ...(zone === "foggaten" && artifactFound ? [{ ...HIDDEN_ARTIFACT, box: SEMICOLON_BOX }] : []),
     ...teammates.map((t) => ({ x: t.x, y: t.y, box: EXPLORER_BOX })),
   ];
-  const mapState = { hasLoot, towerPowered, badges, archiveOpen, reach: inRange?.id ?? null };
+  const mapState = { sandcastleBuilt, hasLoot, towerPowered, badges, archiveOpen, reach: inRange?.id ?? null };
   const hits = zoneHitAreas(world, zone);
   const fixed = landmarkCaptions(world, map, mapState, zone);
   const labels = labelLayout(player, drone, worldSize, obstacles, world.scale, fixed, exitSignBox(world, zone));
@@ -313,6 +316,7 @@ export function MapViewport({
     earned: badges,
     mushrooms,
     jars,
+    sandcastleBuilt,
     master: badges.length >= CHEST_COUNT,
     minutes,
     lightMode,
@@ -410,6 +414,7 @@ export function MapViewport({
             <MapCaption id="beach" text="(Sunny Beach Biome)" world={world} />
 
             <LandmarkButton hit={hits.fisher} name={caption("fisher")} color="var(--accent-border)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "fisher"} onClick={() => onInteract("fisher")} />
+            <LandmarkButton hit={hits.sandcastle} name={caption("sandcastle")} label={sandcastleBuilt ? "Sandcastle, finished" : "Sandcastle"} color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "sandcastle"} onClick={() => onInteract("sandcastle")} />
             <LandmarkButton hit={hits["beach-signpost"]} name={caption("beach-signpost")} label="Signpost" color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "beach-signpost"} onClick={() => onInteract("beach-signpost")} />
           </>
         ) : zone === "desert" ? (

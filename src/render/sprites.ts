@@ -85,6 +85,8 @@ export type SpriteId =
   | "hollow-tree"
   | "glow-mushroom"
   | "crown"
+  | "rowboat"
+  | "shallow"
   | "scorpion"
   | "camel"
   | "snake"
@@ -903,14 +905,27 @@ function umbrellaGrid(): PixelGrid {
   });
 }
 
-/** A sandcastle: two towers either side of a low wall. */
-function sandcastleGrid(): PixelGrid {
-  return outlined(14, 10, (x, y) => {
-    const tower = (x >= 1 && x <= 4 && y >= 2) || (x >= 9 && x <= 12 && y >= 2);
-    const wall = x >= 1 && x <= 12 && y >= 5;
-    if (!(tower || wall)) return null;
-    return (x * 3 + y * 5) % 7 === 0 ? "S" : "s";
-  });
+/** A sandcastle: two towers either side of a low wall; finished (frame 2) it gains a keep and a flag. */
+function sandcastleGrid(built: boolean): PixelGrid {
+  return creature(14, 14, [
+    (x, y) => (x >= 1 && x <= 12 && y >= 9 ? ((x * 3 + y * 5) % 7 === 0 ? "S" : "s") : null),
+    (x, y) => ((x >= 1 && x <= 4) || (x >= 9 && x <= 12)) && y >= (built ? 5 : 6) ? ((x * 3 + y * 5) % 7 === 0 ? "S" : "s") : null,
+    ...(built ? [(x: number, y: number) => (x >= 5 && x <= 8 && y >= 3 ? ((x * 3 + y * 5) % 7 === 0 ? "S" : "s") : null), poly([[7, 0], [11, 1], [7, 2.4]], "r")] : []),
+  ]);
+}
+
+/** A little moored rowboat seen from the side: a brown hull, a pale plank stripe and a seat. */
+function rowboatGrid(): PixelGrid {
+  return creature(20, 10, [
+    poly([[0, 2], [19, 2], [16, 9], [3, 9]], "H"),
+    rect(2, 4, 17, 4, "w"),
+    rect(8, 0, 11, 3, "h"),
+  ]);
+}
+
+/** A tile of shallow water for the tide: sea blue with flecks of foam; frame 2 has a foam edge down its left side. */
+function shallowGrid(edge: boolean): PixelGrid {
+  return Array.from({ length: 8 }, (_, y) => Array.from({ length: 8 }, (_, x) => (edge && x === 0 ? "f" : (x + y * 3) % 7 === 0 ? "f" : (x * 5 + y) % 11 === 0 ? "d" : "b")).join(""));
 }
 
 /** A beached rowing boat: a brown hull with a pale plank stripe. */
@@ -1948,7 +1963,9 @@ export const SPRITES: Record<SpriteId, SpriteDef> = {
   pyramid: { w: 40, h: 28, anchor: "bottom", palette: { o: "#0b1020", s: "#d9b26a", L: "#ecd08f", d: "#b98c46", S: "#a47a3a", k: "#2a1d12" }, frames: [pyramidGrid()] },
   tumbleweed: { w: 8, h: 8, anchor: "bottom", palette: { o: "#0b1020", b: "#b8925a", d: "#8a6a3a" }, frames: [tumbleweedGrid(0), tumbleweedGrid(1)] },
   umbrella: { w: 16, h: 16, anchor: "bottom", palette: { o: "#0b1020", r: "#ef4444", w: "#f8fafc", p: "#9a5f2b" }, frames: [umbrellaGrid()] },
-  sandcastle: { w: 14, h: 10, anchor: "bottom", palette: { o: "#0b1020", s: "#e8c47a", S: "#c9a357" }, frames: [sandcastleGrid()] },
+  sandcastle: { w: 14, h: 14, anchor: "bottom", palette: { o: "#0b1020", s: "#e8c47a", S: "#c9a357", r: "#dc2626" }, frames: [sandcastleGrid(false), sandcastleGrid(true)] },
+  rowboat: { w: 20, h: 10, anchor: "bottom", palette: { o: "#0b1020", H: "#8b5e34", h: "#6b4423", w: "#d9c9a0" }, frames: [rowboatGrid()] },
+  shallow: { w: 8, h: 8, anchor: "bottom", palette: { o: "#0b1020", b: "#2f78c4", d: "#2563a8", f: "#9cc9f0" }, frames: [shallowGrid(false), shallowGrid(true)] },
   boat: { w: 28, h: 12, anchor: "bottom", palette: { o: "#0b1020", h: "#9a5f2b", H: "#7c4a1e", w: "#e2d3b0" }, frames: [boatGrid()] },
   shipwreck: { w: 36, h: 24, anchor: "bottom", palette: { o: "#0b1020", k: "#7c4a1e", K: "#5b3a1e", p: "#9a5f2b", w: "#d9d2bd", s: "#e8c47a", S: "#c9a357" }, frames: [shipwreckGrid()] },
   pier: { w: 40, h: 14, anchor: "bottom", palette: { o: "#0b1020", p: "#b07a45", P: "#8f5f33", k: "#5b3a1e" }, frames: [pierGrid()] },

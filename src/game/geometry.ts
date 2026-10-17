@@ -50,6 +50,7 @@ const chestVerb = (s: GameState, id: string, host: string, open = "Search") => `
 function verbFor(s: GameState, poi: Poi): string | null {
   const chest = CHESTS.find((c) => c.id === poi.id);
   if (chest) return chestVerb(s, chest.id, chest.host!);
+  if (poi.id === "sandcastle") return s.sandcastleBuilt ? null : "Build the Sandcastle";
   if (poi.id === "lighthouse") return s.lighthouseLit ? null : "Light the Lamp";
   if (poi.id === "archive") return s.archiveOpen ? chestVerb(s, "chest-cs", "C# Chest", "Open") : "Unseal Archive";
   return VERBS[poi.id] ?? null;

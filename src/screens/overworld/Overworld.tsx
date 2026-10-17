@@ -15,6 +15,7 @@ import { countUnread, lastSeq, useChat, type ChatFeed } from "../../hooks/useCha
 import { usePings } from "../../hooks/usePings";
 import type { TeamSession } from "../../hooks/useTeamSession";
 import { LOG, TICK_MS } from "../../game/constants";
+import { tideName } from "../../game/tide";
 import { flagsOf, teamMinutes } from "../../game/team";
 import { ZONES } from "../../game/zones";
 import { chestById, chestChallenge } from "../../learn/chests";
@@ -243,6 +244,7 @@ export function Overworld({
         region={ZONES[state.zone].name}
         playerClass={playerClass}
         hard={state.hard}
+        tide={state.zone === "beach" ? tideName(minutes) : undefined}
       />
       <MiniMap
         className="md:col-start-1 md:row-start-2"
@@ -270,6 +272,7 @@ export function Overworld({
           badges={state.badges}
           mushrooms={state.mushrooms}
           jars={state.jars}
+          sandcastleBuilt={state.sandcastleBuilt}
           matcherSolved={state.matcherSolved}
           archiveOpen={state.archiveOpen}
           lighthouseLit={state.lighthouseLit}
