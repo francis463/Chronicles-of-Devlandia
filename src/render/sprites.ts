@@ -75,7 +75,10 @@ export type SpriteId =
   | "mushroom"
   | "fern"
   | "flowers"
-  | "owl";
+  | "owl"
+  | "deer"
+  | "squirrel"
+  | "rabbit";
 /** bottom: bottom-centre on the art point; centre: centred on it; hover: centred 12 px above it. */
 export type SpriteDef = { w: number; h: number; frames: PixelGrid[]; palette: Palette; anchor: "bottom" | "centre" | "hover" };
 export type TextureId = "ice" | "mountains" | "snow" | "forest" | "meadow" | "path" | "bank" | "sand" | "sea" | "dune" | "beach";
@@ -568,6 +571,60 @@ function owlGrid(frame: 0 | 1): PixelGrid {
     rect(2, 4, 3, 5, frame === 0 ? "y" : "b"),
     rect(6, 4, 7, 5, frame === 0 ? "y" : "b"),
     rect(4, 5, 5, 6, "a"),
+  ]);
+}
+
+/** A deer walking right: tawny with pale spots and belly, branching antlers, a white tail, the legs swapping between frames. */
+function deerGrid(frame: 0 | 1): PixelGrid {
+  const [a, b] = frame === 0 ? [5, 16] : [7, 14];
+  return creature(26, 20, [
+    rect(a, 11, a + 1, 19, "D"),
+    rect(a + 4, 11, a + 5, 19, "D"),
+    rect(b, 11, b + 1, 19, "D"),
+    rect(b - 4, 11, b - 3, 19, "D"),
+    ell(2, 8, 1.8, 1.8, "w"),
+    ell(11.5, 9, 9, 4, "d"),
+    ell(12, 11, 7, 1.6, "B"),
+    poly([[17, 8], [19, 3], [23, 4], [21, 10]], "d"),
+    ell(22, 5.6, 2.8, 2.4, "d"),
+    ell(24.2, 6.8, 1.6, 1.4, "B"),
+    poly([[20, 3], [21, 0], [22, 3]], "A"),
+    poly([[22, 3], [24, 1], [24, 3]], "A"),
+    rect(21, 0, 21, 2, "A"),
+    rect(22, 4, 22, 4, "k"),
+    ...[[6, 7], [10, 6], [14, 7], [9, 9], [13, 10]].map(([x, y]) => rect(x, y, x, y, "w")),
+  ]);
+}
+
+/** A squirrel sitting up: a big curling tail behind a rust body, swishing between frames. */
+function squirrelGrid(frame: 0 | 1): PixelGrid {
+  const lift = frame === 0 ? 0 : 1;
+  return creature(14, 14, [
+    ell(3, 7 + lift, 2.8, 5, "S"),
+    ell(4.4, 2.4 + lift, 2.2, 2, "S"),
+    rect(7, 12, 9, 13, "s"),
+    ell(8.2, 9, 3, 3.6, "s"),
+    ell(8.6, 10.2, 1.5, 2, "B"),
+    ell(11, 4.6, 2.6, 2.4, "s"),
+    rect(9, 1, 10, 3, "s"),
+    rect(12, 4, 12, 4, "k"),
+  ]);
+}
+
+/** A rabbit hopping right: grey-brown with long ears and a white scut, stretched out in its second frame. */
+function rabbitGrid(frame: 0 | 1): PixelGrid {
+  const up = frame === 0 ? 0 : 2;
+  return creature(16, 13, [
+    ell(1.8, 8 - up, 1.9, 1.9, "w"),
+    rect(3, 10 - up, 4, 12, "R"),
+    rect(8, 10 - up, 9, 12, "R"),
+    ell(5.5, 8 - up, 5, 3.3, "r"),
+    ell(4, 8.4 - up, 3.2, 2.8, "R"),
+    ell(10.6, 6.4 - up, 3.2, 2.7, "r"),
+    poly([[8, 5 - up], [8, 0], [11, 0], [11, 5 - up]], "r"),
+    poly([[11, 5 - up], [12, 0], [15, 1], [13, 5 - up]], "r"),
+    rect(9, 1, 9, 3, "w"),
+    rect(12, 6 - up, 12, 6 - up, "k"),
   ]);
 }
 
@@ -1641,6 +1698,9 @@ export const SPRITES: Record<SpriteId, SpriteDef> = {
   fern: { w: 16, h: 11, anchor: "bottom", palette: { o: "#0b1020", g: "#2f7d3a", G: "#1e5a2a", L: "#4caf50" }, frames: [fernGrid()] },
   flowers: { w: 17, h: 11, anchor: "bottom", palette: { o: "#0b1020", g: "#3f7d3a", G: "#2d5f2a", y: "#fde047", p: "#f472b6", w: "#f8fafc" }, frames: [flowersGrid()] },
   owl: { w: 10, h: 12, anchor: "bottom", palette: { o: "#0b1020", b: "#8b5e34", B: "#d6b98a", y: "#fde047", a: "#f59e0b" }, frames: [owlGrid(0), owlGrid(1)] },
+  deer: { w: 26, h: 20, anchor: "bottom", palette: { o: "#0b1020", d: "#a3643a", D: "#6b4423", B: "#e3c9a0", A: "#d6b98a", w: "#f8e9d0", k: "#0b1020" }, frames: [deerGrid(0), deerGrid(1)] },
+  squirrel: { w: 14, h: 14, anchor: "bottom", palette: { o: "#0b1020", s: "#b45a2a", S: "#d9763a", B: "#f1d9b5", k: "#0b1020" }, frames: [squirrelGrid(0), squirrelGrid(1)] },
+  rabbit: { w: 16, h: 13, anchor: "bottom", palette: { o: "#0b1020", r: "#a8a29e", R: "#78716c", w: "#f8fafc", k: "#0b1020" }, frames: [rabbitGrid(0), rabbitGrid(1)] },
   lizard: { w: 14, h: 9, anchor: "bottom", palette: { o: "#0b1020", z: "#6b8f3a", Z: "#8fb34a", e: "#f5d547" }, frames: [lizardGrid(0), lizardGrid(1)] },
 };
 

@@ -106,7 +106,7 @@ function candidate(cx: number, cy: number, area: Area): Candidate | null {
   const options: Record<Exclude<TerrainKind, "mountains">, Array<[DecorationSprite, number]>> = {
     snow: [["pine", 0.55], ["snow-rock", 0.15]],
     meadow: [["flowers", 0.1], ["bush", 0.08], ["tree", 0.07], ["mushroom", 0.03], ["stump", 0.02]],
-    forest: [["tree", 0.45], ["birch", 0.16], ["bush", 0.08], ["fern", 0.12], ["mushroom", 0.05], ["stump", 0.04], ["log", 0.04]],
+    forest: [["tree", 0.5], ["birch", 0.18], ["bush", 0.07], ["fern", 0.1], ["mushroom", 0.04], ["stump", 0.04], ["log", 0.04]],
     ice: [],
     sand: [],
     sea: [],

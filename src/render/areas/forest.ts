@@ -1,6 +1,8 @@
 import { spriteBox } from "../sprites";
 import { toArt, type Rect } from "../world";
 import { inRect, type Area, type Prop, type TerrainKind } from "./area";
+import { animalPose, type AnimalPose, type Wild } from "./peaks";
+import type { ArtPoint } from "../world";
 
 /** The forest's places in art px (the game's RANGER, CAMPFIRE, OLD_OAK and FOREST_SIGNPOST). */
 export const FOREST_POINTS = {
@@ -16,6 +18,20 @@ const PROPS: Prop[] = [
   { sprite: "signpost", at: FOREST_POINTS.signpost },
   { sprite: "explorer-down", at: FOREST_POINTS.ranger, variant: "#be123c" },
 ];
+
+/**
+ * The forest's wildlife: a deer grazing at the clearing's south edge, a rabbit among the western trees and a squirrel by the old oak.
+ * Each paces about its home and, like the Peaks' fox, drifts away from a player closer than 40 px, never leaving its zone.
+ */
+export const FOREST_WILDLIFE = {
+  deer: { home: { x: 188, y: 148 }, zone: { x: 172, y: 144, w: 32, h: 8 } },
+  rabbit: { home: { x: 95, y: 134 }, zone: { x: 85, y: 128, w: 20, h: 12 } },
+  squirrel: { home: { x: 110, y: 92 }, zone: { x: 106, y: 86, w: 12, h: 8 } },
+} as const satisfies Record<string, Wild>;
+
+export const deerPose = (t: number, reduced: boolean, player: ArtPoint): AnimalPose => animalPose(FOREST_WILDLIFE.deer, t, reduced, player, 12);
+export const rabbitPose = (t: number, reduced: boolean, player: ArtPoint): AnimalPose => animalPose(FOREST_WILDLIFE.rabbit, t, reduced, player, 8);
+export const squirrelPose = (t: number, reduced: boolean, player: ArtPoint): AnimalPose => animalPose(FOREST_WILDLIFE.squirrel, t, reduced, player, 4);
 
 /** The meadow clearing in the middle of the forest, where the ranger, the campfire and the chest stand. */
 const CLEARING: Rect = { x: 120, y: 90, w: 110, h: 70 };
@@ -65,6 +81,13 @@ export const FOREST: Area = {
   gateBox: null,
   ice: null,
   props: PROPS,
-  protected: [...PATHS, MOUTH, WEST_MOUTH, EAST_MOUTH, ...PROPS.map((prop) => spriteBox(prop.sprite, prop.at)),
+  protected: [
+    ...PATHS,
+    MOUTH,
+    WEST_MOUTH,
+    EAST_MOUTH,
+    ...PROPS.map((prop) => spriteBox(prop.sprite, prop.at)),
+    // Room for each animal's whole range, so no tree stands where it walks.
+    ...Object.values(FOREST_WILDLIFE).map((a) => ({ x: a.zone.x - 16, y: a.zone.y - 20, w: a.zone.w + 32, h: a.zone.h + 22 })),
   ],
 };

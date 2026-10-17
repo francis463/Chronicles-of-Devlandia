@@ -479,3 +479,36 @@ describe("the Sunny Beach's art", () => {
     expect(TEXTURES.beach.palette).not.toEqual(TEXTURES.dune.palette);
   });
 });
+
+describe("the Dense Forest's art", () => {
+  const SIZES = [["birch", 14, 22, 1], ["stump", 12, 9, 1], ["log", 20, 9, 1], ["mushroom", 11, 10, 1], ["fern", 16, 11, 1], ["flowers", 17, 11, 1], ["owl", 10, 12, 2], ["deer", 26, 20, 2], ["squirrel", 14, 14, 2], ["rabbit", 16, 13, 2]] as const;
+
+  it("have their declared sizes, anchors and frame counts", () => {
+    for (const [id, w, h, frames] of SIZES) expect([SPRITES[id].w, SPRITES[id].h, SPRITES[id].anchor, SPRITES[id].frames.length], id).toEqual([w, h, "bottom", frames]);
+  });
+
+  it("every grid is rectangular, uses only palette characters, and every edge is the shared dark outline", () => {
+    for (const [id, w, h] of SIZES) {
+      const { frames, palette } = SPRITES[id];
+      frames.forEach((grid, i) => {
+        expect(grid.length, `${id}[${i}] rows`).toBe(h);
+        grid.forEach((row, y) => {
+          expect(row.length, `${id}[${i}] row ${y}`).toBe(w);
+          for (const ch of row) if (ch !== ".") expect(palette[ch], `${id}[${i}] char ${ch}`).toBeDefined();
+        });
+        const solid = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < h && grid[y][x] !== ".";
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            if (!solid(x, y)) continue;
+            const edge = !solid(x - 1, y) || !solid(x + 1, y) || !solid(x, y - 1) || !solid(x, y + 1);
+            if (edge) expect(palette[grid[y][x]], `${id}[${i}] edge at ${x},${y}`).toBe(OUTLINE);
+          }
+        }
+      });
+    }
+  });
+
+  it("the animals' frames differ, so they animate", () => {
+    for (const id of ["owl", "deer", "squirrel", "rabbit"] as const) expect(SPRITES[id].frames[0], id).not.toEqual(SPRITES[id].frames[1]);
+  });
+});

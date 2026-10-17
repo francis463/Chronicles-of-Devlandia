@@ -6,7 +6,7 @@ import { AREAS } from "./areas";
 import { FOGGATEN_POINTS, LAMP_POINT } from "./areas/foggaten";
 import { BEACH_SHELLS } from "./areas/beach";
 import { DESERT_POINTS } from "./areas/desert";
-import { FOREST_POINTS } from "./areas/forest";
+import { FOREST_POINTS, deerPose, rabbitPose, squirrelPose } from "./areas/forest";
 import { CAVE_POINT, WILDLIFE, foxPose, goatPose } from "./areas/peaks";
 import { VILLAGE_LIFE, wandererPose } from "./areas/village";
 import { DOCK_POINT } from "./areas/peaks";
@@ -467,6 +467,16 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
       player,
     ].sort(byFeet);
     if (input.zone === "forest") {
+      const you = poses.player;
+      const deer = deerPose(t, reduced, you);
+      const rabbit = rabbitPose(t, reduced, you);
+      const squirrel = squirrelPose(t, reduced, you);
+      upright.push(
+        placed("deer", deer, { frame: deer.frame, flip: deer.flip }),
+        placed("rabbit", rabbit, { frame: rabbit.frame, flip: rabbit.flip }),
+        placed("squirrel", squirrel, { frame: squirrel.frame, flip: squirrel.flip }),
+      );
+      upright.sort(byFeet);
       const flame = reduced ? 0 : Math.floor(t / 400) % 2;
       const fire = upright.find((d) => d.sprite === "campfire");
       if (fire) fire.frame = flame;

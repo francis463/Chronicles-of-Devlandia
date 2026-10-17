@@ -71,14 +71,14 @@ export const WILDLIFE = {
   birds: 3,
 } as const;
 
-type Wild = { home: { x: number; y: number }; zone: Rect };
+export type Wild = { home: { x: number; y: number }; zone: Rect };
 export type AnimalPose = { x: number; y: number; frame: 0 | 1; flip: boolean };
 
 /**
  * Where an animal is: pacing about its home, and drifting away (up to 28 art px, never out of its zone) from a
  * player closer than 40 px. Resting at home when motion is reduced.
  */
-function animalPose(a: Wild, t: number, reduced: boolean, player: ArtPoint, pace: number): AnimalPose {
+export function animalPose(a: Wild, t: number, reduced: boolean, player: ArtPoint, pace: number): AnimalPose {
   if (reduced) return { ...a.home, frame: 0, flip: false };
   const wave = Math.sin(t / 2200);
   const base = { x: a.home.x + pace * wave, y: a.home.y };

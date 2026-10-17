@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { AREAS } from "./areas";
 import { FOGGATEN_POINTS, LAMP_POINT } from "./areas/foggaten";
+import { FOREST_WILDLIFE, deerPose, rabbitPose, squirrelPose } from "./areas/forest";
 import { VILLAGE_LIFE, wandererPose } from "./areas/village";
 import { PHASE_TINT, buildScene, type Poses, type SceneInput } from "./scene";
 import { LIGHTS, SPRITES, spriteBox, type SpriteId } from "./sprites";
@@ -847,6 +848,65 @@ describe("scene: the Sunny Beach", () => {
     for (const zone of ["peaks", "village", "forest", "foggaten", "desert"] as const) {
       expect(sprites(scene({ zone }, 0), "upright"), zone).not.toContain("crab");
       expect(sprites(scene({ zone }, 0), "upright"), zone).not.toContain("shell");
+    }
+  });
+});
+
+describe("scene: the Dense Forest's wildlife and night life", () => {
+  const forest = (t: number, reduced = false, over: Partial<SceneInput> = {}) => scene({ zone: "forest", minutes: DAY, player: { x: 60, y: 20 }, ...over }, t, reduced);
+  const count = (s: ReturnType<typeof scene>, id: string) => s.upright.filter((d) => d.sprite === id).length;
+
+  it("a deer, a rabbit and a squirrel live in the forest and nowhere else", () => {
+    const s = forest(0);
+    expect([count(s, "deer"), count(s, "rabbit"), count(s, "squirrel")]).toEqual([1, 1, 1]);
+    for (const zone of ["village", "peaks", "desert", "beach", "foggaten"] as const) {
+      const other = scene({ zone, minutes: DAY }, 0);
+      expect([count(other, "deer"), count(other, "rabbit"), count(other, "squirrel"), count(other, "owl")], zone).toEqual([0, 0, 0, 0]);
+    }
+  });
+
+  it("each animal stays in its zone, clear of the forest's landmarks, whoever is near, at any moment", () => {
+    const boxes = AREAS.forest.props.map((p) => spriteBox(p.sprite, p.at));
+    for (const [id, pose, zone] of [["deer", deerPose, FOREST_WILDLIFE.deer.zone], ["rabbit", rabbitPose, FOREST_WILDLIFE.rabbit.zone], ["squirrel", squirrelPose, FOREST_WILDLIFE.squirrel.zone]] as const) {
+      for (let t = 0; t < 30_000; t += 2800) {
+        for (let px = 0; px <= 320; px += 32) {
+          for (let py = 0; py <= 180; py += 30) {
+            const at = pose(t, false, { x: px, y: py });
+            expect(at.x >= zone.x && at.x <= zone.x + zone.w && at.y >= zone.y && at.y <= zone.y + zone.h, `${id} zone`).toBe(true);
+            for (const b of boxes) expect(intersects(spriteBox(id, at), b), `${id} / ${JSON.stringify(b)} t=${t} p=${px},${py}`).toBe(false);
+          }
+        }
+      }
+    }
+  });
+
+  it("they pace and flip with time, rest at home when motion is reduced, and shy away from a player who comes close", () => {
+    const at = (t: number, reduced = false, player = { x: 0, y: 0 }) => deerPose(t, reduced, player);
+    expect(at(0, true)).toEqual(at(9000, true));
+    expect(at(0).x).not.toBe(at(3000).x);
+    const far = at(0, false, { x: 0, y: 0 });
+    const near = at(0, false, { x: far.x - 8, y: far.y });
+    expect(near.x).toBeGreaterThan(far.x);
+  });
+
+  it("fireflies come out at dusk and night, and morning mist drifts by day", () => {
+    const glow = (s: ReturnType<typeof scene>) => s.light.filter((p) => p.color === "#fde047");
+    const mist = (s: ReturnType<typeof scene>) => s.light.filter((p) => p.color === "#e8f3ef");
+    expect(glow(forest(0)).length).toBe(0);
+    expect(mist(forest(0)).length).toBeGreaterThan(0);
+    for (const minutes of [DUSK, NIGHT]) {
+      expect(glow(forest(0, false, { minutes })).length, `minutes ${minutes}`).toBe(14);
+      expect(mist(forest(0, false, { minutes })).length).toBe(0);
+    }
+  });
+
+  it("an owl perches in the old oak's crown at dusk and night, drawn right after the oak", () => {
+    expect(count(forest(0), "owl")).toBe(0);
+    for (const minutes of [DUSK, NIGHT]) {
+      const s = forest(0, false, { minutes });
+      expect(count(s, "owl"), `minutes ${minutes}`).toBe(1);
+      const names = s.upright.map((d) => d.sprite);
+      expect(names.indexOf("owl")).toBe(names.indexOf("old-oak") + 1);
     }
   });
 });
