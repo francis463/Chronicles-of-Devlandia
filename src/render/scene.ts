@@ -104,6 +104,35 @@ function snowfall(t: number, reduced: boolean): Pixel[] {
   }));
 }
 
+const LEAF_COUNT = 24;
+const LEAF_FALL = 8;
+const LEAF_DRIFT = 5;
+const LEAF_COLORS = ["#a3e635", "#d97706"];
+const DAPPLE = "#fde68a";
+/** Sunlight through the canopy: five 5 × 4 patches on the forest floor. */
+const DAPPLE_SPOTS: ArtPoint[] = [{ x: 40, y: 40 }, { x: 110, y: 70 }, { x: 250, y: 55 }, { x: 70, y: 130 }, { x: 160, y: 150 }];
+
+/**
+ * The forest's falling leaves at time `t` (ms): 24 from fixed start points, each falling 8 art px and drifting 5 right a second,
+ * wrapping at the world's edges, with soft sunlight patches that breathe and fade out at night. Both stand still when motion is reduced.
+ */
+function forestLeaves(t: number, reduced: boolean, strength: number): Pixel[] {
+  const seconds = reduced ? 0 : t / 1000;
+  const leaves = Array.from({ length: LEAF_COUNT }, (_, i): Pixel => ({
+    x: ((i * 47 + 13) % WORLD.width + Math.floor(LEAF_DRIFT * seconds)) % WORLD.width,
+    y: ((i * 71 + 5) % WORLD.height + Math.floor(LEAF_FALL * seconds)) % WORLD.height,
+    color: LEAF_COLORS[i % LEAF_COLORS.length],
+    alpha: 1,
+  }));
+  if (strength >= 1) return leaves;
+  const breath = reduced ? 1 : 0.75 + 0.25 * Math.sin(t / 1200);
+  const alpha = 0.16 * (1 - strength) * breath;
+  const dapples = DAPPLE_SPOTS.flatMap((at) =>
+    Array.from({ length: 20 }, (_, k): Pixel => ({ x: at.x + (k % 5), y: at.y + Math.floor(k / 5), color: DAPPLE, alpha })),
+  );
+  return [...dapples, ...leaves];
+}
+
 const placed = (sprite: SpriteId, at: ArtPoint, extra: Partial<Drawable> = {}): Drawable => {
   const box = spriteBox(sprite, at);
   return { sprite, frame: 0, x: box.x, y: box.y, flip: false, rotate: false, variant: "base", ...extra };
@@ -199,7 +228,7 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
       const flame = reduced ? 0 : Math.floor(t / 400) % 2;
       const fire = upright.find((d) => d.sprite === "campfire");
       if (fire) fire.frame = flame;
-      const light = glow(LIGHTS.campfire, CAMPFIRE_GLOW, strength * (flame === 0 ? 1 : 0.8));
+      const light = [...glow(LIGHTS.campfire, CAMPFIRE_GLOW, strength * (flame === 0 ? 1 : 0.8)), ...forestLeaves(t, reduced, strength)];
       const dig = FOREST_POINTS.dig;
       const digging = input.clueDecoded && !input.artifactFound;
       const flat: Drawable[] = digging ? [placed("x-mark", dig)] : [];

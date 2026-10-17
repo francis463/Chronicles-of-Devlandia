@@ -92,6 +92,9 @@ export const LOG = {
   badgesPersonal: "Badges are personal: each explorer opens their own chest.",
 };
 
+/** The forest signpost's directions to everything nearby (the dig spot is added once the scroll is decoded). */
+export const FOREST_DIRECTIONS = "RANGER and CAMPFIRE → Northwest, in the clearing. OLD OAK → Far west. JAVASCRIPT CHEST → Far west, near the forest edge.";
+
 /** The landmarks' cards. Ada's shows her current line (village.ts); chests, the terminal and the Archive are in cards.ts. */
 export const INSPECT_COPY: Record<"gate" | "chest" | "river" | "tower" | "signpost" | "artifact" | "campfire" | "old-oak" | "forest-signpost", { default: string; looted?: string; opened?: string; bridged?: string; powered?: string }> = {
   gate: {

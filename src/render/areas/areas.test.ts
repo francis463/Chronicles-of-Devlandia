@@ -37,10 +37,25 @@ describe("areas", () => {
     expect([AREAS.peaks.wall, AREAS.village.wall, AREAS.forest.wall]).toEqual([true, true, false]);
   });
 
-  it("the forest's path runs from its north mouth to the clearing and on to the south-east corner", () => {
-    const on = (x: number, y: number) => AREAS.forest.paths.some((r) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h);
-    for (const [x, y] of [[206, 0], [206, 60], [206, 99], [180, 99], [152, 110], [206, 120], [250, 144], [-0 + 206, -500]]) expect(on(x, y), `${x},${y}`).toBe(true);
-    expect(on(100, 20)).toBe(false);
+  it("the forest's path winds from its north mouth to the clearing and on to the south-east corner, as one connected trail", () => {
+    const paths = AREAS.forest.paths;
+    const touch = (a: Rect, b: Rect) => a.x <= b.x + b.w && b.x <= a.x + a.w && a.y <= b.y + b.h && b.y <= a.y + a.h;
+    const seen = new Set<number>([0]);
+    for (const queue = [0]; queue.length; ) {
+      const i = queue.pop()!;
+      paths.forEach((p, j) => void (!seen.has(j) && touch(paths[i], p) && (seen.add(j), queue.push(j))));
+    }
+    expect(seen.size, "every path piece joins the trail from the mouth").toBe(paths.length);
+    const reaches = (x: number, y: number) => paths.some((r) => Math.abs(x - (r.x + r.w / 2)) <= r.w / 2 + 14 && y >= r.y - 14 && y < r.y + r.h + 14);
+    expect(reaches(FOREST_POINTS.campfire.x, FOREST_POINTS.campfire.y), "campfire").toBe(true);
+    expect(reaches(FOREST_POINTS.dig.x, FOREST_POINTS.dig.y), "dig corner").toBe(true);
+    expect(paths.some((r) => r.x < 0 || r.y <= -999)).toBe(true);
+    // Winding: between the mouth and the fork the trail's left edge changes column at least three times.
+    const left = (y: number) => Math.min(...paths.filter((r) => y >= r.y && y < r.y + r.h).map((r) => r.x));
+    const columns = new Set<number>();
+    for (let y = 36; y <= 96; y++) columns.add(left(y));
+    expect(columns.size).toBeGreaterThanOrEqual(3);
+    expect(left(0)).toBeLessThan(Infinity);
   });
 
   it("every mouth touches the edge of the world it opens onto, and has its corridor beyond it", () => {

@@ -459,3 +459,39 @@ describe("scene: the Dense Forest", () => {
     expect(at(forest({}, 400, true), "campfire")[0].frame).toBe(0);
   });
 });
+
+describe("scene: the forest's leaves and dappled light", () => {
+  const LEAF_COLORS = ["#a3e635", "#d97706"];
+  const DAPPLE = "#fde68a";
+  const forest = (t: number, reduced = false, over: Partial<SceneInput> = {}) => scene({ zone: "forest", minutes: DAY, ...over }, t, reduced);
+  const leaves = (s: ReturnType<typeof scene>) => s.light.filter((p) => LEAF_COLORS.includes(p.color));
+  const dapples = (s: ReturnType<typeof scene>) => s.light.filter((p) => p.color === DAPPLE);
+  const key = (ps: Array<{ x: number; y: number }>) => ps.map((p) => `${p.x},${p.y}`).join(" ");
+
+  it("24 leaves fall inside the world, and sunlight patches lie on the floor by day", () => {
+    const s = forest(1234);
+    expect(leaves(s)).toHaveLength(24);
+    for (const p of leaves(s)) expect(p.x >= 0 && p.x < 320 && p.y >= 0 && p.y < 180 && Number.isInteger(p.x) && Number.isInteger(p.y)).toBe(true);
+    expect(dapples(s).length).toBeGreaterThan(0);
+  });
+
+  it("the leaves drift over time and hold still with reduced motion", () => {
+    expect(key(leaves(forest(0)))).not.toBe(key(leaves(forest(5000))));
+    expect(key(leaves(forest(0, true)))).toBe(key(leaves(forest(5000, true))));
+    expect(key(dapples(forest(0, true)))).toBe(key(dapples(forest(5000, true))));
+  });
+
+  it("the sunlight patches fade out at night, but the leaves still fall", () => {
+    const night = forest(1234, false, { minutes: NIGHT });
+    expect(dapples(night)).toEqual([]);
+    expect(leaves(night)).toHaveLength(24);
+  });
+
+  it("no other zone has leaves or patches", () => {
+    for (const zone of ["peaks", "village", "foggaten"] as const) {
+      const s = scene({ zone, minutes: DAY }, 1234);
+      expect(leaves(s)).toEqual([]);
+      expect(dapples(s)).toEqual([]);
+    }
+  });
+});

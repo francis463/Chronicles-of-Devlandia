@@ -32,13 +32,22 @@ function terrainAt(x: number, y: number): TerrainKind {
 const MOUTH: Rect = { x: 192, y: 0, w: 64, h: 32 };
 const CORRIDOR: Rect = { x: 192, y: -1000, w: 64, h: 1000 };
 
-/** The path from the north mouth down to a fork: west into the clearing, east and south to the dig corner. */
+/** The trail from the north mouth: it bends east and back to the fork, then west into the clearing and east and south to the dig corner. */
 const PATHS: Rect[] = [
-  { x: 204, y: -1000, w: 6, h: 1100 },
-  { x: 150, y: 97, w: 60, h: 6 },
-  { x: 150, y: 97, w: 6, h: 30 },
-  { x: 204, y: 100, w: 6, h: 47 },
-  { x: 204, y: 141, w: 78, h: 6 },
+  { x: 204, y: -1000, w: 6, h: 1040 },
+  { x: 204, y: 34, w: 22, h: 6 },
+  { x: 220, y: 34, w: 6, h: 30 },
+  { x: 198, y: 58, w: 28, h: 6 },
+  { x: 198, y: 58, w: 6, h: 44 },
+  { x: 198, y: 96, w: 12, h: 6 },
+  { x: 180, y: 97, w: 30, h: 6 },
+  { x: 180, y: 97, w: 6, h: 14 },
+  { x: 160, y: 105, w: 26, h: 6 },
+  { x: 160, y: 105, w: 6, h: 22 },
+  { x: 204, y: 100, w: 6, h: 23 },
+  { x: 204, y: 117, w: 24, h: 6 },
+  { x: 222, y: 117, w: 6, h: 30 },
+  { x: 222, y: 141, w: 60, h: 6 },
 ];
 
 export const FOREST: Area = {

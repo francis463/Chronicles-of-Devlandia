@@ -1,5 +1,5 @@
 import { chestById, chestChallenge, CHESTS, type Chest } from "../learn/chests";
-import { HIDDEN_ARTIFACT, INSPECT_COPY } from "./constants";
+import { FOREST_DIRECTIONS, HIDDEN_ARTIFACT, INSPECT_COPY } from "./constants";
 import type { GameState } from "./types";
 import { rangerLine } from "./forest";
 import { adaLine } from "./village";
@@ -45,9 +45,12 @@ export function cardFor(s: GameState): Card | null {
     case "island-fire":
     case "ruins":
       return card(place.label, ISLAND_COPY[place.id]);
+    case "forest-signpost": {
+      const lead = INSPECT_COPY["forest-signpost"].default;
+      return card(place.label, `${lead} ${FOREST_DIRECTIONS}${s.clueDecoded ? " The scroll's clue: dig in the south-east corner." : ""}`);
+    }
     case "campfire":
     case "old-oak":
-    case "forest-signpost":
     case "gate":
     case "chest":
     case "river":
