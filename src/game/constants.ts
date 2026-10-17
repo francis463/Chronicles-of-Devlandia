@@ -75,6 +75,7 @@ export const LOG = {
   matcher: (code: string) => `Syntax Terminal: access code ${code}.`,
   archiveUnsealed: "Archive unsealed.",
   teammateBadge: (name: string, badge: string) => `${name} earned the ${badge} Badge.`,
+  saveFailed: "Couldn't save your badge. It'll retry.",
   badgesPersonal: "Badges are personal: each explorer opens their own chest.",
 };
 
