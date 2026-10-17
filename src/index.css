@@ -60,3 +60,5 @@ body {
 @keyframes mist-drift { from { background-position: 0 0; } to { background-position: 96px 48px; } }
 /* A ping ring: grows and fades once a second, never faster. */
 @keyframes ping-ring { from { scale: 0.4; opacity: 1; } to { scale: 1.6; opacity: 0; } }
+/* The finale's confetti: each piece falls once past the card and fades out. */
+@keyframes confetti-fall { from { translate: 0 -30px; opacity: 1; } to { translate: 0 260px; opacity: 0; } }

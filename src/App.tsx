@@ -75,6 +75,8 @@ export default function App({
   const [next, setNext] = useState<"overworld" | "lobby">("overworld");
   useEffect(() => setChosenClass(null), [userId]);
   const [gameId, setGameId] = useState(0);
+  // New Game+: a fresh solo run with harder questions, played without touching the account's saved badges.
+  const [hardRun, setHardRun] = useState(false);
   const team = useTeamSession(makeTransport, teamClock);
   const chat = useChat(team);
 
@@ -143,7 +145,18 @@ export default function App({
       )}
       {screen === "class" && <ClassPicker initial={chosenClass ?? account?.playerClass ?? DEFAULT_CLASS} mode={next === "overworld" ? "solo" : "team"} onContinue={classChosen} onBack={() => setScreen("menu")} />}
       {screen === "leaderboard" && <Leaderboard store={leaderboard} signedIn={!!userId} myName={userName} onBack={() => setScreen("menu")} />}
-      {screen === "overworld" && <Overworld key={gameId} playerClass={playerClass} onMenu={() => setScreen("menu")} saved={loadedRows} onBadgeEarned={onBadgeEarned} saveFailed={saver.failed} />}
+      {screen === "overworld" && (
+        <Overworld
+          key={`${gameId}:${hardRun}`}
+          playerClass={playerClass}
+          onMenu={() => (setHardRun(false), setScreen("menu"))}
+          saved={hardRun ? undefined : loadedRows}
+          onBadgeEarned={hardRun ? undefined : onBadgeEarned}
+          saveFailed={hardRun ? false : saver.failed}
+          hard={hardRun}
+          onNewGamePlus={() => setHardRun(true)}
+        />
+      )}
       {screen === "lobby" &&
         (team.phase === "playing" ? (
           <Overworld key={`team-${team.room}`} playerClass={playerClass} team={team} chat={chat} onMenu={leaveTeam} saved={loadedRows} onBadgeEarned={onBadgeEarned} saveFailed={saver.failed} />

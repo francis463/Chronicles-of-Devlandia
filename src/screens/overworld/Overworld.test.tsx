@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RIVER_DAMAGE_MS } from "../../game/constants";
 import type { SceneInput } from "../../render/scene";
-import { CHESTS } from "../../learn/chests";
+import { CHEST_IDS, CHESTS } from "../../learn/chests";
 import { LOG } from "../../game/constants";
 import { Overworld } from "./Overworld";
 
@@ -839,5 +839,40 @@ describe("Overworld lighthouse lamp", () => {
     expect(screen.getByText(/Each switch is worth a power of two/)).toBeInTheDocument();
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+});
+
+describe("Overworld: the finale, the crown and New Game+", () => {
+  const all = { badges: [...CHEST_IDS], finaleOpen: true, finaleSeen: true };
+
+  it("shows the finale dialog, which Keep exploring closes; the map draws the crown", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} initial={all} />);
+    expect(screen.getByRole("dialog", { name: /master of devlandia/i })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "[ Keep exploring ]" }));
+    expect(screen.queryByRole("dialog", { name: /master of devlandia/i })).toBeNull();
+    expect(drawn[drawn.length - 1].input.master).toBe(true);
+  });
+
+  it("[ NEW GAME+ ] calls for a fresh hard run, and is missing without a handler", async () => {
+    const user = setup();
+    const onNewGamePlus = vi.fn();
+    const { unmount } = render(<Overworld onMenu={() => {}} initial={all} onNewGamePlus={onNewGamePlus} />);
+    await user.click(screen.getByRole("button", { name: "[ NEW GAME+ ]" }));
+    expect(onNewGamePlus).toHaveBeenCalledTimes(1);
+    unmount();
+    render(<Overworld onMenu={() => {}} initial={all} />);
+    expect(screen.queryByRole("button", { name: "[ NEW GAME+ ]" })).toBeNull();
+  });
+
+  it("a hard run says so in the top bar", () => {
+    render(<Overworld onMenu={() => {}} hard />);
+    expect(screen.getByText("Hard mode")).toBeInTheDocument();
+    expect(drawn[drawn.length - 1].input.master).toBe(false);
+  });
+
+  it("a normal run has no hard-mode tag", () => {
+    render(<Overworld onMenu={() => {}} />);
+    expect(screen.queryByText("Hard mode")).toBeNull();
   });
 });

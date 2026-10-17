@@ -58,6 +58,8 @@ export const MINUTES_PER_DAY = 1440;
 export const TICK_MS = 2000;
 export const TICK_MINUTES = 5;
 export const RIVER_DAMAGE = 8;
+/** New Game+: HP lost for each wrong chest answer. */
+export const HARD_WRONG_DAMAGE = 10;
 export const RIVER_DAMAGE_MS = 1800;
 export const DRONE_DELAY_MS = 320;
 export const DRONE_FOLLOW = 0.58;
@@ -102,6 +104,8 @@ export const LOG = {
   sailOut: "You sail through the fog to Foggaten Island.",
   sailBack: "You sail back to the Peaks.",
   dockLocked: "The boatman waits for the gate to open",
+  finale: "All 11 badges earned: you are a Master of Devlandia!",
+  hardMiss: `Hard mode: -${HARD_WRONG_DAMAGE} HP.`,
   badge: (badge: string) => `Earned the ${badge} Badge.`,
   matcher: (code: string) => `Syntax Terminal: access code ${code}.`,
   archiveUnsealed: "Archive unsealed.",

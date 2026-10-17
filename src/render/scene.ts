@@ -61,6 +61,8 @@ export type SceneInput = {
   mushrooms?: readonly string[];
   /** The nomad's water jars you have picked up: they leave the dunes. */
   jars?: readonly string[];
+  /** Every badge earned: your explorer wears a crown and the village lights fireworks. */
+  master?: boolean;
   /** Your own view's lighting: "day" or "night" draws as that phase whatever the clock says. */
   lightMode?: "auto" | "day" | "night";
   /** Your own view's weather: snowfall over the whole world. */
@@ -405,8 +407,33 @@ function windowGlow(sprite: SpriteId, box: Rect, strength: number): Pixel[] {
   return SPRITES[sprite].frames[0].flatMap((row, y) => [...row].flatMap((ch, x) => (ch === "g" ? diamondPixels(3).map((o) => ({ x: box.x + x + o.x, y: box.y + y + o.y, color: WINDOW_LIGHT, alpha: 0.22 * strength })) : [])));
 }
 
+const FIREWORK_COLORS = ["#fbbf24", "#f87171", "#60a5fa", "#4ade80", "#c084fc"];
+const FIREWORK_RAYS = 16;
+const FIREWORK_SPOTS: ArtPoint[] = [{ x: 70, y: 34 }, { x: 160, y: 26 }, { x: 250, y: 38 }];
+
+/**
+ * A Master of Devlandia's fireworks over the village: three bursts, each a ring of sixteen sparks that grows to 20 px over
+ * 1.6 s and fades, then waits, so the sky is never empty. One small burst hangs still when motion is reduced.
+ */
+function fireworks(t: number, reduced: boolean): Pixel[] {
+  if (reduced) return ringOf(FIREWORK_SPOTS[1], 9, FIREWORK_COLORS[0], 0.85);
+  return FIREWORK_SPOTS.flatMap((at, i) => {
+    const phase = ((t / 1000 + i * 1.1) % 3.3) / 1.6;
+    return phase >= 1 ? [] : ringOf(at, Math.round(2 + 18 * phase), FIREWORK_COLORS[(Math.floor((t / 1000 + i * 1.1) / 3.3) + i) % FIREWORK_COLORS.length], Math.round((1 - phase) * 90) / 100);
+  });
+}
+
+function ringOf(at: ArtPoint, radius: number, color: string, alpha: number): Pixel[] {
+  return Array.from({ length: FIREWORK_RAYS }, (_, k): Pixel => ({
+    x: Math.round(at.x + radius * Math.cos((k / FIREWORK_RAYS) * Math.PI * 2)),
+    y: Math.round(at.y + radius * Math.sin((k / FIREWORK_RAYS) * Math.PI * 2)),
+    color,
+    alpha,
+  }));
+}
+
 /** The huts' chimney smoke (four 2 × 2 puffs a hut) and, from dusk, their glowing windows and the well's lantern. Smoke hangs still when motion is reduced. */
-function villageLight(t: number, reduced: boolean, strength: number): Pixel[] {
+function villageLight(t: number, reduced: boolean, strength: number, master = false): Pixel[] {
   const huts = AREAS.village.props.filter((p) => p.sprite === "hut").map((p) => spriteBox("hut", p.at));
   const smoke = huts.flatMap((box) => smokeFrom(box.x + 21, box.y + 3, t, reduced));
   // The pond glints: six spots that twinkle in turn, all lit and still when motion is reduced.
@@ -414,11 +441,12 @@ function villageLight(t: number, reduced: boolean, strength: number): Pixel[] {
   const glints = [[10, 8], [20, 14], [30, 7], [36, 16], [15, 17], [26, 5]].flatMap(([dx, dy], k): Pixel[] =>
     reduced || Math.floor(t / 700 + k) % 3 === 0 ? [{ x: pond.x + dx, y: pond.y + dy, color: SHIMMER, alpha: 0.7 }] : [],
   );
-  if (strength <= 0) return [...smoke, ...glints];
+  const lit = master ? [...smoke, ...glints, ...fireworks(t, reduced)] : [...smoke, ...glints];
+  if (strength <= 0) return lit;
   const windows = huts.flatMap((box) => windowGlow("hut", box, strength));
   const lantern = AREAS.village.props.find((p) => p.sprite === "lantern")!;
   const lampBox = spriteBox("lantern", lantern.at);
-  return [...smoke, ...glints, ...windows, ...glow({ x: lampBox.x + 3, y: lampBox.y + 3 }, LANTERN_LIGHT, strength)];
+  return [...lit, ...windows, ...glow({ x: lampBox.x + 3, y: lampBox.y + 3 }, LANTERN_LIGHT, strength)];
 }
 
 /** The Peaks' camp light: the lodge's smoke and (from dusk) its glowing windows, and the campfire's glow, which flickers with its flame. */
@@ -506,7 +534,14 @@ function learning(input: SceneInput): Drawable[] {
 
 const byFeet = (a: Drawable, b: Drawable) => feetRow(a) - feetRow(b) || Number(isExplorer(a)) - Number(isExplorer(b));
 
+/** The scene at time `t`; a Master of Devlandia (every badge) also wears a crown, drawn over everything else on their head. */
 export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: boolean): Scene {
+  const scene = buildBaseScene(input, poses, t, reduced);
+  if (!input.master || input.downed) return scene;
+  return { ...scene, upright: [...scene.upright, placed("crown", { x: poses.player.x, y: poses.player.y - 11 })] };
+}
+
+function buildBaseScene(input: SceneInput, poses: Poses, t: number, reduced: boolean): Scene {
   const P = LANDMARK_POINTS;
   const phase: Phase = input.lightMode === "day" ? "Day" : input.lightMode === "night" ? "Night" : phaseOf(input.minutes);
   // The Peaks snow by default; elsewhere only when asked (/weather snow). /weather clear turns it off everywhere.
@@ -564,7 +599,7 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
       // The windmill's sails turn and the fountain's spray dances; copies, so cached drawables are never changed.
       const frames: Partial<Record<SpriteId, number>> = reduced ? {} : { windmill: Math.floor(t / 600) % 2, fountain: Math.floor(t / 300) % 2 };
       const animated = upright.map((d) => (frames[d.sprite] === undefined ? d : { ...d, frame: frames[d.sprite]! }));
-      return { zone: input.zone, glints: [], flat: [], upright: animated, drone, tint: PHASE_TINT[phase], light: villageLight(t, reduced, strength), snow };
+      return { zone: input.zone, glints: [], flat: [], upright: animated, drone, tint: PHASE_TINT[phase], light: villageLight(t, reduced, strength, input.master), snow };
     }
     if (input.zone === "desert") {
       // The lizard sits on its rock (drawn right after it) and flicks its tail; the tumbleweed rolls through.

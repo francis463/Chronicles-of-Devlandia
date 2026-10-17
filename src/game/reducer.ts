@@ -11,6 +11,7 @@ import {
   START_MINUTES,
   STEP,
   HIDDEN_ARTIFACT,
+  HARD_WRONG_DAMAGE,
   DOCK,
   INTERACT_RADIUS,
   LIGHTHOUSE,
@@ -76,6 +77,9 @@ export const initialState: GameState = {
   jars: [],
   nomadServed: false,
   codexOpen: false,
+  finaleOpen: false,
+  finaleSeen: false,
+  hard: false,
   logs: INITIAL_LOGS,
   logCount: INITIAL_LOGS.length,
 };
@@ -83,7 +87,7 @@ export const initialState: GameState = {
 export const isDowned = (s: GameState) => s.hp <= 0;
 
 /** True while a challenge terminal, the tower's logic lock or the Codex is open: movement, time and hazards pause. */
-export const isModalOpen = (s: GameState) => s.challenge !== null || s.logicOpen || s.lampOpen || s.codexOpen;
+export const isModalOpen = (s: GameState) => s.challenge !== null || s.logicOpen || s.lampOpen || s.codexOpen || s.finaleOpen;
 
 /** Hidden points of interest that are currently diggable: the artifact, after decoding, until found. */
 /** What you can use in your zone: its places, plus the dig spot on Foggaten Island once revealed. */
@@ -172,7 +176,7 @@ function judge(c: Challenge, value: SubmitValue): { right: boolean; answer: stri
     return { right: isCorrectBlank(c, value), answer: normalize(value, true), error: wrongBlankCopy(value) };
   }
   if (c.kind === "choice") {
-    if (typeof value !== "number" || !Number.isInteger(value) || value < 0 || value > 3) return null;
+    if (typeof value !== "number" || !Number.isInteger(value) || value < 0 || value >= c.options.length) return null;
     return { right: value === c.correct, answer: c.options[value], error: wrongChoiceCopy() };
   }
   if (!Array.isArray(value) || value.length !== c.pairs.length) return null;
@@ -185,16 +189,25 @@ function submitChest(state: GameState, open: ChallengeState, chest: ChestId, c: 
   if (state.badges.includes(chest)) return state;
   const verdict = judge(c, value);
   if (!verdict) return state;
-  if (!verdict.right) return missed(state, open, c, verdict.error, value);
-  return pushLog(
+  if (!verdict.right) return state.hard ? hardPenalty(missed(state, open, c, verdict.error, value)) : missed(state, open, c, verdict.error, value);
+  const badges = [...state.badges, chest];
+  const earned = pushLog(
     {
       ...state,
-      badges: [...state.badges, chest],
+      badges,
       answered: { ...state.answered, [chest]: verdict.answer },
       challenge: { ...open, solved: true, error: null },
     },
     LOG.badge(chestById(chest).badge),
   );
+  // The last badge: the finale opens once, when the chest's own success view is closed (see closeChallenge).
+  return badges.length === CHEST_IDS.length && !state.finaleSeen ? pushLog(earned, LOG.finale) : earned;
+}
+
+/** New Game+: a wrong chest answer costs HP, and at 0 the terminal closes so you can respawn. */
+function hardPenalty(state: GameState): GameState {
+  const hp = Math.max(0, state.hp - HARD_WRONG_DAMAGE);
+  return pushLog({ ...state, hp, challenge: hp === 0 ? null : state.challenge }, LOG.hardMiss);
 }
 
 /** The Syntax Matcher: a right pairing prints the access code and shows the success view. */
@@ -392,8 +405,16 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const id = challengeOf(state, state.challenge.target).id;
       return state.hintsRevealed.includes(id) ? state : { ...state, hintsRevealed: [...state.hintsRevealed, id] };
     }
-    case "closeChallenge":
-      return state.challenge ? { ...state, challenge: null } : state;
+    case "closeChallenge": {
+      if (!state.challenge) return state;
+      // Closing the last chest's success view opens the finale (once): the badge ends the quest of the chests.
+      const finale = !state.finaleSeen && state.badges.length === CHEST_IDS.length && state.challenge.solved && isChest(state.challenge.target);
+      return { ...state, challenge: null, ...(finale ? { finaleOpen: true, finaleSeen: true } : {}) };
+    }
+    case "openFinale":
+      return state.badges.length === CHEST_IDS.length && state.challenge === null && !state.logicOpen && !state.lampOpen ? { ...state, codexOpen: false, finaleOpen: true } : state;
+    case "closeFinale":
+      return state.finaleOpen ? { ...state, finaleOpen: false } : state;
     case "resetLogic":
       return { ...state, logicError: null };
     case "toggleCodex":

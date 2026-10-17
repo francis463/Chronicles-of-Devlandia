@@ -16,6 +16,7 @@ export function TopHud({
   reconnecting,
   region,
   playerClass,
+  hard = false,
   className = "",
 }: {
   hp: number;
@@ -32,6 +33,8 @@ export function TopHud({
   region: string;
   /** Your hero's class, shown beside the meters. */
   playerClass?: ClassId;
+  /** A New Game+ run: the top bar says so. */
+  hard?: boolean;
   className?: string;
 }) {
   return (
@@ -39,6 +42,7 @@ export function TopHud({
       <div className="flex flex-wrap items-center gap-4">
         <Meter label="HP" value={hp} max={MAX_HP} tone="accent" />
         {playerClass && <span className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">{`Class: ${CLASSES[playerClass].name}`}</span>}
+        {hard && <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--danger-border)]">Hard mode</span>}
       </div>
       <h2 className="order-first w-full text-center text-sm font-bold tracking-widest sm:order-none sm:w-auto">
         {`REGION: ${region.toUpperCase()}`}

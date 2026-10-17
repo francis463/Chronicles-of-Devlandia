@@ -84,6 +84,7 @@ export type SpriteId =
   | "fairy-ring"
   | "hollow-tree"
   | "glow-mushroom"
+  | "crown"
   | "scorpion"
   | "camel"
   | "snake"
@@ -878,6 +879,15 @@ function archGrid(): PixelGrid {
     (x, y) => (hole(x, y) ? null : mass(x, y)),
     (x, y) => (!hole(x, y) && y > 3 && y < 8 && x > 6 && x < 13 ? "R" : null),
     (x, y) => (!hole(x, y) && y >= 14 && (x < 5 || x > 23) && y % 4 === 1 ? "D" : null),
+  ]);
+}
+
+/** A golden crown with five points and a red gem, worn by a Master of Devlandia. */
+function crownGrid(): PixelGrid {
+  return creature(12, 8, [
+    poly([[0, 7], [0, 0], [3, 3], [6, 0], [9, 3], [12, 0], [12, 7]], "y"),
+    rect(1, 5, 10, 6, "Y"),
+    rect(5, 4, 6, 5, "r"),
   ]);
 }
 
@@ -1972,6 +1982,7 @@ export const SPRITES: Record<SpriteId, SpriteDef> = {
   skull: { w: 14, h: 10, anchor: "bottom", palette: { o: "#0b1020", w: "#f1ead6", k: "#2b2417" }, frames: [skullGrid()] },
   "bloom-cactus": { w: 18, h: 28, anchor: "bottom", palette: { o: "#0b1020", c: "#4d9e4d", G: "#2f7d3a", p: "#f472b6" }, frames: [bloomCactusGrid()] },
   arch: { w: 30, h: 24, anchor: "bottom", palette: { o: "#0b1020", r: "#c2763a", R: "#d99a5c", D: "#9a5a2a" }, frames: [archGrid()] },
+  crown: { w: 12, h: 8, anchor: "bottom", palette: { o: "#0b1020", y: "#fbbf24", Y: "#f59e0b", r: "#dc2626" }, frames: [crownGrid()] },
   lizard: { w: 14, h: 9, anchor: "bottom", palette: { o: "#0b1020", z: "#6b8f3a", Z: "#8fb34a", e: "#f5d547" }, frames: [lizardGrid(0), lizardGrid(1)] },
 };
 

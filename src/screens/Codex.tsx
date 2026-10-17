@@ -37,6 +37,7 @@ export function Codex({
   zone,
   player,
   onGoTo,
+  onFinale,
   onClose,
 }: {
   badges: ChestId[];
@@ -50,6 +51,8 @@ export function Codex({
   player: Point;
   /** "Go there": the game closes the Codex and writes where the chest is. */
   onGoTo: (chest: ChestId) => void;
+  /** With every badge earned: reopen the Master of Devlandia finale. */
+  onFinale?: () => void;
   onClose: () => void;
 }) {
   const [open, setOpen] = useState<ReadonlySet<ChestId>>(new Set());
@@ -148,6 +151,15 @@ export function Codex({
             <div className="h-full bg-[var(--success-border)] transition-all" style={{ width: `${(badges.length / total) * 100}%` }} />
           </div>
           <p className="text-[var(--text-muted)]">{nextHint({ badges, zone, player })}</p>
+          {onFinale && badges.length === total && (
+            <button
+              type="button"
+              onClick={onFinale}
+              className="min-h-11 w-fit cursor-pointer rounded border-[1.5px] border-[var(--accent-border)] px-3 text-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary-border)]"
+            >
+              [ ★ View the finale ]
+            </button>
+          )}
         </div>
 
         <section aria-label="Story" className="flex flex-col gap-1">

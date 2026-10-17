@@ -987,3 +987,36 @@ describe("scene: the desert's wildlife, jars and weather", () => {
     expect([mirage(night).length, sparkle(night).length]).toEqual([0, 28]);
   });
 });
+
+describe("scene: a Master of Devlandia's crown and the village fireworks", () => {
+  const FIREWORK = ["#fbbf24", "#f87171", "#60a5fa", "#4ade80", "#c084fc"];
+  const run = (zone: "village" | "peaks", over: Partial<SceneInput> = {}, t = 0, reduced = false) => scene({ zone, minutes: DAY, player: { x: 50, y: 70 }, ...over }, t, reduced);
+  const crowns = (s: ReturnType<typeof scene>) => s.upright.filter((d) => d.sprite === "crown");
+  const sparks = (s: ReturnType<typeof scene>) => s.light.filter((p) => FIREWORK.includes(p.color) && p.alpha > 0.1);
+
+  it("the crown sits just above your head only when every badge is earned and you are on your feet", () => {
+    for (const zone of ["village", "peaks"] as const) {
+      expect(crowns(run(zone)), zone).toHaveLength(0);
+      const s = run(zone, { master: true });
+      expect(crowns(s), zone).toHaveLength(1);
+      const you = s.upright.find((d) => d.sprite.startsWith("explorer"))!;
+      expect(crowns(s)[0].y + SPRITES.crown.h).toBeLessThanOrEqual(you.y + 6);
+      expect(crowns(run(zone, { master: true, downed: true })), `${zone} downed`).toHaveLength(0);
+    }
+  });
+
+  it("the village lights fireworks for a Master, and has none otherwise", () => {
+    expect(sparks(run("village"))).toHaveLength(0);
+    const lit = sparks(run("village", { master: true }, 500));
+    expect(lit.length).toBeGreaterThan(0);
+    expect(lit.length % 16).toBe(0);
+    expect(sparks(run("peaks", { master: true }, 500)), "peaks").toEqual(sparks(run("peaks", {}, 500)));
+  });
+
+  it("the bursts move with time and hold still, one small burst, when motion is reduced", () => {
+    const key = (s: ReturnType<typeof scene>) => JSON.stringify(sparks(s));
+    expect(key(run("village", { master: true }, 500))).not.toBe(key(run("village", { master: true }, 1200)));
+    expect(key(run("village", { master: true }, 500, true))).toBe(key(run("village", { master: true }, 9000, true)));
+    expect(sparks(run("village", { master: true }, 500, true))).toHaveLength(16);
+  });
+});

@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import type { ClassId } from "../../game/classes";
 import { HIDDEN_ARTIFACT } from "../../game/constants";
 import type { Card } from "../../game/cards";
-import { chestById } from "../../learn/chests";
+import { CHESTS, chestById } from "../../learn/chests";
 import type { ChestId } from "../../learn/types";
 import type { Poi, PoiId, Point } from "../../game/types";
 import type { ZoneId } from "../../game/zones";
@@ -32,6 +32,8 @@ import {
   type CssRect,
   type MapCaptionId,
 } from "./mapLayout";
+
+const CHEST_COUNT = CHESTS.length;
 
 const SOLO_COLOR = "#22c55e";
 const at = (p: Point) => ({ left: `${p.x}%`, top: `${p.y}%` });
@@ -311,6 +313,7 @@ export function MapViewport({
     earned: badges,
     mushrooms,
     jars,
+    master: badges.length >= CHEST_COUNT,
     minutes,
     lightMode,
     snow,

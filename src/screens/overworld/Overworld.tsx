@@ -28,6 +28,7 @@ import { Panel } from "../../ui/Panel";
 import { ChallengeTerminal } from "../ChallengeTerminal";
 import { ChatPanel } from "../chat/ChatPanel";
 import { Codex } from "../Codex";
+import { Finale } from "../Finale";
 import { Help } from "../Help";
 import { LeaveConfirm } from "./LeaveConfirm";
 import { LampModal } from "../LampModal";
@@ -49,6 +50,8 @@ export function Overworld({
   onBadgeEarned,
   saveFailed = false,
   playerClass,
+  hard = false,
+  onNewGamePlus,
 }: {
   onMenu: () => void;
   initial?: Partial<GameState>;
@@ -60,6 +63,10 @@ export function Overworld({
   saveFailed?: boolean;
   /** Your hero's class: how it is drawn, and the line in the top bar. */
   playerClass?: ClassId;
+  /** A New Game+ run: harder questions, and wrong answers cost HP. */
+  hard?: boolean;
+  /** The finale's [ NEW GAME+ ]: start a fresh hard run (solo games only). */
+  onNewGamePlus?: () => void;
   /** Team mode: shared progress, teammates on the map and the team clock. */
   team?: TeamSession;
   /** The team's conversation, when the lobby already started one; without it the game keeps its own. */
@@ -67,11 +74,11 @@ export function Overworld({
 }) {
   // Each game rolls its questions, shuffle seed, Matcher round and access code once, at mount; a team shares the code.
   const [state, dispatch] = useReducer(gameReducer, undefined, () => {
-    const rolled = rollGame(Math.random, team?.startedAt ?? undefined, loadRecent());
-    return { ...initialState, ...rolled, ...seedFromSaved(saved ?? [], rolled.picks), ...initial };
+    const rolled = rollGame(Math.random, team?.startedAt ?? undefined, loadRecent(), hard);
+    return { ...initialState, ...rolled, hard, ...seedFromSaved(saved ?? [], rolled.picks), ...initial };
   });
   // Remember this game's questions, so the next game picks others.
-  useEffect(() => saveRecent(withPicks(loadRecent(), state.picks)), []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => (hard ? undefined : saveRecent(withPicks(loadRecent(), state.picks))), []); // eslint-disable-line react-hooks/exhaustive-deps
   // The badges this game started with from the player's account: neither saved again nor announced to the team.
   const seeded = useRef<ReadonlySet<ChestId>>(new Set((saved ?? []).map((b) => b.chest)));
   const reported = useRef(new Set<ChestId>(seeded.current));
@@ -230,6 +237,7 @@ export function Overworld({
         reconnecting={team?.status === "reconnecting"}
         region={ZONES[state.zone].name}
         playerClass={playerClass}
+        hard={state.hard}
       />
       <MiniMap
         className="md:col-start-1 md:row-start-2"
@@ -322,7 +330,18 @@ export function Overworld({
           zone={state.zone}
           player={state.player}
           onGoTo={goTo}
+          onFinale={() => dispatch({ type: "openFinale" })}
           onClose={() => dispatch({ type: "toggleCodex" })}
+        />
+      )}
+      {state.finaleOpen && (
+        <Finale
+          badges={state.badges}
+          minutes={minutes}
+          hints={state.hintsRevealed.length}
+          hard={state.hard}
+          onClose={() => dispatch({ type: "closeFinale" })}
+          onNewGamePlus={team ? undefined : onNewGamePlus}
         />
       )}
       {helpOpen && <Help onClose={() => setHelpOpen(false)} />}

@@ -116,6 +116,11 @@ export type GameState = {
   jars: JarId[];
   nomadServed: boolean;
   codexOpen: boolean;
+  /** The Master of Devlandia finale: open now, and whether it has been shown this game. */
+  finaleOpen: boolean;
+  finaleSeen: boolean;
+  /** New Game+: questions come from each chest's harder half and a wrong answer costs HP. */
+  hard: boolean;
   logs: string[];
   /** Total entries ever logged; gives each visible entry a stable identity. */
   logCount: number;
@@ -136,6 +141,8 @@ export type GameAction =
   | { type: "closeChallenge" }
   | { type: "resetLogic" }
   | { type: "toggleCodex" }
+  | { type: "openFinale" }
+  | { type: "closeFinale" }
   /** The Codex's "Go there": close it and log where the chest is. */
   | { type: "goTo"; chest: ChestId }
   | { type: "submitLogic"; bits: Bits }
