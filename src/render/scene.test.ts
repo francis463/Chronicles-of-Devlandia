@@ -249,8 +249,8 @@ describe("scene: light", () => {
   });
 
   it("ice glints come and go; the dig X glints", () => {
-    expect(scene({}, 0).glints.length).toBeGreaterThan(0);
-    expect(scene({}, 300).glints).toHaveLength(0);
+    expect(scene({}, 0).glints.filter((p) => p.color === "#ffffff").length).toBeGreaterThan(0);
+    expect(scene({}, 300).glints.filter((p) => p.color === "#ffffff")).toHaveLength(0);
     const xGlint = (t: number) => scene({ zone: "forest", clueDecoded: true }, t).light.filter((p) => near(p, FOREST_POINTS.dig, 4) && p.color === "#ffffff");
     expect(xGlint(0).length).toBeGreaterThan(0);
     expect(xGlint(300)).toHaveLength(0);
@@ -262,7 +262,7 @@ describe("scene: light", () => {
     expect(lamp(at(500))?.color).toBe("#ef4444");
     const powered = scene({ towerPowered: true, minutes: DAY }, 0, true);
     expect(powered.light.filter((p) => !near(p, LIGHTS.towerLamp, 0) && aroundTower(p))).toHaveLength(0);
-    expect(at(0).glints).toHaveLength(0);
+    expect(at(0).glints.filter((p) => p.color === "#ffffff")).toHaveLength(0);
     for (const t of [0, 530, 1060]) expect(at(t).light.some((p) => p.x === LIGHTS.gateTerminal.x && p.y === LIGHTS.gateTerminal.y && p.alpha === 1)).toBe(true);
     const semi = forestAt(0).light.filter((p) => p.color === "#fbbf24" && near(p, SEMI_CENTRE, 2));
     expect(Math.max(...semi.map((p) => p.alpha))).toBeCloseTo(0.5);
@@ -390,9 +390,22 @@ describe("scene: your view (weather and light)", () => {
     }
   });
 
-  it("no snow unless asked", () => {
-    expect(scene().snow).toEqual([]);
+  it("the Peaks snow by default; the other zones only when asked; /weather clear turns it off everywhere", () => {
+    expect(scene().snow).toHaveLength(60);
     expect(scene({ snow: false }, 3000).snow).toEqual([]);
+    for (const zone of ["village", "forest", "foggaten"] as const) {
+      expect(scene({ zone }, 3000).snow, zone).toEqual([]);
+      expect(scene({ zone, snow: true }, 3000).snow, zone).toHaveLength(60);
+    }
+  });
+
+  it("sparkles twinkle on the snow, and are still with reduced motion", () => {
+    const SPARKLE = "#f8fafc";
+    const sparkles = (t: number, reduced = false, zone: SceneInput["zone"] = "peaks") => scene({ zone }, t, reduced).glints.filter((p) => p.color === SPARKLE);
+    expect(new Set([0, 800, 1600, 2400].map((t) => sparkles(t).map((p) => `${p.x},${p.y}`).join(" "))).size).toBeGreaterThan(1);
+    expect(sparkles(0, true).length).toBeGreaterThan(0);
+    expect(sparkles(0, true)).toEqual(sparkles(60_000, true));
+    expect(sparkles(0, false, "village")).toEqual([]);
   });
 
   it("snow is a fixed function of time, and moves", () => {

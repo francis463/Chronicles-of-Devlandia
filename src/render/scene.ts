@@ -157,6 +157,15 @@ function lighthouseLight(t: number, reduced: boolean, strength: number): Pixel[]
   return [...glow(LAMP_POINT, LAMPLIGHT, Math.max(0.5, strength)), ...beam];
 }
 
+const SPARKLE = "#f8fafc";
+const SPARKLE_COUNT = 24;
+/** Twinkles on the Peaks' snow: 24 fixed spots, each lit for 300 ms in every 2.4 s; all steady when motion is reduced. */
+function snowSparkles(t: number, reduced: boolean): Pixel[] {
+  return Array.from({ length: SPARKLE_COUNT }, (_, i) => ({ x: (i * 97 + 31) % 260 + 30, y: (i * 61 + 23) % 110 + 25 })).flatMap((at, i) =>
+    reduced ? (i % 3 === 0 ? [{ ...at, color: SPARKLE, alpha: 0.9 }] : []) : (t + i * 100) % 2400 < 300 ? [{ ...at, color: SPARKLE, alpha: 0.9 }] : [],
+  );
+}
+
 const SHIMMER = "#e0f2fe";
 const SMOKE = "#cbd5e1";
 const SMOKE_PUFFS = 4;
@@ -263,7 +272,8 @@ const byFeet = (a: Drawable, b: Drawable) => feetRow(a) - feetRow(b) || Number(i
 export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: boolean): Scene {
   const P = LANDMARK_POINTS;
   const phase: Phase = input.lightMode === "day" ? "Day" : input.lightMode === "night" ? "Night" : phaseOf(input.minutes);
-  const snow = input.snow ? snowfall(t, reduced) : [];
+  // The Peaks snow by default; elsewhere only when asked (/weather snow). /weather clear turns it off everywhere.
+  const snow = (input.snow ?? input.zone === "peaks") ? snowfall(t, reduced) : [];
   const strength = GLOW_STRENGTH[phase];
 
   const player = input.downed
@@ -321,11 +331,12 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
     return { zone: input.zone, glints: [], flat: [], upright, drone, tint: PHASE_TINT[phase], light: [], snow };
   }
 
-  const glints: Pixel[] = reduced
+  const iceGlints: Pixel[] = reduced
     ? []
     : ICE_GLINTS.flatMap((g, i) =>
         (t + i * 1000) % 3000 < 250 ? [-1, 0, 1].map((dx) => ({ x: g.x + dx, y: g.y, color: WHITE, alpha: 1 })) : [],
       );
+  const glints: Pixel[] = [...iceGlints, ...snowSparkles(t, reduced)];
 
   const flat: Drawable[] = [];
   if (input.towerPowered)

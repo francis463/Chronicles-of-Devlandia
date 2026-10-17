@@ -23,13 +23,9 @@ describe("terrain", () => {
     expect(terrainAt(10, 15)).toBe("mountains");
     expect(terrainAt(10, 16)).toBe("snow");
     expect(terrainAt(10, 82)).toBe("snow");
-    expect(terrainAt(10, 83)).toBe("meadow");
-    expect(terrainAt(186, 112)).toBe("forest");
-    expect(terrainAt(185, 112)).toBe("meadow");
-    expect(terrainAt(186, 111)).toBe("meadow");
+    // South of the wall is snow too: the whole Peaks is the snowy top.
+    for (const [x, y] of [[10, 83], [186, 112], [185, 112], [186, 111], [400, 300], [-20, 150], [160, 140]]) expect(terrainAt(x, y), `${x},${y}`).toBe("snow");
     expect(terrainAt(-20, -40)).toBe("mountains");
-    expect(terrainAt(400, 300)).toBe("forest");
-    expect(terrainAt(-20, 150)).toBe("meadow");
   });
 
   it("path: 6 px wide from the start up to just under the gate", () => {

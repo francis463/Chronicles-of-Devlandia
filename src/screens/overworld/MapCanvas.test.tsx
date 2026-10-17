@@ -193,7 +193,7 @@ describe("MapCanvas", () => {
     frame();
     frame();
     expect(explorers(scenes.at(-1)!)[0].x).toBe(boxX(a));
-    expect(scenes.at(-1)!.glints).toEqual([]);
+    expect(scenes.at(-1)!.glints.filter((p) => p.color === "#ffffff")).toEqual([]);
     // The setting is switched off mid-game; let the reduced step's glide window pass first.
     act(() => media.set(false));
     act(() => void vi.advanceTimersByTime(400));

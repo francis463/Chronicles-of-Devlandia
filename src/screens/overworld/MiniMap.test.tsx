@@ -29,10 +29,10 @@ describe("mini-map terrain", () => {
     const { ctx, fills, colorAt } = recorder();
     paintMiniTerrain(ctx, 112, 96);
     expect(colorAt(56, 30)).toBe(MINI_COLORS.ice);
-    expect(colorAt(100, 90)).toBe(MINI_COLORS.forest);
+    expect(colorAt(100, 90)).toBe(MINI_COLORS.snow);
     expect(colorAt(10, 2)).toBe(MINI_COLORS.mountains);
     expect(colorAt(10, 30)).toBe(MINI_COLORS.snow);
-    expect(colorAt(20, 80)).toBe(MINI_COLORS.meadow);
+    expect(colorAt(20, 80)).toBe(MINI_COLORS.snow);
     // one rect per same-colour run, covering every pixel once
     expect(fills.reduce((n, f) => n + f.w * f.h, 0)).toBe(112 * 96);
     expect(fills.length).toBeLessThan(112 * 96 / 4);

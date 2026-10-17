@@ -50,9 +50,8 @@ function terrainAt(x: number, y: number): TerrainKind {
   }
   if (inRect(x, y, ICE_RECT)) return "ice";
   if (y < 16) return "mountains";
-  if (y < 83) return "snow";
-  if (x >= 186 && y >= 112) return "forest";
-  return "meadow";
+  // Snow everywhere south of the mountains: the whole Peaks is the snowy top.
+  return "snow";
 }
 
 const MOUTH: Rect = { x: 0, y: 112, w: 32, h: 32 };

@@ -119,7 +119,8 @@ export function Overworld({
     input.setSelectionRange(input.value.length, input.value.length);
   }, [focusRequest, setDraft]);
   useKeyboardControls(state, dispatch, leaving, onChatKey);
-  const [view, setView] = useState<{ snow: boolean; light: "auto" | "day" | "night" }>({ snow: false, light: "auto" });
+  // `snow: undefined` is the default (the Peaks snow, other zones do not); /weather snow and /weather clear set it for every zone.
+  const [view, setView] = useState<{ snow: boolean | undefined; light: "auto" | "day" | "night" }>({ snow: undefined, light: "auto" });
   const { pings, add: addPing } = usePings();
 
   // ── Team mode ──
