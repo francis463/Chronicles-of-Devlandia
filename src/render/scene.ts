@@ -5,6 +5,7 @@ import type { ZoneId } from "../game/zones";
 import { AREAS } from "./areas";
 import { LAMP_POINT } from "./areas/foggaten";
 import { FOREST_POINTS } from "./areas/forest";
+import { VILLAGE_LIFE, wandererPose } from "./areas/village";
 import { DOCK_POINT } from "./areas/peaks";
 import type { Pose } from "./motion";
 import { circlePixels, diamondPixels } from "./pixels";
@@ -156,6 +157,39 @@ function lighthouseLight(t: number, reduced: boolean, strength: number): Pixel[]
   return [...glow(LAMP_POINT, LAMPLIGHT, Math.max(0.5, strength)), ...beam];
 }
 
+const SMOKE = "#cbd5e1";
+const SMOKE_PUFFS = 4;
+const SMOKE_CYCLE_MS = 3200;
+const WINDOW_LIGHT = "#fde68a";
+const LANTERN_LIGHT = "#fbbf24";
+
+/** The huts' chimney smoke (four 2 × 2 puffs a hut) and, from dusk, their glowing windows and the well's lantern. Smoke hangs still when motion is reduced. */
+function villageLight(t: number, reduced: boolean, strength: number): Pixel[] {
+  const huts = AREAS.village.props.filter((p) => p.sprite === "hut").map((p) => spriteBox("hut", p.at));
+  const smoke = huts.flatMap((box) =>
+    Array.from({ length: SMOKE_PUFFS }, (_, j) => {
+      const age = reduced ? (j + 0.5) / SMOKE_PUFFS : (((t / SMOKE_CYCLE_MS + j / SMOKE_PUFFS) % 1) + 1) % 1;
+      const at = { x: box.x + 21 + Math.round(age * 7) + (j % 2), y: box.y + 3 - Math.round(age * 16) };
+      const alpha = Math.round(0.6 * (1 - age) * 100) / 100;
+      // Each wisp is a 2 × 2 puff, so it reads at 1× scale.
+      return [0, 1, 2, 3].map((k): Pixel => ({ x: at.x + (k % 2), y: at.y + Math.floor(k / 2), color: SMOKE, alpha }));
+    }).flat(),
+  );
+  if (strength <= 0) return smoke;
+  const windows = huts.flatMap((box) =>
+    SPRITES.hut.frames[0].flatMap((row, y) => [...row].flatMap((ch, x) => (ch === "g" ? diamondPixels(3).map((o) => ({ x: box.x + x + o.x, y: box.y + y + o.y, color: WINDOW_LIGHT, alpha: 0.22 * strength })) : []))),
+  );
+  const lantern = AREAS.village.props.find((p) => p.sprite === "lantern")!;
+  const lampBox = spriteBox("lantern", lantern.at);
+  return [...smoke, ...windows, ...glow({ x: lampBox.x + 3, y: lampBox.y + 3 }, LANTERN_LIGHT, strength)];
+}
+
+/** The village's wanderers (pacing the road and square) and its pecking chicken. */
+function villageLife(t: number, reduced: boolean): Drawable[] {
+  const hen = placed("chicken", VILLAGE_LIFE.chicken, { frame: reduced ? 0 : Math.floor(t / 600) % 2 });
+  return [...VILLAGE_LIFE.wanderers.map((w) => explorer(wandererPose(t, reduced, w), w.variant)), hen];
+}
+
 const placed = (sprite: SpriteId, at: ArtPoint, extra: Partial<Drawable> = {}): Drawable => {
   const box = spriteBox(sprite, at);
   return { sprite, frame: 0, x: box.x, y: box.y, flip: false, rotate: false, variant: "base", ...extra };
@@ -243,6 +277,7 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
       ...interiorDecorations(input.zone),
       ...wallTilesInWorld(input.zone),
       ...props(input.zone),
+      ...(input.zone === "village" ? villageLife(t, reduced) : []),
       ...learning(input),
       ...mates,
       player,
@@ -264,6 +299,9 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
       }
       if (digging && !reduced && t % 1500 < 250) light.push({ x: dig.x + 2, y: dig.y - 2, color: WHITE, alpha: 1 });
       return { zone: input.zone, glints: [], flat, upright, drone, tint: forestTint(PHASE_TINT[phase]), light, snow };
+    }
+    if (input.zone === "village") {
+      return { zone: input.zone, glints: [], flat: [], upright, drone, tint: PHASE_TINT[phase], light: villageLight(t, reduced, strength), snow };
     }
     if (input.zone === "foggaten") {
       const lighthouse = upright.find((d) => d.sprite === "lighthouse");

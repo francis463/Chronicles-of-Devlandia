@@ -297,3 +297,27 @@ describe("Foggaten Island art", () => {
     }
   });
 });
+
+describe("the village's life sprites", () => {
+  it("have their declared sizes, anchors and frame counts", () => {
+    for (const [id, w, h, frames] of [["lantern", 6, 12, 1], ["chicken", 8, 8, 2], ["garden", 24, 10, 1], ["stall", 24, 20, 1]] as const) {
+      expect([SPRITES[id].w, SPRITES[id].h, SPRITES[id].anchor, SPRITES[id].frames.length], id).toEqual([w, h, "bottom", frames]);
+    }
+    expect(SPRITES.chicken.frames[0]).not.toEqual(SPRITES.chicken.frames[1]);
+  });
+
+  it("every edge is the shared dark outline", () => {
+    for (const id of ["lantern", "chicken", "garden", "stall"] as const) {
+      for (const frame of SPRITES[id].frames) {
+        const solid = (x: number, y: number) => y >= 0 && y < frame.length && x >= 0 && x < frame[y].length && frame[y][x] !== ".";
+        frame.forEach((row, y) =>
+          [...row].forEach((ch, x) => {
+            if (ch === ".") return;
+            const edge = !solid(x - 1, y) || !solid(x + 1, y) || !solid(x, y - 1) || !solid(x, y + 1);
+            if (edge) expect(SPRITES[id].palette[ch], `${id} edge at ${x},${y}`).toBe(OUTLINE);
+          }),
+        );
+      }
+    }
+  });
+});

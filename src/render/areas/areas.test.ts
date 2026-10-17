@@ -8,7 +8,8 @@ import { FOGGATEN, FOGGATEN_POINTS } from "./foggaten";
 import { DOCK_POINT, PEAKS } from "./peaks";
 import { REACHABLE_RECT } from "../world";
 import { DOCK, HERMIT, ISLAND_DOCK, ISLAND_FIRE, LIGHTHOUSE, RUINS } from "../../game/constants";
-import { VILLAGE_POINTS } from "./village";
+import { VILLAGE_LIFE, VILLAGE_POINTS, wandererPose } from "./village";
+import { ARCHIVE_POINT, CS_CHEST_POINT, TERMINAL_POINT, chestPoints } from "../learnPoints";
 
 describe("areas", () => {
   it("village art points are the game places' art points", () => {
@@ -174,5 +175,65 @@ describe("the Peaks' east shore", () => {
     expect(box.x + box.w).toBeGreaterThan(REACHABLE_RECT.x + REACHABLE_RECT.w);
     expect(PEAKS.protected).toContainEqual(box);
     for (const other of PEAKS.protected.filter((p) => p !== box && !(p.x === box.x && p.y === box.y))) expect(intersects(box, other), JSON.stringify(other)).toBe(false);
+  });
+});
+
+describe("Dev Village's decorations and its life", () => {
+  const village = AREAS.village;
+  const sprites = village.props.map((p) => p.sprite);
+  const landmarks: Rect[] = [
+    spriteBox("archive", ARCHIVE_POINT),
+    spriteBox("code-chest", CS_CHEST_POINT),
+    spriteBox("syntax-terminal", TERMINAL_POINT),
+    ...chestPoints("village").map(({ at }) => spriteBox("code-chest", at)),
+  ];
+  const decor = village.props.filter((p) => ["lantern", "garden", "stall"].includes(p.sprite));
+
+  it("has a lantern by the well, two garden plots and a market stall", () => {
+    expect(sprites.filter((s) => s === "lantern")).toHaveLength(1);
+    expect(sprites.filter((s) => s === "garden")).toHaveLength(2);
+    expect(sprites.filter((s) => s === "stall")).toHaveLength(1);
+  });
+
+  it("keeps them clear of each other, every other prop, the landmarks, Ada and the east exit", () => {
+    const boxes = decor.map((p) => spriteBox(p.sprite, p.at));
+    const others = village.props.filter((p) => !decor.includes(p)).map((p) => spriteBox(p.sprite, p.at));
+    for (const [i, a] of boxes.entries()) {
+      const where = `${decor[i].sprite}@${decor[i].at.x},${decor[i].at.y}`;
+      for (const b of [...boxes.slice(i + 1), ...others, ...landmarks, ...village.mouths]) expect(intersects(a, b), where).toBe(false);
+      expect(a.x >= REACHABLE_RECT.x && a.y >= REACHABLE_RECT.y && a.x + a.w <= REACHABLE_RECT.x + REACHABLE_RECT.w && a.y + a.h <= REACHABLE_RECT.y + REACHABLE_RECT.h, where).toBe(true);
+    }
+  });
+
+  it("the wanderers and the chicken never cross a prop, a landmark or a decoration, at any moment", () => {
+    const blockers = [...village.props.filter((p) => p.sprite !== "explorer-down").map((p) => spriteBox(p.sprite, p.at)), ...landmarks];
+    for (const w of VILLAGE_LIFE.wanderers) {
+      for (let t = 0; t < 120_000; t += 250) {
+        const pose = wandererPose(t, false, w);
+        const feet = { x: pose.x - 6, y: pose.y - 5, w: 12, h: 6 };
+        for (const b of blockers) expect(intersects(feet, b), `wanderer ${w.variant} at t=${t}`).toBe(false);
+      }
+    }
+    const hen = spriteBox("chicken", VILLAGE_LIFE.chicken);
+    for (const b of blockers) expect(intersects(hen, b), "chicken").toBe(false);
+  });
+
+  it("the wanderers walk back and forth, face the way they go, and stand still when motion is reduced", () => {
+    for (const w of VILLAGE_LIFE.wanderers) {
+      const a = wandererPose(0, false, w);
+      const b = wandererPose(7000, false, w);
+      expect(a.x !== b.x || a.y !== b.y, w.variant).toBe(true);
+      expect(new Set([1, 2, 3, 4, 5, 6].map((s) => wandererPose(s * 3000, false, w).facing)).size).toBeGreaterThan(1);
+      expect(wandererPose(0, true, w)).toEqual(wandererPose(90_000, true, w));
+    }
+  });
+
+  it("everything they walk on is open ground (the road or the square)", () => {
+    for (const w of VILLAGE_LIFE.wanderers) {
+      for (let t = 0; t < 60_000; t += 500) {
+        const { x, y } = wandererPose(t, false, w);
+        expect(village.paths.some((r) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h), `${w.variant} t=${t} at ${x},${y}`).toBe(true);
+      }
+    }
   });
 });

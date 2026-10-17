@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { AREAS } from "./areas";
 import { FOREST_POINTS } from "./areas/forest";
 import { LAMP_POINT } from "./areas/foggaten";
+import { VILLAGE_LIFE, wandererPose } from "./areas/village";
 import { PHASE_TINT, buildScene, type Poses, type SceneInput } from "./scene";
 import { LIGHTS, SPRITES, spriteBox, type SpriteId } from "./sprites";
 import { BRIDGE_RECT, decorations } from "./terrain";
@@ -170,7 +171,8 @@ describe("scene: zones", () => {
     expect(s.upright.filter((d) => d.sprite === "explorer-down" && d.variant === "#b45309")).toHaveLength(1);
     for (const id of ["tower", "chest-closed", "chest-open", "gate", "semicolon"]) expect(sprites(s, "upright")).not.toContain(id);
     const busy = scene({ ...inVillage, towerPowered: true, clueDecoded: true });
-    expect([busy.flat, busy.glints, busy.light]).toEqual([[], [], []]);
+    expect([busy.flat, busy.glints]).toEqual([[], []]);
+    expect(busy.light).toEqual(scene(inVillage).light);
   });
 
   it("the Peaks draw the dock on the east shore; the island draws its own five landmarks", () => {
@@ -537,6 +539,61 @@ describe("scene: the lit lighthouse", () => {
       const on = scene({ zone, lighthouseLit: true, minutes: DAY }, 1234);
       const off = scene({ zone, lighthouseLit: false, minutes: DAY }, 1234);
       expect(JSON.stringify(on)).toBe(JSON.stringify(off));
+    }
+  });
+});
+
+describe("scene: Dev Village's smoke, windows and wanderers", () => {
+  const SMOKE = "#cbd5e1";
+  const GLOW = "#fde68a";
+  const village = (t: number, reduced = false, minutes = DUSK) => scene({ zone: "village", minutes }, t, reduced);
+  const smoke = (s: ReturnType<typeof scene>) => s.light.filter((p) => p.color === SMOKE);
+  const glowOf = (s: ReturnType<typeof scene>) => s.light.filter((p) => p.color === GLOW);
+  const folk = (s: ReturnType<typeof scene>) => s.upright.filter((d) => d.sprite.startsWith("explorer") && VILLAGE_LIFE.wanderers.some((w) => w.variant === d.variant));
+  const key = (ps: Array<{ x: number; y: number }>) => ps.map((p) => `${p.x},${p.y}`).join(" ");
+
+  it("each of the two huts puffs four wisps of smoke that rise and drift, fading as they climb", () => {
+    expect(smoke(village(0))).toHaveLength(32);
+    expect(key(smoke(village(0)))).not.toBe(key(smoke(village(1500))));
+    for (const p of smoke(village(0))) expect(p.alpha > 0 && p.alpha <= 0.6).toBe(true);
+    const ys = (t: number) => smoke(village(t)).map((p) => p.y);
+    expect(Math.min(...ys(0)) < Math.max(...ys(0))).toBe(true);
+  });
+
+  it("with reduced motion the smoke hangs still", () => {
+    expect(key(smoke(village(0, true)))).toBe(key(smoke(village(60_000, true))));
+    expect(smoke(village(0, true))).toHaveLength(32);
+  });
+
+  it("the windows and the lantern glow at dusk and night, and not by day", () => {
+    const strength = (m: number) => glowOf(village(0, false, m)).reduce((n, p) => n + p.alpha, 0);
+    expect(strength(NIGHT)).toBeGreaterThan(strength(DUSK));
+    expect(glowOf(village(0, false, DUSK)).length).toBeGreaterThan(0);
+    expect(glowOf(village(0, false, DAY))).toEqual([]);
+  });
+
+  it("three wanderers walk the square, move with time and stand still with reduced motion; they are not at Ada's spot", () => {
+    expect(folk(village(0))).toHaveLength(3);
+    const at = (t: number, reduced = false) => folk(village(t, reduced)).map((d) => `${d.x},${d.y},${d.frame},${d.flip}`).join("|");
+    expect(at(0)).not.toBe(at(7000));
+    expect(at(0, true)).toBe(at(60_000, true));
+    expect(wandererPose(0, false, VILLAGE_LIFE.wanderers[0])).toMatchObject({ facing: expect.any(String) });
+  });
+
+  it("a chicken pecks, and the lantern, gardens and stall are drawn", () => {
+    const s = village(0);
+    const hen = (t: number) => village(t).upright.find((d) => d.sprite === "chicken")!.frame;
+    expect(new Set([0, 600, 1200].map(hen)).size).toBe(2);
+    expect(village(0, true).upright.find((d) => d.sprite === "chicken")!.frame).toBe(0);
+    for (const id of ["lantern", "garden", "stall"] as const) expect(s.upright.some((d) => d.sprite === id), id).toBe(true);
+  });
+
+  it("no other zone has the village's smoke, wanderers or chicken", () => {
+    for (const zone of ["peaks", "forest", "foggaten"] as const) {
+      const s = scene({ zone, minutes: DUSK }, 1234);
+      expect(smoke(s)).toEqual([]);
+      expect(folk(s)).toEqual([]);
+      expect(s.upright.some((d) => d.sprite === "chicken" || d.sprite === "lantern" || d.sprite === "stall" || d.sprite === "garden")).toBe(false);
     }
   });
 });

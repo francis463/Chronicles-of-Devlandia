@@ -35,6 +35,10 @@ export type SpriteId =
   | "campfire"
   | "old-oak"
   | "dock"
+  | "lantern"
+  | "chicken"
+  | "garden"
+  | "stall"
   | "lighthouse"
   | "ruins";
 /** bottom: bottom-centre on the art point; centre: centred on it; hover: centred 12 px above it. */
@@ -75,6 +79,30 @@ function outlined(w: number, h: number, kind: (x: number, y: number) => string |
       return [at(x - 1, y), at(x + 1, y), at(x, y - 1), at(x, y + 1)].every(Boolean) ? k : "o";
     }).join(""),
   );
+}
+
+/** A garden plot: rows of earth with green sprouts. */
+function gardenGrid(): PixelGrid {
+  return outlined(24, 10, (x, y) => {
+    if (y % 3 === 1) return x % 4 === 2 ? "g" : x % 4 === 3 ? "G" : "s";
+    return y % 3 === 0 ? "S" : "s";
+  });
+}
+
+/** A market stall: a striped awning over two posts, a counter with a few apples, and legs. */
+function stallGrid(): PixelGrid {
+  const stripe = (x: number) => (Math.floor(x / 4) % 2 === 0 ? "R" : "w");
+  return outlined(24, 20, (x, y) => {
+    if (y <= 4) return stripe(x);
+    if (y === 5) return x % 2 === 0 ? stripe(x) : null;
+    if (y >= 6 && y <= 9) {
+      if ([1, 2, 21, 22].includes(x)) return "p";
+      return y === 9 && x >= 5 && x <= 18 && x % 3 === 0 ? "a" : null;
+    }
+    if (y >= 10 && y <= 12) return x >= 1 && x <= 22 ? (y === 10 ? "P" : "p") : null;
+    if (y >= 13 && [2, 3, 20, 21].includes(x)) return "t";
+    return null;
+  });
 }
 
 /** The pier: a plank deck running out to sea (to the right) on three posts. */
@@ -1030,6 +1058,64 @@ export const SPRITES: Record<SpriteId, SpriteDef> = {
     anchor: "bottom",
     palette: { o: "#0b1020", p: "#a16207", P: "#854d0e", l: "#ca8a04", t: "#713f12" },
     frames: [dockGrid()],
+  },
+  lantern: {
+    w: 6,
+    h: 12,
+    anchor: "bottom",
+    palette: { o: "#0b1020", p: "#7c4a1e", P: "#9a5f2b", Y: "#fbbf24", y: "#fde68a" },
+    frames: [
+      [
+        "..oo..",
+        ".oYYo.",
+        "oYyyYo",
+        "oYyyYo",
+        ".oYYo.",
+        "..oo..",
+        "..oPo.",
+        "..oPo.",
+        "..oPo.",
+        "..oPo.",
+        ".oPPPo",
+        ".oooo.",
+      ],
+    ],
+  },
+  chicken: {
+    w: 8,
+    h: 8,
+    anchor: "bottom",
+    palette: { o: "#0b1020", w: "#f1f5f9", W: "#cbd5e1", b: "#f59e0b", r: "#dc2626" },
+    frames: [
+      [
+        "....oo..",
+        "...orwo.",
+        "..owwwbo",
+        ".owwwwwo",
+        ".oWwwwWo",
+        "..ooooo.",
+        "...o.o..",
+        "...o.o..",
+      ],
+      [
+        "........",
+        "........",
+        "....oo..",
+        "..oorwo.",
+        ".owwwwbo",
+        ".oWwwwWo",
+        "..ooooo.",
+        "...o.o..",
+      ],
+    ],
+  },
+  garden: { w: 24, h: 10, anchor: "bottom", palette: { o: "#0b1020", s: "#7c4a1e", S: "#5b3a1e", g: "#4ade80", G: "#16a34a" }, frames: [gardenGrid()] },
+  stall: {
+    w: 24,
+    h: 20,
+    anchor: "bottom",
+    palette: { o: "#0b1020", R: "#dc2626", w: "#f1f5f9", p: "#9a5f2b", P: "#c08a52", t: "#7c4a1e", a: "#ef4444" },
+    frames: [stallGrid()],
   },
   lighthouse: {
     w: 22,
