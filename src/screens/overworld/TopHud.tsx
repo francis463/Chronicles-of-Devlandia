@@ -3,6 +3,7 @@ import { formatTime, phaseOf } from "../../game/clock";
 import { MAX_HP } from "../../game/constants";
 import { Button } from "../../ui/Button";
 import { Meter } from "../../ui/Meter";
+import { PhaseIcon } from "./PhaseIcon";
 
 export function TopHud({
   hp,
@@ -54,8 +55,9 @@ export function TopHud({
             Reconnecting…
           </span>
         )}
-        <span className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">
-          {`${phaseOf(minutes)} / ${formatTime(minutes)}`}
+        <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-[var(--text-muted)]">
+          <PhaseIcon phase={phaseOf(minutes)} />
+          <span>{`${phaseOf(minutes)} / ${formatTime(minutes)}`}</span>
         </span>
         <Button variant="ghost" className="px-2 py-1 text-[10px] pointer-coarse:min-h-11" onClick={onHelp}>
           [?] Help
