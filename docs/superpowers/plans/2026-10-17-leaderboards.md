@@ -45,7 +45,7 @@
 
 - [ ] **Step 1: Set up a local Postgres 16 harness** (not committed): start a throwaway cluster under `/var/tmp` as user `postgres` (binaries in `/usr/lib/postgresql/16/bin`; it cannot run under `/tmp/claude-0`), stub the roles `anon`, `authenticated`, an `auth` schema with `auth.users(id uuid primary key, email text)` and `auth.uid()` reading `request.jwt.claim.sub`, then apply the accounts migration `supabase/migrations/20261017000000_accounts.sql` exactly as `supabase/tests/policies.sql` expects. Confirm `psql -f supabase/tests/policies.sql` still passes there.
 - [ ] **Step 2: Write the failing test** `supabase/tests/leaderboard.sql` in the style of `policies.sql` (one transaction, rolled back, plays each role): it makes five users with profiles and badges (A:3, B:3 with a later last badge than A, C:1, D:2 and hidden, E:0 with a profile) and asserts, as `anon` / `authenticated`:
-  - `leaderboard_top()` lists A, B, D? — no: D is hidden, so A, B (rank 1, 1; A before B by `last_earned`), C (rank 3); E (no badges) is absent; the result has exactly the columns `rank, name, badges, last_earned` and no `user_id`.
+  - `leaderboard_top()` lists A and B (both rank 1, A before B by `last_earned`) and C (rank 3); D is hidden and E (no badges) is absent; the result has exactly the columns `rank, name, badges, last_earned` and no `user_id`.
   - `leaderboard_top(0)` and `leaderboard_top(-5)` return at most 1 row; `leaderboard_top(1000)` returns no more than 50; `leaderboard_top(null)` behaves as 20.
   - `anon` can call `leaderboard_top` but gets `insufficient_privilege` from `leaderboard_me()` and from `select` on `profiles`, `badges` and `leaderboard_hidden`.
   - As A: `leaderboard_me()` returns `(1, 3, false)`; as D (hidden): `(3, 2, true)` — rank among non-hidden players with more badges, plus one, i.e. `1 + 2 = 3` (A and B have more); as E: `(null, 0, false)`.
@@ -70,7 +70,7 @@
   - `interface LeaderboardStore { top(): Promise<Row[]>; me(): Promise<Me | null>; setHidden(hidden: boolean): Promise<void> }` (every method rejects on failure)
   - `parseRows(data: unknown): Row[]` and `parseMe(data: unknown): Me | null`
   - `createSupabaseLeaderboard(load: () => Promise<SupabaseLike>, userId: string | null): LeaderboardStore`
-  - `createMemoryLeaderboard(init?: { rows?: Row[]; me?: Me | null }): LeaderboardStore & { rows: Row[]; meState: Me | null; failNext: number; calls: string[] }` (each method first consumes `failNext` and rejects while it is above zero; `setHidden` updates `meState.hidden` and removes or restores the player's row by `meState` name is not needed: it only records the flag and the call)
+  - `createMemoryLeaderboard(init?: { rows?: Row[]; me?: Me | null }): LeaderboardStore & { rows: Row[]; meState: Me | null; failNext: number; calls: string[] }` (each method first consumes `failNext` and rejects while it is above zero; `setHidden` only records the flag in `meState.hidden` and the call in `calls`)
   - `SupabaseLike.rpc(fn: string, args?: object): PromiseLike<{ data: unknown; error: ErrorLike }>`; `TableLike.delete(): { eq(col: string, val: string): PromiseLike<QueryResult> }`
 
 - [ ] **Step 1: Write the failing tests.**
