@@ -167,7 +167,7 @@ describe("scene: zones", () => {
 
   it("the village draws its huts, well, fences, signpost and Ada, and none of the Peaks' landmarks", () => {
     const s = scene(inVillage);
-    expect((["hut", "well", "fence", "signpost", "wall"] as const).map((id) => count(s, id))).toEqual([2, 1, 3, 1, 20]);
+    expect((["hut", "well", "fence", "signpost", "wall"] as const).map((id) => count(s, id))).toEqual([2, 1, 3, 1, 0]);
     expect(s.upright.filter((d) => d.sprite === "explorer-down" && d.variant === "#b45309")).toHaveLength(1);
     for (const id of ["tower", "chest-closed", "chest-open", "gate", "semicolon"]) expect(sprites(s, "upright")).not.toContain(id);
     const busy = scene({ ...inVillage, towerPowered: true, clueDecoded: true });

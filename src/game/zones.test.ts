@@ -60,7 +60,7 @@ describe("the Dense Forest zone", () => {
     expect(Object.keys(ZONES).sort()).toEqual(["foggaten", "forest", "peaks", "village"]);
     expect(ZONES.forest).toMatchObject({ name: "Dense Forest", wall: false, gate: false, river: false });
     expect(ZONES.peaks).toMatchObject({ wall: true, gate: true, river: true });
-    expect(ZONES.village).toMatchObject({ wall: true, gate: false, river: false });
+    expect(ZONES.village).toMatchObject({ wall: false, gate: false, river: false });
   });
 
   it("the Peaks has a west and a south exit, the forest a north one, the village an east one", () => {

@@ -49,10 +49,8 @@ describe("terrain", () => {
     expect(onPath(0, 126)).toBe(false);
   });
 
-  it("the village: bands, its dirt square and its path", () => {
-    expect(terrainAt(10, 15, VILLAGE)).toBe("mountains");
-    expect(terrainAt(10, 82, VILLAGE)).toBe("snow");
-    expect(terrainAt(10, 83, VILLAGE)).toBe("meadow");
+  it("the village: all meadow from top to bottom, its dirt square and its path", () => {
+    for (const y of [0, 15, 30, 82, 83, 120]) expect(terrainAt(10, y, VILLAGE), `y=${y}`).toBe("meadow");
     expect(terrainAt(250, 150, VILLAGE)).toBe("meadow");
     expect(onPath(100, 120, VILLAGE)).toBe(true);
     expect(onPath(175, 159, VILLAGE)).toBe(true);
@@ -93,7 +91,7 @@ describe("decorations", () => {
     const area = AREAS[id];
     const touching = decorations(VIEW, area).filter((d) => intersects(boxOf(d), WORLD_RECT) && !intersects(boxOf(d), REACHABLE_RECT));
     // The forest has no hedge on top: trees from the scenery above reach into its top rows.
-    for (const d of touching) expect(["bush", "rock", "snow-rock", ...(id === "forest" ? ["tree"] : [])], key(d)).toContain(d.sprite);
+    for (const d of touching) expect(["bush", "rock", "snow-rock", ...(id === "forest" || id === "village" ? ["tree"] : [])], key(d)).toContain(d.sprite);
     const covers = (x: number, y: number) => touching.some((d) => intersects(boxOf(d), { x, y, w: 1, h: 1 }));
     // The Peaks' bottom hedge is open at its south exit (art x 192–255); everywhere clear of it the hedge is closed.
     for (let x = 0; x < WORLD.width; x += 4) {
@@ -197,10 +195,8 @@ describe("decorations", () => {
     const inside = decorations(VIEW, VILLAGE).filter((d) => intersects(boxOf(d), REACHABLE_RECT));
     expect(inside.length).toBeGreaterThan(4);
     const guarded = protectedBoxes(VILLAGE);
-    const band: Rect = { x: -1000, y: 80, w: 3000, h: 10 };
     for (const d of inside) {
       for (const p of guarded) expect(intersects(grow(boxOf(d), 4), p), `${key(d)} vs ${JSON.stringify(p)}`).toBe(false);
-      expect(intersects(grow(boxOf(d), 4), band), key(d)).toBe(false);
     }
     for (const a of inside)
       for (const b of inside)
@@ -218,8 +214,8 @@ describe("the north wall", () => {
     expect(tiles.some((t) => intersects(spriteBox("wall", t), gate))).toBe(false);
   });
 
-  it("the village wall has 20 tiles and no gate", () => {
-    expect(wallTiles(WALL_RECT, VILLAGE).map((t) => t.x)).toEqual(Array.from({ length: 20 }, (_, k) => 8 + 16 * k));
+  it("the village has no wall tiles", () => {
+    expect(wallTiles(WALL_RECT, VILLAGE)).toEqual([]);
   });
 
   it("wall tiles continue beyond the world, by box", () => {

@@ -34,8 +34,8 @@ describe("areas", () => {
     for (const [x, y] of [[0, 0], [160, 90], [319, 179], [-50, -50], [400, 300]]) expect(["forest", "meadow"]).toContain(terrainAt(x, y));
   });
 
-  it("the wall flag: the Peaks and the village have a wall, the forest does not", () => {
-    expect([AREAS.peaks.wall, AREAS.village.wall, AREAS.forest.wall]).toEqual([true, true, false]);
+  it("the wall flag: only the Peaks have a wall: the village and the forest do not", () => {
+    expect([AREAS.peaks.wall, AREAS.village.wall, AREAS.forest.wall]).toEqual([true, false, false]);
   });
 
   it("the forest's path winds from its north mouth to the clearing and on to the south-east corner, as one connected trail", () => {

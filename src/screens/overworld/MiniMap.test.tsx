@@ -50,11 +50,11 @@ describe("mini-map terrain", () => {
     expect([...new Set(big.fills.filter((f) => f.color === "#1e293b").map((f) => f.y))]).toEqual([141, 142, 143]);
   });
 
-  it("paints a village cell: meadow below the snow and a wall line with no gap", () => {
+  it("paints a village cell: all meadow, with no snow and no wall line", () => {
     const { ctx, fills, colorAt } = recorder();
     paintMiniTerrain(ctx, 96, 54, "village");
-    expect(fills.filter((f) => f.color === "#1e293b")).toEqual([{ color: "#1e293b", x: 0, y: 26, w: 96, h: 1 }]);
-    expect(colorAt(10, 50)).toBe(MINI_COLORS.meadow);
+    expect(fills.filter((f) => f.color === "#1e293b")).toEqual([]);
+    for (const [x, y] of [[10, 2], [10, 20], [10, 50], [90, 26]]) expect(colorAt(x, y)).toBe(MINI_COLORS.meadow);
     expect(fills.reduce((n, f) => n + f.w * f.h, 0)).toBe(96 * 54);
   });
 

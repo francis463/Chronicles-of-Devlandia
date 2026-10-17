@@ -464,7 +464,9 @@ describe("gameReducer: the north wall", () => {
     expect(open.crossings.length).toBeGreaterThan(0);
     expect(open.crossings.every((c) => c.zone === "peaks")).toBe(true);
     expect(new Set(open.crossings.map((c) => c.player.x))).toEqual(new Set([48, 50, 52]));
-    expect(open.spots.some((s) => s.zone === "village" && s.player.y < 49)).toBe(false);
+    // The village has no wall, so its north half is open to walk once you are in it (gate or not).
+    expect(open.spots.some((s) => s.zone === "village" && s.player.y < 49)).toBe(true);
+    expect(locked.spots.some((s) => s.zone === "village" && s.player.y < 49)).toBe(true);
   });
 });
 
@@ -519,14 +521,13 @@ describe("gameReducer: zones", () => {
     expect(s.player).toEqual({ x: 28, y: 72 });
   });
 
-  it("the village wall is solid whether or not the gate is open, and logs once", () => {
+  it("the village has no wall: you walk north of the old wall line, gate open or not", () => {
     for (const gateUnlocked of [false, true]) {
       const start: GameState = { ...s0, zone: "village", gateUnlocked, player: { x: 30, y: 52 } };
-      const once = gameReducer(start, { type: "move", dir: "up" });
-      expect(once.player).toEqual({ x: 30, y: 52 });
-      expect(once.stamina).toBe(start.stamina);
-      expect(lastLog(once)).toBe(LOG.wallSolid);
-      expect(gameReducer(once, { type: "move", dir: "up" })).toBe(once);
+      const moved = gameReducer(start, { type: "move", dir: "up" });
+      expect(moved.player).toEqual({ x: 30, y: 48 });
+      expect(moved.logs).toEqual(start.logs);
+      expect(isNorthOfWall(moved.player)).toBe(true);
     }
   });
 

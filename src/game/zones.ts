@@ -40,7 +40,7 @@ export const ZONES: Record<ZoneId, Zone> = {
     name: "Dev Village",
     entered: LOG.enteredVillage,
     exits: [{ edge: "east", min: 62, max: 78, to: "peaks" }],
-    wall: true,
+    wall: false,
     gate: false,
     places: [ADA, SIGNPOST, TERMINAL, ARCHIVE, ...chestPlaces("village")],
     river: false,

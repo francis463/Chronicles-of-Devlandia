@@ -10,9 +10,8 @@ export const VILLAGE_POINTS = {
   signpost: { x: 275, y: 112 },
 } as const;
 
-function terrainAt(_x: number, y: number): TerrainKind {
-  if (y < 16) return "mountains";
-  if (y < 83) return "snow";
+/** The whole village is meadow: no snow, no mountains and no wall. */
+function terrainAt(): TerrainKind {
   return "meadow";
 }
 
@@ -68,7 +67,7 @@ const PROPS: Prop[] = [
 
 export const VILLAGE: Area = {
   id: "village",
-  wall: true,
+  wall: false,
   terrainAt,
   paths: PATHS,
   mouths: [MOUTH],
