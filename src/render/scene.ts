@@ -187,8 +187,8 @@ function aurora(t: number, reduced: boolean, strength: number): Pixel[] {
       Array.from({ length: rows }, (_, r): Pixel => ({ x, y: base + Math.round(wave(x)) + r, color, alpha: Math.round(0.45 * strength * (1 - r * 0.12) * 100) / 100 })),
     );
   return [
-    ...ribbon(AURORA_GREEN, 2, (x) => 3 * Math.sin(x / 21 + w), 6),
-    ...ribbon(AURORA_PURPLE, 7, (x) => 3 * Math.sin(x / 17 - 1.3 * w + 1), 5),
+    ...ribbon(AURORA_GREEN, 4, (x) => 3 * Math.sin(x / 21 + w), 6),
+    ...ribbon(AURORA_PURPLE, 8, (x) => 3 * Math.sin(x / 17 - 1.3 * w + 1), 5),
   ];
 }
 
