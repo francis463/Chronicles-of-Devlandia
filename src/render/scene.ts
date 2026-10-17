@@ -4,6 +4,7 @@ import type { Phase, Point } from "../game/types";
 import type { ZoneId } from "../game/zones";
 import { AREAS } from "./areas";
 import { FOREST_POINTS } from "./areas/forest";
+import { DOCK_POINT } from "./areas/peaks";
 import type { Pose } from "./motion";
 import { circlePixels, diamondPixels } from "./pixels";
 import { LIGHTS, SPRITES, spriteBox, type SpriteId } from "./sprites";
@@ -231,6 +232,7 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
     placed("tower", P.tower),
     placed(input.hasLoot ? "chest-open" : "chest-closed", P.chest),
     placed("gate", P.gate, { frame: input.gateUnlocked ? 0 : 1 }),
+    placed("dock", DOCK_POINT),
     ...learning(input),
     ...mates,
     player,

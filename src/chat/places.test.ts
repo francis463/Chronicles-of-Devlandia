@@ -24,9 +24,9 @@ const TABLE = [
   ["ranger", "forest", 60, 62, "the Ranger"],
   ["campfire", "forest", 46, 66, "the Campfire"],
   ["js", "forest", 18, 78, "the JavaScript Chest"],
-  ["dock", "peaks", 88, 62, "the Dock"],
-  ["pier", "foggaten", 12, 62, "the island's Dock"],
-  ["lighthouse", "foggaten", 50, 28, "the Lighthouse"],
+  ["dock", "peaks", 92, 74, "the Dock"],
+  ["pier", "foggaten", 8, 62, "the island's Dock"],
+  ["lighthouse", "foggaten", 50, 38, "the Lighthouse"],
   ["hermit", "foggaten", 58, 62, "the Hermit"],
 ] as const;
 

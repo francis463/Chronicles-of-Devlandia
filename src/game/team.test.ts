@@ -285,7 +285,7 @@ describe("Foggaten Island in team messages", () => {
   });
 
   it("a ping at the lighthouse carries the lighthouse's own zone and spot", () => {
-    expect(parseMessage({ type: "ping", id: "a", name: "Kai", zone: "peaks", x: 30, y: 40, place: "lighthouse" }, NOW)).toMatchObject({ zone: "foggaten", x: 50, y: 28, place: "lighthouse" });
+    expect(parseMessage({ type: "ping", id: "a", name: "Kai", zone: "peaks", x: 30, y: 40, place: "lighthouse" }, NOW)).toMatchObject({ zone: "foggaten", x: 50, y: 38, place: "lighthouse" });
   });
 
   it("an unknown zone is still null (and a ping with one is refused), never an error", () => {

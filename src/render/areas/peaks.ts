@@ -1,6 +1,7 @@
 import { chestPoints } from "../learnPoints";
 import { spriteBox } from "../sprites";
-import type { ArtPoint, Rect } from "../world";
+import { DOCK } from "../../game/constants";
+import { toArt, type ArtPoint, type Rect } from "../world";
 import { inRect, type Area, type TerrainKind } from "./area";
 
 /** Exactly the river's cold-damage zone (RIVER_ZONE x 24–76 %, y 28–39 %). */
@@ -37,7 +38,16 @@ export const LANDMARK_POINTS = {
   start: { x: 90, y: 130 },
 } as const;
 
+/** The east shore by the dock: sand up to the walkable edge, then sea. */
+const SHORE = { y: 118, h: 30, sandX: 290, seaX: 303 };
+/** Where the Peaks' dock stands, and its landing the pier reaches out over the water from. */
+export const DOCK_POINT: ArtPoint = toArt(DOCK);
+
 function terrainAt(x: number, y: number): TerrainKind {
+  if (y >= SHORE.y && y < SHORE.y + SHORE.h) {
+    if (x >= SHORE.seaX) return "sea";
+    if (x >= SHORE.sandX) return "sand";
+  }
   if (inRect(x, y, ICE_RECT)) return "ice";
   if (y < 16) return "mountains";
   if (y < 83) return "snow";
@@ -72,5 +82,6 @@ export const PEAKS: Area = {
     SOUTH_BRANCH,
     SOUTH_PATH,
     ...chestPoints("peaks").map(({ at }) => spriteBox("code-chest", at)),
+    spriteBox("dock", DOCK_POINT),
   ],
 };

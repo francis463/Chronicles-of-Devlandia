@@ -125,7 +125,7 @@ describe("/ping", () => {
     expect(r.notes).toEqual(["Ping sent: the Terminal Gate."]);
     expect(r.effect).toEqual({ kind: "ping", zone: "peaks", x: 50, y: 50, place: "gate" });
     expect(effect("/ping CS")).toMatchObject({ place: "cs", zone: "village" });
-    expect(effect("/ping lighthouse")).toMatchObject({ place: "lighthouse", zone: "foggaten", x: 50, y: 28 });
+    expect(effect("/ping lighthouse")).toMatchObject({ place: "lighthouse", zone: "foggaten", x: 50, y: 38 });
     expect(effect("/ping Dock")).toMatchObject({ place: "dock", zone: "peaks" });
   });
   it("refuses unknown places, whole-argument", () => {

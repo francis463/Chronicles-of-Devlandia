@@ -171,6 +171,14 @@ describe("scene: zones", () => {
     expect([busy.flat, busy.glints, busy.light]).toEqual([[], [], []]);
   });
 
+  it("the Peaks draw the dock on the east shore; the island draws its own five landmarks", () => {
+    expect(count(scene(), "dock")).toBe(1);
+    const island = scene({ zone: "foggaten", player: { x: 30, y: 70 }, drone: { x: 34, y: 68 } });
+    expect((["dock", "lighthouse", "ruins", "campfire"] as const).map((id) => count(island, id))).toEqual([1, 1, 1, 1]);
+    expect(island.upright.filter((d) => d.sprite === "explorer-down" && d.variant === "#6b7f6a")).toHaveLength(1);
+    for (const id of ["tower", "gate", "chest-closed"]) expect(sprites(island, "upright")).not.toContain(id);
+  });
+
   it("the Peaks draw none of the village's props", () => {
     for (const id of ["hut", "well", "fence", "signpost"]) expect(sprites(scene(), "upright")).not.toContain(id);
   });

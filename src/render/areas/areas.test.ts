@@ -4,6 +4,10 @@ import { spriteBox } from "../sprites";
 import { intersects, toArt, type Rect } from "../world";
 import { AREAS } from ".";
 import { FOREST_POINTS } from "./forest";
+import { FOGGATEN, FOGGATEN_POINTS } from "./foggaten";
+import { DOCK_POINT, PEAKS } from "./peaks";
+import { REACHABLE_RECT } from "../world";
+import { DOCK, HERMIT, ISLAND_DOCK, ISLAND_FIRE, LIGHTHOUSE, RUINS } from "../../game/constants";
 import { VILLAGE_POINTS } from "./village";
 
 describe("areas", () => {
@@ -45,7 +49,7 @@ describe("areas", () => {
   });
 
   it("every area lists its exit mouths and corridors, each with the same count", () => {
-    for (const area of Object.values(AREAS)) {
+    for (const area of Object.values(AREAS).filter((a) => a.id !== "foggaten")) {
       expect(area.mouths.length, area.id).toBeGreaterThan(0);
       expect(area.corridors, area.id).toHaveLength(area.mouths.length);
     }
@@ -78,5 +82,82 @@ describe("areas", () => {
       }
       expect(seen.size, `${id}: ${area.paths.length} path pieces`).toBe(area.paths.length);
     }
+  });
+});
+
+describe("Foggaten Island's area", () => {
+  it("is an area with no exits, wall, gate or ice", () => {
+    expect(AREAS.foggaten).toBe(FOGGATEN);
+    expect(FOGGATEN).toMatchObject({ id: "foggaten", wall: false, mouths: [], corridors: [], gateBox: null, ice: null });
+  });
+
+  it("its places' art points are the game places' art points", () => {
+    expect(FOGGATEN_POINTS).toEqual({
+      dock: toArt(ISLAND_DOCK),
+      lighthouse: toArt(LIGHTHOUSE),
+      hermit: toArt(HERMIT),
+      fire: toArt(ISLAND_FIRE),
+      ruins: toArt(RUINS),
+    });
+  });
+
+  it("every cell you can stand on is land, and the sea begins just beyond it (Review Focus 3)", () => {
+    const r = REACHABLE_RECT;
+    for (let y = r.y; y < r.y + r.h; y++) for (let x = r.x; x < r.x + r.w; x++) expect(FOGGATEN.terrainAt(x, y), `${x},${y}`).not.toBe("sea");
+    for (const [x, y] of [[r.x - 1, 90], [r.x + r.w, 90], [100, r.y - 1], [100, r.y + r.h], [-50, -50], [400, 300]]) expect(FOGGATEN.terrainAt(x, y), `${x},${y}`).toBe("sea");
+  });
+
+  it("has sand along the shore, meadow and forest inland, and its path is one connected road", () => {
+    const r = REACHABLE_RECT;
+    expect(FOGGATEN.terrainAt(r.x + 2, 90)).toBe("sand");
+    const kinds = new Set<string>();
+    for (let y = r.y; y < r.y + r.h; y += 3) for (let x = r.x; x < r.x + r.w; x += 3) kinds.add(FOGGATEN.terrainAt(x, y));
+    expect([...kinds].sort()).toEqual(["forest", "meadow", "sand"]);
+    expect(FOGGATEN.paths.length).toBeGreaterThan(0);
+  });
+
+  it("its props are the hermit, campfire, ruins, lighthouse and dock, clear of each other and of the path", () => {
+    expect(FOGGATEN.props.map((p) => p.sprite).sort()).toEqual(["campfire", "dock", "explorer-down", "lighthouse", "ruins"]);
+    const boxes = FOGGATEN.props.map((p) => spriteBox(p.sprite, p.at));
+    for (const [i, a] of boxes.entries()) {
+      const prop = FOGGATEN.props[i];
+      if (prop.sprite !== "dock") {
+        const r = REACHABLE_RECT;
+        expect(a.x >= r.x && a.y >= r.y && a.x + a.w <= r.x + r.w && a.y + a.h <= r.y + r.h, `${prop.sprite} stands on land`).toBe(true);
+      }
+      for (const b of boxes.slice(i + 1)) expect(intersects(a, b), `props ${i} overlap`).toBe(false);
+      if (prop.sprite !== "dock") for (const path of FOGGATEN.paths) expect(intersects(a, path), `${prop.sprite} on the path`).toBe(false);
+    }
+    expect(FOGGATEN.props.find((p) => p.sprite === "explorer-down")?.variant).toBeDefined();
+    for (const prop of FOGGATEN.props) expect(FOGGATEN.protected).toContainEqual(spriteBox(prop.sprite, prop.at));
+  });
+
+  it("the island's dock reaches out over the water", () => {
+    const dock = spriteBox("dock", FOGGATEN_POINTS.dock);
+    expect(dock.x).toBeLessThan(REACHABLE_RECT.x);
+    expect(FOGGATEN.terrainAt(dock.x, dock.y + 6)).toBe("sea");
+  });
+});
+
+describe("the Peaks' east shore", () => {
+  it("is sea beyond the walkable edge, only in a strip by the dock", () => {
+    const r = REACHABLE_RECT;
+    const east = r.x + r.w;
+    for (const y of [118, 133, 147]) expect(PEAKS.terrainAt(east + 1, y), `y ${y}`).toBe("sea");
+    expect(PEAKS.terrainAt(east - 4, 133)).toBe("sand");
+    for (const [x, y] of [[east + 1, 60], [east + 1, 117], [east + 1, 148], [east - 1, 100], [100, 133], [10, 10]]) expect(PEAKS.terrainAt(x, y), `${x},${y}`).not.toBe("sea");
+  });
+
+  it("every cell of the walkable area is as before: nothing in it became sea", () => {
+    const r = REACHABLE_RECT;
+    for (let y = r.y; y < r.y + r.h; y++) for (let x = r.x; x < r.x + r.w; x++) expect(PEAKS.terrainAt(x, y), `${x},${y}`).not.toBe("sea");
+  });
+
+  it("has a dock whose pier reaches the water and stays clear of the path, tower, gate and chests", () => {
+    expect(DOCK_POINT).toEqual(toArt(DOCK));
+    const box = spriteBox("dock", DOCK_POINT);
+    expect(box.x + box.w).toBeGreaterThan(REACHABLE_RECT.x + REACHABLE_RECT.w);
+    expect(PEAKS.protected).toContainEqual(box);
+    for (const other of PEAKS.protected.filter((p) => p !== box && !(p.x === box.x && p.y === box.y))) expect(intersects(box, other), JSON.stringify(other)).toBe(false);
   });
 });
