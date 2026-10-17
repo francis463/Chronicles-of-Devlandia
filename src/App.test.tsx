@@ -376,6 +376,7 @@ describe("App: character classes", () => {
       await start(user);
       const text = [screen.getByText(/^HP \d+/)].map((n) => n.textContent);
       view.unmount();
+      localStorage.clear(); // the next game starts fresh, not resumed
       return text;
     };
     expect(await stats("Mage")).toEqual(await stats("Tank"));
@@ -519,7 +520,7 @@ describe("App: a refresh resumes the solo game", () => {
     await user.click(screen.getByRole("button", { name: "[ Start ]" }));
   };
 
-  it("there is no Continue before a game; after a refresh it picks the game up with its progress and class", async () => {
+  it("there is no Continue before a game; after a refresh the game resumes by itself with its progress and class", async () => {
     const user = userEvent.setup();
     const first = render(<GuestApp />);
     expect(screen.queryByRole("button", { name: "Continue" })).toBeNull();
@@ -530,7 +531,6 @@ describe("App: a refresh resumes the solo game", () => {
     await user.keyboard("block{Enter}");
     first.unmount(); // a refresh: the page is gone, the browser's storage is not
     render(<GuestApp />);
-    await user.click(screen.getByRole("button", { name: "Continue" }));
     expect(screen.getByText("REGION: C++ PEAKS")).toBeInTheDocument();
     expect(screen.getByText("Class: Mage")).toBeInTheDocument();
     expect(screen.getAllByText(/Gate unlocked/).length).toBeGreaterThan(0); // the gate is still open
@@ -544,6 +544,9 @@ describe("App: a refresh resumes the solo game", () => {
     await user.keyboard("block{Enter}");
     first.unmount();
     render(<GuestApp />);
+    await user.click(screen.getByRole("button", { name: "[=] Menu" }));
+    await user.click(screen.getByRole("button", { name: "[ LEAVE ]" }));
+    expect(screen.getByRole("button", { name: "Continue" })).toBeInTheDocument(); // [=] Menu leaves the game; it does not resume again
     await begin(user);
     expect(screen.getByRole("button", { name: "[G] Gate" })).toBeInTheDocument();
   });

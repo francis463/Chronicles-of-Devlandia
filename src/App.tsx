@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { AuthClient } from "./auth/authClient";
 import { DEFAULT_CLASS, type ClassId } from "./game/classes";
 import { loadGame, saveGame, type SavedGame } from "./game/resume";
@@ -110,6 +110,13 @@ export default function App({
     setGameId((id) => id + 1);
     setScreen("overworld");
   };
+  // A refresh drops you straight back into the game you were playing (once per page load; [=] Menu still leaves it).
+  const autoResumed = useRef(false);
+  useEffect(() => {
+    if (autoResumed.current || !playing) return;
+    autoResumed.current = true;
+    if (resumable) continueGame();
+  }); // eslint-disable-line react-hooks/exhaustive-deps
   const startSoloQuest = () => {
     setResumeGame(null);
     setGameId((id) => id + 1);
