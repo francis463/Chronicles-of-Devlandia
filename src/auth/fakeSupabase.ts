@@ -17,6 +17,8 @@ export function createFakeSupabase() {
     invokeThrows: null as Error | null,
     tableReplies: {} as Record<string, Reply>,
     insertReplies: {} as Record<string, Reply>,
+    deleteReplies: {} as Record<string, Reply>,
+    rpcReplies: {} as Record<string, Reply>,
     authError: null as unknown,
     emit: (event: string, session: SessionLike | null = null) => listeners.forEach((cb) => cb(event, session)),
   };
@@ -42,7 +44,11 @@ export function createFakeSupabase() {
         },
       }),
       insert: async (row: unknown) => (log(`from(${table}).insert`, row), fake.insertReplies[table] ?? { data: null, error: null }),
+      delete: () => ({
+        eq: async (col: string, val: string) => (log(`from(${table}).delete.eq`, col, val), fake.deleteReplies[table] ?? { data: null, error: null }),
+      }),
     }),
+    rpc: async (fn: string, args?: unknown) => (log("rpc", fn, ...(args === undefined ? [] : [args])), fake.rpcReplies[fn] ?? { data: null, error: null }),
     functions: {
       invoke: async (name: string, opts: { body: unknown }) => {
         log("functions.invoke", name, opts.body);

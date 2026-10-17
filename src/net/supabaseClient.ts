@@ -19,12 +19,14 @@ export type QueryResult = { data: unknown; error: ErrorLike };
 export type TableLike = {
   select(cols: string): { eq(col: string, val: string): PromiseLike<QueryResult> & { maybeSingle(): Promise<QueryResult> } };
   insert(row: object): PromiseLike<QueryResult>;
+  delete(): { eq(col: string, val: string): PromiseLike<QueryResult> };
 };
 
 /** The whole Supabase client as the app sees it: Realtime for team play, Auth, tables and functions. */
 export type SupabaseLike = RealtimeClientLike & {
   auth: AuthApiLike;
   from(table: string): TableLike;
+  rpc(fn: string, args?: object): PromiseLike<QueryResult>;
   functions: { invoke(name: string, opts: { body: unknown }): Promise<{ data: unknown; error: unknown }> };
 };
 
