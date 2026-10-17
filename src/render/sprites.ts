@@ -1,3 +1,4 @@
+import { CLASSES, type ClassId } from "../game/classes";
 import type { Palette, PixelGrid } from "./pixels";
 import { shade } from "./pixels";
 import type { ArtPoint, Rect } from "./world";
@@ -1103,8 +1104,79 @@ export const TEXTURES: Record<TextureId, { grid: PixelGrid; palette: Palette }> 
   },
 };
 
-/** A player's explorer colours: the hood in their colour with a darker shade. */
-export const explorerPalette = (hood: string): Palette => ({ ...SPRITES["explorer-down"].palette, h: hood, H: shade(hood, -0.3) });
+/** A player's explorer colours: the hood in their colour with a darker shade; a class recolours the cloak. */
+export const explorerPalette = (hood: string, cls?: ClassId): Palette => ({
+  ...SPRITES["explorer-down"].palette,
+  ...(cls ? { c: CLASSES[cls].outfit, C: CLASSES[cls].trim } : {}),
+  h: hood,
+  H: shade(hood, -0.3),
+});
+
+export type ItemFacing = "down" | "up" | "right";
+/** A 16 × 16 item layer from its non-empty rows only (row number → 16 characters). */
+const layer = (rows: Record<number, string>): PixelGrid => Array.from({ length: 16 }, (_, y) => rows[y] ?? ".".repeat(16));
+const ITEM_OUTLINE = "#0b1020";
+
+/**
+ * What each class carries, drawn over the explorer: "i" is the item's main colour, "j" its accent, "o" the outline.
+ * An item stays on the cloak and the empty sides (at most 6 hood pixels, never an eye) so the team-coloured hood still
+ * tells players apart. The scene mirrors "right" for left.
+ */
+const WARRIOR_BACK = layer({ 0: "......jjjj......", 1: ".......jj.......", 9: "..iii......iii..", 10: "..jjj......jjj.." });
+const ARCHER_SIDE = layer({
+  3: ".i..............",
+  4: "i...............",
+  5: "ij............jj",
+  6: "ij............jj",
+  7: "ij............ji",
+  8: "i.............ii",
+  9: ".i...........iii",
+});
+const MAGE_HAT = { 0: ".......ii.......", 1: "......ijji......" };
+const HEALER_STAFF_BACK = layer({
+  1: ".............jjj",
+  2: ".............jjj",
+  ...Object.fromEntries(Array.from({ length: 12 }, (_, k) => [k + 3, "...............i"])),
+});
+
+export const CLASS_ITEMS: Record<ClassId, { palette: Palette; down: PixelGrid; up: PixelGrid; right: PixelGrid }> = {
+  warrior: {
+    palette: { o: ITEM_OUTLINE, i: "#cbd5e1", j: "#dc2626" },
+    down: WARRIOR_BACK,
+    up: WARRIOR_BACK,
+    right: layer({ 0: "......jjjj......", 1: ".......jj.......", 10: "....iiii........", 11: "....jjjj........" }),
+  },
+  archer: {
+    palette: { o: ITEM_OUTLINE, i: "#92400e", j: "#e5e7eb" },
+    down: ARCHER_SIDE,
+    up: ARCHER_SIDE,
+    right: layer({ 4: ".i..............", 5: "ij..............", 6: "ij..............", 7: "ij..............", 8: "ij..............", 9: ".i..............", 10: "..i............." }),
+  },
+  mage: {
+    palette: { o: ITEM_OUTLINE, i: "#1e40af", j: "#fde047" },
+    down: layer({ ...MAGE_HAT, 13: "...jjjjjjjjjj..." }),
+    up: layer({ ...MAGE_HAT, 13: "...jjjjjjjjjj..." }),
+    right: layer({ ...MAGE_HAT, 13: "....jjjjjjjj...." }),
+  },
+  assassin: {
+    palette: { o: ITEM_OUTLINE, i: "#111827", j: "#9ca3af" },
+    down: layer({ 7: ".....iiiiii.....", 8: "......iiii......", 12: "...ji......ij...", 13: "...ji......ij..." }),
+    up: layer({ 12: "...ji......ij...", 13: "...ji......ij..." }),
+    right: layer({ 7: "........iiii....", 8: "........iii.....", 12: "....ji..........", 13: "....ji.........." }),
+  },
+  tank: {
+    palette: { o: ITEM_OUTLINE, i: "#9ca3af", j: "#facc15" },
+    down: layer({ 9: ".oiii...........", 10: "oiiji...........", 11: "oijjji..........", 12: "oiijii..........", 13: ".oiii..........." }),
+    up: layer({ 11: "....oiiiiiio....", 12: "....oijjjjio....", 13: "....oiiiiiio...." }),
+    right: layer({ 11: "....oiiio.......", 12: "....ojjjo.......", 13: "....oiiio......." }),
+  },
+  healer: {
+    palette: { o: ITEM_OUTLINE, i: "#a16207", j: "#fef08a" },
+    down: layer({ 1: ".............jjj", 2: ".............jjj", ...Object.fromEntries(Array.from({ length: 12 }, (_, k) => [k + 3, "...............i"])), 11: ".......jj......i", 12: "......jjjj.....i" }),
+    up: HEALER_STAFF_BACK,
+    right: layer({ 1: "............jjj.", 2: "............jjj.", ...Object.fromEntries(Array.from({ length: 12 }, (_, k) => [k + 3, ".............i.."])) }),
+  },
+};
 
 /** The art pixels a sprite covers when placed on an art point (see SpriteDef.anchor). */
 export function spriteBox(id: SpriteId, at: ArtPoint): Rect {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { CLASSES, CLASS_IDS } from "../game/classes";
 import { shade } from "./pixels";
-import { LIGHTS, OUTLINE, SPRITES, TEXTURES, explorerPalette, spriteBox, type SpriteId } from "./sprites";
+import { CLASS_ITEMS, LIGHTS, OUTLINE, SPRITES, TEXTURES, explorerPalette, spriteBox, type ItemFacing, type SpriteId } from "./sprites";
 
 const EXPLORERS: SpriteId[] = ["explorer-down", "explorer-up", "explorer-right"];
 
@@ -183,5 +184,63 @@ describe("learning core sprites", () => {
       }
     }
     expect(sealed.slice(10, 21).map((r) => r.slice(13, 19))).not.toEqual(open.slice(10, 21).map((r) => r.slice(13, 19)));
+  });
+});
+
+describe("class outfits and items", () => {
+  const FACINGS: [ItemFacing, SpriteId][] = [
+    ["down", "explorer-down"],
+    ["up", "explorer-up"],
+    ["right", "explorer-right"],
+  ];
+
+  it("explorerPalette without a class is the old palette; with one it recolours only the cloak", () => {
+    const plain = explorerPalette("#22c55e");
+    expect(plain).toEqual({ ...SPRITES["explorer-down"].palette, h: "#22c55e", H: shade("#22c55e", -0.3) });
+    const mage = explorerPalette("#22c55e", "mage");
+    expect(mage).toEqual({ ...plain, c: CLASSES.mage.outfit, C: CLASSES.mage.trim });
+  });
+
+  it("every item grid is 16 x 16, uses only its palette, and is not tiny", () => {
+    for (const id of CLASS_IDS) {
+      const item = CLASS_ITEMS[id];
+      for (const [facing] of FACINGS) {
+        const grid = item[facing];
+        expect(grid, `${id} ${facing} height`).toHaveLength(16);
+        let pixels = 0;
+        for (const row of grid) {
+          expect(row).toHaveLength(16);
+          for (const ch of row) {
+            if (ch === ".") continue;
+            pixels++;
+            expect(item.palette, `${id} ${facing} '${ch}'`).toHaveProperty(ch);
+          }
+        }
+        expect(pixels, `${id} ${facing}`).toBeGreaterThanOrEqual(8);
+      }
+    }
+  });
+
+  it("the six items differ in every facing", () => {
+    for (const [facing] of FACINGS) {
+      expect(new Set(CLASS_IDS.map((id) => CLASS_ITEMS[id][facing].join("\n"))).size).toBe(6);
+    }
+  });
+
+  it("an item never covers an eye and covers at most 6 hood pixels", () => {
+    for (const id of CLASS_IDS) {
+      for (const [facing, sprite] of FACINGS) {
+        const base = SPRITES[sprite].frames[0];
+        let hood = 0;
+        CLASS_ITEMS[id][facing].forEach((row, y) =>
+          [...row].forEach((ch, x) => {
+            if (ch === ".") return;
+            expect(base[y][x], `${id} ${facing} (${x},${y}) covers an eye`).not.toBe("e");
+            if (base[y][x] === "h" || base[y][x] === "H") hood++;
+          }),
+        );
+        expect(hood, `${id} ${facing} hood pixels`).toBeLessThanOrEqual(6);
+      }
+    }
   });
 });
