@@ -1,12 +1,13 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import App from "../App";
+
 import { NO_FLAGS, rankPlayers, type RankedPlayer } from "../game/team";
 import { useChat, type ChatFeed } from "../hooks/useChat";
 import type { ChatSender, TeamSession } from "../hooks/useTeamSession";
 import { createMemoryHub } from "../net/memoryTransport";
 import { ROOM_VIEW_GUARD_MS, TeamLobby } from "./TeamLobby";
+import { GuestApp } from "../testing/GuestApp";
 
 afterEach(() => vi.useRealTimers());
 
@@ -99,8 +100,8 @@ describe("TeamLobby with two players (App + memory hub)", () => {
     const make = vi.fn(() => hub.transport());
     let t = Date.now();
     const clock = () => (t += 10);
-    const ana = render(<App makeTransport={make} teamClock={clock} />);
-    const kai = render(<App makeTransport={make} teamClock={clock} />);
+    const ana = render(<GuestApp makeTransport={make} teamClock={clock} />);
+    const kai = render(<GuestApp makeTransport={make} teamClock={clock} />);
     return { hub, make, ana: within(ana.container), kai: within(kai.container) };
   }
 
@@ -291,8 +292,8 @@ describe("TeamLobby chat between two apps", () => {
     const make = vi.fn(() => hub.transport());
     let t = Date.now();
     const clock = () => (t += 10);
-    const ana = render(<App makeTransport={make} teamClock={clock} />);
-    const kai = render(<App makeTransport={make} teamClock={clock} />);
+    const ana = render(<GuestApp makeTransport={make} teamClock={clock} />);
+    const kai = render(<GuestApp makeTransport={make} teamClock={clock} />);
     return { ana: within(ana.container), kai: within(kai.container) };
   }
   async function bothInLobby() {
@@ -322,5 +323,16 @@ describe("TeamLobby chat between two apps", () => {
     expect(kai.getByRole("list", { name: "Team chat" })).toHaveTextContent("More commands once the expedition starts.");
     await user.type(kai.getByRole("textbox", { name: "Message" }), "/where{Enter}");
     expect(kai.getByRole("list", { name: "Team chat" })).toHaveTextContent("Available once the expedition starts.");
+  });
+});
+
+describe("TeamLobby: default nickname", () => {
+  it("prefills the nickname box", () => {
+    render(<TeamLobby session={stub()} onBack={() => {}} defaultNickname="Kai" />);
+    expect(screen.getByLabelText("Nickname")).toHaveValue("Kai");
+  });
+  it("starts empty with no default", () => {
+    render(<TeamLobby session={stub()} onBack={() => {}} />);
+    expect(screen.getByLabelText("Nickname")).toHaveValue("");
   });
 });

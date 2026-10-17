@@ -8,6 +8,7 @@ import type { ChestId } from "../../learn/types";
 import { createMemoryHub } from "../../net/memoryTransport";
 import type { TeamTransport } from "../../net/transport";
 import { Overworld } from "./Overworld";
+import { GuestApp } from "../../testing/GuestApp";
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
@@ -26,7 +27,7 @@ function team() {
   };
   let clock = Date.now();
   const teamClock = () => (clock += 10);
-  const app = () => within(render(<App makeTransport={make} teamClock={teamClock} />).container);
+  const app = () => within(render(<GuestApp makeTransport={make} teamClock={teamClock} />).container);
   return { hub, transports, app };
 }
 

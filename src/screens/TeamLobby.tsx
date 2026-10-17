@@ -32,8 +32,19 @@ export const ROOM_VIEW_GUARD_MS = 500;
 const fieldClass =
   "w-full rounded border-2 border-[var(--panel-border)] bg-[var(--editor-bg)] px-3 py-2 font-mono text-sm text-[var(--text)] outline-none focus:border-[var(--primary-border)]";
 
-export function TeamLobby({ session, onBack, chat }: { session: TeamSession; onBack: () => void; chat?: ChatFeed }) {
-  const [nickname, setNickname] = useState("");
+export function TeamLobby({
+  session,
+  onBack,
+  chat,
+  defaultNickname = "",
+}: {
+  session: TeamSession;
+  onBack: () => void;
+  chat?: ChatFeed;
+  /** A signed-in player's account name. */
+  defaultNickname?: string;
+}) {
+  const [nickname, setNickname] = useState(defaultNickname);
   const [code, setCode] = useState("");
   const [mode, setMode] = useState<TeamMode>("online");
   const [nicknameError, setNicknameError] = useState<string | null>(null);

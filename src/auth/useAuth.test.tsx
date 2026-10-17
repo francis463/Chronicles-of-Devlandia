@@ -61,6 +61,16 @@ describe("useAuth", () => {
     expect(status(r)).toBe("signedOut");
   });
 
+  it("can start as a guest, without waiting for the server", async () => {
+    const client = createMemoryAuth();
+    const { result } = renderHook(() => useAuth(client, "guest"));
+    expect(result.current.status).toBe("guest");
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(result.current.status).toBe("guest");
+  });
+
   it("a guest stays a guest when the first account check finishes late", async () => {
     const r = setup();
     act(() => r.result.current.playAsGuest());

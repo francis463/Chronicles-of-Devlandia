@@ -24,8 +24,9 @@ export type Auth = {
 type State = { status: AuthStatus; account: Account | null; offline: boolean };
 
 /** Who is playing: loading, signed out, choosing a name, signed in, a guest, or setting a new password. */
-export function useAuth(client: AuthClient): Auth {
-  const [state, setState] = useState<State>({ status: "loading", account: null, offline: false });
+/** `initial: "guest"` skips the loading step (tests, and anyone who already chose guest). */
+export function useAuth(client: AuthClient, initial?: "guest"): Auth {
+  const [state, setState] = useState<State>({ status: initial ?? "loading", account: null, offline: false });
 
   // `force` is for the player's own actions; events and the first check never pull a guest or a
   // password reset out of what they are doing.
