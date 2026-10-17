@@ -18,6 +18,9 @@ function terrainAt(): TerrainKind {
 const PATHS: Rect[] = [
   { x: 97, y: 127, w: 1226, h: 6 },
   { x: 96, y: 116, w: 80, h: 44 },
+  // The north road, from the main road up through the gap between Ada and the PHP chest to the town square.
+  { x: 120, y: 44, w: 6, h: 84 },
+  { x: 120, y: 44, w: 86, h: 40 },
 ];
 /** The village's decorations: a lantern by the well, two garden plots and a market stall. */
 const LANTERN_POINT = { x: 164, y: 157 };
@@ -62,6 +65,20 @@ const PROPS: Prop[] = [
   { sprite: "garden", at: { x: 60, y: 143 } },
   { sprite: "garden", at: { x: 60, y: 132 } },
   { sprite: "stall", at: { x: 119, y: 161 } },
+  // The north half: a windmill and a pond in the west, the town square with its fountain and benches, an orchard,
+  // a hut north of the pond, two more in the north-east and a fenced crop field beside them.
+  { sprite: "windmill", at: { x: 44, y: 76 } },
+  { sprite: "pond", at: { x: 92, y: 66 } },
+  { sprite: "bench", at: { x: 190, y: 52 } },
+  { sprite: "bench", at: { x: 156, y: 52 } },
+  { sprite: "fountain", at: { x: 138, y: 66 } },
+  ...[140, 156, 172, 188, 204].map((x) => ({ sprite: "fruit-tree" as const, at: { x, y: 42 } })),
+  { sprite: "hut", at: { x: 92, y: 41 } },
+  { sprite: "hut", at: { x: 228, y: 56 } },
+  { sprite: "hut", at: { x: 262, y: 56 } },
+  { sprite: "garden", at: { x: 290, y: 34 } },
+  { sprite: "garden", at: { x: 290, y: 44 } },
+  { sprite: "fence", at: { x: 290, y: 53 } },
   { sprite: "explorer-down", at: VILLAGE_POINTS.villager, variant: "#b45309" },
 ];
 

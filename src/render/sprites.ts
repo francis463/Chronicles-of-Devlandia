@@ -36,6 +36,11 @@ export type SpriteId =
   | "old-oak"
   | "dock"
   | "lantern"
+  | "pond"
+  | "bench"
+  | "fountain"
+  | "windmill"
+  | "fruit-tree"
   | "chicken"
   | "garden"
   | "stall"
@@ -79,6 +84,79 @@ function outlined(w: number, h: number, kind: (x: number, y: number) => string |
       return [at(x - 1, y), at(x + 1, y), at(x, y - 1), at(x, y + 1)].every(Boolean) ? k : "o";
     }).join(""),
   );
+}
+
+/** The village pond: a rippling oval with reeds at two edges and a plank footbridge across it. */
+function pondGrid(): PixelGrid {
+  const inside = (x: number, y: number) => ((x - 23.5) / 23.5) ** 2 + ((y - 11.5) / 11.5) ** 2 <= 1;
+  return outlined(48, 24, (x, y) => {
+    if (!inside(x, y)) return null;
+    if (y >= 10 && y <= 13) return x % 3 === 0 ? "P" : "p";
+    if ((x === 6 || x === 7) && y >= 5 && y <= 9) return "e";
+    if ((x === 40 || x === 41) && y >= 14 && y <= 19) return "e";
+    if ((x + y * 3) % 11 === 0) return "l";
+    return (x * 7 + y) % 9 === 0 ? "B" : "b";
+  });
+}
+
+/** A park bench: a backrest over a plank seat on two legs. */
+function benchGrid(): PixelGrid {
+  return outlined(12, 8, (x, y) => {
+    if (y <= 1) return "P";
+    if (y <= 3) return "p";
+    return [1, 2, 9, 10].includes(x) ? "k" : null;
+  });
+}
+
+/** The fountain: a stone basin of water, a pillar and bowl, and spray that dances between two frames. */
+function fountainGrid(frame: 0 | 1): PixelGrid {
+  const spray = frame === 0 ? ["5,1", "10,1", "4,3", "11,3", "7,0"] : ["6,1", "9,1", "3,2", "12,2", "8,0"];
+  const inBasin = (x: number, y: number, rx: number, ry: number) => ((x - 7.5) / rx) ** 2 + ((y - 12) / ry) ** 2 <= 1;
+  return outlined(16, 16, (x, y) => {
+    if (spray.includes(`${x},${y}`)) return "l";
+    if (y >= 3 && y <= 4 && x >= 5 && x <= 10) return "s";
+    if (y >= 5 && y <= 10 && (x === 7 || x === 8)) return "S";
+    if (y >= 9 && inBasin(x, y, 7.5, 3.5)) return inBasin(x, y, 5.5, 1.8) ? "b" : "s";
+    return null;
+  });
+}
+
+/** The windmill: a tapering brick tower under a red cap, with four sails that turn between a + and an x. */
+function windmillGrid(frame: 0 | 1): PixelGrid {
+  const hub = { x: 20, y: 14 };
+  const sail = (x: number, y: number) => {
+    const dx = x - hub.x;
+    const dy = y - hub.y;
+    if (Math.hypot(dx, dy) > 13) return false;
+    return frame === 0 ? Math.abs(dx) <= 1 || Math.abs(dy) <= 1 : Math.abs(dx - dy) <= 1 || Math.abs(dx + dy) <= 1;
+  };
+  return outlined(40, 48, (x, y) => {
+    if (sail(x, y)) return dxy(x, y, hub) ? "C" : "c";
+    if (y >= 10 && y <= 16 && Math.abs(x - hub.x) <= y - 9) return "R";
+    if (y >= 17) {
+      const half = 6 + Math.floor((y - 17) / 6);
+      if (Math.abs(x - 19.5) > half) return null;
+      if (y >= 42 && x >= 19 && x <= 21) return "d";
+      if (y >= 27 && y <= 29 && x >= 19 && x <= 20) return "g";
+      return y % 4 === 0 ? "W" : "w";
+    }
+    return null;
+  });
+}
+const dxy = (x: number, y: number, hub: { x: number; y: number }) => x === hub.x && y === hub.y;
+
+/** A fruit tree: a round canopy with red apples over a short trunk. */
+function fruitTreeGrid(): PixelGrid {
+  const apples = ["4,5", "10,4", "7,8", "12,9", "3,11", "9,12"];
+  return outlined(16, 24, (x, y) => {
+    if (y <= 15 && ((x - 7.5) / 7.5) ** 2 + ((y - 8) / 8) ** 2 <= 1) {
+      if (apples.includes(`${x},${y}`)) return "a";
+      return x + y < 9 ? "L" : x + y > 19 ? "G" : "g";
+    }
+    if (y >= 16 && y <= 22 && x >= 6 && x <= 9) return "t";
+    if (y === 23 && x >= 5 && x <= 10) return "T";
+    return null;
+  });
 }
 
 /** A garden plot: rows of earth with green sprouts. */
@@ -1058,6 +1136,35 @@ export const SPRITES: Record<SpriteId, SpriteDef> = {
     anchor: "bottom",
     palette: { o: "#0b1020", p: "#a16207", P: "#854d0e", l: "#ca8a04", t: "#713f12" },
     frames: [dockGrid()],
+  },
+  pond: {
+    w: 48,
+    h: 24,
+    anchor: "bottom",
+    palette: { o: "#0b1020", b: "#38bdf8", B: "#0ea5e9", l: "#bae6fd", p: "#9a5f2b", P: "#7c4a1e", e: "#4ade80" },
+    frames: [pondGrid()],
+  },
+  bench: { w: 12, h: 8, anchor: "bottom", palette: { o: "#0b1020", p: "#b07a45", P: "#8f5f33", k: "#475569" }, frames: [benchGrid()] },
+  fountain: {
+    w: 16,
+    h: 16,
+    anchor: "bottom",
+    palette: { o: "#0b1020", s: "#cbd5e1", S: "#94a3b8", b: "#38bdf8", l: "#e0f2fe" },
+    frames: [fountainGrid(0), fountainGrid(1)],
+  },
+  windmill: {
+    w: 40,
+    h: 48,
+    anchor: "bottom",
+    palette: { o: "#0b1020", R: "#b91c1c", w: "#d6b98c", W: "#b08d5e", d: "#5b3a1e", g: "#fde68a", c: "#e2e8f0", C: "#94a3b8" },
+    frames: [windmillGrid(0), windmillGrid(1)],
+  },
+  "fruit-tree": {
+    w: 16,
+    h: 24,
+    anchor: "bottom",
+    palette: { o: "#0b1020", g: "#1f7a3a", G: "#14532d", L: "#2f9e4f", a: "#ef4444", t: "#6b4423", T: "#4a2f18" },
+    frames: [fruitTreeGrid()],
   },
   lantern: {
     w: 6,

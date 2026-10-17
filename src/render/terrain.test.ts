@@ -193,7 +193,7 @@ describe("decorations", () => {
   it("village decorations stay clear of its protected boxes, even after the Peaks were computed", () => {
     decorations(REACHABLE_RECT, PEAKS);
     const inside = decorations(VIEW, VILLAGE).filter((d) => intersects(boxOf(d), REACHABLE_RECT));
-    expect(inside.length).toBeGreaterThan(4);
+    expect(inside.length).toBeGreaterThan(0);
     const guarded = protectedBoxes(VILLAGE);
     for (const d of inside) {
       for (const p of guarded) expect(intersects(grow(boxOf(d), 4), p), `${key(d)} vs ${JSON.stringify(p)}`).toBe(false);

@@ -189,9 +189,9 @@ describe("Dev Village's decorations and its life", () => {
   ];
   const decor = village.props.filter((p) => ["lantern", "garden", "stall"].includes(p.sprite));
 
-  it("has a lantern by the well, two garden plots and a market stall", () => {
+  it("has a lantern by the well, a market stall and (with the north-east field) four garden plots", () => {
     expect(sprites.filter((s) => s === "lantern")).toHaveLength(1);
-    expect(sprites.filter((s) => s === "garden")).toHaveLength(2);
+    expect(sprites.filter((s) => s === "garden")).toHaveLength(4);
     expect(sprites.filter((s) => s === "stall")).toHaveLength(1);
   });
 
@@ -235,5 +235,52 @@ describe("Dev Village's decorations and its life", () => {
         expect(village.paths.some((r) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h), `${w.variant} t=${t} at ${x},${y}`).toBe(true);
       }
     }
+  });
+});
+
+describe("Dev Village's north half", () => {
+  const village = AREAS.village;
+  const boxOfProp = (p: { sprite: Parameters<typeof spriteBox>[0]; at: { x: number; y: number } }) => spriteBox(p.sprite, p.at);
+  const count = (id: string) => village.props.filter((p) => p.sprite === id).length;
+  const landmarks: Rect[] = [
+    spriteBox("archive", ARCHIVE_POINT),
+    spriteBox("code-chest", CS_CHEST_POINT),
+    spriteBox("syntax-terminal", TERMINAL_POINT),
+    ...chestPoints("village").map(({ at }) => spriteBox("code-chest", at)),
+  ];
+
+  it("has a pond, two benches, a windmill, a fountain, five fruit trees, five huts, four gardens and a fence", () => {
+    expect(["pond", "bench", "windmill", "fountain", "fruit-tree", "hut", "garden"].map(count)).toEqual([1, 2, 1, 1, 5, 5, 4]);
+    expect(count("fence")).toBeGreaterThanOrEqual(4);
+  });
+
+  it("keeps every prop inside the walkable area, off every other prop, every landmark and the east exit", () => {
+    const boxes = village.props.map(boxOfProp);
+    for (const [i, a] of boxes.entries()) {
+      const where = `${village.props[i].sprite}@${village.props[i].at.x},${village.props[i].at.y}`;
+      for (const [j, b] of boxes.entries()) if (j > i) expect(intersects(a, b), `${where} / ${village.props[j].sprite}@${village.props[j].at.x},${village.props[j].at.y}`).toBe(false);
+      for (const l of [...landmarks, ...village.mouths]) expect(intersects(a, l), where).toBe(false);
+      expect(a.x >= REACHABLE_RECT.x && a.y >= REACHABLE_RECT.y && a.x + a.w <= REACHABLE_RECT.x + REACHABLE_RECT.w && a.y + a.h <= REACHABLE_RECT.y + REACHABLE_RECT.h, where).toBe(true);
+    }
+  });
+
+  it("the new road and square join the old road, so the whole village is one connected path network", () => {
+    const paths = village.paths;
+    const touch = (a: Rect, b: Rect) => a.x <= b.x + b.w && b.x <= a.x + a.w && a.y <= b.y + b.h && b.y <= a.y + a.h;
+    const seen = new Set<number>([0]);
+    for (const queue = [0]; queue.length; ) {
+      const i = queue.pop()!;
+      paths.forEach((p, j) => void (!seen.has(j) && touch(paths[i], p) && (seen.add(j), queue.push(j))));
+    }
+    expect(seen.size).toBe(paths.length);
+    // The fountain stands on the square, and the square reaches the main road.
+    const fountain = village.props.find((p) => p.sprite === "fountain")!;
+    expect(paths.some((r) => fountain.at.x >= r.x && fountain.at.x < r.x + r.w && fountain.at.y >= r.y && fountain.at.y < r.y + r.h)).toBe(true);
+    expect(paths.some((r) => r.y <= 44 && r.y + r.h >= 128)).toBe(true);
+  });
+
+  it("is all walkable meadow with no wall, and the old snow band has no landmarks in it", () => {
+    expect(village.wall).toBe(false);
+    for (const y of [0, 20, 40, 60, 80, 100, 140]) expect(village.terrainAt(100, y), `y=${y}`).toBe("meadow");
   });
 });

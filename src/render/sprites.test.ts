@@ -321,3 +321,39 @@ describe("the village's life sprites", () => {
     }
   });
 });
+
+describe("the village's pond, bench, fountain, windmill and fruit tree", () => {
+  const NEW = ["pond", "bench", "fountain", "windmill", "fruit-tree"] as const;
+
+  it("have their declared sizes, anchors and frame counts", () => {
+    for (const [id, w, h, frames] of [["pond", 48, 24, 1], ["bench", 12, 8, 1], ["fountain", 16, 16, 2], ["windmill", 40, 48, 2], ["fruit-tree", 16, 24, 1]] as const) {
+      expect([SPRITES[id].w, SPRITES[id].h, SPRITES[id].anchor, SPRITES[id].frames.length], id).toEqual([w, h, "bottom", frames]);
+    }
+    expect(SPRITES.fountain.frames[0]).not.toEqual(SPRITES.fountain.frames[1]);
+    expect(SPRITES.windmill.frames[0]).not.toEqual(SPRITES.windmill.frames[1]);
+  });
+
+  it("every edge of every frame is the shared dark outline", () => {
+    for (const id of NEW) {
+      for (const frame of SPRITES[id].frames) {
+        const solid = (x: number, y: number) => y >= 0 && y < frame.length && x >= 0 && x < frame[y].length && frame[y][x] !== ".";
+        frame.forEach((row, y) =>
+          [...row].forEach((ch, x) => {
+            if (ch === ".") return;
+            const edge = !solid(x - 1, y) || !solid(x + 1, y) || !solid(x, y - 1) || !solid(x, y + 1);
+            if (edge) expect(SPRITES[id].palette[ch], `${id} edge at ${x},${y}`).toBe(OUTLINE);
+          }),
+        );
+      }
+    }
+  });
+
+  it("the pond has water and a bridge, the windmill's two frames differ only in the sails", () => {
+    const pond = SPRITES.pond.frames[0].join("");
+    expect(pond).toContain("b");
+    expect(pond).toContain("p");
+    const [a, b] = SPRITES.windmill.frames;
+    // The body below the sails (rows 30 and down) is identical in both frames.
+    expect(a.slice(30)).toEqual(b.slice(30));
+  });
+});

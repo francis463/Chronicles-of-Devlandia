@@ -157,6 +157,7 @@ function lighthouseLight(t: number, reduced: boolean, strength: number): Pixel[]
   return [...glow(LAMP_POINT, LAMPLIGHT, Math.max(0.5, strength)), ...beam];
 }
 
+const SHIMMER = "#e0f2fe";
 const SMOKE = "#cbd5e1";
 const SMOKE_PUFFS = 4;
 const SMOKE_CYCLE_MS = 3200;
@@ -175,13 +176,18 @@ function villageLight(t: number, reduced: boolean, strength: number): Pixel[] {
       return [0, 1, 2, 3].map((k): Pixel => ({ x: at.x + (k % 2), y: at.y + Math.floor(k / 2), color: SMOKE, alpha }));
     }).flat(),
   );
-  if (strength <= 0) return smoke;
+  // The pond glints: six spots that twinkle in turn, all lit and still when motion is reduced.
+  const pond = spriteBox("pond", AREAS.village.props.find((p) => p.sprite === "pond")!.at);
+  const glints = [[10, 8], [20, 14], [30, 7], [36, 16], [15, 17], [26, 5]].flatMap(([dx, dy], k): Pixel[] =>
+    reduced || Math.floor(t / 700 + k) % 3 === 0 ? [{ x: pond.x + dx, y: pond.y + dy, color: SHIMMER, alpha: 0.7 }] : [],
+  );
+  if (strength <= 0) return [...smoke, ...glints];
   const windows = huts.flatMap((box) =>
     SPRITES.hut.frames[0].flatMap((row, y) => [...row].flatMap((ch, x) => (ch === "g" ? diamondPixels(3).map((o) => ({ x: box.x + x + o.x, y: box.y + y + o.y, color: WINDOW_LIGHT, alpha: 0.22 * strength })) : []))),
   );
   const lantern = AREAS.village.props.find((p) => p.sprite === "lantern")!;
   const lampBox = spriteBox("lantern", lantern.at);
-  return [...smoke, ...windows, ...glow({ x: lampBox.x + 3, y: lampBox.y + 3 }, LANTERN_LIGHT, strength)];
+  return [...smoke, ...glints, ...windows, ...glow({ x: lampBox.x + 3, y: lampBox.y + 3 }, LANTERN_LIGHT, strength)];
 }
 
 /** The village's wanderers (pacing the road and square) and its pecking chicken. */
@@ -301,7 +307,10 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
       return { zone: input.zone, glints: [], flat, upright, drone, tint: forestTint(PHASE_TINT[phase]), light, snow };
     }
     if (input.zone === "village") {
-      return { zone: input.zone, glints: [], flat: [], upright, drone, tint: PHASE_TINT[phase], light: villageLight(t, reduced, strength), snow };
+      // The windmill's sails turn and the fountain's spray dances; copies, so cached drawables are never changed.
+      const frames: Partial<Record<SpriteId, number>> = reduced ? {} : { windmill: Math.floor(t / 600) % 2, fountain: Math.floor(t / 300) % 2 };
+      const animated = upright.map((d) => (frames[d.sprite] === undefined ? d : { ...d, frame: frames[d.sprite]! }));
+      return { zone: input.zone, glints: [], flat: [], upright: animated, drone, tint: PHASE_TINT[phase], light: villageLight(t, reduced, strength), snow };
     }
     if (input.zone === "foggaten") {
       const lighthouse = upright.find((d) => d.sprite === "lighthouse");
