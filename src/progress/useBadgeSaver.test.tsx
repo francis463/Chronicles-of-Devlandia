@@ -34,8 +34,8 @@ describe("useBadgeSaver", () => {
     act(() => result.current.save(sql));
     await waitFor(() => expect(result.current.failed).toBe(true));
     act(() => result.current.flush());
-    await waitFor(() => expect(store.rows).toEqual([sql]));
-    expect(result.current.failed).toBe(false);
+    await waitFor(() => expect(result.current.failed).toBe(false));
+    expect(store.rows).toEqual([sql]);
   });
 
   it("does nothing, and never throws, for a guest (no store)", () => {
