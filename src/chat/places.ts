@@ -1,4 +1,4 @@
-import { ADA, ARCHIVE, BEACH_PIER, CAMPFIRE, DESERT_PYRAMID, DOCK, FISHER, HERMIT, ISLAND_DOCK, LIGHTHOUSE, NOMAD, OASIS, POIS, RANGER, SHIPWRECK, SIGNPOST, TERMINAL } from "../game/constants";
+import { ADA, ARCHIVE, CAMPFIRE, DOCK, FISHER, HERMIT, ISLAND_DOCK, LIGHTHOUSE, NOMAD, POIS, RANGER, SIGNPOST, TERMINAL } from "../game/constants";
 import type { Poi } from "../game/types";
 import { ZONES, type ZoneId } from "../game/zones";
 import { chestById } from "../learn/chests";
@@ -8,7 +8,7 @@ import type { ChestId } from "../learn/types";
 export const PING_PLACE_NAMES = [
   "gate", "tower", "cache", "river", "ada", "signpost", "terminal", "archive",
   "html", "css", "java", "cpp1", "cpp2", "py1", "php", "sql", "py2", "cs", "ranger", "campfire", "js",
-  "dock", "pier", "lighthouse", "hermit", "nomad", "oasis", "pyramid", "fisher", "jetty", "shipwreck",
+  "dock", "pier", "lighthouse", "hermit", "nomad", "fisher",
 ] as const;
 export type PingPlace = (typeof PING_PLACE_NAMES)[number];
 
@@ -22,7 +22,7 @@ function chest(id: ChestId): Spot {
   const c = chestById(id);
   // The C# chest has no place of its own: it stands in the Archive's doorway.
   const at = c.at ?? ARCHIVE;
-  return { zone: c.zone, x: at.x, y: at.y, copy: `the ${c.badge} Chest` };
+  return { zone: c.zone, x: at.x, y: at.y, copy: c.host ? `the ${c.host}` : `the ${c.badge} Chest` };
 }
 
 const SPOTS: Record<PingPlace, Spot> = {
@@ -52,11 +52,7 @@ const SPOTS: Record<PingPlace, Spot> = {
   lighthouse: the(LIGHTHOUSE, "foggaten"),
   hermit: the(HERMIT, "foggaten"),
   nomad: the(NOMAD, "desert"),
-  oasis: the(OASIS, "desert"),
-  pyramid: the(DESERT_PYRAMID, "desert"),
   fisher: the(FISHER, "beach"),
-  jetty: the(BEACH_PIER, "beach"),
-  shipwreck: the(SHIPWRECK, "beach"),
 };
 
 /** Where a place is: its zone and its point in game percentages. */

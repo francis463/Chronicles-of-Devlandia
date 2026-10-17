@@ -38,15 +38,14 @@ const VERBS: Partial<Record<Poi["id"], string>> = {
   "desert-signpost": "Read Signpost",
 };
 
-const chestVerb = (s: GameState, id: string, badge: string) =>
-  `${s.badges.some((b) => b === id) ? "Review" : "Open"} ${badge} Chest`;
+const chestVerb = (s: GameState, id: string, host: string, open = "Search") => `${s.badges.some((b) => b === id) ? "Review" : open} ${host}`;
 
 /** The action [E] takes at a place in this state, or null for a landmark you inspect. */
 function verbFor(s: GameState, poi: Poi): string | null {
   const chest = CHESTS.find((c) => c.id === poi.id);
-  if (chest) return chestVerb(s, chest.id, chest.badge);
+  if (chest) return chestVerb(s, chest.id, chest.host!);
   if (poi.id === "lighthouse") return s.lighthouseLit ? null : "Light the Lamp";
-  if (poi.id === "archive") return s.archiveOpen ? chestVerb(s, "chest-cs", "C#") : "Unseal Archive";
+  if (poi.id === "archive") return s.archiveOpen ? chestVerb(s, "chest-cs", "C# Chest", "Open") : "Unseal Archive";
   return VERBS[poi.id] ?? null;
 }
 

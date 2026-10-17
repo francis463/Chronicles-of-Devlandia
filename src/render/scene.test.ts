@@ -7,7 +7,6 @@ import { PHASE_TINT, buildScene, type Poses, type SceneInput } from "./scene";
 import { LIGHTS, SPRITES, spriteBox, type SpriteId } from "./sprites";
 import { BRIDGE_RECT, decorations } from "./terrain";
 import { REACHABLE_RECT, intersects, toArt } from "./world";
-import { CHESTS } from "../learn/chests";
 import { TERMINAL } from "../game/constants";
 
 const DAY = 12 * 60;
@@ -313,46 +312,25 @@ describe("scene: chests, the Syntax Terminal and the Archive", () => {
     const box = spriteBox(id, p);
     return s.upright.find((d) => d.sprite === id && d.x === box.x && d.y === box.y);
   };
-  const chestArt = (id: string) => toArt(CHESTS.find((c) => c.id === id)!.at!);
 
-  it("the village scene draws the Archive (sealed frame), the terminal (red frame) and its three chests; no hut at (176,116)", () => {
+  it("the village scene draws the Archive (sealed frame) and the terminal (red frame); no hut at (176,116)", () => {
     const s = scene(inVillage);
     expect(at(s, "hut", { x: 176, y: 116 })).toBeUndefined();
     expect(at(s, "archive", { x: 176, y: 116 })?.frame).toBe(0);
     expect(at(s, "syntax-terminal", toArt(TERMINAL))?.frame).toBe(0);
-    expect(of(s, "code-chest")).toHaveLength(3);
-    for (const id of ["chest-php", "chest-sql", "chest-py-2"]) expect(at(s, "code-chest", chestArt(id))?.frame, id).toBe(0);
+    expect(at(scene({ ...inVillage, matcherSolved: true }), "syntax-terminal", toArt(TERMINAL))?.frame).toBe(1);
+    expect(at(scene({ ...inVillage, archiveOpen: true }), "archive", { x: 176, y: 116 })?.frame).toBe(1);
   });
 
-  it("earned chests draw open; the C# chest appears only once the Archive is open", () => {
-    const earned = scene({ ...inVillage, earned: ["chest-sql"], matcherSolved: true });
-    expect(at(earned, "code-chest", chestArt("chest-sql"))?.frame).toBe(1);
-    expect(at(earned, "code-chest", chestArt("chest-php"))?.frame).toBe(0);
-    expect(at(earned, "syntax-terminal", toArt(TERMINAL))?.frame).toBe(1);
-    expect(at(earned, "code-chest", { x: 176, y: 119 })).toBeUndefined();
-    const open = scene({ ...inVillage, archiveOpen: true });
-    expect(at(open, "archive", { x: 176, y: 116 })?.frame).toBe(1);
-    expect(at(open, "code-chest", { x: 176, y: 119 })?.frame).toBe(0);
-    expect(of(open, "code-chest")).toHaveLength(4);
-    expect(at(scene({ ...inVillage, archiveOpen: true, earned: ["chest-cs"] }), "code-chest", { x: 176, y: 119 })?.frame).toBe(1);
-  });
-
-  it("the Peaks scene draws its six chests; north ones behind the wall's feet row", () => {
-    const s = scene();
-    expect(of(s, "code-chest")).toHaveLength(6);
-    expect(of(scene(inVillage), "syntax-terminal")).toHaveLength(1);
-    expect(of(s, "syntax-terminal")).toHaveLength(0);
-    for (const chest of CHESTS.filter((c) => c.zone === "peaks")) {
-      const d = at(s, "code-chest", toArt(chest.at!))!;
-      expect(d, chest.id).toBeDefined();
-      if (chest.north) {
-        const feet = d.y + SPRITES["code-chest"].h - 1;
-        expect(feet, chest.id).toBeLessThan(89);
-        const wall = s.upright.findIndex((w) => w.sprite === "wall");
-        expect(s.upright.indexOf(d), chest.id).toBeLessThan(wall);
-      }
+  it("no zone draws a chest: each chest is inside its landmark, whose drawing is there instead", () => {
+    for (const zone of ["peaks", "village", "forest", "foggaten", "desert", "beach"] as const) {
+      const s = scene({ zone, archiveOpen: true, earned: ["chest-cs"] });
+      expect(sprites(s, "upright"), zone).not.toContain("code-chest" as SpriteId);
     }
+    expect(of(scene({ zone: "village" }), "syntax-terminal")).toHaveLength(1);
+    expect(of(scene(), "syntax-terminal")).toHaveLength(0);
   });
+
 });
 
 describe("scene: your view (weather and light)", () => {
@@ -751,13 +729,13 @@ describe("scene: the Peaks' camp, wildlife and start arrow", () => {
     expect(birds(0)).not.toBe(birds(3000));
   });
 
-  it("a bouncing arrow marks the HTML chest until you have earned any badge", () => {
+  it("a bouncing arrow marks the ski lodge, where the HTML chest is, until you have earned any badge", () => {
     expect(sprites(peaks(), "arrow")).toHaveLength(1);
     expect(sprites(peaks({ earned: ["chest-css"] }), "arrow")).toEqual([]);
     expect(new Set([0, 400].map((t) => sprites(peaks({}, t), "arrow")[0].y)).size).toBe(2);
     expect(sprites(peaks({}, 400, true), "arrow")[0].y).toBe(sprites(peaks({}, 0, true), "arrow")[0].y);
     const arrow = sprites(peaks(), "arrow")[0];
-    expect(Math.abs(arrow.x + 4 - 32)).toBeLessThanOrEqual(1);
+    expect(Math.abs(arrow.x + 4 - 62)).toBeLessThanOrEqual(1);
   });
 });
 

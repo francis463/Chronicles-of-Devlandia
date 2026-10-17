@@ -428,23 +428,23 @@ describe("Overworld challenge terminal", () => {
 });
 
 describe("Overworld language chests", () => {
-  it("walking to the HTML chest shows [E] Open HTML Chest on the prompt and the touch button", () => {
-    render(<Overworld onMenu={() => {}} initial={{ player: { x: 14, y: 64 } }} />);
-    expect(screen.getAllByText("[E] Open HTML Chest")).toHaveLength(2);
+  it("walking to the ski lodge shows [E] Search Ski Lodge on the prompt and the touch button", () => {
+    render(<Overworld onMenu={() => {}} initial={{ player: { x: 20, y: 84 } }} />);
+    expect(screen.getAllByText("[E] Search Ski Lodge")).toHaveLength(2);
   });
 
   it("new places show their cards on the map", () => {
     const card = () => screen.getByRole("region", { name: "POI Inspection" });
     const { unmount } = render(<Overworld onMenu={() => {}} initial={{ zone: "village", inspected: "chest-sql" }} />);
-    expect(card()).toHaveTextContent("A sealed code chest. Answer its SQL question to earn the SQL Badge.");
-    expect(card().className).toContain("top-3");
+    expect(card()).toHaveTextContent("A sealed code chest is hidden in the windmill. Answer its SQL question to earn the SQL Badge.");
+    expect(card().className).toContain("bottom-3");
     unmount();
     const earned = render(<Overworld onMenu={() => {}} initial={{ zone: "village", inspected: "chest-sql", badges: ["chest-sql"] }} />);
     expect(card()).toHaveTextContent("SQL Badge earned.");
     earned.unmount();
-    render(<Overworld onMenu={() => {}} initial={{ inspected: "chest-java" }} />);
-    expect(card()).toHaveTextContent("A sealed code chest. Answer its Java question to earn the Java Badge.");
-    expect(card().className).toContain("bottom-3");
+    render(<Overworld onMenu={() => {}} initial={{ inspected: "chest-html" }} />);
+    expect(card()).toHaveTextContent("A sealed code chest is hidden in the ski lodge. Answer its HTML question to earn the HTML Badge.");
+    expect(card().className).toContain("top-3");
   });
 });
 
@@ -615,7 +615,7 @@ describe("Overworld commands (solo)", () => {
   it("Enter on a focused chest button still opens its terminal and leaves the tab alone", async () => {
     const user = setup();
     render(<Overworld onMenu={() => {}} initial={{ player: { x: 10, y: 60 } }} />);
-    screen.getByRole("button", { name: "HTML chest" }).focus();
+    screen.getByRole("button", { name: "Ski Lodge, HTML chest" }).focus();
     await user.keyboard("{Enter}");
     expect(screen.getByText(/CODE CHEST: HTML/i)).toBeInTheDocument();
     expect(tab("LOG")).toHaveAttribute("aria-selected", "true");
@@ -624,10 +624,10 @@ describe("Overworld commands (solo)", () => {
   it("walking to the forest chest and pressing E opens the JavaScript terminal; its button exists only in the forest", async () => {
     const user = setup();
     const { unmount } = render(<Overworld onMenu={() => {}} />);
-    expect(screen.queryByRole("button", { name: "JavaScript chest" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Old Oak, JavaScript chest" })).toBeNull();
     unmount();
-    render(<Overworld onMenu={() => {}} initial={{ zone: "forest", player: { x: 18, y: 78 } }} />);
-    expect(screen.getByRole("button", { name: "JavaScript chest" })).toBeInTheDocument();
+    render(<Overworld onMenu={() => {}} initial={{ zone: "forest", player: { x: 24, y: 52 } }} />);
+    expect(screen.getByRole("button", { name: "Old Oak, JavaScript chest" })).toBeInTheDocument();
     await user.keyboard("e");
     expect(screen.getByText(/CODE CHEST: JAVASCRIPT/i)).toBeInTheDocument();
   });
@@ -709,7 +709,7 @@ describe("Overworld: saved badges", () => {
     const user = setup();
     const onBadgeEarned = vi.fn();
     vi.spyOn(Math, "random").mockReturnValue(0);
-    render(<Overworld onMenu={() => {}} initial={{ player: { x: 10, y: 60 } }} onBadgeEarned={onBadgeEarned} />);
+    render(<Overworld onMenu={() => {}} initial={{ player: { x: 20, y: 84 } }} onBadgeEarned={onBadgeEarned} />);
     await user.keyboard("e");
     await user.keyboard("href{Enter}");
     expect(onBadgeEarned).toHaveBeenCalledTimes(1);

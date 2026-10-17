@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { BEACH_PIER, DESERT_PYRAMID, OASIS, OLD_OAK, RUINS, SHIPWRECK } from "../game/constants";
 import { ARCHIVE_LOCK, GATE_CSS, SCROLL_CIPHER } from "./bank/builtin";
 import { MATCHER_ROUNDS } from "./bank/matcher";
 import { checkBlank, isCorrectBlank, normalize } from "./check";
@@ -107,7 +108,7 @@ describe("the question bank and the chest table", () => {
     const chest = CHESTS.find((c) => c.id === "chest-js")!;
     expect(chest.bank.map((q) => q.id)).toEqual(["js-console-log", "js-const", "js-strict-equal", "js-array-length", "js-template", "js-typeof"]);
     expect(chest.bank.map((q) => q.kind)).toEqual(["blank", "blank", "choice", "choice", "choice", "choice"]);
-    expect([chest.zone, chest.at, chest.caption, chest.north, chest.where]).toEqual(["forest", { x: 18, y: 78 }, "above", false, "Dense Forest"]);
+    expect([chest.zone, chest.at, chest.host, chest.north, chest.where]).toEqual(["forest", { x: 24, y: 50 }, "Old Oak", false, "Dense Forest · Old Oak"]);
     expect(chestChallenge({ ...allZero, "chest-js": 0 }, "chest-js").title).toBe("< CODE CHEST: JAVASCRIPT >");
     expect(accepts(byId("js-console-log"), "log")).toBe(true);
     for (const m of ["info", "debug"]) expect(accepts(byId("js-console-log"), m), m).toBe(true);
@@ -216,5 +217,29 @@ describe("the question bank and the chest table", () => {
     expect(picked.id).toBe("sql-max");
     expect(picked.title).toBe("< CODE CHEST: SQL >");
     expect(chestChallenge(allZero, "chest-cpp-1").title).toBe("< CODE CHEST: C++ I >");
+  });
+});
+
+describe("hosted chests", () => {
+  it("every chest but C# is inside a named landmark with a spot; only the CSS chest waits north of the wall", () => {
+    for (const c of CHESTS) {
+      if (c.id === "chest-cs") expect([c.host, c.at]).toEqual([null, null]);
+      else {
+        expect(c.host, c.id).toBeTruthy();
+        expect(c.at, c.id).not.toBeNull();
+        expect(c.north, c.id).toBe(c.id === "chest-css");
+      }
+    }
+    expect(new Set(CHESTS.flatMap((c) => (c.host ? [`${c.zone}/${c.host}`] : []))).size).toBe(10);
+  });
+
+  it("each chest stands exactly where its landmark's constant says", () => {
+    const at = (id: string) => CHESTS.find((c) => c.id === id)!.at;
+    expect(at("chest-js")).toEqual(OLD_OAK);
+    expect(at("chest-py-1")).toEqual(RUINS);
+    expect(at("chest-py-2")).toEqual(OASIS);
+    expect(at("chest-java")).toEqual(DESERT_PYRAMID);
+    expect(at("chest-cpp-1")).toEqual(BEACH_PIER);
+    expect(at("chest-cpp-2")).toEqual(SHIPWRECK);
   });
 });

@@ -11,33 +11,29 @@ const TABLE = [
   ["signpost", "village", 86, 62, "the Signpost"],
   ["terminal", "village", 68, 60, "the Syntax Terminal"],
   ["archive", "village", 55, 66, "the Archive"],
-  ["html", "peaks", 10, 60, "the HTML Chest"],
-  ["css", "peaks", 46, 82, "the CSS Chest"],
-  ["java", "peaks", 20, 44, "the Java Chest"],
-  ["cpp1", "peaks", 64, 14, "the C++ I Chest"],
-  ["cpp2", "peaks", 84, 44, "the C++ II Chest"],
-  ["py1", "peaks", 88, 64, "the Python I Chest"],
-  ["php", "village", 44, 62, "the PHP Chest"],
-  ["sql", "village", 12, 80, "the SQL Chest"],
-  ["py2", "village", 82, 82, "the Python II Chest"],
+  ["html", "peaks", 19.4, 89.4, "the Ski Lodge"],
+  ["css", "peaks", 46.9, 8.9, "the Ice Cave"],
+  ["java", "desert", 20, 34, "the Pyramid"],
+  ["cpp1", "beach", 90, 62, "the Pier"],
+  ["cpp2", "beach", 60, 30, "the Shipwreck"],
+  ["py1", "foggaten", 28, 50, "the Ruins"],
+  ["php", "village", 28.75, 22.8, "the Hut"],
+  ["sql", "village", 13.75, 42.2, "the Windmill"],
+  ["py2", "desert", 42, 52, "the Oasis"],
   ["cs", "village", 55, 66, "the C# Chest"],
   ["ranger", "forest", 60, 62, "the Ranger"],
   ["campfire", "forest", 46, 66, "the Campfire"],
-  ["js", "forest", 18, 78, "the JavaScript Chest"],
+  ["js", "forest", 24, 50, "the Old Oak"],
   ["dock", "peaks", 92, 74, "the Dock"],
   ["pier", "foggaten", 8, 62, "the island's Dock"],
   ["lighthouse", "foggaten", 50, 46, "the Lighthouse"],
   ["hermit", "foggaten", 68, 62, "the Hermit"],
   ["nomad", "desert", 62, 70, "the Nomad"],
-  ["oasis", "desert", 42, 52, "the Oasis"],
-  ["pyramid", "desert", 20, 34, "the Pyramid"],
   ["fisher", "beach", 34, 72, "the Fisher"],
-  ["jetty", "beach", 90, 62, "the Pier"],
-  ["shipwreck", "beach", 60, 30, "the Shipwreck"],
 ] as const;
 
 describe("ping places", () => {
-  it("are the 25 names, in the spec's order", () => {
+  it("are the ping names, in the spec's order", () => {
     expect([...PING_PLACE_NAMES]).toEqual(TABLE.map((row) => row[0]));
   });
 

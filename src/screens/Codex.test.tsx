@@ -21,11 +21,11 @@ describe("Codex", () => {
     const items = within(screen.getByRole("list")).getAllByRole("listitem");
     expect(items).toHaveLength(11);
     // Entries whose badge has a separate spoken form also carry it as hidden text ("C++ 1").
-    expect(items[0]).toHaveTextContent(/^C\+\+ I.*Badge · C\+\+ Peaks · north of the wall/);
-    expect(items[3]).toHaveTextContent("HTML Badge · C++ Peaks");
-    expect(items[6]).toHaveTextContent("PHP Badge · Dev Village");
+    expect(items[0]).toHaveTextContent(/^C\+\+ I.*Badge · Sunny Beach · Pier/);
+    expect(items[3]).toHaveTextContent("HTML Badge · C++ Peaks · Ski Lodge");
+    expect(items[6]).toHaveTextContent("PHP Badge · Dev Village · Hut");
     expect(items[9]).toHaveTextContent(/C# Badge · Dev Village · in the Archive/);
-    expect(items[10]).toHaveTextContent("JavaScript Badge · Dense Forest");
+    expect(items[10]).toHaveTextContent("JavaScript Badge · Dense Forest · Old Oak");
     unmount();
     renderCodex(["chest-sql", "chest-cs"], { team: true });
     expect(screen.getByRole("dialog", { name: "< YOUR CODEX: 2/11 BADGES >" })).toBeInTheDocument();

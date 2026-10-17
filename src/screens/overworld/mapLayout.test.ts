@@ -3,7 +3,7 @@ import { CHESTS } from "../../learn/chests";
 import { AREAS } from "../../render/areas";
 import { DOCK_POINT } from "../../render/areas/peaks";
 import { FOREST_POINTS } from "../../render/areas/forest";
-import { ARCHIVE_POINT, TERMINAL_POINT, chestPoints } from "../../render/learnPoints";
+import { ARCHIVE_POINT, TERMINAL_POINT } from "../../render/learnPoints";
 import { spriteBox } from "../../render/sprites";
 import { LANDMARK_POINTS } from "../../render/terrain";
 import { fitWorld, type Rect, type WorldRect } from "../../render/world";
@@ -58,13 +58,13 @@ const MAP_TEXTS: Record<(typeof MAP_CAPTIONS)[number]["id"], string[]> = {
 const GROUPS = {
   peaks: ["tower", "chest", "gate", "dock", "peaks", "river", "forest", "west-exit", "south-exit"],
   village: ["villager", "signpost", "terminal", "archive", "village", "east-exit"],
-  forest: ["dense-forest", "north-exit", "forest-west-exit", "forest-east-exit", "ranger", "campfire", "old-oak", "forest-signpost"],
-  foggaten: ["foggaten", "island-dock", "lighthouse", "hermit", "island-fire", "ruins"],
-  desert: ["desert", "desert-east-exit", "nomad", "oasis", "desert-pyramid", "desert-signpost"],
-  beach: ["beach", "beach-west-exit", "fisher", "beach-pier", "shipwreck", "beach-signpost"],
+  forest: ["dense-forest", "north-exit", "forest-west-exit", "forest-east-exit", "ranger", "campfire", "forest-signpost"],
+  foggaten: ["foggaten", "island-dock", "lighthouse", "hermit", "island-fire"],
+  desert: ["desert", "desert-east-exit", "nomad", "desert-signpost"],
+  beach: ["beach", "beach-west-exit", "fisher", "beach-signpost"],
 };
 const quietGroups = (zone: "peaks" | "village" | "forest" | "foggaten" | "desert" | "beach") => LANDMARK_CAPTIONS.filter((l) => l.zone === zone && l.quiet).map((l) => l.id as string);
-/** Chest captions show at 2× and larger; on a 1× map only on hover, focus or in reach. */
+/** A hosted chest's caption is its landmark's: always shown. */
 const chestGroups = (zone: "peaks" | "village" | "forest" | "foggaten" | "desert" | "beach") => CHESTS.filter((c) => c.zone === zone && c.at).map((c) => c.id as string);
 const inside = (inner: CssRect, outer: CssRect) =>
   inner.left >= outer.left - 1e-9 && inner.top >= outer.top - 1e-9 && inner.left + inner.width <= outer.left + outer.width + 1e-9 && inner.top + inner.height <= outer.top + outer.height + 1e-9;
@@ -137,35 +137,35 @@ describe("captions", () => {
         const hits = zoneHitAreas(world, zone);
         const showsChests = world.scale >= 2;
         const captions: Array<{ group: string; rect: CssRect }> = [
-          ...LANDMARK_CAPTIONS.filter((l) => l.zone === zone && (showsChests || !(l.chest || l.quiet))).flatMap((l) =>
+          ...LANDMARK_CAPTIONS.filter((l) => l.zone === zone && (showsChests || !l.quiet)).flatMap((l) =>
             l.texts.map((t) => ({ group: l.id as string, rect: captionRect(t, hits[l.id], map, l.prefer) })),
           ),
           ...MAP_CAPTIONS.filter((c) => c.zone === zone).flatMap(({ id }) => MAP_TEXTS[id].map((t) => ({ group: id as string, rect: mapCaptionRect(id, t, world) }))),
         ];
-        expect(new Set(captions.map((c) => c.group))).toEqual(new Set([...GROUPS[zone], ...(showsChests ? [...chestGroups(zone), ...quietGroups(zone)] : [])]));
+        expect(new Set(captions.map((c) => c.group))).toEqual(new Set([...GROUPS[zone], ...chestGroups(zone), ...(showsChests ? quietGroups(zone) : [])]));
         const sprites =
           zone === "peaks"
             ? [
                 ...LANDMARKS.map(({ box }) => box),
                 spriteBox("dock", DOCK_POINT),
-                ...chestPoints("peaks").map((c) => spriteBox("code-chest", c.at)),
               ]
             : zone === "village"
               ? [
                   ...AREAS.village.props.map((p) => spriteBox(p.sprite, p.at)),
                   spriteBox("archive", ARCHIVE_POINT),
                   spriteBox("syntax-terminal", TERMINAL_POINT),
-                  ...chestPoints("village").map((c) => spriteBox("code-chest", c.at)),
                 ]
               : zone === "foggaten" || zone === "desert" || zone === "beach"
                 ? AREAS[zone].props.map((p) => spriteBox(p.sprite, p.at))
-                : [spriteBox("x-mark", FOREST_POINTS.dig), spriteBox("semicolon", FOREST_POINTS.dig), ...AREAS.forest.props.map((p) => spriteBox(p.sprite, p.at)), ...chestPoints("forest").map((c) => spriteBox("code-chest", c.at))];
+                : [spriteBox("x-mark", FOREST_POINTS.dig), spriteBox("semicolon", FOREST_POINTS.dig), ...AREAS.forest.props.map((p) => spriteBox(p.sprite, p.at))];
         const blockers = sprites.map((box) => ({ id: "", rect: spriteCss(box, world) }));
         const areas = Object.entries(hits).map(([id, rect]) => ({ id, rect }));
         for (const a of captions) {
           const where = `${zone} @${world.width}`;
           for (const b of captions) if (a.group !== b.group) expect(hit(a.rect, b.rect), `${a.group} / ${b.group} ${where}`).toBe(false);
-          for (const b of [...blockers, ...areas.filter((h) => h.id !== a.group && world.scale >= 2)]) {
+          // Zone names and exit signs take no taps (pointer-events-none), so only landmark captions must clear other places' hit areas.
+          const tappable = LANDMARK_CAPTIONS.some((l) => l.id === a.group);
+          for (const b of [...blockers, ...areas.filter((h) => tappable && h.id !== a.group && world.scale >= 2)]) {
             expect(hit(a.rect, b.rect), `${a.group} on ${b.id || "a drawing"} ${JSON.stringify(b.rect)} ${where}`).toBe(false);
           }
         }

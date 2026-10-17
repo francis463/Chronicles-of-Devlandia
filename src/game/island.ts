@@ -26,5 +26,4 @@ export const ISLAND_COPY = {
   lighthouse: "An old lighthouse. Its lamp is dark and its door is shut. Something inside needs power.",
   lighthouseLit: LOG.lighthouseOnline,
   "island-fire": "A fire burns low in the fog. Someone keeps it going for whoever lands here next.",
-  ruins: "Broken pillars stand in the mist, older than the lighthouse. Their carvings have worn away.",
 } as const;

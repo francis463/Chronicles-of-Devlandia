@@ -20,7 +20,7 @@ const LOBBY = ctx({ where: "lobby", minutes: 0, badges: [], known: {} });
 const notes = (text: string, c: CommandContext = GAME) => runCommand(text, c).notes;
 const effect = (text: string, c: CommandContext = GAME) => runCommand(text, c).effect;
 
-const PLACES = 'No place called "%". Try: gate, tower, cache, river, ada, signpost, terminal, archive, ranger, campfire, dock, pier, lighthouse, hermit, nomad, oasis, pyramid, fisher, jetty, shipwreck, or a chest: html, css, java, cpp1, cpp2, py1, php, sql, py2, cs, js.';
+const PLACES = 'No place called "%". Try: gate, tower, cache, river, ada, signpost, terminal, archive, ranger, campfire, dock, pier, lighthouse, hermit, nomad, fisher, or a chest: html, css, java, cpp1, cpp2, py1, php, sql, py2, cs, js.';
 
 describe("/help", () => {
   it("in a game lists the eight lines", () => {
@@ -125,8 +125,8 @@ describe("/ping", () => {
     expect(r.notes).toEqual(["Ping sent: the Terminal Gate."]);
     expect(r.effect).toEqual({ kind: "ping", zone: "peaks", x: 50, y: 50, place: "gate" });
     expect(effect("/ping CS")).toMatchObject({ place: "cs", zone: "village" });
-    expect(effect("/ping jetty")).toMatchObject({ place: "jetty", zone: "beach", x: 90, y: 62 });
-    expect(effect("/ping oasis")).toMatchObject({ place: "oasis", zone: "desert", x: 42, y: 52 });
+    expect(effect("/ping cpp1")).toMatchObject({ place: "cpp1", zone: "beach", x: 90, y: 62 });
+    expect(effect("/ping py2")).toMatchObject({ place: "py2", zone: "desert", x: 42, y: 52 });
     expect(effect("/ping lighthouse")).toMatchObject({ place: "lighthouse", zone: "foggaten", x: 50, y: 46 });
     expect(effect("/ping Dock")).toMatchObject({ place: "dock", zone: "peaks" });
   });

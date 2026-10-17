@@ -113,13 +113,11 @@ describe("mini-map chests", () => {
 
   it("mini-map: one diamond per chest in its zone's cell; earned ones solid; no C# diamond until the Archive opens", () => {
     const { rerender } = render(<MiniMap zone="peaks" player={{ x: 28, y: 72 }} artifactFound={false} badges={["chest-html"]} archiveOpen={false} />);
-    expect(diamonds("peaks").map((d) => d.dataset.testid)).toEqual([
-      "minimap-chest-chest-cpp-1", "minimap-chest-chest-java", "minimap-chest-chest-cpp-2",
-      "minimap-chest-chest-html", "minimap-chest-chest-css", "minimap-chest-chest-py-1",
-    ]);
-    expect(diamonds("village").map((d) => d.dataset.testid)).toEqual([
-      "minimap-chest-chest-php", "minimap-chest-chest-sql", "minimap-chest-chest-py-2",
-    ]);
+    expect(diamonds("peaks").map((d) => d.dataset.testid)).toEqual(["minimap-chest-chest-html", "minimap-chest-chest-css"]);
+    expect(diamonds("village").map((d) => d.dataset.testid)).toEqual(["minimap-chest-chest-php", "minimap-chest-chest-sql"]);
+    expect(diamonds("desert").map((d) => d.dataset.testid)).toEqual(["minimap-chest-chest-java", "minimap-chest-chest-py-2"]);
+    expect(diamonds("beach").map((d) => d.dataset.testid)).toEqual(["minimap-chest-chest-cpp-1", "minimap-chest-chest-cpp-2"]);
+    expect(diamonds("foggaten").map((d) => d.dataset.testid)).toEqual(["minimap-chest-chest-py-1"]);
     expect(diamonds("forest").map((d) => d.dataset.testid)).toEqual(["minimap-chest-chest-js"]);
     const html = screen.getByTestId("minimap-chest-chest-html");
     expect(html).toHaveAttribute("data-earned", "true");
@@ -192,7 +190,7 @@ describe("mini-map: the Foggaten Island cell", () => {
     expect(island.style.left).toBe("160px");
     expect(island.style.top).toBe("18px");
     expect(island).not.toHaveAttribute("data-current");
-    expect(island.querySelectorAll("div.border").length).toBe(5);
+    expect(island.querySelectorAll("div.border").length).toBe(4);
     expect(screen.getByTestId("minimap-cell-village").style.left).toBe("0px");
     expect(screen.getByTestId("minimap-cell-peaks").style.left).toBe("32px");
     expect(screen.getByTestId("minimap-cell-forest").style.left).toBe("96px");
@@ -218,7 +216,7 @@ describe("mini-map: the Sunbaked Desert cell", () => {
     expect(desert.style.left).toBe("64px");
     expect(desert.style.width).toBe("32px");
     expect(Math.max(...screen.getAllByTestId(/^minimap-cell-/).map((c) => parseInt(c.style.left) + parseInt(c.style.width)))).toBeLessThanOrEqual(194);
-    expect(desert.querySelectorAll("div.border").length).toBe(4);
+    expect(desert.querySelectorAll("div.border").length).toBe(2);
   });
 
   it("shows a teammate in the desert there and nowhere else, and outlines the cell when you are there", () => {
@@ -245,7 +243,7 @@ describe("mini-map: the Sunny Beach cell", () => {
     render(<MiniMap zone="peaks" player={{ x: 50, y: 50 }} {...base} />);
     const beach = screen.getByTestId("minimap-cell-beach");
     expect(beach.style.left).toBe("128px");
-    expect(beach.querySelectorAll("div.border").length).toBe(4);
+    expect(beach.querySelectorAll("div.border").length).toBe(2);
   });
 
   it("shows a teammate on the beach there and outlines the cell when you are there", () => {

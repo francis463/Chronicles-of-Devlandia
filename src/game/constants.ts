@@ -21,7 +21,8 @@ export const SIGNPOST: Poi = { id: "signpost", label: "Signpost", x: 86, y: 62 }
 /** The Dense Forest's ranger, campfire, old oak and signpost (by the way back to the Peaks). */
 export const RANGER: Poi = { id: "ranger", label: "Ranger", x: 60, y: 62 };
 export const CAMPFIRE: Poi = { id: "campfire", label: "Campfire", x: 46, y: 66 };
-export const OLD_OAK: Poi = { id: "old-oak", label: "Old Oak", x: 24, y: 50 };
+/** The old oak, where the JavaScript chest is. */
+export const OLD_OAK: Point = { x: 24, y: 50 };
 export const FOREST_SIGNPOST: Poi = { id: "forest-signpost", label: "Signpost", x: 72, y: 89 };
 /** The village's Syntax Terminal (it prints the Archive's access code) and the Archive (the C# chest is inside). */
 export const TERMINAL: Poi = { id: "terminal", label: "Syntax Terminal", x: 68, y: 60 };
@@ -36,17 +37,17 @@ export const ISLAND_DOCK: Poi = { id: "island-dock", label: "Dock", x: 8, y: 62 
 export const LIGHTHOUSE: Poi = { id: "lighthouse", label: "Lighthouse", x: 50, y: 46 };
 export const HERMIT: Poi = { id: "hermit", label: "Hermit", x: 68, y: 62 };
 export const ISLAND_FIRE: Poi = { id: "island-fire", label: "Campfire", x: 44, y: 66 };
-export const RUINS: Poi = { id: "ruins", label: "Ruins", x: 28, y: 50 };
+export const RUINS: Point = { x: 28, y: 50 };
 /** The Sunbaked Desert: a signpost by the way back east, a nomad, an oasis and a pyramid far to the west. */
 export const DESERT_SIGNPOST: Poi = { id: "desert-signpost", label: "Signpost", x: 84, y: 60 };
 export const NOMAD: Poi = { id: "nomad", label: "Nomad", x: 62, y: 70 };
-export const OASIS: Poi = { id: "oasis", label: "Oasis", x: 42, y: 52 };
+export const OASIS: Point = { x: 42, y: 52 };
 /** Sunny Beach: a signpost by the way back west, a fisher, a pier into the sea and a shipwreck up the shore. */
 export const BEACH_SIGNPOST: Poi = { id: "beach-signpost", label: "Signpost", x: 14, y: 58 };
 export const FISHER: Poi = { id: "fisher", label: "Fisher", x: 34, y: 72 };
-export const BEACH_PIER: Poi = { id: "beach-pier", label: "Pier", x: 90, y: 62 };
-export const SHIPWRECK: Poi = { id: "shipwreck", label: "Shipwreck", x: 60, y: 30 };
-export const DESERT_PYRAMID: Poi = { id: "desert-pyramid", label: "Pyramid", x: 20, y: 34 };
+export const BEACH_PIER: Point = { x: 90, y: 62 };
+export const SHIPWRECK: Point = { x: 60, y: 30 };
+export const DESERT_PYRAMID: Point = { x: 20, y: 34 };
 /** Where you and the drone land after sailing: a few steps in from the other island's dock. */
 export const SAIL_LANDING = { foggaten: { x: 24, y: 62 }, peaks: { x: 78, y: 74 } } as const;
 export const RIVER_ZONE = { minX: 24, maxX: 76, minY: 28, maxY: 39 };
@@ -110,10 +111,10 @@ export const LOG = {
 };
 
 /** The forest signpost's directions to everything nearby (the dig spot is added once the scroll is decoded). */
-export const FOREST_DIRECTIONS = "RANGER and CAMPFIRE → Northwest, in the clearing. OLD OAK → Far west. JAVASCRIPT CHEST → Far west, near the forest edge. SUNBAKED DESERT → Out the west gap. SUNNY BEACH → Out the east gap.";
+export const FOREST_DIRECTIONS = "RANGER and CAMPFIRE → Northwest, in the clearing. OLD OAK (the JavaScript chest) → Far west. SUNBAKED DESERT → Out the west gap. SUNNY BEACH → Out the east gap.";
 
 /** The landmarks' cards. Ada's shows her current line (village.ts); chests, the terminal and the Archive are in cards.ts. */
-export const INSPECT_COPY: Record<"gate" | "chest" | "river" | "tower" | "signpost" | "artifact" | "campfire" | "old-oak" | "forest-signpost", { default: string; looted?: string; opened?: string; bridged?: string; powered?: string }> = {
+export const INSPECT_COPY: Record<"gate" | "chest" | "river" | "tower" | "signpost" | "artifact" | "campfire" | "forest-signpost", { default: string; looted?: string; opened?: string; bridged?: string; powered?: string }> = {
   gate: {
     default: "A locked compiler gate in the north wall. Its terminal leads to the code puzzle.",
     opened: "The compiler gate stands open. The way north is clear.",
@@ -132,7 +133,6 @@ export const INSPECT_COPY: Record<"gate" | "chest" | "river" | "tower" | "signpo
   },
   signpost: { default: "C++ PEAKS → East through the hedge: base camp, the north gate and the frozen river." },
   campfire: { default: "A campfire crackles in the clearing. Someone left it burning for the next explorer." },
-  "old-oak": { default: "An enormous old oak. Its bark is carved with a thousand tiny semicolons." },
   "forest-signpost": { default: "C++ PEAKS → North through the trees: base camp, the north gate and the frozen river." },
   artifact: { default: "The Golden Semicolon, Devlandia's lost line-ender. Every statement can finally be completed." },
 };

@@ -1,4 +1,3 @@
-import { chestPoints } from "../learnPoints";
 import { spriteBox } from "../sprites";
 import { HIDDEN_ARTIFACT } from "../../game/constants";
 import { toArt, type Rect } from "../world";
@@ -70,7 +69,7 @@ export const FOREST: Area = {
   gateBox: null,
   ice: null,
   props: PROPS,
-  protected: [...PATHS, MOUTH, WEST_MOUTH, EAST_MOUTH, ...PROPS.map((prop) => spriteBox(prop.sprite, prop.at)), ...chestPoints("forest").map(({ at }) => spriteBox("code-chest", at)),
+  protected: [...PATHS, MOUTH, WEST_MOUTH, EAST_MOUTH, ...PROPS.map((prop) => spriteBox(prop.sprite, prop.at)),
     spriteBox("x-mark", FOREST_POINTS.dig),
     spriteBox("semicolon", FOREST_POINTS.dig),
   ],

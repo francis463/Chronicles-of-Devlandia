@@ -18,7 +18,6 @@ export type PoiId =
   | "signpost"
   | "ranger"
   | "campfire"
-  | "old-oak"
   | "forest-signpost"
   | "terminal"
   | "archive"
@@ -30,14 +29,9 @@ export type PoiId =
   | "lighthouse"
   | "hermit"
   | "island-fire"
-  | "ruins"
   | "nomad"
-  | "oasis"
   | "fisher"
-  | "beach-pier"
-  | "shipwreck"
   | "beach-signpost"
-  | "desert-pyramid"
   | "desert-signpost"
   | Exclude<ChestId, "chest-cs">;
 

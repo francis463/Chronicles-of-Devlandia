@@ -1,4 +1,3 @@
-import { chestPoints } from "../learnPoints";
 import { spriteBox, type SpriteId } from "../sprites";
 import { DOCK, PEAKS_SIGNPOST, SNOW_CAVE, WEATHER_STATION } from "../../game/constants";
 import { toArt, type ArtPoint, type Rect } from "../world";
@@ -100,7 +99,7 @@ export const goatPose = (t: number, reduced: boolean, player: ArtPoint): AnimalP
 
 /** The static props of the camp and the mountain strip. */
 const CAMP_PROPS: Prop[] = [
-  { sprite: "lodge", at: { x: 62, y: 160 } },
+  { sprite: "lodge", at: { x: 62, y: 161 } },
   { sprite: "campfire", at: { x: 108, y: 150 } },
   { sprite: "bench", at: { x: 122, y: 152 } },
   { sprite: "bench", at: { x: 96, y: 152 } },
@@ -122,14 +121,13 @@ const keepClear: Rect[] = [
   MOUTH,
   SOUTH_MOUTH,
   ...[spriteBox("tower", p.tower), spriteBox("chest-closed", p.chest), spriteBox("gate", p.gate), spriteBox("explorer-down", p.start), spriteBox("dock", DOCK_POINT)],
-  ...chestPoints("peaks").map(({ at }) => spriteBox("code-chest", at)),
   ...CAMP_PROPS.map((prop) => spriteBox(prop.sprite, prop.at)),
   spriteBox("signpost", SIGNPOST_POINT),
   spriteBox("station", STATION_POINT),
   spriteBox("snow-cave", CAVE_POINT),
   ...[WILDLIFE.fox, WILDLIFE.goat].map((a) => ({ x: a.zone.x - 14, y: a.zone.y - 12, w: a.zone.w + 28, h: a.zone.h + 14 })),
-  // The start-here arrow over the HTML chest.
-  { x: 24, y: 80, w: 16, h: 14 },
+  // The start-here arrow over the ski lodge, where the HTML chest is.
+  { x: 54, y: 120, w: 16, h: 14 },
 ];
 
 /** Points every `gap` px along a polyline, nudged `side` px sideways (to its right). */
@@ -183,8 +181,7 @@ export const PEAKS: Area = {
     SOUTH_MOUTH,
     SOUTH_BRANCH,
     SOUTH_PATH,
-    ...chestPoints("peaks").map(({ at }) => spriteBox("code-chest", at)),
-    spriteBox("dock", DOCK_POINT),
+      spriteBox("dock", DOCK_POINT),
     ...PEAKS_PROPS.map((prop) => spriteBox(prop.sprite, prop.at)),
   ],
 };

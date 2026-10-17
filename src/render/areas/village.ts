@@ -1,5 +1,5 @@
 import type { Pose } from "../motion";
-import { ARCHIVE_POINT, CS_CHEST_POINT, TERMINAL_POINT, chestPoints } from "../learnPoints";
+import { ARCHIVE_POINT, TERMINAL_POINT } from "../learnPoints";
 import { spriteBox } from "../sprites";
 import type { Rect } from "../world";
 import type { Area, Prop, TerrainKind } from "./area";
@@ -97,10 +97,8 @@ export const VILLAGE: Area = {
     MOUTH,
     ...PROPS.map((prop) => spriteBox(prop.sprite, prop.at)),
     spriteBox("chicken", VILLAGE_LIFE.chicken),
-    // The Archive (the old middle hut), the C# chest in its doorway, the Syntax Terminal and the chests.
+    // The Archive (the old middle hut) and the Syntax Terminal.
     spriteBox("archive", ARCHIVE_POINT),
-    spriteBox("code-chest", CS_CHEST_POINT),
     spriteBox("syntax-terminal", TERMINAL_POINT),
-    ...chestPoints("village").map(({ at }) => spriteBox("code-chest", at)),
   ],
 };

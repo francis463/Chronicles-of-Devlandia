@@ -149,19 +149,12 @@ describe("the north wall and its gate", () => {
 });
 
 describe("learning core sprites", () => {
-  it("sprites: code-chest 16×16 ×2 frames, syntax-terminal 16×24 ×2, archive 32×24 ×2, bottom-anchored", () => {
-    const sizes: Array<[SpriteId, number, number]> = [["code-chest", 16, 16], ["syntax-terminal", 16, 24], ["archive", 32, 24]];
+  it("sprites: syntax-terminal 16×24 ×2, archive 32×24 ×2, bottom-anchored", () => {
+    const sizes: Array<[SpriteId, number, number]> = [["syntax-terminal", 16, 24], ["archive", 32, 24]];
     for (const [id, w, h] of sizes) {
       const def = SPRITES[id];
       expect([def?.w, def?.h, def?.anchor, def?.frames.length], id).toEqual([w, h, "bottom", 2]);
     }
-  });
-
-  it("the code chest is teal, deep blue and steel, never the cache's amber; its two frames differ", () => {
-    const colours = new Set(Object.values(SPRITES["code-chest"].palette));
-    for (const c of ["#2dd4bf", "#1e3a8a", "#94a3b8", OUTLINE]) expect(colours).toContain(c);
-    expect(colours).not.toContain("#f59e0b");
-    expect(SPRITES["code-chest"].frames[0]).not.toEqual(SPRITES["code-chest"].frames[1]);
   });
 
   it("the Syntax Terminal's screen is red unsolved and green solved", () => {

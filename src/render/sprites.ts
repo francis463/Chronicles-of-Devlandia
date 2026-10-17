@@ -29,7 +29,6 @@ export type SpriteId =
   | "well"
   | "fence"
   | "signpost"
-  | "code-chest"
   | "syntax-terminal"
   | "archive"
   | "campfire"
@@ -1117,51 +1116,7 @@ export const SPRITES: Record<SpriteId, SpriteDef> = {
       ],
     ],
   },
-  "code-chest": {
-    w: 16,
-    h: 16,
-    anchor: "bottom",
-    // Teal and deep blue, so it never reads as the amber Supply Cache.
-    palette: { o: "#0b1020", t: "#2dd4bf", b: "#1e3a8a", s: "#94a3b8", l: "#99f6e4" },
-    frames: [
-      [
-        "................",
-        "................",
-        "................",
-        "................",
-        "....oooooooo....",
-        "...otttttttto...",
-        "..otttttttttto..",
-        "..obbbbbbbbbbo..",
-        ".oooooooooooooo.",
-        ".obbbbbssbbbbbo.",
-        ".obbbbsoosbbbbo.",
-        ".otttttssttttto.",
-        ".obbbbbbbbbbbbo.",
-        ".osbbbbbbbbbbso.",
-        ".obbbbbbbbbbbbo.",
-        ".oooooooooooooo.",
-      ],
-      [
-        "................",
-        "...oooooooooo...",
-        "..obbbbbbbbbbo..",
-        "..otttttttttto..",
-        "..otttttttttto..",
-        "..oooooooooooo..",
-        ".oooooooooooooo.",
-        ".ollllllllllllo.",
-        ".ollllllllllllo.",
-        ".oooooooooooooo.",
-        ".obbbbbssbbbbbo.",
-        ".otttttssttttto.",
-        ".obbbbbbbbbbbbo.",
-        ".osbbbbbbbbbbso.",
-        ".obbbbbbbbbbbbo.",
-        ".oooooooooooooo.",
-      ],
-    ],
-  },
+
   "syntax-terminal": {
     w: 16,
     h: 24,

@@ -112,10 +112,10 @@ const FOREST_PLACES: readonly PingPlace[] = ["ranger", "campfire"];
 const ISLAND_PLACES: readonly PingPlace[] = ["dock", "pier", "lighthouse", "hermit"];
 
 /** The desert places chat can ping, likewise listed with the landmarks. */
-const DESERT_PLACES: readonly PingPlace[] = ["nomad", "oasis", "pyramid"];
+const DESERT_PLACES: readonly PingPlace[] = ["nomad"];
 
-/** The beach places chat can ping (`jetty` because `pier` is Foggaten's dock). */
-const BEACH_PLACES: readonly PingPlace[] = ["fisher", "jetty", "shipwreck"];
+/** The beach place chat can ping (the pier and shipwreck are chests, pinged by their language). */
+const BEACH_PLACES: readonly PingPlace[] = ["fisher"];
 
 function weather(arg: string): Result {
   const word = nameKey(arg);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ADA, CAMPFIRE, FOREST_SIGNPOST, HIDDEN_ARTIFACT, LIGHTHOUSE, OLD_OAK, POIS, RANGER, SIGNPOST } from "./constants";
+import { ADA, CAMPFIRE, FOREST_SIGNPOST, HIDDEN_ARTIFACT, LIGHTHOUSE, POIS, RANGER, SIGNPOST } from "./constants";
 import { clampPlayer, distance, interactLabel, isInRiver, nearestPoi, placeInReach, poiInRange, promptText } from "./geometry";
 import { initialState } from "./reducer";
 import type { GameState } from "./types";
@@ -59,7 +59,6 @@ describe("geometry", () => {
     expect([interactLabel(s, SIGNPOST), promptText(s, SIGNPOST)]).toEqual(["Read Signpost", "[E] Read Signpost"]);
     expect([interactLabel(s, RANGER), promptText(s, RANGER)]).toEqual(["Talk to Ranger", "[E] Talk to Ranger"]);
     expect(promptText(s, CAMPFIRE)).toBe("[E] Inspect Campfire");
-    expect(promptText(s, OLD_OAK)).toBe("[E] Inspect Old Oak");
     expect([interactLabel(s, FOREST_SIGNPOST), promptText(s, FOREST_SIGNPOST)]).toEqual(["Read Signpost", "[E] Read Signpost"]);
     expect([interactLabel(s, gate), promptText(s, gate)]).toEqual(["Terminal Gate", "[E] Inspect Terminal Gate"]);
     expect([interactLabel(s, HIDDEN_ARTIFACT), promptText(s, HIDDEN_ARTIFACT)]).toEqual(["Dig here", "[E] Dig here"]);
@@ -68,9 +67,9 @@ describe("geometry", () => {
   it("labels follow state", () => {
     const village: GameState = { ...initialState, zone: "village" };
     const place = (id: string) => ZONES.village.places.find((p) => p.id === id)!;
-    expect(promptText(village, place("chest-sql"))).toBe("[E] Open SQL Chest");
-    expect(interactLabel(village, place("chest-sql"))).toBe("Open SQL Chest");
-    expect(promptText({ ...village, badges: ["chest-sql"] }, place("chest-sql"))).toBe("[E] Review SQL Chest");
+    expect(promptText(village, place("chest-sql"))).toBe("[E] Search Windmill");
+    expect(interactLabel(village, place("chest-sql"))).toBe("Search Windmill");
+    expect(promptText({ ...village, badges: ["chest-sql"] }, place("chest-sql"))).toBe("[E] Review Windmill");
     expect(promptText(village, place("terminal"))).toBe("[E] Use Syntax Terminal");
     expect(promptText(village, place("archive"))).toBe("[E] Unseal Archive");
     expect(promptText({ ...village, archiveOpen: true }, place("archive"))).toBe("[E] Open C# Chest");
@@ -98,19 +97,19 @@ describe("the camp places' verbs", () => {
 });
 
 describe("the desert places' verbs", () => {
-  it("talk to the nomad, read the signpost, inspect the rest", () => {
+  it("talk to the nomad, read the signpost, search the oasis", () => {
     const desert: GameState = { ...initialState, zone: "desert" };
     expect(promptText(desert, { id: "nomad", label: "Nomad", x: 0, y: 0 })).toBe("[E] Talk to Nomad");
     expect(promptText(desert, { id: "desert-signpost", label: "Signpost", x: 0, y: 0 })).toBe("[E] Read Signpost");
-    expect(promptText(desert, { id: "oasis", label: "Oasis", x: 0, y: 0 })).toBe("[E] Inspect Oasis");
+    expect(promptText(desert, { id: "chest-py-2", label: "Oasis", x: 0, y: 0 })).toBe("[E] Search Oasis");
   });
 });
 
 describe("the beach places' verbs", () => {
-  it("talk to the fisher, read the signpost, inspect the rest", () => {
+  it("talk to the fisher, read the signpost, search the shipwreck", () => {
     const beach: GameState = { ...initialState, zone: "beach" };
     expect(promptText(beach, { id: "fisher", label: "Fisher", x: 0, y: 0 })).toBe("[E] Talk to Fisher");
     expect(promptText(beach, { id: "beach-signpost", label: "Signpost", x: 0, y: 0 })).toBe("[E] Read Signpost");
-    expect(promptText(beach, { id: "shipwreck", label: "Shipwreck", x: 0, y: 0 })).toBe("[E] Inspect Shipwreck");
+    expect(promptText(beach, { id: "chest-cpp-2", label: "Shipwreck", x: 0, y: 0 })).toBe("[E] Search Shipwreck");
   });
 });

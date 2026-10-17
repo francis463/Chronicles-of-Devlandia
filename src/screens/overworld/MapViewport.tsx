@@ -386,7 +386,6 @@ export function MapViewport({
 
             <LandmarkButton hit={hits.ranger} name={caption("ranger")} color="var(--accent-border)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "ranger"} onClick={() => onInteract("ranger")} />
             <LandmarkButton hit={hits.campfire} name={caption("campfire")} color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "campfire"} onClick={() => onInteract("campfire")} />
-            <LandmarkButton hit={hits["old-oak"]} name={caption("old-oak")} color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "old-oak"} onClick={() => onInteract("old-oak")} />
             <LandmarkButton hit={hits["forest-signpost"]} name={caption("forest-signpost")} color="var(--text)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "forest-signpost"} onClick={() => onInteract("forest-signpost")} />
           </>
         ) : zone === "beach" ? (
@@ -394,8 +393,6 @@ export function MapViewport({
             <MapCaption id="beach" text="(Sunny Beach Biome)" world={world} />
 
             <LandmarkButton hit={hits.fisher} name={caption("fisher")} color="var(--accent-border)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "fisher"} onClick={() => onInteract("fisher")} />
-            <LandmarkButton hit={hits["beach-pier"]} name={caption("beach-pier")} label="Pier" color="var(--text)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "beach-pier"} onClick={() => onInteract("beach-pier")} />
-            <LandmarkButton hit={hits.shipwreck} name={caption("shipwreck")} color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "shipwreck"} onClick={() => onInteract("shipwreck")} />
             <LandmarkButton hit={hits["beach-signpost"]} name={caption("beach-signpost")} label="Signpost" color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "beach-signpost"} onClick={() => onInteract("beach-signpost")} />
           </>
         ) : zone === "desert" ? (
@@ -403,8 +400,6 @@ export function MapViewport({
             <MapCaption id="desert" text="(Sunbaked Desert Biome)" world={world} />
 
             <LandmarkButton hit={hits.nomad} name={caption("nomad")} color="var(--accent-border)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "nomad"} onClick={() => onInteract("nomad")} />
-            <LandmarkButton hit={hits.oasis} name={caption("oasis")} color="var(--text)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "oasis"} onClick={() => onInteract("oasis")} />
-            <LandmarkButton hit={hits["desert-pyramid"]} name={caption("desert-pyramid")} label="Pyramid" color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "desert-pyramid"} onClick={() => onInteract("desert-pyramid")} />
             <LandmarkButton hit={hits["desert-signpost"]} name={caption("desert-signpost")} label="Signpost" color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "desert-signpost"} onClick={() => onInteract("desert-signpost")} />
           </>
         ) : zone === "foggaten" ? (
@@ -415,7 +410,6 @@ export function MapViewport({
             <LandmarkButton hit={hits.lighthouse} name={caption("lighthouse")} color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "lighthouse"} onClick={() => onInteract("lighthouse")} />
             <LandmarkButton hit={hits.hermit} name={caption("hermit")} color="var(--accent-border)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "hermit"} onClick={() => onInteract("hermit")} />
             <LandmarkButton hit={hits["island-fire"]} name={caption("island-fire")} color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "island-fire"} onClick={() => onInteract("island-fire")} />
-            <LandmarkButton hit={hits.ruins} name={caption("ruins")} color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "ruins"} onClick={() => onInteract("ruins")} />
           </>
         ) : (
           <>
@@ -445,15 +439,13 @@ export function MapViewport({
               key={l.id}
               hit={hits[l.id]}
               name={captionText({ ...l, chest: l.chest.id }, mapState)}
-              label={`${l.chest.spoken} chest${earned ? ", earned" : ""}`}
+              label={`${l.chest.host}, ${l.chest.spoken} chest${earned ? ", earned" : ""}`}
               color="var(--code-chest)"
               world={world}
               map={map}
               prefer={l.prefer}
               disabled={downed}
-              hideCaption={smallMap && inRange?.id !== l.id}
-              peek
-              passive={smallMap}
+              hideCaption={inRange?.id === l.id}
               onClick={() => onInteract(l.id)}
             />
           );

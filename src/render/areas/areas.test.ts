@@ -13,7 +13,8 @@ import { BEACH_POINTS } from "./beach";
 import { BEACH_PIER, FISHER, SHIPWRECK, BEACH_SIGNPOST } from "../../game/constants";
 import { DOCK, HERMIT, ISLAND_DOCK, ISLAND_FIRE, LIGHTHOUSE, RUINS } from "../../game/constants";
 import { VILLAGE_LIFE, VILLAGE_POINTS, wandererPose } from "./village";
-import { ARCHIVE_POINT, CS_CHEST_POINT, TERMINAL_POINT, chestPoints } from "../learnPoints";
+import { ARCHIVE_POINT, TERMINAL_POINT } from "../learnPoints";
+import { CHESTS } from "../../learn/chests";
 
 describe("areas", () => {
   it("village art points are the game places' art points", () => {
@@ -187,9 +188,7 @@ describe("Dev Village's decorations and its life", () => {
   const sprites = village.props.map((p) => p.sprite);
   const landmarks: Rect[] = [
     spriteBox("archive", ARCHIVE_POINT),
-    spriteBox("code-chest", CS_CHEST_POINT),
     spriteBox("syntax-terminal", TERMINAL_POINT),
-    ...chestPoints("village").map(({ at }) => spriteBox("code-chest", at)),
   ];
   const decor = village.props.filter((p) => ["lantern", "garden", "stall"].includes(p.sprite));
 
@@ -248,9 +247,7 @@ describe("Dev Village's north half", () => {
   const count = (id: string) => village.props.filter((p) => p.sprite === id).length;
   const landmarks: Rect[] = [
     spriteBox("archive", ARCHIVE_POINT),
-    spriteBox("code-chest", CS_CHEST_POINT),
     spriteBox("syntax-terminal", TERMINAL_POINT),
-    ...chestPoints("village").map(({ at }) => spriteBox("code-chest", at)),
   ];
 
   it("has a pond, two benches, a windmill, a fountain, five fruit trees, five huts, four gardens and a fence", () => {
@@ -300,7 +297,6 @@ describe("the Snowy Peaks' lodge, wildlife and trail", () => {
     ["dock", spriteBox("dock", DOCK_POINT)],
     ["ice", ICE_RECT],
     ["bridge", BRIDGE_RECT],
-    ...chestPoints("peaks").map(({ id, at }): [string, Rect] => [id, spriteBox("code-chest", at)]),
     ...peaks.mouths.map((m, i): [string, Rect] => [`mouth${i}`, m]),
     ...peaks.paths.map((r, i): [string, Rect] => [`path${i}`, r]),
   ];
@@ -462,5 +458,17 @@ describe("the Sunny Beach's area", () => {
 
   it("the crab's lane and the boat are named points", () => {
     expect(BEACH_POINTS.crabLane.y).toBeGreaterThan(130);
+  });
+});
+
+describe("hosted chests' landmarks", () => {
+  const HOSTS = [["chest-html", "lodge"], ["chest-css", "cave-mouth"], ["chest-php", "hut"], ["chest-sql", "windmill"], ["chest-js", "old-oak"], ["chest-java", "pyramid"], ["chest-py-2", "oasis"], ["chest-cpp-2", "shipwreck"], ["chest-cpp-1", "pier"], ["chest-py-1", "ruins"]] as const;
+
+  it("every chest stands at a landmark drawing of its zone, so the landmark is the chest", () => {
+    for (const [id, sprite] of HOSTS) {
+      const chest = CHESTS.find((c) => c.id === id)!;
+      const spot = toArt(chest.at!);
+      expect(AREAS[chest.zone].props.some((p) => p.sprite === sprite && p.at.x === spot.x && p.at.y === spot.y), `${id} at ${sprite}`).toBe(true);
+    }
   });
 });

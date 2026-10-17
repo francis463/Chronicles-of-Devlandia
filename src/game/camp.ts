@@ -7,7 +7,7 @@ export function signpostText(s: Pick<GameState, "gateUnlocked" | "towerPowered">
     "Base camp. The Gate stands north: solve its terminal to open the way.",
     "The Tower is north-west, beyond the river; powering it brings the bridge back.",
     "The Supply Cache is north-east, past the wall.",
-    "Chests: HTML west, CSS south, Python I east; Java, C++ I and C++ II wait north of the wall.",
+    "Chests: HTML in the ski lodge, south-west; CSS in the ice cave, north of the wall.",
     "The Dock on the east shore sails to Foggaten Island once the gate is open.",
     "Dev Village lies west and the Forest south.",
     s.gateUnlocked ? "The gate is open." : "The gate is still locked.",

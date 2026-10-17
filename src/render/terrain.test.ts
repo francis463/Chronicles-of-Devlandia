@@ -1,4 +1,3 @@
-import { CHESTS } from "../learn/chests";
 import { TERMINAL } from "../game/constants";
 import { describe, expect, it } from "vitest";
 import { AREAS } from "./areas";
@@ -62,7 +61,7 @@ describe("decorations", () => {
   it("are deterministic, and a sub-range returns a subset", () => {
     const all = decorations(VIEW).map(key);
     expect(decorations(VIEW).map(key)).toEqual(all);
-    const sub = decorations({ x: 100, y: 40, w: 120, h: 100 }).map(key);
+    const sub = decorations({ x: 0, y: 40, w: 320, h: 140 }).map(key);
     expect(sub.length).toBeGreaterThan(0);
     for (const k of sub) expect(all).toContain(k);
   });
@@ -164,30 +163,12 @@ describe("decorations", () => {
     expect(wallTiles(WALL_RECT, PEAKS).length).toBeGreaterThan(0);
   });
 
-  it("the village guards the Archive, the Syntax Terminal and its chests; the Peaks guard theirs", () => {
+  it("the village guards the Archive and the Syntax Terminal", () => {
     const guarded = (area: typeof VILLAGE) => protectedBoxes(area).map((r) => JSON.stringify(r));
     const has = (area: typeof VILLAGE, box: Rect) => expect(guarded(area)).toContain(JSON.stringify(box));
     has(VILLAGE, spriteBox("archive", { x: 176, y: 116 }));
-    has(VILLAGE, spriteBox("code-chest", { x: 176, y: 119 }));
     has(VILLAGE, spriteBox("syntax-terminal", toArt(TERMINAL)));
-    for (const chest of CHESTS.filter((c) => c.at)) has(AREAS[chest.zone], spriteBox("code-chest", toArt(chest.at!)));
     expect(VILLAGE.props.some((p) => p.sprite === "hut" && p.at.x === 176 && p.at.y === 116)).toBe(false);
-  });
-
-  it("Peaks decorations stay clear of the chests", () => {
-    const inside = decorations(REACHABLE_RECT, PEAKS);
-    for (const chest of CHESTS.filter((c) => c.zone === "peaks")) {
-      const box = spriteBox("code-chest", toArt(chest.at!));
-      for (const d of inside) expect(intersects(grow(boxOf(d), 4), box), `${key(d)} vs ${chest.id}`).toBe(false);
-    }
-  });
-
-  it("forest decorations stay clear of its chest", () => {
-    const inside = decorations(REACHABLE_RECT, FOREST);
-    for (const chest of CHESTS.filter((c) => c.zone === "forest")) {
-      const box = spriteBox("code-chest", toArt(chest.at!));
-      for (const d of inside) expect(intersects(grow(boxOf(d), 4), box), `${key(d)} vs ${chest.id}`).toBe(false);
-    }
   });
 
   it("village decorations stay clear of its protected boxes, even after the Peaks were computed", () => {

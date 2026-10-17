@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react";
-import { ADA, ARCHIVE, BEACH_PIER, BEACH_SIGNPOST, CAMPFIRE, DESERT_PYRAMID, DESERT_SIGNPOST, FISHER, FOREST_SIGNPOST, HERMIT, HIDDEN_ARTIFACT, ISLAND_DOCK, ISLAND_FIRE, LIGHTHOUSE, NOMAD, OASIS, OLD_OAK, POIS, RANGER, RUINS, SHIPWRECK, SIGNPOST } from "../../game/constants";
+import { ADA, ARCHIVE, BEACH_SIGNPOST, CAMPFIRE, DESERT_SIGNPOST, FISHER, FOREST_SIGNPOST, HERMIT, HIDDEN_ARTIFACT, ISLAND_DOCK, ISLAND_FIRE, LIGHTHOUSE, NOMAD, POIS, RANGER, SIGNPOST } from "../../game/constants";
 import { WALL_Y } from "../../game/wall";
 import type { Poi, Point } from "../../game/types";
 import type { ZoneId } from "../../game/zones";
@@ -65,10 +65,10 @@ const CELL_TOP = 18;
 const CELLS: Array<{ zone: ZoneId; left: number; places: Poi[] }> = [
   { zone: "village", left: 0, places: [ADA, SIGNPOST] },
   { zone: "peaks", left: CELL_W, places: POIS },
-  { zone: "desert", left: 2 * CELL_W, places: [NOMAD, OASIS, DESERT_PYRAMID, DESERT_SIGNPOST] },
-  { zone: "forest", left: 3 * CELL_W, places: [RANGER, CAMPFIRE, OLD_OAK, FOREST_SIGNPOST] },
-  { zone: "beach", left: 4 * CELL_W, places: [FISHER, BEACH_PIER, SHIPWRECK, BEACH_SIGNPOST] },
-  { zone: "foggaten", left: 5 * CELL_W, places: [ISLAND_DOCK, LIGHTHOUSE, HERMIT, ISLAND_FIRE, RUINS] },
+  { zone: "desert", left: 2 * CELL_W, places: [NOMAD, DESERT_SIGNPOST] },
+  { zone: "forest", left: 3 * CELL_W, places: [RANGER, CAMPFIRE, FOREST_SIGNPOST] },
+  { zone: "beach", left: 4 * CELL_W, places: [FISHER, BEACH_SIGNPOST] },
+  { zone: "foggaten", left: 5 * CELL_W, places: [ISLAND_DOCK, LIGHTHOUSE, HERMIT, ISLAND_FIRE] },
 ];
 
 const at = (p: Point) => ({ left: `${p.x}%`, top: `${p.y}%` });

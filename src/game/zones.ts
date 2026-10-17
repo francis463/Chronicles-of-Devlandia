@@ -1,5 +1,5 @@
 import { CHESTS } from "../learn/chests";
-import { ADA, ARCHIVE, BEACH_PIER, BEACH_SIGNPOST, BOUNDS, CAMPFIRE, DESERT_PYRAMID, DESERT_SIGNPOST, DOCK, FISHER, FOREST_SIGNPOST, HERMIT, ISLAND_DOCK, ISLAND_FIRE, LIGHTHOUSE, LOG, NOMAD, OASIS, OLD_OAK, PEAKS_SIGNPOST, POIS, RANGER, RUINS, SHIPWRECK, SIGNPOST, TERMINAL, WEATHER_STATION } from "./constants";
+import { ADA, ARCHIVE, BEACH_SIGNPOST, BOUNDS, CAMPFIRE, DESERT_SIGNPOST, DOCK, FISHER, FOREST_SIGNPOST, HERMIT, ISLAND_DOCK, ISLAND_FIRE, LIGHTHOUSE, LOG, NOMAD, PEAKS_SIGNPOST, POIS, RANGER, SIGNPOST, TERMINAL, WEATHER_STATION } from "./constants";
 import type { Poi, PoiId, Point } from "./types";
 
 export type ZoneId = "peaks" | "village" | "forest" | "foggaten" | "desert" | "beach";
@@ -18,7 +18,7 @@ export type Zone = { id: ZoneId; name: string; entered: string; exits: Exit[]; w
 
 /** A zone's outdoor language chests as places, labelled `<Badge> Chest`, in the chest table's order. */
 export function chestPlaces(zone: ZoneId): Poi[] {
-  return CHESTS.flatMap((c) => (c.zone === zone && c.at ? [{ id: c.id as PoiId, label: `${c.badge} Chest`, ...c.at }] : []));
+  return CHESTS.flatMap((c) => (c.zone === zone && c.at ? [{ id: c.id as PoiId, label: c.host!, ...c.at }] : []));
 }
 
 export const ZONES: Record<ZoneId, Zone> = {
@@ -56,7 +56,7 @@ export const ZONES: Record<ZoneId, Zone> = {
     ],
     wall: false,
     gate: false,
-    places: [RANGER, CAMPFIRE, OLD_OAK, FOREST_SIGNPOST, ...chestPlaces("forest")],
+    places: [RANGER, CAMPFIRE, FOREST_SIGNPOST, ...chestPlaces("forest")],
     river: false,
   },
   desert: {
@@ -66,7 +66,7 @@ export const ZONES: Record<ZoneId, Zone> = {
     exits: [{ edge: "east", min: 62, max: 78, to: "forest" }],
     wall: false,
     gate: false,
-    places: [NOMAD, OASIS, DESERT_PYRAMID, DESERT_SIGNPOST],
+    places: [NOMAD, DESERT_SIGNPOST, ...chestPlaces("desert")],
     river: false,
   },
   beach: {
@@ -76,7 +76,7 @@ export const ZONES: Record<ZoneId, Zone> = {
     exits: [{ edge: "west", min: 62, max: 78, to: "forest" }],
     wall: false,
     gate: false,
-    places: [FISHER, BEACH_PIER, SHIPWRECK, BEACH_SIGNPOST],
+    places: [FISHER, BEACH_SIGNPOST, ...chestPlaces("beach")],
     river: false,
   },
   // No edge leads here: the island is entered and left by boat, from a dock (the `sail` action).
@@ -87,7 +87,7 @@ export const ZONES: Record<ZoneId, Zone> = {
     exits: [],
     wall: false,
     gate: false,
-    places: [ISLAND_DOCK, LIGHTHOUSE, HERMIT, ISLAND_FIRE, RUINS],
+    places: [ISLAND_DOCK, LIGHTHOUSE, HERMIT, ISLAND_FIRE, ...chestPlaces("foggaten")],
     river: false,
   },
 };

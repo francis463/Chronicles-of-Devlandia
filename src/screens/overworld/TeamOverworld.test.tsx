@@ -145,20 +145,21 @@ describe("Overworld in team mode", () => {
   });
 
   it("Kai earns two badges through the UI; Ana's log shows each line once and the personal-badges note once", async () => {
-    // Every pick is 0: the HTML chest asks for href, the CSS chest for color.
+    // Every pick is 0: the HTML chest asks for href, the PHP chest for echo.
     const random = vi.spyOn(Math, "random").mockReturnValue(0);
     try {
       const { user, ana, kai } = await startedPair();
-      await user.click(kai.getByRole("button", { name: "HTML chest" }));
+      await user.click(kai.getByRole("button", { name: "Ski Lodge, HTML chest" }));
       await user.type(kai.getByRole("textbox", { name: "answer" }), "href");
       await user.click(kai.getByRole("button", { name: "[ SUBMIT CODE ]" }));
       await user.click(kai.getByRole("button", { name: "[ CONTINUE ]" }));
-      await user.click(kai.getByRole("button", { name: "CSS chest" }));
-      await user.type(kai.getByRole("textbox", { name: "answer" }), "color");
+      for (let i = 0; i < 6; i++) await user.click(kai.getByRole("button", { name: "Move left" }));
+      await user.click(kai.getByRole("button", { name: "Hut, PHP chest" }));
+      await user.type(kai.getByRole("textbox", { name: "answer" }), "echo");
       await user.click(kai.getByRole("button", { name: "[ SUBMIT CODE ]" }));
       await flush();
       const text = logText(ana);
-      for (const line of ["Kai earned the HTML Badge.", "Badges are personal: each explorer opens their own chest.", "Kai earned the CSS Badge."]) {
+      for (const line of ["Kai earned the HTML Badge.", "Badges are personal: each explorer opens their own chest.", "Kai earned the PHP Badge."]) {
         expect(countIn(text, line), line).toBe(1);
       }
       expect(logText(kai)).not.toContain("Kai earned");
@@ -441,7 +442,7 @@ describe("Overworld team chat", () => {
     const random = vi.spyOn(Math, "random").mockReturnValue(0);
     try {
       const { user, ana, kai } = await startedPair();
-      await user.click(kai.getByRole("button", { name: "HTML chest" }));
+      await user.click(kai.getByRole("button", { name: "Ski Lodge, HTML chest" }));
       await user.type(kai.getByRole("textbox", { name: "answer" }), "href");
       await user.click(kai.getByRole("button", { name: "[ SUBMIT CODE ]" }));
       await flush();

@@ -14,7 +14,7 @@ export type Card = { title: string; text: string; y: number };
 function chestText(s: GameState, chest: Chest): string {
   return s.badges.includes(chest.id)
     ? `${chest.badge} Badge earned. ${chestChallenge(s.picks, chest.id).explain}`
-    : `A sealed code chest. Answer its ${chest.language} question to earn the ${chest.badge} Badge.`;
+    : `A sealed code chest${chest.host ? ` is hidden in the ${chest.host.toLowerCase()}` : ""}. Answer its ${chest.language} question to earn the ${chest.badge} Badge.`;
 }
 
 /** The inspection card for what you last inspected, with the place's y so the card never covers it. */
@@ -24,7 +24,7 @@ export function cardFor(s: GameState): Card | null {
   const card = (title: string, text: string): Card => ({ title, text, y: place.y });
 
   const chest = CHESTS.find((c) => c.id === place.id) ?? (place.id === "archive" && s.archiveOpen ? chestById("chest-cs") : null);
-  if (chest) return card(`${chest.badge} Chest`, chestText(s, chest));
+  if (chest) return card(place.label, chestText(s, chest));
   switch (place.id) {
     case "terminal":
       return card(
@@ -41,14 +41,10 @@ export function cardFor(s: GameState): Card | null {
       return card(place.label, rangerLine(s));
     case "fisher":
       return card(place.label, FISHER_LINE);
-    case "beach-pier":
-    case "shipwreck":
     case "beach-signpost":
       return card(place.label, BEACH_COPY[place.id]);
     case "nomad":
       return card(place.label, NOMAD_LINE);
-    case "oasis":
-    case "desert-pyramid":
     case "desert-signpost":
       return card(place.label, DESERT_COPY[place.id]);
     case "hermit":
@@ -59,7 +55,6 @@ export function cardFor(s: GameState): Card | null {
       return card(place.label, s.lighthouseLit ? ISLAND_COPY.lighthouseLit : ISLAND_COPY.lighthouse);
     case "island-dock":
     case "island-fire":
-    case "ruins":
       return card(place.label, ISLAND_COPY[place.id]);
     case "peaks-signpost":
       return card(place.label, signpostText(s));
@@ -72,7 +67,6 @@ export function cardFor(s: GameState): Card | null {
       return card(place.label, `${lead} ${FOREST_DIRECTIONS}${s.clueDecoded ? " The scroll's clue: dig in the south-east corner." : ""}`);
     }
     case "campfire":
-    case "old-oak":
     case "gate":
     case "chest":
     case "river":

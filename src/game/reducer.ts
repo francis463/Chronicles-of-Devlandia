@@ -293,12 +293,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         return pushLog({ ...state, inspected: "lighthouse", lampOpen: true, lampError: null, lampTries: 0, lampHintRevealed: false }, LOG.lampOpened);
       }
       if (action.poi === "fisher") return pushLogOnce({ ...state, inspected: "fisher" }, `Fisher: "${FISHER_LINE}"`);
-      if (action.poi === "beach-pier" || action.poi === "shipwreck" || action.poi === "beach-signpost") return { ...state, inspected: action.poi };
+      if (action.poi === "beach-signpost") return { ...state, inspected: action.poi };
       if (action.poi === "nomad") return pushLogOnce({ ...state, inspected: "nomad" }, `Nomad: "${NOMAD_LINE}"`);
-      if (action.poi === "oasis" || action.poi === "desert-pyramid" || action.poi === "desert-signpost") return { ...state, inspected: action.poi };
-      if (action.poi === "island-fire" || action.poi === "ruins") return { ...state, inspected: action.poi };
+      if (action.poi === "desert-signpost") return { ...state, inspected: action.poi };
+      if (action.poi === "island-fire") return { ...state, inspected: action.poi };
       if (action.poi === "ranger") return pushLogOnce({ ...state, inspected: "ranger" }, `Ranger: "${rangerLine(state)}"`);
-      if (action.poi === "signpost" || action.poi === "peaks-signpost" || action.poi === "weather-station" || action.poi === "snow-cave" || action.poi === "campfire" || action.poi === "old-oak" || action.poi === "forest-signpost")
+      if (action.poi === "signpost" || action.poi === "peaks-signpost" || action.poi === "weather-station" || action.poi === "snow-cave" || action.poi === "campfire" || action.poi === "forest-signpost")
         return { ...state, inspected: action.poi };
       if (action.poi === "terminal") {
         // Once solved, the terminal shows its success view (the code) again, not a new round.

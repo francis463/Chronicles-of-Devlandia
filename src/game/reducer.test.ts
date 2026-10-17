@@ -537,10 +537,10 @@ describe("gameReducer: places and talking", () => {
 
   it("visiblePois: your zone's places, plus the dig spot in the forest once revealed", () => {
     expect(visiblePois(s0).map((p) => p.id)).toEqual([
-      "gate", "chest", "river", "tower", "dock", "peaks-signpost", "weather-station", "chest-cpp-1", "chest-java", "chest-cpp-2", "chest-html", "chest-css", "chest-py-1",
+      "gate", "chest", "river", "tower", "dock", "peaks-signpost", "weather-station", "chest-html", "chest-css",
     ]);
     expect(visiblePois({ ...village, clueDecoded: true }).map((p) => p.id)).toEqual([
-      "villager", "signpost", "terminal", "archive", "chest-php", "chest-sql", "chest-py-2",
+      "villager", "signpost", "terminal", "archive", "chest-php", "chest-sql",
     ]);
     expect(visiblePois({ ...s0, clueDecoded: true }).map((p) => p.id)).not.toContain("artifact");
     expect(visiblePois({ ...s0, zone: "forest", clueDecoded: true }).map((p) => p.id).at(-1)).toBe("artifact");
@@ -663,17 +663,17 @@ describe("gameReducer: chests", () => {
   const sqlOpen: GameState = { ...village, challenge: openOn("chest-sql") };
 
   it("a south chest opens its picked challenge and sets inspected", () => {
-    const s = gameReducer({ ...s0, player: { x: 14, y: 64 } }, { type: "interact", poi: "chest-html" });
+    const s = gameReducer({ ...s0, player: { x: 19, y: 84 } }, { type: "interact", poi: "chest-html" });
     expect(s.challenge?.target).toBe("chest-html");
     expect(s.inspected).toBe("chest-html");
   });
 
   it("a north chest before the gate logs LOG.wallLocked, sets inspected and opens nothing; after the gate it opens", () => {
-    const locked = gameReducer(s0, { type: "interact", poi: "chest-java" });
+    const locked = gameReducer(s0, { type: "interact", poi: "chest-css" });
     expect(locked.challenge).toBeNull();
-    expect(locked.inspected).toBe("chest-java");
+    expect(locked.inspected).toBe("chest-css");
     expect(lastLog(locked)).toBe(LOG.wallLocked);
-    expect(gameReducer(opened, { type: "interact", poi: "chest-java" }).challenge?.target).toBe("chest-java");
+    expect(gameReducer(opened, { type: "interact", poi: "chest-css" }).challenge?.target).toBe("chest-css");
   });
 
   it("a right answer earns the badge once, records the answer, logs it and shows the success view", () => {
@@ -733,8 +733,9 @@ describe("gameReducer: chests", () => {
 
   it("south of the locked wall, north chests are out of reach of [E]", () => {
     const p = { x: 16, y: 50 };
-    expect(placeInReach(p, reachPlaces({ ...s0, player: p }))?.id).toBe("chest-html");
-    expect(placeInReach(p, reachPlaces({ ...opened, player: p }))?.id).toBe("chest-java");
+    expect(reachPlaces({ ...s0, player: p }).map((q) => q.id)).not.toContain("chest-css");
+    expect(reachPlaces({ ...opened, player: p }).map((q) => q.id)).toContain("chest-css");
+    expect(placeInReach({ x: 19, y: 84 }, reachPlaces({ ...s0, player: { x: 19, y: 84 } }))?.id).toBe("chest-html");
   });
 });
 
@@ -884,8 +885,8 @@ describe("gameReducer: the Dense Forest (Review Focus 1 and 5)", () => {
 describe("gameReducer: the Dense Forest's places", () => {
   const forest: GameState = { ...s0, zone: "forest" };
 
-  it("the forest's places are the ranger, campfire, oak, signpost and the JavaScript chest", () => {
-    expect(reachPlaces(forest).map((p) => p.id)).toEqual(["ranger", "campfire", "old-oak", "forest-signpost", "chest-js"]);
+  it("the forest's places are the ranger, campfire, signpost and the old oak's JavaScript chest", () => {
+    expect(reachPlaces(forest).map((p) => p.id)).toEqual(["ranger", "campfire", "forest-signpost", "chest-js"]);
   });
 
   it("talking to the ranger opens her card and logs her line once", () => {
@@ -898,8 +899,8 @@ describe("gameReducer: the Dense Forest's places", () => {
     expect(twice.logCount).toBe(once.logCount);
   });
 
-  it("the campfire, the oak and the signpost inspect and log nothing", () => {
-    for (const poi of ["campfire", "old-oak", "forest-signpost"] as const) {
+  it("the campfire and the signpost inspect and log nothing", () => {
+    for (const poi of ["campfire", "forest-signpost"] as const) {
       const s = gameReducer(forest, { type: "interact", poi });
       expect(s.inspected, poi).toBe(poi);
       expect(s.logCount, poi).toBe(forest.logCount);
@@ -916,16 +917,16 @@ describe("gameReducer: the Dense Forest's places", () => {
 describe("gameReducer: the Sunbaked Desert's places", () => {
   const desert: GameState = { ...s0, zone: "desert" };
 
-  it("the desert's places are the nomad, oasis, pyramid and signpost", () => {
-    expect(reachPlaces(desert).map((p) => p.id)).toEqual(["nomad", "oasis", "desert-pyramid", "desert-signpost"]);
+  it("the desert's places are the nomad, signpost and the pyramid and oasis chests", () => {
+    expect(reachPlaces(desert).map((p) => p.id)).toEqual(["nomad", "desert-signpost", "chest-java", "chest-py-2"]);
   });
 
-  it("the nomad speaks once; the others inspect and log nothing", () => {
+  it("the nomad speaks once; the signpost inspects and logs nothing", () => {
     const once = gameReducer(desert, { type: "interact", poi: "nomad" });
     expect(once.inspected).toBe("nomad");
     expect(lastLog(once)).toMatch(/^Nomad: "/);
     expect(gameReducer(once, { type: "interact", poi: "nomad" }).logCount).toBe(once.logCount);
-    for (const poi of ["oasis", "desert-pyramid", "desert-signpost"] as const) {
+    for (const poi of ["desert-signpost"] as const) {
       const s = gameReducer(desert, { type: "interact", poi });
       expect(s.inspected, poi).toBe(poi);
       expect(s.logCount, poi).toBe(desert.logCount);
@@ -934,7 +935,7 @@ describe("gameReducer: the Sunbaked Desert's places", () => {
 
   it("the desert's places do nothing elsewhere", () => {
     expect(gameReducer(s0, { type: "interact", poi: "nomad" })).toBe(s0);
-    expect(gameReducer({ ...s0, zone: "forest" }, { type: "interact", poi: "oasis" }).inspected).toBeNull();
+    expect(gameReducer({ ...s0, zone: "forest" }, { type: "interact", poi: "chest-py-2" }).inspected).toBeNull();
   });
 
   it("crossing the forest's west edge enters the desert on its east edge, same row, and logs it once", () => {
@@ -947,15 +948,15 @@ describe("gameReducer: the Sunbaked Desert's places", () => {
 
 describe("gameReducer: the Sunny Beach's places", () => {
   const beach: GameState = { ...s0, zone: "beach" };
-  it("the beach's places are the fisher, pier, shipwreck and signpost", () => {
-    expect(reachPlaces(beach).map((p) => p.id)).toEqual(["fisher", "beach-pier", "shipwreck", "beach-signpost"]);
+  it("the beach's places are the fisher, signpost and the pier and shipwreck chests", () => {
+    expect(reachPlaces(beach).map((p) => p.id)).toEqual(["fisher", "beach-signpost", "chest-cpp-1", "chest-cpp-2"]);
   });
-  it("the fisher speaks once; the others inspect and log nothing", () => {
+  it("the fisher speaks once; the signpost inspects and logs nothing", () => {
     const once = gameReducer(beach, { type: "interact", poi: "fisher" });
     expect(once.inspected).toBe("fisher");
     expect(lastLog(once)).toMatch(/^Fisher: "/);
     expect(gameReducer(once, { type: "interact", poi: "fisher" }).logCount).toBe(once.logCount);
-    for (const poi of ["beach-pier", "shipwreck", "beach-signpost"] as const) {
+    for (const poi of ["beach-signpost"] as const) {
       const s = gameReducer(beach, { type: "interact", poi });
       expect(s.inspected, poi).toBe(poi);
       expect(s.logCount, poi).toBe(beach.logCount);
@@ -963,12 +964,29 @@ describe("gameReducer: the Sunny Beach's places", () => {
   });
   it("the beach's places do nothing elsewhere", () => {
     expect(gameReducer(s0, { type: "interact", poi: "fisher" })).toBe(s0);
-    expect(gameReducer({ ...s0, zone: "desert" }, { type: "interact", poi: "shipwreck" }).inspected).toBeNull();
+    expect(gameReducer({ ...s0, zone: "desert" }, { type: "interact", poi: "chest-cpp-2" }).inspected).toBeNull();
   });
   it("crossing the forest's east edge enters the beach on its west edge, same row", () => {
     const s = gameReducer({ ...s0, zone: "forest", player: { x: 94, y: 70 } }, { type: "move", dir: "right" });
     expect([s.zone, s.player.x, s.player.y]).toEqual(["beach", 6, 70]);
     expect(lastLog(s)).toBe("Entered Sunny Beach.");
+  });
+});
+
+describe("gameReducer: chests hosted in landmarks", () => {
+  const HOSTED = [["chest-html", "peaks"], ["chest-css", "peaks"], ["chest-php", "village"], ["chest-sql", "village"], ["chest-js", "forest"], ["chest-java", "desert"], ["chest-py-2", "desert"], ["chest-cpp-2", "beach"], ["chest-cpp-1", "beach"], ["chest-py-1", "foggaten"]] as const;
+
+  it("standing at its landmark opens each chest's question, and an earned chest can be reviewed", () => {
+    for (const [id, zone] of HOSTED) {
+      const at = ZONES[zone].places.find((p) => p.id === id)!;
+      const here: GameState = { ...s0, zone, player: { x: Math.round(at.x / 2) * 2, y: Math.round(at.y / 2) * 2 }, gateUnlocked: true };
+      expect(gameReducer(here, { type: "interact", poi: id }).challenge?.target, id).toBe(id);
+    }
+  });
+
+  it("each hosted chest's place is named after its landmark", () => {
+    expect(ZONES.village.places.find((p) => p.id === "chest-sql")?.label).toBe("Windmill");
+    expect(ZONES.foggaten.places.find((p) => p.id === "chest-py-1")?.label).toBe("Ruins");
   });
 });
 
@@ -1040,7 +1058,7 @@ describe("gameReducer: sailing to Foggaten Island", () => {
 
   it("the island's places inspect, and the hermit speaks once", () => {
     const island: GameState = { ...s0, zone: "foggaten" };
-    for (const poi of ["lighthouse", "island-fire", "ruins"] as const) {
+    for (const poi of ["lighthouse", "island-fire"] as const) {
       expect(gameReducer(island, { type: "interact", poi }).inspected, poi).toBe(poi);
     }
     const once = gameReducer(island, { type: "interact", poi: "hermit" });

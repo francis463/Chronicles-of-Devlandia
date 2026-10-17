@@ -314,7 +314,7 @@ describe("the Sunbaked Desert in team messages", () => {
     expect(parsePresence({ ...meta("a", 1), zone: "desert" }, NOW)?.zone).toBe("desert");
     expect(parseMessage({ type: "pos", id: "a", x: 20, y: 20, zone: "desert" }, NOW)).toEqual({ type: "pos", id: "a", x: 20, y: 20, zone: "desert" });
     expect(parseMessage({ type: "ping", id: "a", name: "Kai", zone: "desert", x: 30, y: 40, place: null }, NOW)).toMatchObject({ zone: "desert", place: null });
-    expect(parseMessage({ type: "ping", id: "a", name: "Kai", zone: "peaks", x: 30, y: 40, place: "pyramid" }, NOW)).toMatchObject({ zone: "desert", x: 20, y: 34, place: "pyramid" });
+    expect(parseMessage({ type: "ping", id: "a", name: "Kai", zone: "peaks", x: 30, y: 40, place: "java" }, NOW)).toMatchObject({ zone: "desert", x: 20, y: 34, place: "java" });
   });
   it("a zone this client does not know is still elsewhere, and its ping is dropped", () => {
     expect(parsePresence({ ...meta("a", 1), zone: "tundra" }, NOW)?.zone).toBeNull();
@@ -327,7 +327,7 @@ describe("the Sunny Beach in team messages", () => {
     expect(parsePresence({ ...meta("a", 1), zone: "beach" }, NOW)?.zone).toBe("beach");
     expect(parseMessage({ type: "pos", id: "a", x: 20, y: 20, zone: "beach" }, NOW)).toEqual({ type: "pos", id: "a", x: 20, y: 20, zone: "beach" });
     expect(parseMessage({ type: "ping", id: "a", name: "Kai", zone: "beach", x: 30, y: 40, place: null }, NOW)).toMatchObject({ zone: "beach", place: null });
-    expect(parseMessage({ type: "ping", id: "a", name: "Kai", zone: "peaks", x: 30, y: 40, place: "shipwreck" }, NOW)).toMatchObject({ zone: "beach", x: 60, y: 30, place: "shipwreck" });
+    expect(parseMessage({ type: "ping", id: "a", name: "Kai", zone: "peaks", x: 30, y: 40, place: "cpp2" }, NOW)).toMatchObject({ zone: "beach", x: 60, y: 30, place: "cpp2" });
   });
 });
 

@@ -101,7 +101,7 @@ export type LandmarkCaption = {
   point: ArtPoint;
   texts: readonly string[];
   prefer: "above" | "below";
-  /** An outdoor chest: on a 1× map its caption shows only on hover, focus or while it is in reach. */
+  /** The chest inside this landmark: its caption gains a ✓ once earned. */
   chest?: ChestId;
   /** Like a chest: on a 1× map its caption shows only on hover, focus or while it is in reach (the camp is crowded). */
   quiet?: boolean;
@@ -111,6 +111,20 @@ export type LandmarkCaption = {
  * Each zone's buttons: the tower and cache captions sit above them when they fit (off the ice), as
  * do Ada's, the signpost's and the Archive's; chest captions take the chest table's side.
  */
+/** The landmark each chest is inside: its drawing, which side its caption prefers and a shorter caption name where the host name is long. */
+const HOSTS: Partial<Record<ChestId, { sprite: SpriteId; prefer: "above" | "below"; name?: string }>> = {
+  "chest-html": { sprite: "lodge", prefer: "below", name: "Lodge" },
+  "chest-css": { sprite: "cave-mouth", prefer: "below", name: "Cave" },
+  "chest-php": { sprite: "hut", prefer: "above" },
+  "chest-sql": { sprite: "windmill", prefer: "above", name: "Mill" },
+  "chest-js": { sprite: "old-oak", prefer: "above" },
+  "chest-java": { sprite: "pyramid", prefer: "above" },
+  "chest-py-2": { sprite: "oasis", prefer: "below" },
+  "chest-cpp-2": { sprite: "shipwreck", prefer: "above" },
+  "chest-cpp-1": { sprite: "pier", prefer: "below" },
+  "chest-py-1": { sprite: "ruins", prefer: "above" },
+};
+
 export const LANDMARK_CAPTIONS: readonly LandmarkCaption[] = [
   { id: "tower", zone: "peaks", sprite: "tower", point: LANDMARK_POINTS.tower, texts: ["[T] Tower", "[T] Tower ✓"], prefer: "above" },
   { id: "chest", zone: "peaks", sprite: "chest-closed", point: LANDMARK_POINTS.chest, texts: ["[X] Supply Cache", "[X] Empty Cache"], prefer: "above" },
@@ -119,7 +133,6 @@ export const LANDMARK_CAPTIONS: readonly LandmarkCaption[] = [
   { id: "signpost", zone: "village", sprite: "signpost", point: VILLAGE_POINTS.signpost, texts: ["[P] Signpost"], prefer: "above" },
   { id: "ranger", zone: "forest", sprite: "explorer-down", point: FOREST_POINTS.ranger, texts: ["[R] Ranger"], prefer: "above" },
   { id: "campfire", zone: "forest", sprite: "campfire", point: FOREST_POINTS.campfire, texts: ["[F] Campfire"], prefer: "below" },
-  { id: "old-oak", zone: "forest", sprite: "old-oak", point: FOREST_POINTS.oak, texts: ["[O] Old Oak"], prefer: "above" },
   { id: "forest-signpost", zone: "forest", sprite: "signpost", point: FOREST_POINTS.signpost, texts: ["[P] Signpost"], prefer: "below" },
   { id: "dock", zone: "peaks", sprite: "dock", point: DOCK_POINT, texts: ["[B] Dock"], prefer: "below" },
   { id: "peaks-signpost", zone: "peaks", sprite: "signpost", point: SIGNPOST_POINT, texts: ["[P] Signpost"], prefer: "above", quiet: true },
@@ -129,20 +142,16 @@ export const LANDMARK_CAPTIONS: readonly LandmarkCaption[] = [
   { id: "lighthouse", zone: "foggaten", sprite: "lighthouse", point: FOGGATEN_POINTS.lighthouse, texts: ["[L] Lighthouse"], prefer: "above" },
   { id: "hermit", zone: "foggaten", sprite: "explorer-down", point: FOGGATEN_POINTS.hermit, texts: ["[H] Hermit"], prefer: "above" },
   { id: "island-fire", zone: "foggaten", sprite: "campfire", point: FOGGATEN_POINTS.fire, texts: ["[F] Campfire"], prefer: "below" },
-  { id: "ruins", zone: "foggaten", sprite: "ruins", point: FOGGATEN_POINTS.ruins, texts: ["[R] Ruins"], prefer: "above" },
   { id: "nomad", zone: "desert", sprite: "explorer-down", point: DESERT_POINTS.nomad, texts: ["[N] Nomad"], prefer: "below" },
-  { id: "oasis", zone: "desert", sprite: "oasis", point: DESERT_POINTS.oasis, texts: ["[O] Oasis"], prefer: "below" },
-  { id: "desert-pyramid", zone: "desert", sprite: "pyramid", point: DESERT_POINTS.pyramid, texts: ["[P] Pyramid"], prefer: "above" },
   { id: "desert-signpost", zone: "desert", sprite: "signpost", point: DESERT_POINTS.signpost, texts: ["[S] Signpost"], prefer: "above" },
   { id: "fisher", zone: "beach", sprite: "explorer-down", point: BEACH_POINTS.fisher, texts: ["[F] Fisher"], prefer: "below" },
-  { id: "beach-pier", zone: "beach", sprite: "pier", point: BEACH_POINTS.pier, texts: ["[P] Pier"], prefer: "below" },
-  { id: "shipwreck", zone: "beach", sprite: "shipwreck", point: BEACH_POINTS.shipwreck, texts: ["[W] Shipwreck"], prefer: "above" },
   { id: "beach-signpost", zone: "beach", sprite: "signpost", point: BEACH_POINTS.signpost, texts: ["[S] Signpost"], prefer: "above" },
   { id: "terminal", zone: "village", sprite: "syntax-terminal", point: TERMINAL_POINT, texts: ["Terminal"], prefer: "below" },
   { id: "archive", zone: "village", sprite: "archive", point: ARCHIVE_POINT, texts: ["Archive", "C#", "C# ✓"], prefer: "above" },
-  ...CHESTS.flatMap((c): LandmarkCaption[] =>
-    c.at && c.caption ? [{ id: c.id as PoiId, zone: c.zone, sprite: "code-chest", point: toArt(c.at), texts: [c.badge, `${c.badge} ✓`], prefer: c.caption, chest: c.id }] : [],
-  ),
+  ...CHESTS.flatMap((c): LandmarkCaption[]  => {
+    const host = c.at && HOSTS[c.id];
+    return host ? [{ id: c.id as PoiId, zone: c.zone, sprite: host.sprite, point: toArt(c.at!), texts: [host.name ?? c.host!, `${host.name ?? c.host} ✓`], prefer: host.prefer, chest: c.id }] : [];
+  }),
 ];
 
 /** What the map captions depend on. `reach` is the place in reach, whose chest caption shows at 1×. */
@@ -181,7 +190,7 @@ export function landmarkCaptions(world: WorldRect, map: MapArea, state: MapState
   const hits = zoneHitAreas(world, zone);
   return LANDMARK_CAPTIONS.filter((l) => l.zone === zone).flatMap((l) => {
     const drawing = toEdges(spriteCss(spriteBox(spriteOf(l, state), l.point), world), world);
-    if ((l.chest || l.quiet) && world.scale < CHEST_CAPTION_SCALE && state.reach !== l.id) return [drawing];
+    if (l.quiet && world.scale < CHEST_CAPTION_SCALE && state.reach !== l.id) return [drawing];
     return [toEdges(captionRect(captionText(l, state), hits[l.id], map, l.prefer), world), drawing];
   });
 }
@@ -189,9 +198,9 @@ export function landmarkCaptions(world: WorldRect, map: MapArea, state: MapState
 /** Place names and exit signs, positioned in world percentages so they clear the landmarks and the dig spot. */
 export const MAP_CAPTIONS = [
   { id: "peaks", zone: "peaks", at: { x: 40, y: 4 }, align: "centre" },
-  { id: "river", zone: "peaks", at: { x: 42, y: 22 }, align: "centre" },
-  { id: "forest", zone: "peaks", at: { x: 76, y: 98 }, align: "right-bottom" },
-  { id: "village", zone: "village", at: { x: 40, y: 4 }, align: "centre" },
+  { id: "river", zone: "peaks", at: { x: 40, y: 36 }, align: "centre" },
+  { id: "forest", zone: "peaks", at: { x: 80, y: 98 }, align: "right-bottom" },
+  { id: "village", zone: "village", at: { x: 55, y: 4 }, align: "centre" },
   { id: "west-exit", zone: "peaks", at: { x: 1, y: 88 }, align: "left-centre" },
   { id: "east-exit", zone: "village", at: { x: 99, y: 88 }, align: "right-centre" },
   { id: "south-exit", zone: "peaks", at: { x: 70, y: 85 }, align: "centre" },

@@ -33,11 +33,11 @@ describe("zones", () => {
     }
   });
 
-  it("village places in order: villager, signpost, terminal, archive, chest-php, chest-sql, chest-py-2", () => {
+  it("village places in order: villager, signpost, terminal, archive, chest-php, chest-sql", () => {
     expect(ZONES.village.places.map((p) => p.id)).toEqual([
-      "villager", "signpost", "terminal", "archive", "chest-php", "chest-sql", "chest-py-2",
+      "villager", "signpost", "terminal", "archive", "chest-php", "chest-sql",
     ]);
-    expect(ZONES.village.places.find((p) => p.id === "chest-sql")).toMatchObject({ label: "SQL Chest", x: 12, y: 80 });
+    expect(ZONES.village.places.find((p) => p.id === "chest-sql")).toMatchObject({ label: "Windmill", x: 13.75, y: 42.2 });
   });
 
   it("exitFor: only a horizontal step off the exit edge inside the span", () => {
@@ -141,10 +141,9 @@ describe("arrival on vertical edges", () => {
 });
 
 describe("Foggaten Island", () => {
-  it("is a zone with no exits, wall, gate or river, and five places and no chest", () => {
+  it("is a zone with no exits, wall, gate or river, four places and the ruins chest", () => {
     expect(ZONES.foggaten).toMatchObject({ id: "foggaten", name: "Foggaten Island", exits: [], wall: false, gate: false, river: false });
-    expect(ZONES.foggaten.places.map((p) => p.id)).toEqual(["island-dock", "lighthouse", "hermit", "island-fire", "ruins"]);
-    expect(ZONES.foggaten.places.some((p) => p.id.startsWith("chest"))).toBe(false);
+    expect(ZONES.foggaten.places.map((p) => p.id)).toEqual(["island-dock", "lighthouse", "hermit", "island-fire", "chest-py-1"]);
   });
 
   it("the Peaks has a dock", () => {
@@ -169,9 +168,9 @@ describe("the Sunbaked Desert zone", () => {
     expect(exitFor("desert", { x: 94, y: 86 }, { x: 98, y: 86 })).toBeNull();
   });
 
-  it("its places are the nomad, oasis, pyramid and signpost", () => {
-    expect(ZONES.desert.places.map((p) => p.id)).toEqual(["nomad", "oasis", "desert-pyramid", "desert-signpost"]);
-    expect(ZONES.desert.places.map((p) => p.label)).toEqual(["Nomad", "Oasis", "Pyramid", "Signpost"]);
+  it("its places are the nomad, the signpost and the pyramid and oasis chests", () => {
+    expect(ZONES.desert.places.map((p) => p.id)).toEqual(["nomad", "desert-signpost", "chest-java", "chest-py-2"]);
+    expect(ZONES.desert.places.map((p) => p.label)).toEqual(["Nomad", "Signpost", "Pyramid", "Oasis"]);
   });
 });
 
@@ -186,8 +185,8 @@ describe("the Sunny Beach zone", () => {
     expect(exitFor("forest", { x: 94, y: 50 }, { x: 98, y: 50 })).toBeNull();
     expect(exitFor("beach", { x: 6, y: 86 }, { x: 2, y: 86 })).toBeNull();
   });
-  it("its places are the fisher, pier, shipwreck and signpost", () => {
-    expect(ZONES.beach.places.map((p) => p.id)).toEqual(["fisher", "beach-pier", "shipwreck", "beach-signpost"]);
-    expect(ZONES.beach.places.map((p) => p.label)).toEqual(["Fisher", "Pier", "Shipwreck", "Signpost"]);
+  it("its places are the fisher, the signpost and the pier and shipwreck chests", () => {
+    expect(ZONES.beach.places.map((p) => p.id)).toEqual(["fisher", "beach-signpost", "chest-cpp-1", "chest-cpp-2"]);
+    expect(ZONES.beach.places.map((p) => p.label)).toEqual(["Fisher", "Signpost", "Pier", "Shipwreck"]);
   });
 });

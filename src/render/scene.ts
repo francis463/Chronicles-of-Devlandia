@@ -16,7 +16,7 @@ import { LIGHTS, SPRITES, spriteBox, type SpriteId } from "./sprites";
 import { BRIDGE_RECT, LANDMARK_POINTS, WALL_RECT, decorations, wallTiles } from "./terrain";
 import { REACHABLE_RECT, WORLD, intersects, type ArtPoint, type Rect } from "./world";
 import type { ChestId } from "../learn/types";
-import { ARCHIVE_POINT, CS_CHEST_POINT, TERMINAL_POINT, chestPoints } from "./learnPoints";
+import { ARCHIVE_POINT, TERMINAL_POINT } from "./learnPoints";
 
 export const PHASE_TINT: Record<Phase, string> = {
   Night: "rgba(20,20,28,0.25)",
@@ -398,16 +398,12 @@ const wallTilesInWorld = perZone((zone) => wallTiles(WALL_RECT, AREAS[zone]).map
 /** An area's static uprights (the village's huts, well, fences, signpost and Ada). */
 const props = perZone((zone) => AREAS[zone].props.map((p) => placed(p.sprite, p.at, { variant: p.variant ?? "base" })));
 
-/** A zone's code chests (open once earned), and in the village the Syntax Terminal, the Archive and the C# chest. */
+/** The village's Syntax Terminal and Archive (the chests are inside their landmarks, so nothing is drawn for them). */
 function learning(input: SceneInput): Drawable[] {
-  const chest = (id: ChestId, at: ArtPoint) => placed("code-chest", at, { frame: input.earned.includes(id) ? 1 : 0 });
-  const chests = chestPoints(input.zone).map((c) => chest(c.id, c.at));
-  if (input.zone !== "village") return chests;
+  if (input.zone !== "village") return [];
   return [
-    ...chests,
     placed("syntax-terminal", TERMINAL_POINT, { frame: input.matcherSolved ? 1 : 0 }),
     placed("archive", ARCHIVE_POINT, { frame: input.archiveOpen ? 1 : 0 }),
-    ...(input.archiveOpen ? [chest("chest-cs", CS_CHEST_POINT)] : []),
   ];
 }
 
@@ -497,12 +493,12 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
   if (input.towerPowered)
     for (let i = 0; i < PLANK_ROWS; i++) flat.push(placed("plank", { x: BRIDGE_RECT.x + 13, y: BRIDGE_RECT.y + (i + 1) * 3 - 1 }));
 
-  // The fox and goat drift away from you; the arrow over the first chest bounces until you earn a badge.
+  // The fox and goat drift away from you; the arrow over the ski lodge (the first chest) bounces until you earn a badge.
   const you = { x: poses.player.x, y: poses.player.y };
   const fox = foxPose(t, reduced, you);
   const goat = goatPose(t, reduced, you);
   const wildlife = [placed("fox", fox, { frame: fox.frame, flip: fox.flip }), placed("goat", goat, { flip: goat.flip }), ...birds(t, reduced)];
-  const startArrow = placed("arrow", { x: 32, y: 91 - (!reduced && Math.floor(t / 400) % 2 === 1 ? 1 : 0) });
+  const startArrow = placed("arrow", { x: 62, y: 132 - (!reduced && Math.floor(t / 400) % 2 === 1 ? 1 : 0) });
 
   const upright = [
     ...interiorDecorations(input.zone),
