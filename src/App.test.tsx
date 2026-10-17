@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import { createMemoryAuth } from "./auth/memoryAuth";
+import { createMemoryLeaderboard } from "./leaderboard/memoryLeaderboard";
 import { createMemoryProgress, type SavedBadge } from "./progress/progress";
 import { GuestApp } from "./testing/GuestApp";
 
@@ -52,11 +53,11 @@ describe("App", () => {
     expect(screen.getByText("v1.0 | Online Network")).toBeInTheDocument();
   });
 
-  it("enables Team Lobby and keeps Leaderboards as coming soon", async () => {
+  it("enables Team Lobby and Leaderboards", async () => {
     const user = userEvent.setup();
     render(<GuestApp />);
-    expect(screen.getByRole("button", { name: /leaderboards/i })).toBeDisabled();
-    expect(screen.getAllByText(/coming soon/i)).toHaveLength(1);
+    expect(screen.getByRole("button", { name: /leaderboards/i })).toBeEnabled();
+    expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /team lobby/i }));
     await user.click(screen.getByRole("button", { name: "[ Continue ]" }));
     expect(screen.getByRole("heading", { name: "TEAM LOBBY" })).toBeInTheDocument();
@@ -84,7 +85,7 @@ describe("App", () => {
   it("the main menu offers Solo Quest, Team Lobby and Leaderboards, with no Exit Game", () => {
     render(<GuestApp />);
     const menu = within(screen.getByRole("navigation", { name: "Main menu" }));
-    expect(menu.getAllByRole("button").map((b) => b.textContent)).toEqual(["Solo Quest", "Team Lobby", "LeaderboardsComing soon"]);
+    expect(menu.getAllByRole("button").map((b) => b.textContent)).toEqual(["Solo Quest", "Team Lobby", "Leaderboards"]);
     expect(screen.queryByRole("button", { name: /exit game/i })).toBeNull();
   });
 });
@@ -436,5 +437,67 @@ describe("App: character classes", () => {
       await solo(user);
       expect(radio("Warrior")).toBeChecked();
     });
+  });
+});
+
+describe("App: leaderboard", () => {
+  const rows = [
+    { rank: 1, name: "Kai", badges: 3 },
+    { rank: 2, name: "Zed", badges: 2 },
+  ];
+  const open = (user: ReturnType<typeof userEvent.setup>) => user.click(screen.getByRole("button", { name: "Leaderboards" }));
+
+  it("a guest opens the leaderboard from the menu and comes back with Back", async () => {
+    const user = userEvent.setup();
+    const made = vi.fn(() => createMemoryLeaderboard({ rows }));
+    render(<GuestApp makeLeaderboard={made} />);
+    await open(user);
+    expect(screen.getByRole("heading", { name: "LEADERBOARD" })).toBeInTheDocument();
+    expect(await screen.findByRole("list", { name: "Top players" })).toHaveTextContent("Zed");
+    expect(made).toHaveBeenCalledWith(null);
+    expect(screen.queryByRole("switch")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "[ Back ]" }));
+    expect(screen.getByRole("navigation", { name: "Main menu" })).toBeInTheDocument();
+  });
+
+  const signedIn = async (store = createMemoryLeaderboard({ rows, me: { rank: 1, badges: 3, hidden: false } })) => {
+    const client = createMemoryAuth();
+    await client.signUp("Kai", "password1");
+    const made = vi.fn(() => store);
+    const user = userEvent.setup();
+    render(<App authClient={client} makeProgress={() => createMemoryProgress()} makeLeaderboard={made} />);
+    await waitFor(() => expect(screen.getByRole("button", { name: /solo quest/i })).toBeEnabled());
+    return { client, made, user, store };
+  };
+
+  it("a signed-in player gets a store for their own id, sees themself, and can hide", async () => {
+    const { made, user } = await signedIn();
+    await open(user);
+    expect(made).toHaveBeenLastCalledWith("u1");
+    const list = await screen.findByRole("list", { name: "Top players" });
+    expect(within(list).getAllByRole("listitem")[0]).toHaveTextContent("Kai (you)");
+    expect(screen.getByRole("switch", { name: "Hide me from the leaderboard" })).toBeInTheDocument();
+  });
+
+  it("the button works while a signed-in player's saved badges are still loading", async () => {
+    const client = createMemoryAuth();
+    await client.signUp("Kai", "password1");
+    const slow = { load: () => new Promise<SavedBadge[]>(() => undefined), save: async () => undefined };
+    render(<App authClient={client} makeProgress={() => slow} makeLeaderboard={() => createMemoryLeaderboard({ rows })} />);
+    await screen.findByText(/Signed in as/);
+    expect(screen.getByRole("button", { name: /solo quest/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Leaderboards" })).toBeEnabled();
+  });
+
+  it("being signed out from elsewhere while on the leaderboard returns to the login screen", async () => {
+    const { client, user } = await signedIn();
+    await open(user);
+    await screen.findByRole("list", { name: "Top players" });
+    act(() => {
+      client.session = null;
+      client.emit("signedOut");
+    });
+    expect(await screen.findByRole("button", { name: /play as guest/i })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "LEADERBOARD" })).not.toBeInTheDocument();
   });
 });

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import type { AuthClient } from "./auth/authClient";
 import { DEFAULT_CLASS, type ClassId } from "./game/classes";
+import type { LeaderboardStore } from "./leaderboard/leaderboard";
+import { createSupabaseLeaderboard } from "./leaderboard/supabaseLeaderboard";
 import { createSupabaseAuth } from "./auth/supabaseAuth";
 import { useAuth } from "./auth/useAuth";
 import { loadSupabase } from "./net/supabaseClient";
@@ -9,6 +11,7 @@ import { createSupabaseProgress } from "./progress/supabaseProgress";
 import { useBadgeSaver } from "./progress/useBadgeSaver";
 import { AuthScreen } from "./screens/AuthScreen";
 import { ClassPicker } from "./screens/ClassPicker";
+import { Leaderboard } from "./screens/Leaderboard";
 import { ChooseName } from "./screens/ChooseName";
 import { SetPassword } from "./screens/SetPassword";
 import { useChat } from "./hooks/useChat";
@@ -19,7 +22,7 @@ import { MainMenu } from "./screens/MainMenu";
 import { Overworld } from "./screens/overworld/Overworld";
 import { TeamLobby } from "./screens/TeamLobby";
 
-type Screen = "menu" | "class" | "overworld" | "lobby";
+type Screen = "menu" | "class" | "leaderboard" | "overworld" | "lobby";
 
 /** The accounts client the app uses unless a test hands it another. */
 const defaultAuth: AuthClient = createSupabaseAuth(loadSupabase);
@@ -30,6 +33,7 @@ export default function App({
   authClient = defaultAuth,
   startAsGuest = false,
   makeProgress = (userId) => createSupabaseProgress(loadSupabase, userId),
+  makeLeaderboard = (userId) => createSupabaseLeaderboard(loadSupabase, userId),
 }: {
   makeTransport?: (mode: TeamMode) => TeamTransport;
   /** Test seam: a deterministic clock for join order. */
@@ -40,11 +44,14 @@ export default function App({
   startAsGuest?: boolean;
   /** Test seam: the saved-badges store for a signed-in player. */
   makeProgress?: (userId: string) => ProgressStore;
+  /** Test seam: the leaderboard for a signed-in player, or for a guest (null). */
+  makeLeaderboard?: (userId: string | null) => LeaderboardStore;
 }) {
   const auth = useAuth(authClient, startAsGuest ? "guest" : undefined);
   // A signed-in player's badges are loaded into every new game and saved as they are earned; guests have no store.
   const userId = auth.status === "signedIn" ? (auth.account?.userId ?? null) : null;
   const store = useMemo(() => (userId ? makeProgress(userId) : null), [userId]); // eslint-disable-line react-hooks/exhaustive-deps
+  const leaderboard = useMemo(() => makeLeaderboard(userId), [userId]); // eslint-disable-line react-hooks/exhaustive-deps
   const [saved, setSaved] = useState<{ userId: string; rows: SavedBadge[] } | null>(null);
   useEffect(() => {
     if (!store || !userId) {
@@ -126,6 +133,7 @@ export default function App({
         <MainMenu
           onSoloQuest={() => chooseClass("overworld")}
           onTeamLobby={() => chooseClass("lobby")}
+          onLeaderboards={() => setScreen("leaderboard")}
           account={userName && account ? { kind: "user", name: userName, hasRealEmail: account.hasRealEmail } : { kind: "guest" }}
           onLogIn={auth.leaveGuest}
           onLogOut={() => void auth.logOut()}
@@ -134,6 +142,7 @@ export default function App({
         />
       )}
       {screen === "class" && <ClassPicker initial={chosenClass ?? account?.playerClass ?? DEFAULT_CLASS} mode={next === "overworld" ? "solo" : "team"} onContinue={classChosen} onBack={() => setScreen("menu")} />}
+      {screen === "leaderboard" && <Leaderboard store={leaderboard} signedIn={!!userId} myName={userName} onBack={() => setScreen("menu")} />}
       {screen === "overworld" && <Overworld key={gameId} playerClass={playerClass} onMenu={() => setScreen("menu")} saved={loadedRows} onBadgeEarned={onBadgeEarned} saveFailed={saver.failed} />}
       {screen === "lobby" &&
         (team.phase === "playing" ? (

@@ -6,23 +6,13 @@ import { Button } from "../ui/Button";
 import { Panel } from "../ui/Panel";
 import { MenuBackdrop } from "./MenuBackdrop";
 
-function ComingSoon({ label }: { label: string }) {
-  return (
-    <Button disabled className="w-full">
-      <span className="block">{label}</span>
-      <span className="block text-[9px] font-medium normal-case tracking-normal text-[var(--text-muted)]">
-        Coming soon
-      </span>
-    </Button>
-  );
-}
-
 /** Who is playing, as the menu shows it. */
 export type MenuAccount = { kind: "guest" } | { kind: "user"; name: string; hasRealEmail: boolean };
 
 export function MainMenu({
   onSoloQuest,
   onTeamLobby,
+  onLeaderboards,
   account,
   onLogIn,
   onLogOut,
@@ -31,6 +21,7 @@ export function MainMenu({
 }: {
   onSoloQuest: () => void;
   onTeamLobby: () => void;
+  onLeaderboards: () => void;
   account: MenuAccount;
   onLogIn: () => void;
   onLogOut: () => void;
@@ -82,7 +73,9 @@ export function MainMenu({
           <Button className="w-full" disabled={busy} onClick={onTeamLobby}>
             Team Lobby
           </Button>
-          <ComingSoon label="Leaderboards" />
+          <Button className="w-full" onClick={onLeaderboards}>
+            Leaderboards
+          </Button>
         </nav>
 
         <footer className="mt-12 flex w-full flex-wrap justify-between gap-2 text-xs text-[var(--text-muted)]">
