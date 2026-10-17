@@ -10,6 +10,10 @@ import type { TeamTransport } from "../../net/transport";
 import { Overworld } from "./Overworld";
 import { GuestApp } from "../../testing/GuestApp";
 
+// A game remembers its questions in localStorage; here every mount rolls from a clean slate (and jsdom's storage would queue a fake timer).
+vi.mock("../../learn/recent", async (importActual) => ({ ...(await importActual<typeof import("../../learn/recent")>()), loadRecent: () => ({}), saveRecent: () => {} }));
+
+
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
 

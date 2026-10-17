@@ -32,10 +32,10 @@ describe("the question bank and the chest table", () => {
     expect(new Set(bankItems.map((c) => c.id)).size).toBe(bankItems.length);
   });
 
-  it("six questions per chest, 66 distinct ids, and every pick resolves with the chest's title", () => {
-    expect(BANK_SIZE).toBe(6);
-    expect(bankItems).toHaveLength(66);
-    expect(new Set(bankItems.map((c) => c.id)).size).toBe(66);
+  it("twelve questions per chest, 132 distinct ids, and every pick resolves with the chest's title", () => {
+    expect(BANK_SIZE).toBe(12);
+    expect(bankItems).toHaveLength(132);
+    expect(new Set(bankItems.map((c) => c.id)).size).toBe(132);
     for (const chest of CHESTS) {
       for (let pick = 0; pick < BANK_SIZE; pick++) {
         const challenge = chestChallenge({ ...allZero, [chest.id]: pick }, chest.id);
@@ -80,34 +80,35 @@ describe("the question bank and the chest table", () => {
     expect(ARCHIVE_LOCK.blocks).toBeUndefined();
   });
 
-  it("HTML, CSS and PHP each have six questions with unique ids", () => {
+  it("HTML, CSS and PHP each have twelve questions with unique ids", () => {
     for (const id of ["chest-html", "chest-css", "chest-php"] as const) {
       const ids = CHESTS.find((c) => c.id === id)!.bank.map((q) => q.id);
-      expect(ids, id).toHaveLength(6);
-      expect(new Set(ids).size, id).toBe(6);
+      expect(ids, id).toHaveLength(12);
+      expect(new Set(ids).size, id).toBe(12);
     }
   });
 
-  it("SQL, Java and C# each have six questions with unique ids", () => {
+  it("SQL, Java and C# each have twelve questions with unique ids", () => {
     for (const id of ["chest-sql", "chest-java", "chest-cs"] as const) {
       const ids = CHESTS.find((c) => c.id === id)!.bank.map((q) => q.id);
-      expect(ids, id).toHaveLength(6);
-      expect(new Set(ids).size, id).toBe(6);
+      expect(ids, id).toHaveLength(12);
+      expect(new Set(ids).size, id).toBe(12);
     }
   });
 
-  it("C++ and Python chests each have six questions with unique ids", () => {
+  it("C++ and Python chests each have twelve questions with unique ids", () => {
     for (const id of ["chest-cpp-1", "chest-cpp-2", "chest-py-1", "chest-py-2"] as const) {
       const ids = CHESTS.find((c) => c.id === id)!.bank.map((q) => q.id);
-      expect(ids, id).toHaveLength(6);
-      expect(new Set(ids).size, id).toBe(6);
+      expect(ids, id).toHaveLength(12);
+      expect(new Set(ids).size, id).toBe(12);
     }
   });
 
-  it("the JavaScript chest has six unique questions: two blanks then four choices, titled for its badge", () => {
+  it("the JavaScript chest has twelve unique questions, the first six being two blanks then four choices, titled for its badge", () => {
     const chest = CHESTS.find((c) => c.id === "chest-js")!;
-    expect(chest.bank.map((q) => q.id)).toEqual(["js-console-log", "js-const", "js-strict-equal", "js-array-length", "js-template", "js-typeof"]);
-    expect(chest.bank.map((q) => q.kind)).toEqual(["blank", "blank", "choice", "choice", "choice", "choice"]);
+    expect(chest.bank.map((q) => q.id).slice(0, 6)).toEqual(["js-console-log", "js-const", "js-strict-equal", "js-array-length", "js-template", "js-typeof"]);
+    expect(chest.bank.map((q) => q.kind).slice(0, 6)).toEqual(["blank", "blank", "choice", "choice", "choice", "choice"]);
+    expect(chest.bank).toHaveLength(12);
     expect([chest.zone, chest.at, chest.host, chest.north, chest.where]).toEqual(["forest", { x: 24, y: 50 }, "Old Oak", false, "Dense Forest · Old Oak"]);
     expect(chestChallenge({ ...allZero, "chest-js": 0 }, "chest-js").title).toBe("< CODE CHEST: JAVASCRIPT >");
     expect(accepts(byId("js-console-log"), "log")).toBe(true);

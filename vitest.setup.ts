@@ -7,7 +7,11 @@ import { afterEach, vi } from "vitest";
 // userEvent works under vi.useFakeTimers().
 Object.assign(globalThis, { jest: { advanceTimersByTime: (ms: number) => vi.advanceTimersByTime(ms) } });
 
-afterEach(() => cleanup());
+// Each game remembers its questions in localStorage (so the next game picks others); a test must not inherit the last test's.
+afterEach(() => {
+  cleanup();
+  if (typeof localStorage !== "undefined") localStorage.clear();
+});
 
 // jsdom has no 2D canvas; without this it logs "Not implemented: getContext" for every canvas.
 // Assigned rather than spied on, so restoreAllMocks can't undo it. Tests that need a context

@@ -84,8 +84,8 @@ describe("LANG_TAGS", () => {
 describe("practiceQuestion", () => {
   it("cycles through the chest's whole bank starting after the one you were asked", () => {
     const chest = CHESTS.find((c) => c.id === "chest-sql")!;
-    const ids = [0, 1, 2, 3, 4, 5, 6].map((n) => practiceQuestion(chest.id, 2, n).id);
-    expect(ids.slice(0, 6)).toEqual([3, 4, 5, 0, 1, 2].map((i) => chest.bank[i].id));
-    expect(ids[6]).toBe(ids[0]);
+    const ids = Array.from({ length: 13 }, (_, n) => practiceQuestion(chest.id, 2, n).id);
+    expect(ids.slice(0, 12)).toEqual([3, 4, 5, 6, 7, 8, 9, 10, 11, 0, 1, 2].map((i) => chest.bank[i].id));
+    expect(ids[12]).toBe(ids[0]);
   });
 });

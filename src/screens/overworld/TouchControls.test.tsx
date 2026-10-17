@@ -3,6 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Overworld } from "./Overworld";
 
+// A game remembers its questions in localStorage; here every mount rolls from a clean slate (and jsdom's storage would queue a fake timer).
+vi.mock("../../learn/recent", async (importActual) => ({ ...(await importActual<typeof import("../../learn/recent")>()), loadRecent: () => ({}), saveRecent: () => {} }));
+
+
 const noop = () => {};
 const setup = () => userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 const player = () => screen.getByTestId("player");
