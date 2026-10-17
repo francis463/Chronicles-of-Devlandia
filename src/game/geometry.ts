@@ -32,6 +32,8 @@ const VERBS: Partial<Record<Poi["id"], string>> = {
   dock: "Sail to Foggaten Island",
   "island-dock": "Sail back to the Peaks",
   hermit: "Talk to Hermit",
+  nomad: "Talk to Nomad",
+  "desert-signpost": "Read Signpost",
 };
 
 const chestVerb = (s: GameState, id: string, badge: string) =>

@@ -31,6 +31,10 @@ export type PoiId =
   | "hermit"
   | "island-fire"
   | "ruins"
+  | "nomad"
+  | "oasis"
+  | "desert-pyramid"
+  | "desert-signpost"
   | Exclude<ChestId, "chest-cs">;
 
 export type Poi = { id: PoiId; label: string } & Point;

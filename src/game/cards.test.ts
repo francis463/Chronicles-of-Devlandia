@@ -110,3 +110,19 @@ describe("cardFor: the Snowy Peaks' camp places", () => {
     expect(card?.text.length).toBeGreaterThan(40);
   });
 });
+
+describe("the Sunbaked Desert's cards", () => {
+  const desert = { ...initialState, zone: "desert" as const };
+  it("every desert place has a card with its label as the title", () => {
+    for (const [id, title] of [["nomad", "Nomad"], ["oasis", "Oasis"], ["desert-pyramid", "Pyramid"], ["desert-signpost", "Signpost"]] as const) {
+      const card = cardFor({ ...desert, inspected: id });
+      expect(card?.title, id).toBe(title);
+      expect(card?.text.length, id).toBeGreaterThan(20);
+    }
+  });
+  it("the signpost points back to the Dense Forest and the nomad's hint never changes", () => {
+    expect(cardFor({ ...desert, inspected: "desert-signpost" })?.text).toContain("Dense Forest");
+    const a = cardFor({ ...desert, inspected: "nomad" })?.text;
+    expect(cardFor({ ...desert, inspected: "nomad", gateUnlocked: true, hasLoot: true })?.text).toBe(a);
+  });
+});

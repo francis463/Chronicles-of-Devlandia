@@ -1,8 +1,8 @@
 import { CHESTS } from "../learn/chests";
-import { ADA, ARCHIVE, BOUNDS, CAMPFIRE, DOCK, FOREST_SIGNPOST, HERMIT, ISLAND_DOCK, ISLAND_FIRE, LIGHTHOUSE, LOG, OLD_OAK, PEAKS_SIGNPOST, POIS, RANGER, RUINS, SIGNPOST, TERMINAL, WEATHER_STATION } from "./constants";
+import { ADA, ARCHIVE, BOUNDS, CAMPFIRE, DESERT_PYRAMID, DESERT_SIGNPOST, DOCK, FOREST_SIGNPOST, HERMIT, ISLAND_DOCK, ISLAND_FIRE, LIGHTHOUSE, LOG, NOMAD, OASIS, OLD_OAK, PEAKS_SIGNPOST, POIS, RANGER, RUINS, SIGNPOST, TERMINAL, WEATHER_STATION } from "./constants";
 import type { Poi, PoiId, Point } from "./types";
 
-export type ZoneId = "peaks" | "village" | "forest" | "foggaten";
+export type ZoneId = "peaks" | "village" | "forest" | "foggaten" | "desert";
 
 /**
  * Where a zone's edge opens onto its neighbour. `min`/`max` are the rows (inclusive) a horizontal step
@@ -49,10 +49,23 @@ export const ZONES: Record<ZoneId, Zone> = {
     id: "forest",
     name: "Dense Forest",
     entered: LOG.enteredForest,
-    exits: [{ edge: "north", min: 62, max: 78, to: "peaks" }],
+    exits: [
+      { edge: "north", min: 62, max: 78, to: "peaks" },
+      { edge: "west", min: 62, max: 78, to: "desert" },
+    ],
     wall: false,
     gate: false,
     places: [RANGER, CAMPFIRE, OLD_OAK, FOREST_SIGNPOST, ...chestPlaces("forest")],
+    river: false,
+  },
+  desert: {
+    id: "desert",
+    name: "Sunbaked Desert",
+    entered: LOG.enteredDesert,
+    exits: [{ edge: "east", min: 62, max: 78, to: "forest" }],
+    wall: false,
+    gate: false,
+    places: [NOMAD, OASIS, DESERT_PYRAMID, DESERT_SIGNPOST],
     river: false,
   },
   // No edge leads here: the island is entered and left by boat, from a dock (the `sail` action).

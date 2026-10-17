@@ -37,6 +37,11 @@ export const LIGHTHOUSE: Poi = { id: "lighthouse", label: "Lighthouse", x: 50, y
 export const HERMIT: Poi = { id: "hermit", label: "Hermit", x: 68, y: 62 };
 export const ISLAND_FIRE: Poi = { id: "island-fire", label: "Campfire", x: 44, y: 66 };
 export const RUINS: Poi = { id: "ruins", label: "Ruins", x: 28, y: 50 };
+/** The Sunbaked Desert: a signpost by the way back east, a nomad, an oasis and a pyramid far to the west. */
+export const DESERT_SIGNPOST: Poi = { id: "desert-signpost", label: "Signpost", x: 84, y: 60 };
+export const NOMAD: Poi = { id: "nomad", label: "Nomad", x: 62, y: 70 };
+export const OASIS: Poi = { id: "oasis", label: "Oasis", x: 42, y: 52 };
+export const DESERT_PYRAMID: Poi = { id: "desert-pyramid", label: "Pyramid", x: 20, y: 34 };
 /** Where you and the drone land after sailing: a few steps in from the other island's dock. */
 export const SAIL_LANDING = { foggaten: { x: 24, y: 62 }, peaks: { x: 78, y: 74 } } as const;
 export const RIVER_ZONE = { minX: 24, maxX: 76, minY: 28, maxY: 39 };
@@ -84,6 +89,7 @@ export const LOG = {
   enteredPeaks: "Entered C++ Peaks.",
   enteredVillage: "Entered Dev Village.",
   enteredForest: "Entered Dense Forest.",
+  enteredDesert: "Entered the Sunbaked Desert.",
   enteredFoggaten: "Fog rolls over Foggaten Island. A lighthouse stands dark at the far end.",
   lampOpened: "Lighthouse terminal ready. Lamp lock found.",
   lampLit: "The lamp catches. The lighthouse beam sweeps the fog.",

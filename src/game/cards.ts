@@ -1,6 +1,7 @@
 import { chestById, chestChallenge, CHESTS, type Chest } from "../learn/chests";
 import { FOREST_DIRECTIONS, HIDDEN_ARTIFACT, INSPECT_COPY, SNOW_CAVE } from "./constants";
 import type { GameState } from "./types";
+import { DESERT_COPY, NOMAD_LINE } from "./desert";
 import { rangerLine } from "./forest";
 import { adaLine } from "./village";
 import { CAVE_TEXT, signpostText, stationText } from "./camp";
@@ -37,6 +38,12 @@ export function cardFor(s: GameState): Card | null {
       return card(place.label, adaLine(s));
     case "ranger":
       return card(place.label, rangerLine(s));
+    case "nomad":
+      return card(place.label, NOMAD_LINE);
+    case "oasis":
+    case "desert-pyramid":
+    case "desert-signpost":
+      return card(place.label, DESERT_COPY[place.id]);
     case "hermit":
       return card(place.label, hermitLine(s));
     case "dock":

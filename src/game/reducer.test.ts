@@ -922,6 +922,38 @@ describe("gameReducer: the Dense Forest's places", () => {
   });
 });
 
+describe("gameReducer: the Sunbaked Desert's places", () => {
+  const desert: GameState = { ...s0, zone: "desert" };
+
+  it("the desert's places are the nomad, oasis, pyramid and signpost", () => {
+    expect(reachPlaces(desert).map((p) => p.id)).toEqual(["nomad", "oasis", "desert-pyramid", "desert-signpost"]);
+  });
+
+  it("the nomad speaks once; the others inspect and log nothing", () => {
+    const once = gameReducer(desert, { type: "interact", poi: "nomad" });
+    expect(once.inspected).toBe("nomad");
+    expect(lastLog(once)).toMatch(/^Nomad: "/);
+    expect(gameReducer(once, { type: "interact", poi: "nomad" }).logCount).toBe(once.logCount);
+    for (const poi of ["oasis", "desert-pyramid", "desert-signpost"] as const) {
+      const s = gameReducer(desert, { type: "interact", poi });
+      expect(s.inspected, poi).toBe(poi);
+      expect(s.logCount, poi).toBe(desert.logCount);
+    }
+  });
+
+  it("the desert's places do nothing elsewhere", () => {
+    expect(gameReducer(s0, { type: "interact", poi: "nomad" })).toBe(s0);
+    expect(gameReducer({ ...s0, zone: "forest" }, { type: "interact", poi: "oasis" }).inspected).toBeNull();
+  });
+
+  it("crossing the forest's west edge enters the desert on its east edge, same row, and logs it once", () => {
+    const edge: GameState = { ...s0, zone: "forest", player: { x: 6, y: 70 } };
+    const s = gameReducer(edge, { type: "move", dir: "left" });
+    expect([s.zone, s.player.x, s.player.y]).toEqual(["desert", 94, 70]);
+    expect(lastLog(s)).toBe("Entered the Sunbaked Desert.");
+  });
+});
+
 describe("gameReducer: sailing to Foggaten Island", () => {
   const atDock: GameState = { ...s0, gateUnlocked: true, player: { x: DOCK.x - 2, y: DOCK.y } };
   const atIslandDock: GameState = { ...s0, zone: "foggaten", gateUnlocked: true, player: { x: ISLAND_DOCK.x + 2, y: ISLAND_DOCK.y } };

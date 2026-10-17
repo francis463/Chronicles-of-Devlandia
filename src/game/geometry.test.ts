@@ -96,3 +96,12 @@ describe("the camp places' verbs", () => {
     expect(promptText(peaks, { id: "snow-cave", label: "Snow Cave", x: 0, y: 0 })).toBe("[E] Enter Snow Cave");
   });
 });
+
+describe("the desert places' verbs", () => {
+  it("talk to the nomad, read the signpost, inspect the rest", () => {
+    const desert: GameState = { ...initialState, zone: "desert" };
+    expect(promptText(desert, { id: "nomad", label: "Nomad", x: 0, y: 0 })).toBe("[E] Talk to Nomad");
+    expect(promptText(desert, { id: "desert-signpost", label: "Signpost", x: 0, y: 0 })).toBe("[E] Read Signpost");
+    expect(promptText(desert, { id: "oasis", label: "Oasis", x: 0, y: 0 })).toBe("[E] Inspect Oasis");
+  });
+});
