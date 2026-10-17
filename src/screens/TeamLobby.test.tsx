@@ -52,16 +52,16 @@ describe("TeamLobby (view)", () => {
   it("creates in the chosen connection mode and joins with a normalized code", async () => {
     const user = userEvent.setup();
     const session = stub();
-    render(<TeamLobby session={session} onBack={() => {}} />);
+    render(<TeamLobby session={session} onBack={() => {}} playerClass="mage" />);
     await user.type(screen.getByRole("textbox", { name: "Nickname" }), " Ana ");
     expect(screen.getByRole("radio", { name: "Online" })).toHaveAttribute("aria-checked", "true");
     await user.click(screen.getByRole("radio", { name: "Same computer" }));
     await user.click(screen.getByRole("button", { name: "[ Create Room ]" }));
-    expect(session.create).toHaveBeenCalledWith("Ana", "local");
+    expect(session.create).toHaveBeenCalledWith("Ana", "local", "mage");
     expect(screen.getByRole("button", { name: "[ Join ]" })).toBeDisabled();
     await user.type(screen.getByRole("textbox", { name: "Room code" }), "kqzm");
     await user.click(screen.getByRole("button", { name: "[ Join ]" }));
-    expect(session.join).toHaveBeenCalledWith("Ana", "KQZM", "local");
+    expect(session.join).toHaveBeenCalledWith("Ana", "KQZM", "local", "mage");
   });
 
   it("disables the buttons while connecting and shows Connecting…", () => {
@@ -107,8 +107,33 @@ describe("TeamLobby with two players (App + memory hub)", () => {
 
   async function openLobby(user: ReturnType<typeof userEvent.setup>, app: ReturnType<typeof within>, name: string) {
     await user.click(app.getByRole("button", { name: /team lobby/i }));
+    await user.click(app.getByRole("button", { name: "[ Continue ]" }));
     await user.type(app.getByRole("textbox", { name: "Nickname" }), name);
   }
+
+  it("the roster shows each player's class beside their nickname", async () => {
+    const user = userEvent.setup();
+    const { ana, kai } = twoApps();
+    await user.click(ana.getByRole("button", { name: /team lobby/i }));
+    await user.click(ana.getByRole("radio", { name: "Archer" }));
+    await user.click(ana.getByRole("button", { name: "[ Continue ]" }));
+    await user.type(ana.getByRole("textbox", { name: "Nickname" }), "Ana");
+    await user.click(ana.getByRole("button", { name: "[ Create Room ]" }));
+    const code = ana.getByRole("heading", { name: /^ROOM [A-HJ-NP-Z]{4}$/ }).textContent!.slice(5);
+    await user.click(kai.getByRole("button", { name: /team lobby/i }));
+    await user.click(kai.getByRole("radio", { name: "Mage" }));
+    await user.click(kai.getByRole("button", { name: "[ Continue ]" }));
+    await user.type(kai.getByRole("textbox", { name: "Nickname" }), "Kai");
+    await user.type(kai.getByRole("textbox", { name: "Room code" }), code);
+    await user.click(kai.getByRole("button", { name: "[ Join ]" }));
+    for (const app of [ana, kai]) {
+      const rows = within(app.getByRole("list", { name: "Players" })).getAllByRole("listitem");
+      expect(rows[0]).toHaveTextContent("Ana");
+      expect(rows[0]).toHaveTextContent("Archer");
+      expect(rows[1]).toHaveTextContent("Kai");
+      expect(rows[1]).toHaveTextContent("Mage");
+    }
+  });
 
   it("create → join → start takes both players into the overworld", async () => {
     const user = userEvent.setup();
@@ -281,7 +306,7 @@ describe("TeamLobby chat", () => {
     await user.clear(screen.getByRole("textbox", { name: "Nickname" }));
     await user.type(screen.getByRole("textbox", { name: "Nickname" }), "Ana");
     await user.click(screen.getByRole("button", { name: "[ Create Room ]" }));
-    expect(session.create).toHaveBeenCalledWith("Ana", "online");
+    expect(session.create).toHaveBeenCalledWith("Ana", "online", undefined);
     expect(screen.queryByText("Pick a different nickname.")).toBeNull();
   });
 });
@@ -300,10 +325,12 @@ describe("TeamLobby chat between two apps", () => {
     const user = userEvent.setup();
     const { ana, kai } = twoApps();
     await user.click(ana.getByRole("button", { name: /team lobby/i }));
+    await user.click(ana.getByRole("button", { name: "[ Continue ]" }));
     await user.type(ana.getByRole("textbox", { name: "Nickname" }), "Ana");
     await user.click(ana.getByRole("button", { name: "[ Create Room ]" }));
     const code = ana.getByRole("heading", { name: /^ROOM [A-HJ-NP-Z]{4}$/ }).textContent!.slice(5);
     await user.click(kai.getByRole("button", { name: /team lobby/i }));
+    await user.click(kai.getByRole("button", { name: "[ Continue ]" }));
     await user.type(kai.getByRole("textbox", { name: "Nickname" }), "Kai");
     await user.type(kai.getByRole("textbox", { name: "Room code" }), code);
     await user.click(kai.getByRole("button", { name: "[ Join ]" }));

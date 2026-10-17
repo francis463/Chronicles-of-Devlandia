@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
+import { CLASSES, classOrDefault, type ClassId } from "../game/classes";
 import { lobbyContext } from "../chat/context";
 import { maskRude } from "../chat/filter";
 import { displayNames, nameKey } from "../chat/names";
@@ -37,12 +38,15 @@ export function TeamLobby({
   onBack,
   chat,
   defaultNickname = "",
+  playerClass,
 }: {
   session: TeamSession;
   onBack: () => void;
   chat?: ChatFeed;
   /** A signed-in player's account name. */
   defaultNickname?: string;
+  /** The class picked just before this lobby; sent to the room. */
+  playerClass?: ClassId;
 }) {
   const [nickname, setNickname] = useState(defaultNickname);
   const [code, setCode] = useState("");
@@ -82,6 +86,7 @@ export function TeamLobby({
                 {p.isHost ? " (host)" : ""}
                 {chat && p.id !== session.me?.id && chat.muted.includes(nameKey(p.name)) ? " (muted)" : ""}
               </span>
+              <span className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">{CLASSES[classOrDefault(p.cls)].name}</span>
               {chat && p.id !== session.me?.id && (
                 <button
                   type="button"
@@ -160,7 +165,7 @@ export function TeamLobby({
         </div>
       </div>
 
-      <Button disabled={connecting} onClick={() => withName((name) => session.create(name, mode))} className="py-3">
+      <Button disabled={connecting} onClick={() => withName((name) => session.create(name, mode, playerClass))} className="py-3">
         [ Create Room ]
       </Button>
 
@@ -180,7 +185,7 @@ export function TeamLobby({
         </label>
         <Button
           disabled={connecting || !normalizeRoomCode(code)}
-          onClick={() => withName((name) => session.join(name, normalizeRoomCode(code)!, mode))}
+          onClick={() => withName((name) => session.join(name, normalizeRoomCode(code)!, mode, playerClass))}
           className="py-3"
         >
           [ Join ]

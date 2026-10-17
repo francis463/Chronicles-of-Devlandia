@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { AuthClient } from "./auth/authClient";
+import { DEFAULT_CLASS, type ClassId } from "./game/classes";
 import { createSupabaseAuth } from "./auth/supabaseAuth";
 import { useAuth } from "./auth/useAuth";
 import { loadSupabase } from "./net/supabaseClient";
@@ -7,6 +8,7 @@ import type { ProgressStore, SavedBadge } from "./progress/progress";
 import { createSupabaseProgress } from "./progress/supabaseProgress";
 import { useBadgeSaver } from "./progress/useBadgeSaver";
 import { AuthScreen } from "./screens/AuthScreen";
+import { ClassPicker } from "./screens/ClassPicker";
 import { ChooseName } from "./screens/ChooseName";
 import { SetPassword } from "./screens/SetPassword";
 import { useChat } from "./hooks/useChat";
@@ -17,7 +19,7 @@ import { MainMenu } from "./screens/MainMenu";
 import { Overworld } from "./screens/overworld/Overworld";
 import { TeamLobby } from "./screens/TeamLobby";
 
-type Screen = "menu" | "overworld" | "lobby";
+type Screen = "menu" | "class" | "overworld" | "lobby";
 
 /** The accounts client the app uses unless a test hands it another. */
 const defaultAuth: AuthClient = createSupabaseAuth(loadSupabase);
@@ -61,6 +63,10 @@ export default function App({
   const loadedRows = userId && saved?.userId === userId ? saved.rows : undefined;
   const saver = useBadgeSaver(store);
   const [screen, setScreen] = useState<Screen>("menu");
+  // The class is a look chosen before each game; a different player never inherits the last one's choice.
+  const [chosenClass, setChosenClass] = useState<ClassId | null>(null);
+  const [next, setNext] = useState<"overworld" | "lobby">("overworld");
+  useEffect(() => setChosenClass(null), [userId]);
   const [gameId, setGameId] = useState(0);
   const team = useTeamSession(makeTransport, teamClock);
   const chat = useChat(team);
@@ -87,6 +93,17 @@ export default function App({
     setGameId((id) => id + 1);
     setScreen("overworld");
   };
+  const chooseClass = (to: "overworld" | "lobby") => {
+    setNext(to);
+    setScreen("class");
+  };
+  const classChosen = (cls: ClassId) => {
+    setChosenClass(cls);
+    // Remembering it is a nicety: a failed save never delays or blocks the game.
+    if (auth.status === "signedIn") void Promise.resolve(auth.setClass(cls)).catch(() => undefined);
+    if (next === "overworld") startSoloQuest();
+    else setScreen("lobby");
+  };
   const leaveTeam = () => {
     team.leave();
     setScreen("menu");
@@ -98,6 +115,7 @@ export default function App({
   if (auth.status === "recovery") return <SetPassword auth={auth} />;
   const account = auth.account;
   const userName = auth.status === "signedIn" ? account?.name ?? null : null;
+  const playerClass = chosenClass ?? DEFAULT_CLASS;
 
   // The overworld takes the window: slim page padding on desktop.
   const inGame = screen === "overworld" || (screen === "lobby" && team.phase === "playing");
@@ -106,8 +124,8 @@ export default function App({
     <main className={inGame ? "min-h-screen p-4 sm:p-8 md:p-2" : "min-h-screen p-4 sm:p-8"}>
       {screen === "menu" && (
         <MainMenu
-          onSoloQuest={startSoloQuest}
-          onTeamLobby={() => setScreen("lobby")}
+          onSoloQuest={() => chooseClass("overworld")}
+          onTeamLobby={() => chooseClass("lobby")}
           account={userName && account ? { kind: "user", name: userName, hasRealEmail: account.hasRealEmail } : { kind: "guest" }}
           onLogIn={auth.leaveGuest}
           onLogOut={() => void auth.logOut()}
@@ -115,12 +133,13 @@ export default function App({
           busy={!!userId && !loadedRows}
         />
       )}
-      {screen === "overworld" && <Overworld key={gameId} onMenu={() => setScreen("menu")} saved={loadedRows} onBadgeEarned={onBadgeEarned} saveFailed={saver.failed} />}
+      {screen === "class" && <ClassPicker initial={chosenClass ?? account?.playerClass ?? DEFAULT_CLASS} mode={next === "overworld" ? "solo" : "team"} onContinue={classChosen} onBack={() => setScreen("menu")} />}
+      {screen === "overworld" && <Overworld key={gameId} playerClass={playerClass} onMenu={() => setScreen("menu")} saved={loadedRows} onBadgeEarned={onBadgeEarned} saveFailed={saver.failed} />}
       {screen === "lobby" &&
         (team.phase === "playing" ? (
-          <Overworld key={`team-${team.room}`} team={team} chat={chat} onMenu={leaveTeam} saved={loadedRows} onBadgeEarned={onBadgeEarned} saveFailed={saver.failed} />
+          <Overworld key={`team-${team.room}`} playerClass={playerClass} team={team} chat={chat} onMenu={leaveTeam} saved={loadedRows} onBadgeEarned={onBadgeEarned} saveFailed={saver.failed} />
         ) : (
-          <TeamLobby session={team} onBack={leaveTeam} chat={chat} defaultNickname={userName ?? undefined} />
+          <TeamLobby session={team} onBack={leaveTeam} chat={chat} defaultNickname={userName ?? undefined} playerClass={playerClass} />
         ))}
     </main>
   );

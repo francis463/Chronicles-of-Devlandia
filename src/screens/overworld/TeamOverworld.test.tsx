@@ -33,6 +33,7 @@ function team() {
 
 async function enterLobby(user: ReturnType<typeof setup>, app: App, name: string) {
   await user.click(app.getByRole("button", { name: /team lobby/i }));
+  await user.click(app.getByRole("button", { name: "[ Continue ]" }));
   await user.type(app.getByRole("textbox", { name: "Nickname" }), name);
 }
 

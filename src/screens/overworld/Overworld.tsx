@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import type { ClassId } from "../../game/classes";
 import type { CommandContext, CommandEffect } from "../../chat/commands";
 import { chatRoster } from "../../chat/context";
 import { maskRude } from "../../chat/filter";
@@ -43,6 +44,7 @@ export function Overworld({
   saved,
   onBadgeEarned,
   saveFailed = false,
+  playerClass,
 }: {
   onMenu: () => void;
   initial?: Partial<GameState>;
@@ -52,6 +54,8 @@ export function Overworld({
   onBadgeEarned?: (b: SavedBadge) => void;
   /** True while the saver is failing; the game says so once each time it starts. */
   saveFailed?: boolean;
+  /** Your hero's class: how it is drawn, and the line in the top bar. */
+  playerClass?: ClassId;
   /** Team mode: shared progress, teammates on the map and the team clock. */
   team?: TeamSession;
   /** The team's conversation, when the lobby already started one; without it the game keeps its own. */
@@ -212,6 +216,7 @@ export function Overworld({
         chatUnread={team ? unread : 0}
         reconnecting={team?.status === "reconnecting"}
         region={ZONES[state.zone].name}
+        playerClass={playerClass}
       />
       <MiniMap
         className="md:col-start-1 md:row-start-2"
@@ -244,6 +249,7 @@ export function Overworld({
           lightMode={view.light}
           snow={view.snow}
           playerColor={team?.me?.color}
+          playerClass={playerClass}
           inRange={inRange}
           downed={downed}
           onInteract={(poi) => dispatch({ type: "interact", poi })}

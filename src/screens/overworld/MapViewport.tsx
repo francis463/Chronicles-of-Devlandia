@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import type { ClassId } from "../../game/classes";
 import { HIDDEN_ARTIFACT } from "../../game/constants";
 import type { Card } from "../../game/cards";
 import { chestById } from "../../learn/chests";
@@ -219,6 +220,7 @@ export function MapViewport({
   lightMode,
   snow,
   playerColor,
+  playerClass,
   inRange,
   downed,
   onInteract,
@@ -247,6 +249,7 @@ export function MapViewport({
   lightMode?: "auto" | "day" | "night";
   snow?: boolean;
   playerColor?: string;
+  playerClass?: ClassId;
   inRange: Poi | null;
   downed: boolean;
   onInteract: (poi: PoiId) => void;
@@ -281,6 +284,7 @@ export function MapViewport({
     drone,
     teammates,
     playerColor: playerColor ?? SOLO_COLOR,
+    playerClass,
     downed,
     hasLoot,
     gateUnlocked,

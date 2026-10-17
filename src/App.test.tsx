@@ -26,6 +26,7 @@ describe("Landing page backdrop", () => {
     const user = userEvent.setup();
     render(<GuestApp />);
     await user.click(screen.getByRole("button", { name: /solo quest/i }));
+    await user.click(screen.getByRole("button", { name: "[ Start ]" }));
     expect(screen.queryByTestId("menu-backdrop")).toBeNull();
     expect(screen.getAllByTestId("map-canvas")).toHaveLength(1);
   });
@@ -57,6 +58,7 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: /leaderboards/i })).toBeDisabled();
     expect(screen.getAllByText(/coming soon/i)).toHaveLength(1);
     await user.click(screen.getByRole("button", { name: /team lobby/i }));
+    await user.click(screen.getByRole("button", { name: "[ Continue ]" }));
     expect(screen.getByRole("heading", { name: "TEAM LOBBY" })).toBeInTheDocument();
   });
 
@@ -64,6 +66,7 @@ describe("App", () => {
     const user = userEvent.setup();
     render(<GuestApp />);
     await user.click(screen.getByRole("button", { name: /solo quest/i }));
+    await user.click(screen.getByRole("button", { name: "[ Start ]" }));
     expect(screen.getByText("REGION: C++ PEAKS")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /solo quest/i })).toBeNull();
   });
@@ -74,6 +77,7 @@ describe("App", () => {
     const main = () => container.querySelector("main")!;
     expect(main().className.split(/\s+/)).not.toContain("md:p-2");
     await user.click(screen.getByRole("button", { name: /solo quest/i }));
+    await user.click(screen.getByRole("button", { name: "[ Start ]" }));
     expect(main().className.split(/\s+/)).toContain("md:p-2");
   });
 
@@ -90,6 +94,7 @@ describe("App navigation from the overworld", () => {
     const user = userEvent.setup();
     render(<GuestApp />);
     await user.click(screen.getByRole("button", { name: /solo quest/i }));
+    await user.click(screen.getByRole("button", { name: "[ Start ]" }));
     // The cache is north of the wall: open the gate first.
     await user.click(screen.getByRole("button", { name: "[G] Gate" }));
     await user.keyboard("block{Enter}");
@@ -101,6 +106,7 @@ describe("App navigation from the overworld", () => {
     expect(screen.getByRole("button", { name: "[ STAY ]" })).toHaveFocus();
     await user.click(screen.getByRole("button", { name: "[ LEAVE ]" }));
     await user.click(screen.getByRole("button", { name: /solo quest/i }));
+    await user.click(screen.getByRole("button", { name: "[ Start ]" }));
     expect(screen.getByRole("button", { name: "[X] Supply Cache" })).toBeInTheDocument();
   });
 });
@@ -166,6 +172,7 @@ describe("App: accounts", () => {
     expect(await screen.findByText("Can't reach the account server.")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "[ Play as guest ]" }));
     await user.click(screen.getByRole("button", { name: /solo quest/i }));
+    await user.click(screen.getByRole("button", { name: "[ Start ]" }));
     expect(screen.getByText("REGION: C++ PEAKS")).toBeInTheDocument();
   });
 
@@ -201,6 +208,7 @@ describe("App: accounts", () => {
     await screen.findByText(/Signed in as/);
     await waitFor(() => expect(screen.getByRole("button", { name: /team lobby/i })).toBeEnabled());
     await user.click(screen.getByRole("button", { name: /team lobby/i }));
+    await user.click(screen.getByRole("button", { name: "[ Continue ]" }));
     expect(screen.getByLabelText("Nickname")).toHaveValue("Kai");
   });
 });
@@ -219,6 +227,7 @@ describe("App: saved badges", () => {
     const { user } = await signedIn(createMemoryProgress([sql]));
     await screen.findByText(/Signed in as/);
     await user.click(await screen.findByRole("button", { name: /solo quest/i }));
+    await user.click(screen.getByRole("button", { name: "[ Start ]" }));
     expect(screen.getByText("Badges: 1/11")).toBeInTheDocument();
   });
 
@@ -250,6 +259,7 @@ describe("App: saved badges", () => {
     const { user } = await signedIn(store);
     await waitFor(() => expect(screen.getByRole("button", { name: /solo quest/i })).toBeEnabled());
     await user.click(screen.getByRole("button", { name: /solo quest/i }));
+    await user.click(screen.getByRole("button", { name: "[ Start ]" }));
     await user.click(screen.getByRole("button", { name: "HTML chest" }));
     await user.keyboard("href{Enter}");
     expect(await screen.findByText("Couldn't save your badge. It'll retry.")).toBeInTheDocument();
@@ -266,6 +276,7 @@ describe("App: saved badges", () => {
     const user = userEvent.setup();
     render(<App authClient={createMemoryAuth()} startAsGuest makeProgress={() => store} />);
     await user.click(screen.getByRole("button", { name: /solo quest/i }));
+    await user.click(screen.getByRole("button", { name: "[ Start ]" }));
     expect(load).not.toHaveBeenCalled();
     expect(store.rows).toEqual([]);
   });
@@ -276,6 +287,7 @@ describe("App: saved badges", () => {
     const { user } = await signedIn(store);
     await waitFor(() => expect(screen.getByRole("button", { name: /solo quest/i })).toBeEnabled());
     await user.click(screen.getByRole("button", { name: /solo quest/i }));
+    await user.click(screen.getByRole("button", { name: "[ Start ]" }));
     await user.click(screen.getByRole("button", { name: "HTML chest" }));
     await user.keyboard("href{Enter}");
     await waitFor(() => expect(store.rows).toHaveLength(1));
@@ -283,6 +295,7 @@ describe("App: saved badges", () => {
     await user.click(screen.getByRole("button", { name: "[=] Menu" }));
     await user.click(screen.getByRole("button", { name: "[ LEAVE ]" }));
     await user.click(await screen.findByRole("button", { name: /solo quest/i }));
+    await user.click(screen.getByRole("button", { name: "[ Start ]" }));
     expect(screen.getByText("Badges: 1/11")).toBeInTheDocument();
   });
 
@@ -290,6 +303,7 @@ describe("App: saved badges", () => {
     const { client, user } = await signedIn(createMemoryProgress());
     await waitFor(() => expect(screen.getByRole("button", { name: /solo quest/i })).toBeEnabled());
     await user.click(screen.getByRole("button", { name: /solo quest/i }));
+    await user.click(screen.getByRole("button", { name: "[ Start ]" }));
     const account = client.session;
     act(() => {
       client.session = null;
@@ -302,5 +316,125 @@ describe("App: saved badges", () => {
     });
     expect(await screen.findByText(/Signed in as/)).toBeInTheDocument();
     expect(screen.queryByText(/Badges: \d+\/11/)).not.toBeInTheDocument();
+  });
+});
+
+describe("App: character classes", () => {
+  const solo = (user: ReturnType<typeof userEvent.setup>) => user.click(screen.getByRole("button", { name: /solo quest/i }));
+  const start = (user: ReturnType<typeof userEvent.setup>) => user.click(screen.getByRole("button", { name: "[ Start ]" }));
+  const radio = (name: string) => screen.getByRole("radio", { name });
+
+  it("Solo Quest asks for a class first; Start enters the game as that class", async () => {
+    const user = userEvent.setup();
+    render(<GuestApp />);
+    await solo(user);
+    expect(screen.getByRole("radiogroup", { name: "Choose your class" })).toBeInTheDocument();
+    expect(screen.queryByText(/^Badges:/)).not.toBeInTheDocument();
+    expect(radio("Warrior")).toBeChecked();
+    await user.click(radio("Mage"));
+    await start(user);
+    expect(screen.getByText("Class: Mage")).toBeInTheDocument();
+  });
+
+  it("Back returns to the menu without starting", async () => {
+    const user = userEvent.setup();
+    render(<GuestApp />);
+    await solo(user);
+    await user.click(screen.getByRole("button", { name: "[ Back ]" }));
+    expect(screen.getByRole("button", { name: /solo quest/i })).toBeInTheDocument();
+    expect(screen.queryByText(/^Class:/)).not.toBeInTheDocument();
+  });
+
+  it("Team Lobby asks for a class first and then shows the lobby", async () => {
+    const user = userEvent.setup();
+    render(<GuestApp />);
+    await user.click(screen.getByRole("button", { name: /team lobby/i }));
+    expect(screen.getByRole("button", { name: "[ Continue ]" })).toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: "Nickname" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "[ Continue ]" }));
+    expect(screen.getByRole("textbox", { name: "Nickname" })).toBeInTheDocument();
+  });
+
+  it("classes change no gameplay: the same HP and stamina whichever class", async () => {
+    const stats = async (cls: string) => {
+      const user = userEvent.setup();
+      const view = render(<GuestApp />);
+      await solo(user);
+      await user.click(radio(cls));
+      await start(user);
+      const text = [screen.getByText(/^HP \d+/), screen.getByText(/^STA \d+/)].map((n) => n.textContent);
+      view.unmount();
+      return text;
+    };
+    expect(await stats("Mage")).toEqual(await stats("Tank"));
+  });
+
+  describe("signed in", () => {
+    const account = async (playerClass?: "tank") => {
+      const client = createMemoryAuth();
+      await client.signUp("Kai", "password1");
+      if (playerClass) await client.setClass(playerClass);
+      return client;
+    };
+    const open = async (client: Awaited<ReturnType<typeof account>>) => {
+      const user = userEvent.setup();
+      render(<App authClient={client} makeProgress={() => createMemoryProgress()} />);
+      await waitFor(() => expect(screen.getByRole("button", { name: /solo quest/i })).toBeEnabled());
+      return user;
+    };
+
+    it("preselects the saved class, saves a new choice, and preselects it next time", async () => {
+      const client = await account("tank");
+      const setClass = vi.spyOn(client, "setClass");
+      const user = await open(client);
+      await solo(user);
+      expect(radio("Tank")).toBeChecked();
+      await user.click(radio("Healer"));
+      await start(user);
+      expect(setClass).toHaveBeenCalledWith("healer");
+      await user.click(screen.getByRole("button", { name: "[=] Menu" }));
+      await user.click(await screen.findByRole("button", { name: /solo quest/i }));
+      expect(radio("Healer")).toBeChecked();
+    });
+
+    it("a guest starts on the warrior and nothing is saved", async () => {
+      const client = createMemoryAuth();
+      const setClass = vi.spyOn(client, "setClass");
+      const user = userEvent.setup();
+      render(<App authClient={client} startAsGuest />);
+      await solo(user);
+      expect(radio("Warrior")).toBeChecked();
+      await user.click(radio("Archer"));
+      await start(user);
+      expect(setClass).not.toHaveBeenCalled();
+      expect(screen.getByText("Class: Archer")).toBeInTheDocument();
+    });
+
+    it("a class that fails to save never blocks starting", async () => {
+      const client = await account();
+      vi.spyOn(client, "setClass").mockRejectedValue(new Error("offline"));
+      const user = await open(client);
+      await solo(user);
+      await user.click(radio("Assassin"));
+      await start(user);
+      expect(screen.getByText("Class: Assassin")).toBeInTheDocument();
+    });
+
+    it("the next account on the same tab never inherits the last player's class", async () => {
+      const client = await account("tank");
+      const user = await open(client);
+      await solo(user);
+      await user.click(radio("Healer"));
+      await start(user);
+      await user.click(screen.getByRole("button", { name: "[=] Menu" }));
+      await user.click(await screen.findByRole("button", { name: /log out/i }));
+      await act(async () => {
+        await client.signUp("Ann", "password1");
+        client.emit("signedIn");
+      });
+      await waitFor(() => expect(screen.getByRole("button", { name: /solo quest/i })).toBeEnabled());
+      await solo(user);
+      expect(radio("Warrior")).toBeChecked();
+    });
   });
 });

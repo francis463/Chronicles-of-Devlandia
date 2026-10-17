@@ -1,3 +1,4 @@
+import { CLASSES, type ClassId } from "../../game/classes";
 import { formatTime, phaseOf } from "../../game/clock";
 import { MAX_HP, MAX_STAMINA } from "../../game/constants";
 import { Button } from "../../ui/Button";
@@ -13,6 +14,7 @@ export function TopHud({
   chatUnread = 0,
   reconnecting,
   region,
+  playerClass,
   className = "",
 }: {
   hp: number;
@@ -27,6 +29,8 @@ export function TopHud({
   reconnecting?: boolean;
   /** The zone you are in: "C++ Peaks". */
   region: string;
+  /** Your hero's class, shown beside the meters. */
+  playerClass?: ClassId;
   className?: string;
 }) {
   return (
@@ -34,6 +38,7 @@ export function TopHud({
       <div className="flex flex-wrap items-center gap-4">
         <Meter label="HP" value={hp} max={MAX_HP} tone="accent" />
         <Meter label="STA" value={stamina} max={MAX_STAMINA} tone="primary" />
+        {playerClass && <span className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">{`Class: ${CLASSES[playerClass].name}`}</span>}
       </div>
       <h2 className="order-first w-full text-center text-sm font-bold tracking-widest sm:order-none sm:w-auto">
         {`REGION: ${region.toUpperCase()}`}
