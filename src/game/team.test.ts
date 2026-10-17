@@ -276,3 +276,21 @@ describe("the Dense Forest in team messages (Review Focus 2)", () => {
     });
   });
 });
+
+describe("Foggaten Island in team messages", () => {
+  it("a teammate on the island keeps their zone in presence, position and ping messages", () => {
+    expect(parsePresence({ ...meta("a", 1), zone: "foggaten" }, NOW)?.zone).toBe("foggaten");
+    expect(parseMessage({ type: "pos", id: "a", x: 20, y: 20, zone: "foggaten" }, NOW)).toEqual({ type: "pos", id: "a", x: 20, y: 20, zone: "foggaten" });
+    expect(parseMessage({ type: "ping", id: "a", name: "Kai", zone: "foggaten", x: 30, y: 40, place: null }, NOW)).toMatchObject({ type: "ping", zone: "foggaten", place: null });
+  });
+
+  it("a ping at the lighthouse carries the lighthouse's own zone and spot", () => {
+    expect(parseMessage({ type: "ping", id: "a", name: "Kai", zone: "peaks", x: 30, y: 40, place: "lighthouse" }, NOW)).toMatchObject({ zone: "foggaten", x: 50, y: 28, place: "lighthouse" });
+  });
+
+  it("an unknown zone is still null (and a ping with one is refused), never an error", () => {
+    expect(parsePresence({ ...meta("a", 1), zone: "marsh" }, NOW)?.zone).toBeNull();
+    expect(parseMessage({ type: "pos", id: "a", x: 20, y: 20, zone: 42 }, NOW)).toMatchObject({ zone: null });
+    expect(parseMessage({ type: "ping", id: "a", name: "Kai", zone: "marsh", x: 30, y: 40, place: null }, NOW)).toBeNull();
+  });
+});

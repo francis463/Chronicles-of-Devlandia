@@ -24,10 +24,14 @@ const TABLE = [
   ["ranger", "forest", 60, 62, "the Ranger"],
   ["campfire", "forest", 46, 66, "the Campfire"],
   ["js", "forest", 18, 78, "the JavaScript Chest"],
+  ["dock", "peaks", 88, 62, "the Dock"],
+  ["pier", "foggaten", 12, 62, "the island's Dock"],
+  ["lighthouse", "foggaten", 50, 28, "the Lighthouse"],
+  ["hermit", "foggaten", 58, 62, "the Hermit"],
 ] as const;
 
 describe("ping places", () => {
-  it("are the 21 names, in the spec's order", () => {
+  it("are the 25 names, in the spec's order", () => {
     expect([...PING_PLACE_NAMES]).toEqual(TABLE.map((row) => row[0]));
   });
 
@@ -50,5 +54,12 @@ describe("pingLine", () => {
     expect(pingLine("Kai", { zone: "village", place: null })).toBe("Kai pinged their spot in Dev Village.");
     expect(pingLine("Kai", { zone: "peaks", place: "gate" })).toBe("Kai pinged the Terminal Gate.");
     expect(pingLine("Kai", { zone: "village", place: "cs" })).toBe("Kai pinged the C# Chest.");
+  });
+});
+
+describe("pingLine: Foggaten Island", () => {
+  it("names the island and its places", () => {
+    expect(pingLine("Kai", { zone: "foggaten", place: null })).toBe("Kai pinged their spot in Foggaten Island.");
+    expect(pingLine("Kai", { zone: "foggaten", place: "lighthouse" })).toBe("Kai pinged the Lighthouse.");
   });
 });
