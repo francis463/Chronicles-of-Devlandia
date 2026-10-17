@@ -288,6 +288,18 @@ describe("useTeamSession: in game", () => {
     expect(badges).not.toHaveBeenCalled();
   });
 
+  it("a teammate's progress with lighthouseLit reaches onProgress, and a later message without it never turns it off", async () => {
+    const { kai, hub } = await withGil();
+    const room = kai.result.current.room!;
+    const progress = vi.fn();
+    kai.result.current.onProgress(progress);
+    act(() => hub.inject(room, { type: "progress", id: "gil", name: "Gil", flags: { ...NO_FLAGS, gateUnlocked: true, lighthouseLit: true } }));
+    expect(progress).toHaveBeenLastCalledWith({ ...NO_FLAGS, gateUnlocked: true, lighthouseLit: true }, "Gil");
+    const { archiveOpen: _a, lighthouseLit: _l, ...oldest } = NO_FLAGS;
+    act(() => hub.inject(room, { type: "progress", id: "gil", name: "Gil", flags: { ...oldest, gateUnlocked: true } }));
+    expect(progress).toHaveBeenLastCalledWith({ ...NO_FLAGS, gateUnlocked: true, lighthouseLit: true }, "Gil");
+  });
+
   it("a change to or from an unknown zone reports nothing", async () => {
     const { kai, pos } = await withGil();
     pos(6, "peaks");

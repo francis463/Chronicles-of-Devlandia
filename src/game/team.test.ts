@@ -211,6 +211,38 @@ describe("team: the Archive and badges", () => {
   });
 });
 
+describe("team: the lighthouse flag", () => {
+  const { archiveOpen: _a, lighthouseLit: _l, ...oldest } = NO_FLAGS;
+
+  it("starts false, rides on flagsOf and merges one-way", () => {
+    expect(NO_FLAGS.lighthouseLit).toBe(false);
+    expect(flagsOf({ ...initialState, lighthouseLit: true }).lighthouseLit).toBe(true);
+    expect(mergeFlags({ ...NO_FLAGS, lighthouseLit: true }, NO_FLAGS).lighthouseLit).toBe(true);
+    expect(mergeFlags(NO_FLAGS, { ...NO_FLAGS, lighthouseLit: true }).lighthouseLit).toBe(true);
+    expect(newlySet(NO_FLAGS, { ...NO_FLAGS, lighthouseLit: true })).toEqual(["lighthouseLit"]);
+    expect(newlySet({ ...NO_FLAGS, lighthouseLit: true }, NO_FLAGS)).toEqual([]);
+  });
+
+  it("logs `Kai lit the lighthouse. Its beam sweeps the fog.`", () => {
+    expect(teammateLog("Kai", "lighthouseLit")).toBe("Kai lit the lighthouse. Its beam sweeps the fog.");
+  });
+
+  it("flags from a client that does not know it still parse, and odd values read as false", () => {
+    expect(parsePresence({ ...meta("a", 1), flags: oldest }, NOW)?.flags).toEqual(NO_FLAGS);
+    expect(parseMessage({ type: "progress", id: "a", name: "Kai", flags: oldest }, NOW)).toMatchObject({ flags: NO_FLAGS });
+    expect(parsePresence({ ...meta("a", 1), flags: { ...oldest, lighthouseLit: true } }, NOW)?.flags.lighthouseLit).toBe(true);
+    for (const odd of ["yes", 1, null, {}]) {
+      expect(parsePresence({ ...meta("a", 1), flags: { ...oldest, lighthouseLit: odd } }, NOW)?.flags.lighthouseLit, String(odd)).toBe(false);
+    }
+  });
+
+  it("the six original flags are still required", () => {
+    const { gateUnlocked: _g, ...missing } = NO_FLAGS;
+    expect(parsePresence({ ...meta("a", 1), flags: missing }, NOW)).toBeNull();
+    expect(parseMessage({ type: "progress", id: "a", name: "Kai", flags: missing }, NOW)).toBeNull();
+  });
+});
+
 describe("team: chat and ping messages", () => {
   const ZWSP = String.fromCharCode(0x200b);
   const FILLER = String.fromCharCode(0x3164);
