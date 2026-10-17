@@ -65,7 +65,7 @@ type Candidate = Decoration & { priority: number; interior: boolean };
 function barrier(cx: number, cy: number, r: number[], area: Area): Candidate | "gap" | null {
   const bushOrRock = (at: ArtPoint): Candidate | "gap" => {
     const ground = area.terrainAt(at.x, at.y);
-    const sprite = ground === "snow" ? "snow-rock" : ground === "sea" || r[3] >= 0.75 ? "rock" : ground === "dune" ? "dry-bush" : "bush";
+    const sprite = ground === "snow" ? "snow-rock" : ground === "sea" || ground === "beach" || r[3] >= 0.75 ? "rock" : ground === "dune" ? "dry-bush" : "bush";
     return area.mouths.some((m) => intersects(spriteBox(sprite, at), m)) ? "gap" : { sprite, at, priority: 0, interior: false };
   };
   if (cy === LAST_ROW && cx >= 0 && cx <= LAST_COL) return bushOrRock({ x: cx * CELL + 8, y: WORLD.height - 1 });
@@ -92,7 +92,7 @@ function candidate(cx: number, cy: number, area: Area): Candidate | null {
   if (!inWorld) {
     // Scenery around the world: dense trees to the sides and below, scattered rocks above.
     // Out at sea there is only the odd reef rock, never a tree.
-    const sprite = ground === "sea" ? pick([["rock", 0.2]]) : ground === "mountains" ? pick([["snow-rock", 0.3]]) : pick([[ground === "snow" ? "pine" : ground === "dune" ? (r[3] < 0.5 ? "cactus" : "dry-bush") : "tree", 0.8]]);
+    const sprite = ground === "sea" ? pick([["rock", 0.2]]) : ground === "mountains" ? pick([["snow-rock", 0.3]]) : pick([[ground === "snow" ? "pine" : ground === "dune" ? (r[3] < 0.5 ? "cactus" : "dry-bush") : ground === "beach" ? (r[3] < 0.5 ? "palm" : "rock") : "tree", 0.8]]);
     if (!sprite) return null;
     const box = spriteBox(sprite, at);
     if (intersects(box, WORLD_RECT) || area.corridors.some((c) => intersects(box, c))) return null;
@@ -110,6 +110,7 @@ function candidate(cx: number, cy: number, area: Area): Candidate | null {
     ice: [],
     sand: [],
     sea: [],
+    beach: [["palm", 0.05], ["rock", 0.03]],
     dune: [["cactus", 0.14], ["dry-bush", 0.16], ["rock", 0.08], ["palm", 0.03]],
   };
   const sprite = pick(options[ground]);

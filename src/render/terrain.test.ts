@@ -258,3 +258,14 @@ describe("dune decorations", () => {
     expect(decorations(VIEW, dunes).map(key)).toEqual(found.map(key));
   });
 });
+
+describe("beach decorations", () => {
+  const sand: Area = { id: "beach", wall: false, terrainAt: () => "beach", paths: [], mouths: [], corridors: [], gateBox: null, ice: null, props: [], protected: [] };
+  const found = decorations(VIEW, sand);
+
+  it("a beach area gets only palms and rocks", () => {
+    expect(found.length).toBeGreaterThan(10);
+    for (const d of found) expect(["palm", "rock"], d.sprite).toContain(d.sprite);
+    expect(new Set(found.map((d) => d.sprite))).toContain("palm");
+  });
+});

@@ -20,6 +20,7 @@ export const MINI_COLORS: Record<TerrainKind, string> = {
   meadow: "#3f7d3a",
   sand: "#e7c98a",
   dune: "#e2ac4c",
+  beach: "#f1e0b0",
   sea: "#1e5aa8",
 };
 

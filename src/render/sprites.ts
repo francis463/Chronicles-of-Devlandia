@@ -62,10 +62,17 @@ export type SpriteId =
   | "oasis"
   | "pyramid"
   | "tumbleweed"
-  | "lizard";
+  | "lizard"
+  | "umbrella"
+  | "sandcastle"
+  | "boat"
+  | "shipwreck"
+  | "pier"
+  | "crab"
+  | "shell";
 /** bottom: bottom-centre on the art point; centre: centred on it; hover: centred 12 px above it. */
 export type SpriteDef = { w: number; h: number; frames: PixelGrid[]; palette: Palette; anchor: "bottom" | "centre" | "hover" };
-export type TextureId = "ice" | "mountains" | "snow" | "forest" | "meadow" | "path" | "bank" | "sand" | "sea" | "dune";
+export type TextureId = "ice" | "mountains" | "snow" | "forest" | "meadow" | "path" | "bank" | "sand" | "sea" | "dune" | "beach";
 
 export const OUTLINE = "#0b1020";
 
@@ -412,6 +419,79 @@ function lizardGrid(frame: 0 | 1): PixelGrid {
     return null;
   });
 }
+
+/** A striped beach umbrella: a red-and-white canopy over a pole. */
+function umbrellaGrid(): PixelGrid {
+  return outlined(16, 16, (x, y) => {
+    if (y <= 6) {
+      const half = 7.5 * Math.sqrt(1 - ((6 - y) / 7) ** 2);
+      if (Math.abs(x - 7.5) > half) return null;
+      return Math.floor(x / 3) % 2 === 0 ? "r" : "w";
+    }
+    return (x === 7 || x === 8) && y >= 7 ? "p" : null;
+  });
+}
+
+/** A sandcastle: two towers either side of a low wall. */
+function sandcastleGrid(): PixelGrid {
+  return outlined(14, 10, (x, y) => {
+    const tower = (x >= 1 && x <= 4 && y >= 2) || (x >= 9 && x <= 12 && y >= 2);
+    const wall = x >= 1 && x <= 12 && y >= 5;
+    if (!(tower || wall)) return null;
+    return (x * 3 + y * 5) % 7 === 0 ? "S" : "s";
+  });
+}
+
+/** A beached rowing boat: a brown hull with a pale plank stripe. */
+function boatGrid(): PixelGrid {
+  return outlined(28, 12, (x, y) => {
+    const inset = Math.floor(y / 3);
+    if (y < 3 || x < 1 + (3 - Math.min(y - 3, 3)) * 0 + (y >= 3 ? inset - 1 : 0) || x > 26 - (y >= 3 ? inset - 1 : 0)) return y < 3 ? (y >= 1 && x >= 2 && x <= 25 ? "H" : null) : null;
+    return y === 5 ? "w" : (x + y) % 6 === 0 ? "H" : "h";
+  });
+}
+
+/** A shipwreck: the ribs and keel of an old hull, half buried. */
+function shipwreckGrid(): PixelGrid {
+  const ribs = [{ x: 3, h: 14 }, { x: 10, h: 18 }, { x: 17, h: 20 }, { x: 24, h: 16 }, { x: 31, h: 11 }];
+  return outlined(36, 24, (x, y) => {
+    if (y >= 20) return x >= 1 && x <= 34 ? ((x * 5 + y) % 6 === 0 ? "S" : "s") : null;
+    if (y >= 17 && y <= 19 && x >= 2 && x <= 33) return "k";
+    for (const r of ribs) if (x >= r.x && x <= r.x + 2 && y >= 24 - r.h) return (x + y) % 5 === 0 ? "K" : "k";
+    return null;
+  });
+}
+
+/** A wooden pier: planks along the top and posts under them. */
+function pierGrid(): PixelGrid {
+  const posts = [2, 11, 20, 29, 37];
+  return outlined(40, 14, (x, y) => {
+    if (y <= 3) return y === 0 || x % 5 === 0 ? "P" : "p";
+    return posts.some((px) => x >= px && x <= px + 2) ? "k" : null;
+  });
+}
+
+/** A crab: a red shell with raised claws, legs shuffling between frames. */
+function crabGrid(frame: 0 | 1): PixelGrid {
+  const claws = frame === 0 ? ["0,0", "9,0", "0,1", "9,1"] : ["1,0", "8,0", "0,1", "9,1"];
+  const legs = frame === 0 ? ["2,4", "5,4", "7,4"] : ["3,4", "4,4", "6,4"];
+  return outlined(10, 5, (x, y) => {
+    if (claws.includes(`${x},${y}`)) return "c";
+    if (legs.includes(`${x},${y}`)) return "c";
+    return x >= 2 && x <= 7 && y >= 1 && y <= 3 ? (y === 1 && (x === 3 || x === 6) ? "e" : "c") : null;
+  });
+}
+
+/** A scallop shell. */
+function shellGrid(): PixelGrid {
+  return outlined(6, 5, (x, y) => (y >= 1 && x >= 0 + (y === 1 ? 1 : 0) && x <= 5 - (y === 1 ? 1 : 0) ? ((x + y) % 2 === 0 ? "q" : "Q") : null));
+}
+
+/** Pale beach sand with the odd darker fleck and a shell-white glint. */
+const beachGrid = (): PixelGrid =>
+  Array.from({ length: 16 }, (_, y) =>
+    Array.from({ length: 16 }, (_, x) => ((x * 7 + y * 5) % 19 === 0 ? "w" : (x * 3 + y * 13) % 17 === 0 ? "d" : "s")).join(""),
+  );
 
 /** Choppy water: two blues and a few light flecks. */
 const seaGrid = (): PixelGrid =>
@@ -1457,6 +1537,13 @@ export const SPRITES: Record<SpriteId, SpriteDef> = {
   },
   pyramid: { w: 40, h: 28, anchor: "bottom", palette: { o: "#0b1020", s: "#d9b26a", L: "#ecd08f", d: "#b98c46", S: "#a47a3a", k: "#2a1d12" }, frames: [pyramidGrid()] },
   tumbleweed: { w: 8, h: 8, anchor: "bottom", palette: { o: "#0b1020", b: "#b8925a", d: "#8a6a3a" }, frames: [tumbleweedGrid(0), tumbleweedGrid(1)] },
+  umbrella: { w: 16, h: 16, anchor: "bottom", palette: { o: "#0b1020", r: "#ef4444", w: "#f8fafc", p: "#9a5f2b" }, frames: [umbrellaGrid()] },
+  sandcastle: { w: 14, h: 10, anchor: "bottom", palette: { o: "#0b1020", s: "#e8c47a", S: "#c9a357" }, frames: [sandcastleGrid()] },
+  boat: { w: 28, h: 12, anchor: "bottom", palette: { o: "#0b1020", h: "#9a5f2b", H: "#7c4a1e", w: "#e2d3b0" }, frames: [boatGrid()] },
+  shipwreck: { w: 36, h: 24, anchor: "bottom", palette: { o: "#0b1020", k: "#7c4a1e", K: "#5b3a1e", s: "#e8c47a", S: "#c9a357" }, frames: [shipwreckGrid()] },
+  pier: { w: 40, h: 14, anchor: "bottom", palette: { o: "#0b1020", p: "#b07a45", P: "#8f5f33", k: "#5b3a1e" }, frames: [pierGrid()] },
+  crab: { w: 10, h: 5, anchor: "bottom", palette: { o: "#0b1020", c: "#e5533d", e: "#f8fafc" }, frames: [crabGrid(0), crabGrid(1)] },
+  shell: { w: 6, h: 5, anchor: "bottom", palette: { o: "#0b1020", q: "#f9a8d4", Q: "#f472b6" }, frames: [shellGrid()] },
   lizard: { w: 12, h: 6, anchor: "bottom", palette: { o: "#0b1020", z: "#6b8f3a", Z: "#8fb34a", e: "#f5d547" }, frames: [lizardGrid(0), lizardGrid(1)] },
 };
 
@@ -1610,6 +1697,7 @@ export const TEXTURES: Record<TextureId, { grid: PixelGrid; palette: Palette }> 
   },
   sea: { palette: { b: "#1e5aa8", d: "#194a8c", f: "#5aa0e0" }, grid: seaGrid() },
   sand: { palette: { s: "#e7c98a", d: "#d2b06e", l: "#f1dba6" }, grid: sandGrid() },
+  beach: { palette: { s: "#f1e0b0", d: "#dcc58a", w: "#fbf3d6" }, grid: beachGrid() },
   dune: { palette: { s: "#e2ac4c", d: "#c98f35", l: "#f0c874", r: "#d39a3d" }, grid: duneGrid() },
 };
 

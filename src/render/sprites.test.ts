@@ -453,3 +453,36 @@ describe("the Sunbaked Desert's art", () => {
     expect(TEXTURES.dune.palette).not.toEqual(TEXTURES.sand.palette);
   });
 });
+
+describe("the Sunny Beach's art", () => {
+  const SIZES = [["umbrella", 16, 16, 1], ["sandcastle", 14, 10, 1], ["boat", 28, 12, 1], ["shipwreck", 36, 24, 1], ["pier", 40, 14, 1], ["crab", 10, 5, 2], ["shell", 6, 5, 1]] as const;
+
+  it("have their declared sizes, anchors and frame counts", () => {
+    for (const [id, w, h, frames] of SIZES) expect([SPRITES[id].w, SPRITES[id].h, SPRITES[id].anchor, SPRITES[id].frames.length], id).toEqual([w, h, "bottom", frames]);
+    expect(SPRITES.crab.frames[0]).not.toEqual(SPRITES.crab.frames[1]);
+  });
+
+  it("every grid is rectangular, of its size and uses only palette characters, and every edge is the dark outline", () => {
+    for (const [id] of SIZES)
+      for (const frame of SPRITES[id].frames) {
+        expect(frame, id).toHaveLength(SPRITES[id].h);
+        const solid = (x: number, y: number) => y >= 0 && y < frame.length && x >= 0 && x < frame[y].length && frame[y][x] !== ".";
+        frame.forEach((row, y) => {
+          expect(row, id).toHaveLength(SPRITES[id].w);
+          [...row].forEach((ch, x) => {
+            if (ch === ".") return;
+            expect(SPRITES[id].palette[ch], `${id} '${ch}'`).toBeDefined();
+            if (!solid(x - 1, y) || !solid(x + 1, y) || !solid(x, y - 1) || !solid(x, y + 1)) expect(SPRITES[id].palette[ch], `${id} edge ${x},${y}`).toBe(OUTLINE);
+          });
+        });
+      }
+  });
+
+  it("the beach texture is 16 x 16 with three colours and differs from the sand and dune textures", () => {
+    expect(TEXTURES.beach.grid).toHaveLength(16);
+    for (const row of TEXTURES.beach.grid) expect(row).toHaveLength(16);
+    expect(Object.keys(TEXTURES.beach.palette).length).toBeGreaterThanOrEqual(3);
+    expect(TEXTURES.beach.palette).not.toEqual(TEXTURES.sand.palette);
+    expect(TEXTURES.beach.palette).not.toEqual(TEXTURES.dune.palette);
+  });
+});
