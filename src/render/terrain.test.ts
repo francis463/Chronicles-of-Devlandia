@@ -2,6 +2,7 @@ import { CHESTS } from "../learn/chests";
 import { TERMINAL } from "../game/constants";
 import { describe, expect, it } from "vitest";
 import { AREAS } from "./areas";
+import type { Area } from "./areas/area";
 import { spriteBox } from "./sprites";
 import { LANDMARK_POINTS, WALL_RECT, decorations, onPath, protectedBoxes, terrainAt, wallTiles } from "./terrain";
 import { REACHABLE_RECT, WORLD, grow, intersects, toArt, type Rect } from "./world";
@@ -237,5 +238,21 @@ describe("decorations at sea", () => {
       expect(wet.length, zone).toBeGreaterThan(0);
       for (const d of wet) expect(d.sprite, `${zone} ${d.sprite}@${d.at.x},${d.at.y}`).toBe("rock");
     }
+  });
+});
+
+describe("dune decorations", () => {
+  const dunes: Area = { id: "desert", wall: false, terrainAt: () => "dune", paths: [], mouths: [], corridors: [], gateBox: null, ice: null, props: [], protected: [] };
+  const found = decorations(VIEW, dunes);
+
+  it("a dune area gets only desert scenery: cacti, palms, dry bushes and rocks", () => {
+    expect(found.length).toBeGreaterThan(10);
+    for (const d of found) expect(["cactus", "palm", "dry-bush", "rock"], d.sprite).toContain(d.sprite);
+    expect(new Set(found.map((d) => d.sprite))).toContain("cactus");
+    expect(new Set(found.map((d) => d.sprite))).toContain("dry-bush");
+  });
+
+  it("is deterministic", () => {
+    expect(decorations(VIEW, dunes).map(key)).toEqual(found.map(key));
   });
 });

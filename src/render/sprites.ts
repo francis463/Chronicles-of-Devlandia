@@ -55,10 +55,17 @@ export type SpriteId =
   | "garden"
   | "stall"
   | "lighthouse"
-  | "ruins";
+  | "ruins"
+  | "cactus"
+  | "palm"
+  | "dry-bush"
+  | "oasis"
+  | "pyramid"
+  | "tumbleweed"
+  | "lizard";
 /** bottom: bottom-centre on the art point; centre: centred on it; hover: centred 12 px above it. */
 export type SpriteDef = { w: number; h: number; frames: PixelGrid[]; palette: Palette; anchor: "bottom" | "centre" | "hover" };
-export type TextureId = "ice" | "mountains" | "snow" | "forest" | "meadow" | "path" | "bank" | "sand" | "sea";
+export type TextureId = "ice" | "mountains" | "snow" | "forest" | "meadow" | "path" | "bank" | "sand" | "sea" | "dune";
 
 export const OUTLINE = "#0b1020";
 
@@ -334,10 +341,88 @@ function ruinsGrid(): PixelGrid {
   });
 }
 
+/** A saguaro: a ribbed trunk with an arm raised on each side. */
+function cactusGrid(): PixelGrid {
+  return outlined(14, 20, (x, y) => {
+    const trunk = x >= 5 && x <= 8 && y >= 1;
+    const left = (x >= 1 && x <= 4 && y >= 10 && y <= 12) || (x >= 1 && x <= 3 && y >= 5 && y <= 12);
+    const right = (x >= 9 && x <= 12 && y >= 8 && y <= 10) || (x >= 10 && x <= 12 && y >= 4 && y <= 10);
+    if (!(trunk || left || right)) return null;
+    return x === 6 || x === 2 || x === 11 ? "G" : "c";
+  });
+}
+
+/** A palm: a leaning trunk under a crown of drooping fronds. */
+function palmGrid(): PixelGrid {
+  const blades = [-1, -0.6, -0.25, 0.25, 0.6, 1];
+  const frond = (x: number, y: number) =>
+    blades.some((d) => {
+      for (let t = 0; t <= 11; t += 0.5) {
+        const fx = 11.5 + d * t * (Math.abs(d) > 0.5 ? 1 : 0.6);
+        const fy = 8 - (1 - Math.abs(d)) * 4 + t * t * 0.045 * (Math.abs(d) > 0.5 ? 1.4 : 0.8) - t * 0.15;
+        if (Math.abs(x - fx) <= 1 && Math.abs(y - fy) <= 1) return true;
+      }
+      return false;
+    });
+  const trunk = (x: number, y: number) => y >= 8 && y <= 31 && x >= 10 - Math.floor((y - 8) / 12) && x <= 13 - Math.floor((y - 8) / 12);
+  return outlined(24, 32, (x, y) => {
+    if (frond(x, y)) return (x * 5 + y * 3) % 7 === 0 ? "L" : "g";
+    if (trunk(x, y)) return y % 3 === 0 ? "T" : "t";
+    return null;
+  });
+}
+
+/** A dry bush: a tangle of brown twigs. */
+function dryBushGrid(): PixelGrid {
+  return outlined(14, 10, (x, y) => {
+    const inside = ((x - 6.5) / 6.5) ** 2 + ((y - 5.5) / 4.5) ** 2 <= 1;
+    if (!inside) return null;
+    return (x * 3 + y * 5) % 4 === 0 ? "d" : "b";
+  });
+}
+
+/** The pyramid: stepped sandstone blocks around a dark doorway, sand drifted against one side. */
+function pyramidGrid(): PixelGrid {
+  const half = (y: number) => Math.floor(y * 0.7) + 1;
+  return outlined(40, 28, (x, y) => {
+    const dx = Math.abs(x - 19.5);
+    if (dx > half(y)) return null;
+    if (x >= 18 && x <= 21 && y >= 22) return "k";
+    if (y % 5 === 4) return "S";
+    return x < 20 ? ((x + y) % 7 === 0 ? "L" : "s") : (x + y) % 6 === 0 ? "S" : "d";
+  });
+}
+
+/** A tumbleweed: a ball of twigs that rolls a quarter turn between frames. */
+function tumbleweedGrid(frame: 0 | 1): PixelGrid {
+  return outlined(8, 8, (x, y) => {
+    if (((x - 3.5) / 3.5) ** 2 + ((y - 3.5) / 3.5) ** 2 > 1) return null;
+    return (frame === 0 ? x + y : x - y + 8) % 3 === 0 ? "d" : "b";
+  });
+}
+
+/** A lizard in profile, tail flicking up or down between frames. */
+function lizardGrid(frame: 0 | 1): PixelGrid {
+  const tailY = frame === 0 ? 2 : 1;
+  return outlined(12, 6, (x, y) => {
+    if (x >= 3 && x <= 10 && y >= 1 && y <= 3) return x === 10 && y === 1 ? "e" : y === 1 ? "Z" : "z";
+    if (x === 11 && y >= 1 && y <= 2) return "z";
+    if (x <= 2 && y >= tailY && y <= tailY + 1) return "z";
+    if (y === 4 && (x === 4 || x === 8)) return "z";
+    return null;
+  });
+}
+
 /** Choppy water: two blues and a few light flecks. */
 const seaGrid = (): PixelGrid =>
   Array.from({ length: 16 }, (_, y) =>
     Array.from({ length: 16 }, (_, x) => ((x + (y % 4) * 3) % 8 < 2 && y % 4 === 1 ? "f" : (x * 5 + y * 3) % 13 === 0 ? "d" : "b")).join(""),
+  );
+
+/** Golden dunes: wind ripples running across, with darker and lighter flecks. */
+const duneGrid = (): PixelGrid =>
+  Array.from({ length: 16 }, (_, y) =>
+    Array.from({ length: 16 }, (_, x) => ((x + (y % 8) * 2) % 16 < 3 && y % 4 === 2 ? "r" : (x * 5 + y * 7) % 23 === 0 ? "l" : (x * 3 + y * 11) % 17 === 0 ? "d" : "s")).join(""),
   );
 
 /** Warm sand with darker and lighter speckles. */
@@ -1360,6 +1445,19 @@ export const SPRITES: Record<SpriteId, SpriteDef> = {
     palette: { o: "#0b1020", s: "#94a3b8", S: "#64748b", m: "#4f7942" },
     frames: [ruinsGrid()],
   },
+  cactus: { w: 14, h: 20, anchor: "bottom", palette: { o: "#0b1020", c: "#3f9a4a", G: "#2a7338" }, frames: [cactusGrid()] },
+  palm: { w: 24, h: 32, anchor: "bottom", palette: { o: "#0b1020", g: "#3f9a4a", L: "#6ecb63", t: "#9a6b3a", T: "#7a5128" }, frames: [palmGrid()] },
+  "dry-bush": { w: 14, h: 10, anchor: "bottom", palette: { o: "#0b1020", b: "#a8814a", d: "#7d5a2e" }, frames: [dryBushGrid()] },
+  oasis: {
+    w: 48,
+    h: 24,
+    anchor: "bottom",
+    palette: { o: "#0b1020", b: "#2fb5c9", B: "#1c8da6", l: "#c9f3f7", p: "#9a5f2b", P: "#7c4a1e", e: "#4ade80" },
+    frames: [pondGrid()],
+  },
+  pyramid: { w: 40, h: 28, anchor: "bottom", palette: { o: "#0b1020", s: "#d9b26a", L: "#ecd08f", d: "#b98c46", S: "#a47a3a", k: "#2a1d12" }, frames: [pyramidGrid()] },
+  tumbleweed: { w: 8, h: 8, anchor: "bottom", palette: { o: "#0b1020", b: "#b8925a", d: "#8a6a3a" }, frames: [tumbleweedGrid(0), tumbleweedGrid(1)] },
+  lizard: { w: 12, h: 6, anchor: "bottom", palette: { o: "#0b1020", z: "#6b8f3a", Z: "#8fb34a", e: "#f5d547" }, frames: [lizardGrid(0), lizardGrid(1)] },
 };
 
 export const TEXTURES: Record<TextureId, { grid: PixelGrid; palette: Palette }> = {
@@ -1512,6 +1610,7 @@ export const TEXTURES: Record<TextureId, { grid: PixelGrid; palette: Palette }> 
   },
   sea: { palette: { b: "#1e5aa8", d: "#194a8c", f: "#5aa0e0" }, grid: seaGrid() },
   sand: { palette: { s: "#e7c98a", d: "#d2b06e", l: "#f1dba6" }, grid: sandGrid() },
+  dune: { palette: { s: "#e2ac4c", d: "#c98f35", l: "#f0c874", r: "#d39a3d" }, grid: duneGrid() },
 };
 
 /** A player's explorer colours: the hood in their colour with a darker shade; a class recolours the cloak. */

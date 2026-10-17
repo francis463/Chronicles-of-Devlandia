@@ -411,3 +411,45 @@ describe("the weather station and the snow cave", () => {
     expect(SPRITES.station.frames[0]).not.toEqual(SPRITES.station.frames[1]);
   });
 });
+
+describe("the Sunbaked Desert's art", () => {
+  const SIZES = [["cactus", 14, 20, 1], ["palm", 24, 32, 1], ["dry-bush", 14, 10, 1], ["oasis", 48, 24, 1], ["pyramid", 40, 28, 1], ["tumbleweed", 8, 8, 2], ["lizard", 12, 6, 2]] as const;
+
+  it("have their declared sizes, anchors and frame counts", () => {
+    for (const [id, w, h, frames] of SIZES) expect([SPRITES[id].w, SPRITES[id].h, SPRITES[id].anchor, SPRITES[id].frames.length], id).toEqual([w, h, "bottom", frames]);
+    for (const id of ["tumbleweed", "lizard"] as const) expect(SPRITES[id].frames[0], id).not.toEqual(SPRITES[id].frames[1]);
+  });
+
+  it("every grid is rectangular, of its size and uses only palette characters", () => {
+    for (const [id] of SIZES)
+      for (const frame of SPRITES[id].frames) {
+        expect(frame, id).toHaveLength(SPRITES[id].h);
+        for (const row of frame) {
+          expect(row, id).toHaveLength(SPRITES[id].w);
+          for (const ch of row) if (ch !== ".") expect(SPRITES[id].palette[ch], `${id} '${ch}'`).toBeDefined();
+        }
+      }
+  });
+
+  it("every edge is the shared dark outline", () => {
+    for (const [id] of SIZES) {
+      for (const frame of SPRITES[id].frames) {
+        const solid = (x: number, y: number) => y >= 0 && y < frame.length && x >= 0 && x < frame[y].length && frame[y][x] !== ".";
+        frame.forEach((row, y) =>
+          [...row].forEach((ch, x) => {
+            if (ch === ".") return;
+            const edge = !solid(x - 1, y) || !solid(x + 1, y) || !solid(x, y - 1) || !solid(x, y + 1);
+            if (edge) expect(SPRITES[id].palette[ch], `${id} edge at ${x},${y}`).toBe(OUTLINE);
+          }),
+        );
+      }
+    }
+  });
+
+  it("the dune texture is 16 x 16 with at least three colours, and is not the shore's sand", () => {
+    expect(TEXTURES.dune.grid).toHaveLength(16);
+    for (const row of TEXTURES.dune.grid) expect(row).toHaveLength(16);
+    expect(Object.keys(TEXTURES.dune.palette).length).toBeGreaterThanOrEqual(3);
+    expect(TEXTURES.dune.palette).not.toEqual(TEXTURES.sand.palette);
+  });
+});
