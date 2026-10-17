@@ -81,6 +81,9 @@ export const LOG = {
   enteredVillage: "Entered Dev Village.",
   enteredForest: "Entered Dense Forest.",
   enteredFoggaten: "Fog rolls over Foggaten Island. A lighthouse stands dark at the far end.",
+  lampOpened: "Lighthouse terminal ready. Lamp lock found.",
+  lampLit: "The lamp catches. The lighthouse beam sweeps the fog.",
+  lighthouseOnline: "The lighthouse lamp burns bright. Its beam sweeps the fog, and something stirs far across the water.",
   sailOut: "You sail through the fog to Foggaten Island.",
   sailBack: "You sail back to the Peaks.",
   dockLocked: "The boatman waits for the gate to open",
@@ -128,6 +131,7 @@ export const CIPHER_HINT = "Shift each letter 13 places: Q→D, R→E, A→N, F�
 export const LOGIC_HINT = "AND needs both inputs at 1. XOR needs exactly one. NOT flips the bit.";
 export const cipherError = (value: string) => `Not quite: "${value}" is not what the scroll says.`;
 export const PUZZLE_HINT = "\"Setting display to 'none' hides the object. Try 'block' instead!\"";
+export const LAMP_HINT = "Each switch is worth a power of two: 128, 64, 32, 16, 8, 4, 2, 1. H is number 72 in the ASCII table: 64 + 8.";
 export const PUZZLE_HINT_LOCKED = "Hint locked. Use a hint item to decode.";
 export const puzzleError = (value: string) =>
   `Not quite: display: ${value} doesn't open this lock. Check the hint or try again.`;
