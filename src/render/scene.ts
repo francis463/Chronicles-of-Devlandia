@@ -1,3 +1,4 @@
+import type { ClassId } from "../game/classes";
 import { phaseOf } from "../game/clock";
 import type { Phase, Point } from "../game/types";
 import type { ZoneId } from "../game/zones";
@@ -34,8 +35,10 @@ export type SceneInput = {
   zone: ZoneId;
   player: Point;
   drone: Point;
-  teammates: { id: string; name: string; color: string; x: number; y: number }[];
+  teammates: { id: string; name: string; color: string; cls?: ClassId; x: number; y: number }[];
   playerColor: string;
+  /** Your class; with none the explorer keeps its plain look. */
+  playerClass?: ClassId;
   downed: boolean;
   hasLoot: boolean;
   gateUnlocked: boolean;
@@ -105,6 +108,9 @@ const placed = (sprite: SpriteId, at: ArtPoint, extra: Partial<Drawable> = {}): 
   return { sprite, frame: 0, x: box.x, y: box.y, flip: false, rotate: false, variant: "base", ...extra };
 };
 
+/** The hood colour, plus ":<class>" when there is a class (see createSpriteCache). */
+const withClass = (color: string, cls?: ClassId) => (cls ? `${color}:${cls}` : color);
+
 function explorer(pose: Pose, variant: string): Drawable {
   const sprite: SpriteId = pose.facing === "left" ? "explorer-right" : `explorer-${pose.facing}`;
   return placed(sprite, pose, { frame: pose.frame, flip: pose.facing === "left", variant });
@@ -169,8 +175,8 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
 
   const player = input.downed
     ? placed("explorer-down", poses.player, { rotate: true, variant: "grey" })
-    : explorer(poses.player, input.playerColor);
-  const mates = input.teammates.flatMap((m) => (poses.teammates[m.id] ? [explorer(poses.teammates[m.id], m.color)] : []));
+    : explorer(poses.player, withClass(input.playerColor, input.playerClass));
+  const mates = input.teammates.flatMap((m) => (poses.teammates[m.id] ? [explorer(poses.teammates[m.id], withClass(m.color, m.cls))] : []));
   const bob = !reduced && Math.floor(t / 400) % 2 === 1 ? -1 : 0;
   const droneBox = spriteBox("drone", poses.drone);
   const drone: Drawable = {

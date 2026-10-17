@@ -1,3 +1,4 @@
+import { DEFAULT_CLASS } from "../game/classes";
 import { DRONE_START, PLAYER_START, START_MINUTES } from "../game/constants";
 import { useViewportSize } from "../hooks/useViewportSize";
 import type { SceneInput } from "../render/scene";
@@ -11,6 +12,7 @@ const MENU_SCENE: SceneInput = {
   drone: DRONE_START,
   teammates: [],
   playerColor: "#22c55e",
+  playerClass: DEFAULT_CLASS,
   downed: false,
   hasLoot: false,
   gateUnlocked: false,

@@ -120,6 +120,29 @@ describe("scene: what is drawn", () => {
     expect(variants).toEqual(["#a78bfa", "#f472b6"]);
   });
 
+  it("a class rides on the variant: playerClass for you, cls for teammates; none keeps the plain colour", () => {
+    const s = scene({ playerColor: "#f472b6", playerClass: "archer", teammates: [{ id: "k", name: "Kai", color: "#a78bfa", cls: "tank", x: 60, y: 60 }] });
+    const variants = s.upright.filter((d) => d.sprite.startsWith("explorer")).map((d) => d.variant).sort();
+    expect(variants).toEqual(["#a78bfa:tank", "#f472b6:archer"]);
+  });
+
+  it("two teammates of the same class differ by hood colour", () => {
+    const s = scene({
+      playerClass: "mage",
+      teammates: [
+        { id: "a", name: "Ann", color: "#a78bfa", cls: "mage", x: 60, y: 60 },
+        { id: "b", name: "Bob", color: "#e2e8f0", cls: "mage", x: 70, y: 60 },
+      ],
+    });
+    const variants = s.upright.filter((d) => d.sprite.startsWith("explorer")).map((d) => d.variant);
+    expect(new Set(variants).size).toBe(3);
+  });
+
+  it("a downed player with a class is still the plain grey", () => {
+    const s = scene({ downed: true, playerClass: "mage" });
+    expect(s.upright.find((d) => d.sprite.startsWith("explorer"))).toMatchObject({ variant: "grey", rotate: true });
+  });
+
   it("downed: the player is rotated and grey; teammates never are", () => {
     const s = scene({ downed: true, teammates: [{ id: "k", name: "Kai", color: "#a78bfa", x: 60, y: 60 }] });
     const explorers = s.upright.filter((d) => d.sprite.startsWith("explorer"));
