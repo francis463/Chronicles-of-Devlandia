@@ -11,6 +11,7 @@ import { DESERT_PYRAMID, DESERT_SIGNPOST, NOMAD, OASIS } from "../../game/consta
 import { DESERT_POINTS } from "./desert";
 import { BEACH_POINTS } from "./beach";
 import { BEACH_PIER, FISHER, SHIPWRECK, BEACH_SIGNPOST } from "../../game/constants";
+import { HIDDEN_ARTIFACT } from "../../game/constants";
 import { DOCK, HERMIT, ISLAND_DOCK, ISLAND_FIRE, LIGHTHOUSE, RUINS } from "../../game/constants";
 import { VILLAGE_LIFE, VILLAGE_POINTS, wandererPose } from "./village";
 import { ARCHIVE_POINT, TERMINAL_POINT } from "../learnPoints";
@@ -43,7 +44,7 @@ describe("areas", () => {
     expect([AREAS.peaks.wall, AREAS.village.wall, AREAS.forest.wall]).toEqual([true, false, false]);
   });
 
-  it("the forest's path winds from its north mouth to the clearing and on to the south-east corner, as one connected trail", () => {
+  it("the forest's path winds from its north mouth to the clearing, as one connected trail", () => {
     const paths = AREAS.forest.paths;
     const touch = (a: Rect, b: Rect) => a.x <= b.x + b.w && b.x <= a.x + a.w && a.y <= b.y + b.h && b.y <= a.y + a.h;
     const seen = new Set<number>([0]);
@@ -54,7 +55,6 @@ describe("areas", () => {
     expect(seen.size, "every path piece joins the trail from the mouth").toBe(paths.length);
     const reaches = (x: number, y: number) => paths.some((r) => Math.abs(x - (r.x + r.w / 2)) <= r.w / 2 + 14 && y >= r.y - 14 && y < r.y + r.h + 14);
     expect(reaches(FOREST_POINTS.campfire.x, FOREST_POINTS.campfire.y), "campfire").toBe(true);
-    expect(reaches(FOREST_POINTS.dig.x, FOREST_POINTS.dig.y), "dig corner").toBe(true);
     expect(paths.some((r) => r.x < 0 || r.y <= -999)).toBe(true);
     // Winding: between the mouth and the fork the trail's left edge changes column at least three times.
     const left = (y: number) => Math.min(...paths.filter((r) => y >= r.y && y < r.y + r.h).map((r) => r.x));
@@ -119,6 +119,7 @@ describe("Foggaten Island's area", () => {
       hermit: toArt(HERMIT),
       fire: toArt(ISLAND_FIRE),
       ruins: toArt(RUINS),
+      dig: toArt(HIDDEN_ARTIFACT),
     });
   });
 
@@ -470,5 +471,15 @@ describe("hosted chests' landmarks", () => {
       const spot = toArt(chest.at!);
       expect(AREAS[chest.zone].props.some((p) => p.sprite === sprite && p.at.x === spot.x && p.at.y === spot.y), `${id} at ${sprite}`).toBe(true);
     }
+  });
+});
+
+describe("Foggaten Island's dig corner", () => {
+  it("the island's road reaches the dig spot, and the spot is on land outside every prop", () => {
+    const { dig } = FOGGATEN_POINTS;
+    const reaches = FOGGATEN.paths.some((r) => Math.abs(dig.x - (r.x + r.w / 2)) <= r.w / 2 + 14 && dig.y >= r.y - 14 && dig.y < r.y + r.h + 14);
+    expect(reaches).toBe(true);
+    expect(FOGGATEN.terrainAt(dig.x, dig.y)).not.toBe("sea");
+    for (const p of FOGGATEN.props) expect(intersects(spriteBox("x-mark", dig), spriteBox(p.sprite, p.at)), p.sprite).toBe(false);
   });
 });

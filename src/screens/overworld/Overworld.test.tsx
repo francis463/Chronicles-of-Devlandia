@@ -1,5 +1,5 @@
 import { createElement } from "react";
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RIVER_DAMAGE_MS } from "../../game/constants";
@@ -342,21 +342,25 @@ describe("Overworld hidden artifact", () => {
   });
 
   it("keeps the dig spot hidden until the clue is decoded", () => {
-    render(<Overworld onMenu={() => {}} initial={{ hasLoot: true, zone: "forest", player: { x: 84, y: 80 } }} />);
+    render(<Overworld onMenu={() => {}} initial={{ hasLoot: true, zone: "foggaten", player: { x: 84, y: 80 } }} />);
     expect(screen.queryByText("[E] Dig here")).toBeNull();
     fireEvent.keyDown(window, { key: "e" });
     expect(screen.queryByText("Artifact found: the Golden Semicolon!")).toBeNull();
     expect(screen.queryByTestId("artifact")).toBeNull();
   });
 
-  it("after decoding, the Peaks show no dig spot and no [E] Dig here", () => {
+  it("after decoding, the Peaks show no dig spot and no [E] Dig here (and neither does the forest)", () => {
     render(<Overworld onMenu={() => {}} initial={{ hasLoot: true, clueDecoded: true, player: { x: 72, y: 84 } }} />);
+    expect(screen.queryByText("[E] Dig here")).toBeNull();
+    expect(screen.queryByTestId("dig-spot")).toBeNull();
+    cleanup();
+    render(<Overworld onMenu={() => {}} initial={{ hasLoot: true, clueDecoded: true, zone: "forest", player: { x: 84, y: 80 } }} />);
     expect(screen.queryByText("[E] Dig here")).toBeNull();
     expect(screen.queryByTestId("dig-spot")).toBeNull();
   });
 
   it("after decoding, [E] digs up the Golden Semicolon", () => {
-    render(<Overworld onMenu={() => {}} initial={{ hasLoot: true, clueDecoded: true, zone: "forest", player: { x: 84, y: 80 } }} />);
+    render(<Overworld onMenu={() => {}} initial={{ hasLoot: true, clueDecoded: true, zone: "foggaten", player: { x: 84, y: 80 } }} />);
     // map prompt + touch [E] button (CSS-hidden on desktop)
     expect(screen.getAllByText("[E] Dig here")).toHaveLength(2);
     fireEvent.keyDown(window, { key: "e" });

@@ -172,10 +172,11 @@ describe("mini-map: the Dense Forest cell", () => {
 });
 
 describe("mini-map artifact", () => {
-  it("the found Golden Semicolon's dot is in the forest cell, not the Peaks'", () => {
-    render(<MiniMap zone="forest" player={{ x: 50, y: 20 }} artifactFound badges={[]} archiveOpen={false} />);
+  it("the found Golden Semicolon's dot is in the Foggaten cell, not the forest's or the Peaks'", () => {
+    render(<MiniMap zone="foggaten" player={{ x: 50, y: 20 }} artifactFound badges={[]} archiveOpen={false} />);
     const dot = (cell: string) => screen.getByTestId(`minimap-cell-${cell}`).querySelectorAll(".rotate-45.bg-\\[var\\(--accent\\)\\]");
-    expect(dot("forest")).toHaveLength(1);
+    expect(dot("foggaten")).toHaveLength(1);
+    expect(dot("forest")).toHaveLength(0);
     expect(dot("peaks")).toHaveLength(0);
   });
 });

@@ -250,20 +250,22 @@ describe("gameReducer: hidden artifact side quest", () => {
   });
 
   it("the artifact cannot be dug up before the clue is decoded", () => {
-    const inForest = { ...looted, zone: "forest" as const };
-    expect(gameReducer(inForest, { type: "interact", poi: "artifact" })).toBe(inForest);
+    const onIsland = { ...looted, zone: "foggaten" as const };
+    expect(gameReducer(onIsland, { type: "interact", poi: "artifact" })).toBe(onIsland);
   });
 
-  it("the dig spot is only in the forest: never visible or usable in the Peaks (Review Focus 3)", () => {
+  it("the dig spot is only on Foggaten Island: never visible or usable in the Peaks or the forest (Review Focus 3)", () => {
     const decoded = { ...looted, clueDecoded: true };
     expect(visiblePois(decoded).map((p) => p.id)).not.toContain("artifact");
     expect(gameReducer(decoded, { type: "interact", poi: "artifact" })).toBe(decoded);
-    expect(visiblePois({ ...decoded, zone: "forest" }).map((p) => p.id)).toContain("artifact");
-    expect(visiblePois({ ...decoded, zone: "forest", artifactFound: true }).map((p) => p.id)).not.toContain("artifact");
+    expect(visiblePois({ ...decoded, zone: "forest" }).map((p) => p.id)).not.toContain("artifact");
+    expect(gameReducer({ ...decoded, zone: "forest" }, { type: "interact", poi: "artifact" })).toEqual({ ...decoded, zone: "forest" });
+    expect(visiblePois({ ...decoded, zone: "foggaten" }).map((p) => p.id)).toContain("artifact");
+    expect(visiblePois({ ...decoded, zone: "foggaten", artifactFound: true }).map((p) => p.id)).not.toContain("artifact");
   });
 
   it("digging after decoding finds the artifact once", () => {
-    const decoded = { ...looted, zone: "forest" as const, clueDecoded: true };
+    const decoded = { ...looted, zone: "foggaten" as const, clueDecoded: true };
     const found = gameReducer(decoded, { type: "interact", poi: "artifact" });
     expect(found.artifactFound).toBe(true);
     expect(found.inspected).toBe("artifact");
@@ -535,7 +537,7 @@ describe("gameReducer: places and talking", () => {
   const village: GameState = { ...s0, zone: "village" };
   const ADA_GATE_LINE = 'Ada: "Heading north? The gate\'s terminal wants one CSS fix. Get the display right and the wall lets you through."';
 
-  it("visiblePois: your zone's places, plus the dig spot in the forest once revealed", () => {
+  it("visiblePois: your zone's places, plus the dig spot on the island once revealed", () => {
     expect(visiblePois(s0).map((p) => p.id)).toEqual([
       "gate", "chest", "river", "tower", "dock", "peaks-signpost", "weather-station", "chest-html", "chest-css",
     ]);
@@ -543,7 +545,7 @@ describe("gameReducer: places and talking", () => {
       "villager", "signpost", "terminal", "archive", "chest-php", "chest-sql",
     ]);
     expect(visiblePois({ ...s0, clueDecoded: true }).map((p) => p.id)).not.toContain("artifact");
-    expect(visiblePois({ ...s0, zone: "forest", clueDecoded: true }).map((p) => p.id).at(-1)).toBe("artifact");
+    expect(visiblePois({ ...s0, zone: "foggaten", clueDecoded: true }).map((p) => p.id).at(-1)).toBe("artifact");
   });
 
   it("places outside your zone do nothing", () => {

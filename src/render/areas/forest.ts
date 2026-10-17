@@ -1,5 +1,4 @@
 import { spriteBox } from "../sprites";
-import { HIDDEN_ARTIFACT } from "../../game/constants";
 import { toArt, type Rect } from "../world";
 import { inRect, type Area, type Prop, type TerrainKind } from "./area";
 
@@ -9,8 +8,6 @@ export const FOREST_POINTS = {
   campfire: toArt({ x: 46, y: 66 }),
   oak: toArt({ x: 24, y: 50 }),
   signpost: toArt({ x: 72, y: 89 }),
-  /** The Golden Semicolon's dig spot, in the south-east corner. */
-  dig: toArt(HIDDEN_ARTIFACT),
 } as const;
 
 const PROPS: Prop[] = [
@@ -39,7 +36,7 @@ const WEST_CORRIDOR: Rect = { x: -1000, y: 112, w: 1000, h: 32 };
 const EAST_MOUTH: Rect = { x: 288, y: 112, w: 32, h: 32 };
 const EAST_CORRIDOR: Rect = { x: 320, y: 112, w: 1000, h: 32 };
 
-/** The trail from the north mouth: it bends east and back to the fork, then west into the clearing and east and south to the dig corner. */
+/** The trail from the north mouth: it bends east and back to the fork, then west into the clearing. */
 const PATHS: Rect[] = [
   { x: 204, y: -1000, w: 6, h: 1040 },
   { x: 204, y: 34, w: 22, h: 6 },
@@ -53,8 +50,7 @@ const PATHS: Rect[] = [
   { x: 160, y: 105, w: 6, h: 22 },
   { x: 204, y: 100, w: 6, h: 23 },
   { x: 204, y: 117, w: 24, h: 6 },
-  { x: 222, y: 117, w: 6, h: 30 },
-  { x: 222, y: 141, w: 60, h: 6 },
+  { x: 222, y: 117, w: 6, h: 13 },
   { x: -1000, y: 116, w: 1166, h: 6 },
   { x: 222, y: 124, w: 1098, h: 6 },
 ];
@@ -70,7 +66,5 @@ export const FOREST: Area = {
   ice: null,
   props: PROPS,
   protected: [...PATHS, MOUTH, WEST_MOUTH, EAST_MOUTH, ...PROPS.map((prop) => spriteBox(prop.sprite, prop.at)),
-    spriteBox("x-mark", FOREST_POINTS.dig),
-    spriteBox("semicolon", FOREST_POINTS.dig),
   ],
 };

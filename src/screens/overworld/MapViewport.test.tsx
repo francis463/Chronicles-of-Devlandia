@@ -185,14 +185,18 @@ describe("MapViewport on the canvas", () => {
   });
 
   it("dig-spot anchor only while the clue is decoded and not found; artifact anchor when found", () => {
-    const { rerender } = render(<MapViewport {...props({ zone: "forest" })} />);
+    const { rerender } = render(<MapViewport {...props({ zone: "foggaten" })} />);
     expect(screen.queryByTestId("dig-spot")).toBeNull();
-    rerender(<MapViewport {...props({ zone: "forest", clueDecoded: true })} />);
+    rerender(<MapViewport {...props({ zone: "foggaten", clueDecoded: true })} />);
     expect(screen.getByTestId("dig-spot")).toHaveTextContent("Dig spot");
     expect(screen.queryByTestId("artifact")).toBeNull();
-    rerender(<MapViewport {...props({ zone: "forest", clueDecoded: true, artifactFound: true })} />);
+    rerender(<MapViewport {...props({ zone: "foggaten", clueDecoded: true, artifactFound: true })} />);
     expect(screen.queryByTestId("dig-spot")).toBeNull();
     expect(screen.getByTestId("artifact")).toHaveTextContent("Golden Semicolon");
+    rerender(<MapViewport {...props({ zone: "forest", clueDecoded: true })} />);
+    expect(screen.queryByTestId("dig-spot")).toBeNull();
+    rerender(<MapViewport {...props({ zone: "forest", clueDecoded: true, artifactFound: true })} />);
+    expect(screen.queryByTestId("artifact")).toBeNull();
     rerender(<MapViewport {...props({ zone: "peaks", clueDecoded: true })} />);
     expect(screen.queryByTestId("dig-spot")).toBeNull();
     rerender(<MapViewport {...props({ zone: "peaks", clueDecoded: true, artifactFound: true })} />);

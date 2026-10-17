@@ -272,7 +272,7 @@ export function MapViewport({
   const worldSize = { width: world.width, height: world.height };
   const inPeaks = zone === "peaks";
   const obstacles = [
-    ...(zone === "forest" && artifactFound ? [{ ...HIDDEN_ARTIFACT, box: SEMICOLON_BOX }] : []),
+    ...(zone === "foggaten" && artifactFound ? [{ ...HIDDEN_ARTIFACT, box: SEMICOLON_BOX }] : []),
     ...teammates.map((t) => ({ x: t.x, y: t.y, box: EXPLORER_BOX })),
   ];
   const mapState = { hasLoot, towerPowered, badges, archiveOpen, reach: inRange?.id ?? null };
@@ -455,12 +455,12 @@ export function MapViewport({
           <MapCaption key={sign.id} id={sign.id} text={sign.text} world={world} />
         ))}
 
-        {zone === "forest" && clueDecoded && !artifactFound && (
+        {zone === "foggaten" && clueDecoded && !artifactFound && (
           <div data-testid="dig-spot" className="pointer-events-none absolute" style={at(HIDDEN_ARTIFACT)}>
             <span className="sr-only">Dig spot</span>
           </div>
         )}
-        {zone === "forest" && artifactFound && (
+        {zone === "foggaten" && artifactFound && (
           <div data-testid="artifact" title="Golden Semicolon" className="pointer-events-none absolute" style={at(HIDDEN_ARTIFACT)}>
             <span className="sr-only">Golden Semicolon</span>
           </div>

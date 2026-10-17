@@ -13,7 +13,7 @@ export const POIS: Poi[] = [
   { id: "tower", label: "Signal Tower", x: 14, y: 18 },
 ];
 export const INTERACT_RADIUS = 13;
-/** Buried in the Dense Forest; not on the map until the scroll is decoded. */
+/** Buried in the south-east of Foggaten Island; not on the map until the scroll is decoded. */
 export const HIDDEN_ARTIFACT: Poi = { id: "artifact", label: "Golden Semicolon", x: 86, y: 80 };
 /** Dev Village's villager and its signpost by the exit to the Peaks. */
 export const ADA: Poi = { id: "villager", label: "Ada", x: 34, y: 70 };

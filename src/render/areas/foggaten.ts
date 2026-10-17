@@ -1,5 +1,5 @@
 import { spriteBox } from "../sprites";
-import { HERMIT, ISLAND_DOCK, ISLAND_FIRE, LIGHTHOUSE, RUINS } from "../../game/constants";
+import { HERMIT, HIDDEN_ARTIFACT, ISLAND_DOCK, ISLAND_FIRE, LIGHTHOUSE, RUINS } from "../../game/constants";
 import { REACHABLE_RECT, toArt, type Rect } from "../world";
 import { inRect, type Area, type Prop, type TerrainKind } from "./area";
 
@@ -10,6 +10,8 @@ export const FOGGATEN_POINTS = {
   hermit: toArt(HERMIT),
   fire: toArt(ISLAND_FIRE),
   ruins: toArt(RUINS),
+  /** The Golden Semicolon's dig spot, in the south-east. */
+  dig: toArt(HIDDEN_ARTIFACT),
 } as const;
 
 /** The lamp room's centre: the lit lighthouse's glow and beam start here. */
@@ -27,6 +29,9 @@ const PROPS: Prop[] = [
 const PATHS: Rect[] = [
   { x: 26, y: 122, w: 140, h: 6 },
   { x: 157, y: FOGGATEN_POINTS.lighthouse.y + 1, w: 6, h: 122 - FOGGATEN_POINTS.lighthouse.y },
+  // East along the shore road, then south to the dig corner.
+  { x: 160, y: 122, w: 122, h: 6 },
+  { x: 273, y: 122, w: 6, h: 26 },
 ];
 
 /** Two wooded patches inland, so there is something to walk around. */
@@ -54,5 +59,5 @@ export const FOGGATEN: Area = {
   gateBox: null,
   ice: null,
   props: PROPS,
-  protected: [...PATHS, ...PROPS.map((prop) => spriteBox(prop.sprite, prop.at))],
+  protected: [...PATHS, ...PROPS.map((prop) => spriteBox(prop.sprite, prop.at)), spriteBox("x-mark", FOGGATEN_POINTS.dig), spriteBox("semicolon", FOGGATEN_POINTS.dig)],
 };

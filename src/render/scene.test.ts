@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { AREAS } from "./areas";
-import { FOREST_POINTS } from "./areas/forest";
-import { LAMP_POINT } from "./areas/foggaten";
+import { FOGGATEN_POINTS, LAMP_POINT } from "./areas/foggaten";
 import { VILLAGE_LIFE, wandererPose } from "./areas/village";
 import { PHASE_TINT, buildScene, type Poses, type SceneInput } from "./scene";
 import { LIGHTS, SPRITES, spriteBox, type SpriteId } from "./sprites";
@@ -65,25 +64,28 @@ describe("scene: what is drawn", () => {
   });
 
   it("X only while decoded and not found; semicolon only when found", () => {
-    const forest = (over: Partial<SceneInput> = {}, t = 0) => scene({ zone: "forest", player: { x: 68, y: 20 }, ...over }, t);
+    const forest = (over: Partial<SceneInput> = {}, t = 0) => scene({ zone: "foggaten", player: { x: 68, y: 20 }, ...over }, t);
     expect(sprites(forest(), "flat")).not.toContain("x-mark");
     const decoded = forest({ clueDecoded: true });
-    const xBox = spriteBox("x-mark", FOREST_POINTS.dig);
+    const xBox = spriteBox("x-mark", FOGGATEN_POINTS.dig);
     expect(decoded.flat.find((d) => d.sprite === "x-mark")).toMatchObject({ x: xBox.x, y: xBox.y });
     expect(sprites(decoded, "upright")).not.toContain("semicolon");
     const found = forest({ clueDecoded: true, artifactFound: true });
     expect(sprites(found, "flat")).not.toContain("x-mark");
-    const semiBox = spriteBox("semicolon", FOREST_POINTS.dig);
+    const semiBox = spriteBox("semicolon", FOGGATEN_POINTS.dig);
     expect(found.upright.find((d) => d.sprite === "semicolon")).toMatchObject({ x: semiBox.x, y: semiBox.y });
   });
 
-  it("the Peaks draw neither the X nor the semicolon any more", () => {
+  it("the Peaks and the forest draw neither the X nor the semicolon", () => {
     const peaks = scene({ clueDecoded: true, artifactFound: true });
     expect([...sprites(peaks, "flat"), ...sprites(peaks, "upright")]).not.toContain("x-mark");
     expect(sprites(peaks, "upright")).not.toContain("semicolon");
-    expect(AREAS.peaks.protected.some((r) => JSON.stringify(r) === JSON.stringify(spriteBox("x-mark", FOREST_POINTS.dig)))).toBe(false);
-    expect(AREAS.forest.protected).toContainEqual(spriteBox("x-mark", FOREST_POINTS.dig));
-    expect(AREAS.forest.protected).toContainEqual(spriteBox("semicolon", FOREST_POINTS.dig));
+    expect(AREAS.peaks.protected.some((r) => JSON.stringify(r) === JSON.stringify(spriteBox("x-mark", FOGGATEN_POINTS.dig)))).toBe(false);
+    expect(AREAS.foggaten.protected).toContainEqual(spriteBox("x-mark", FOGGATEN_POINTS.dig));
+    expect(AREAS.foggaten.protected).toContainEqual(spriteBox("semicolon", FOGGATEN_POINTS.dig));
+    const forest = scene({ zone: "forest", clueDecoded: true, artifactFound: true });
+    expect([...sprites(forest, "flat"), ...sprites(forest, "upright")]).not.toContain("x-mark");
+    expect(sprites(forest, "upright")).not.toContain("semicolon");
   });
 
   it("flat overlays come before every explorer whatever their rows", () => {
@@ -240,7 +242,7 @@ describe("scene: light", () => {
 
   it("semicolon glow steps 0.25, 0.5, 0.75, 1, 0.75, 0.5 every 267 ms", () => {
     const strength = (t: number) => {
-      const inner = scene({ zone: "forest", clueDecoded: true, artifactFound: true, minutes: DAY }, t).light.filter(
+      const inner = scene({ zone: "foggaten", clueDecoded: true, artifactFound: true, minutes: DAY }, t).light.filter(
         (p) => p.color === "#fbbf24" && near(p, SEMI_CENTRE, 2),
       );
       return Math.max(...inner.map((p) => p.alpha)) / 0.5;
@@ -251,14 +253,14 @@ describe("scene: light", () => {
   it("ice glints come and go; the dig X glints", () => {
     expect(scene({}, 0).glints.filter((p) => p.color === "#ffffff").length).toBeGreaterThan(0);
     expect(scene({}, 300).glints.filter((p) => p.color === "#ffffff")).toHaveLength(0);
-    const xGlint = (t: number) => scene({ zone: "forest", clueDecoded: true }, t).light.filter((p) => near(p, FOREST_POINTS.dig, 4) && p.color === "#ffffff");
+    const xGlint = (t: number) => scene({ zone: "foggaten", clueDecoded: true }, t).light.filter((p) => near(p, FOGGATEN_POINTS.dig, 4) && p.color === "#ffffff");
     expect(xGlint(0).length).toBeGreaterThan(0);
     expect(xGlint(300)).toHaveLength(0);
   });
 
   it("reduced motion: steady lamp, no ring, no glints, cursor on, semicolon glow at 1, drone still", () => {
     const at = (t: number) => scene({ clueDecoded: true, artifactFound: true }, t, true);
-    const forestAt = (t: number) => scene({ zone: "forest", clueDecoded: true, artifactFound: true }, t, true);
+    const forestAt = (t: number) => scene({ zone: "foggaten", clueDecoded: true, artifactFound: true }, t, true);
     expect(lamp(at(500))?.color).toBe("#ef4444");
     const powered = scene({ towerPowered: true, minutes: DAY }, 0, true);
     expect(powered.light.filter((p) => !near(p, LIGHTS.towerLamp, 0) && aroundTower(p))).toHaveLength(0);

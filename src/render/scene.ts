@@ -3,10 +3,9 @@ import { phaseOf } from "../game/clock";
 import type { Phase, Point } from "../game/types";
 import type { ZoneId } from "../game/zones";
 import { AREAS } from "./areas";
-import { LAMP_POINT } from "./areas/foggaten";
+import { FOGGATEN_POINTS, LAMP_POINT } from "./areas/foggaten";
 import { BEACH_SHELLS } from "./areas/beach";
 import { DESERT_POINTS } from "./areas/desert";
-import { FOREST_POINTS } from "./areas/forest";
 import { CAVE_POINT, WILDLIFE, foxPose, goatPose } from "./areas/peaks";
 import { VILLAGE_LIFE, wandererPose } from "./areas/village";
 import { DOCK_POINT } from "./areas/peaks";
@@ -443,18 +442,7 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
       const fire = upright.find((d) => d.sprite === "campfire");
       if (fire) fire.frame = flame;
       const light = [...glow(LIGHTS.campfire, CAMPFIRE_GLOW, strength * (flame === 0 ? 1 : 0.8)), ...forestLeaves(t, reduced, strength)];
-      const dig = FOREST_POINTS.dig;
-      const digging = input.clueDecoded && !input.artifactFound;
-      const flat: Drawable[] = digging ? [placed("x-mark", dig)] : [];
-      if (input.artifactFound) {
-        upright.push(placed("semicolon", dig));
-        upright.sort(byFeet);
-        const box = spriteBox("semicolon", dig);
-        const centre = { x: box.x + box.w / 2, y: box.y + Math.floor(box.h / 2) - 1 };
-        light.push(...glow(centre, GOLD, reduced ? 1 : SEMICOLON_STEPS[Math.floor(t / 267) % SEMICOLON_STEPS.length]));
-      }
-      if (digging && !reduced && t % 1500 < 250) light.push({ x: dig.x + 2, y: dig.y - 2, color: WHITE, alpha: 1 });
-      return { zone: input.zone, glints: [], flat, upright, drone, tint: forestTint(PHASE_TINT[phase]), light, snow };
+      return { zone: input.zone, glints: [], flat: [], upright, drone, tint: forestTint(PHASE_TINT[phase]), light, snow };
     }
     if (input.zone === "village") {
       // The windmill's sails turn and the fountain's spray dances; copies, so cached drawables are never changed.
@@ -477,7 +465,19 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
       const lighthouse = upright.find((d) => d.sprite === "lighthouse");
       if (lighthouse) lighthouse.frame = input.lighthouseLit ? 1 : 0;
       const light = input.lighthouseLit ? lighthouseLight(t, reduced, strength) : [];
-      return { zone: input.zone, glints: [], flat: [], upright, drone, tint: PHASE_TINT[phase], light, snow };
+      // The Golden Semicolon: the X once the scroll is decoded, then the semicolon glowing where it was dug up.
+      const dig = FOGGATEN_POINTS.dig;
+      const digging = input.clueDecoded && !input.artifactFound;
+      const flat: Drawable[] = digging ? [placed("x-mark", dig)] : [];
+      if (input.artifactFound) {
+        upright.push(placed("semicolon", dig));
+        upright.sort(byFeet);
+        const box = spriteBox("semicolon", dig);
+        const centre = { x: box.x + box.w / 2, y: box.y + Math.floor(box.h / 2) - 1 };
+        light.push(...glow(centre, GOLD, reduced ? 1 : SEMICOLON_STEPS[Math.floor(t / 267) % SEMICOLON_STEPS.length]));
+      }
+      if (digging && !reduced && t % 1500 < 250) light.push({ x: dig.x + 2, y: dig.y - 2, color: WHITE, alpha: 1 });
+      return { zone: input.zone, glints: [], flat, upright, drone, tint: PHASE_TINT[phase], light, snow };
     }
     return { zone: input.zone, glints: [], flat: [], upright, drone, tint: PHASE_TINT[phase], light: [], snow };
   }

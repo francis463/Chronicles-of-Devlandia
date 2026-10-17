@@ -64,7 +64,7 @@ export function cardFor(s: GameState): Card | null {
       return card(place.label, CAVE_TEXT);
     case "forest-signpost": {
       const lead = INSPECT_COPY["forest-signpost"].default;
-      return card(place.label, `${lead} ${FOREST_DIRECTIONS}${s.clueDecoded ? " The scroll's clue: dig in the south-east corner." : ""}`);
+      return card(place.label, `${lead} ${FOREST_DIRECTIONS}${s.clueDecoded ? " The scroll's clue points across the sea, to Foggaten Island." : ""}`);
     }
     case "campfire":
     case "gate":

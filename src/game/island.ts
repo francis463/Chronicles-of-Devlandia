@@ -10,7 +10,7 @@ type Progress = Pick<GameState, "hasLoot" | "clueDecoded" | "artifactFound" | "l
 const STAGES: Array<[keyof Progress, string]> = [
   ["hasLoot", "You sailed through the fog, good. Back on the Peaks, up in the snow beyond the wall, a Supply Cache waits. Empty it."],
   ["clueDecoded", "That cache holds a scrambled scroll. Open it from your inventory: every letter is shifted 13 places."],
-  ["artifactFound", "The scroll points to the Dense Forest. Look for the X in its south-east corner, past the clearing, and dig."],
+  ["artifactFound", "The scroll points here, to my island. Look for the X in its south-east corner, past the trees, and dig."],
   ["lighthouseLit", "The lighthouse lamp wants a letter, spelled in eight switches of binary. Look for the terminal by its door."],
 ];
 const DONE = "You have the Golden Semicolon. The fog has little left to hide from you, explorer. Stay a while by the fire.";

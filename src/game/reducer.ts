@@ -79,10 +79,10 @@ export const isDowned = (s: GameState) => s.hp <= 0;
 export const isModalOpen = (s: GameState) => s.challenge !== null || s.logicOpen || s.lampOpen || s.codexOpen;
 
 /** Hidden points of interest that are currently diggable: the artifact, after decoding, until found. */
-/** What you can use in your zone: its places, plus the dig spot in the Peaks once revealed. */
+/** What you can use in your zone: its places, plus the dig spot on Foggaten Island once revealed. */
 export const visiblePois = (s: GameState): Poi[] => [
   ...ZONES[s.zone].places,
-  ...(s.zone === "forest" ? revealedPois(s) : []),
+  ...(s.zone === "foggaten" ? revealedPois(s) : []),
   // The snow cave is hidden until the signal tower is powered (shared with the team).
   ...(s.zone === "peaks" && s.towerPowered ? [SNOW_CAVE] : []),
 ];
