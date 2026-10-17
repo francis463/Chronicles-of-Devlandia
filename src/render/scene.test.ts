@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { ZoneId } from "../game/zones";
 import { AREAS } from "./areas";
 import { FOGGATEN_POINTS, LAMP_POINT } from "./areas/foggaten";
 import { DESERT_WILDLIFE, camelPose, fennecPose, scorpionPose, snakePose } from "./areas/desert";
@@ -711,8 +712,8 @@ describe("scene: the Peaks' camp, wildlife and start arrow", () => {
     expect(peaks().light.filter((p) => p.color === SMOKE)).toHaveLength(16);
     expect(key(peaks({}, 0).light.filter((p) => p.color === SMOKE))).not.toBe(key(peaks({}, 1500).light.filter((p) => p.color === SMOKE)));
     expect(key(peaks({}, 0, true).light.filter((p) => p.color === SMOKE))).toBe(key(peaks({}, 9000, true).light.filter((p) => p.color === SMOKE)));
-    expect(new Set([0, 400].map((t) => sprites(peaks({}, t), "campfire")[0].frame)).size).toBe(2);
-    expect(sprites(peaks({}, 400, true), "campfire")[0].frame).toBe(0);
+    expect(new Set([0, 400].map((t) => sprites(peaks({ minutes: DUSK }, t), "campfire")[0].frame)).size).toBe(2);
+    expect(sprites(peaks({ minutes: DUSK }, 400, true), "campfire")[0].frame).toBe(0);
     const glow = (minutes: number) => peaks({ minutes }).light.filter((p) => p.color === GLOW || p.color === FIRE).reduce((n, p) => n + p.alpha, 0);
     expect(glow(DAY)).toBe(0);
     expect(glow(NIGHT)).toBeGreaterThan(glow(DUSK));
@@ -720,13 +721,13 @@ describe("scene: the Peaks' camp, wildlife and start arrow", () => {
   });
 
   it("a fox, a goat and three birds live in the sky and snow; the fox backs away from you; all rest when motion is reduced", () => {
-    const s = peaks({ player: { x: 90, y: 70 } });
+    const s = peaks({ player: { x: 90, y: 70 }, minutes: DUSK });
     expect([sprites(s, "fox").length, sprites(s, "goat").length, sprites(s, "bird").length]).toEqual([1, 1, 3]);
-    const foxX = (player: { x: number; y: number }) => sprites(peaks({ player }), "fox")[0].x;
+    const foxX = (player: { x: number; y: number }) => sprites(peaks({ player, minutes: DUSK }), "fox")[0].x;
     expect(foxX({ x: 84, y: 52 })).toBeGreaterThan(foxX({ x: 10, y: 10 }) - 20);
-    const still = (t: number) => key([...sprites(peaks({}, t, true), "fox"), ...sprites(peaks({}, t, true), "goat"), ...sprites(peaks({}, t, true), "bird")]);
+    const still = (t: number) => key(["fox", "goat", "bird"].flatMap((id) => sprites(peaks({ minutes: DUSK }, t, true), id)));
     expect(still(0)).toBe(still(60_000));
-    const birds = (t: number) => key(sprites(peaks({}, t), "bird"));
+    const birds = (t: number) => key(sprites(peaks({ minutes: DUSK }, t), "bird"));
     expect(birds(0)).not.toBe(birds(3000));
   });
 
@@ -1077,5 +1078,46 @@ describe("scene: the Sunny Beach's tide, pier and sandcastle", () => {
 
   it("only the beach has a rowboat", () => {
     for (const zone of ["village", "forest", "desert", "peaks", "foggaten"] as const) expect(up(scene({ zone, minutes: DAY }, 0), "rowboat"), zone).toHaveLength(0);
+  });
+});
+
+describe("scene: day and night", () => {
+  const out = (zone: ZoneId, minutes: number, id: SpriteId) => scene({ zone, minutes }, 0).upright.filter((d) => d.sprite === id).length;
+
+  it("day animals turn in at night and night animals sleep through the day", () => {
+    const rows: Array<[ZoneId, SpriteId, number, number, number]> = [
+      // zone, sprite, count by day, at dusk, at night
+      ["forest", "squirrel", 1, 1, 0],
+      ["forest", "owl", 0, 1, 1],
+      ["village", "chicken", 1, 1, 0],
+      ["desert", "vulture", 2, 2, 0],
+      ["desert", "lizard", 1, 1, 0],
+      ["desert", "camel", 1, 1, 0],
+      ["desert", "fennec", 0, 1, 1],
+      ["beach", "bird", 3, 3, 0],
+      ["peaks", "goat", 1, 1, 0],
+      ["peaks", "fox", 0, 1, 1],
+      ["forest", "deer", 1, 1, 1],
+      ["forest", "rabbit", 1, 1, 1],
+      ["desert", "snake", 1, 1, 1],
+      ["beach", "crab", 1, 1, 1],
+    ];
+    for (const [zone, id, day, dusk, night] of rows)
+      expect([out(zone, DAY, id), out(zone, DUSK, id), out(zone, NIGHT, id)], `${zone} ${id}`).toEqual([day, dusk, night]);
+  });
+
+  it("the /light override decides the hour for the animals too", () => {
+    const n = (lightMode: SceneInput["lightMode"]) => scene({ zone: "forest", minutes: DAY, lightMode }, 0).upright.filter((d) => d.sprite === "squirrel").length;
+    expect([n("day"), n("night")]).toEqual([1, 0]);
+  });
+
+  it("the campfire is cold by day (the out frame, no flicker) and burns from dusk to dawn, in every place it stands", () => {
+    for (const zone of ["forest", "peaks", "foggaten"] as const) {
+      for (const t of [0, 400, 800]) {
+        const fire = (minutes: number, reduced = false) => scene({ zone, minutes }, t, reduced).upright.filter((d) => d.sprite === "campfire");
+        expect(fire(DAY).map((d) => d.frame), `${zone} day`).toEqual([2]);
+        for (const m of [DUSK, NIGHT]) expect(fire(m).every((d) => d.frame < 2), `${zone} ${m}`).toBe(true);
+      }
+    }
   });
 });

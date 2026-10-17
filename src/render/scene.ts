@@ -1,6 +1,7 @@
 import type { ClassId } from "../game/classes";
 import { phaseOf } from "../game/clock";
 import type { Phase, Point } from "../game/types";
+import { campfireLit, isActive } from "./activity";
 import type { ZoneId } from "../game/zones";
 import { AREAS } from "./areas";
 import { FOGGATEN_POINTS, LAMP_POINT } from "./areas/foggaten";
@@ -575,14 +576,25 @@ const byFeet = (a: Drawable, b: Drawable) => feetRow(a) - feetRow(b) || Number(i
 
 /** The scene at time `t`; a Master of Devlandia (every badge) also wears a crown, drawn over everything else on their head. */
 export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: boolean): Scene {
-  const scene = buildBaseScene(input, poses, t, reduced);
+  const base = buildBaseScene(input, poses, t, reduced);
+  // Day and night: some animals are only out at certain hours, and the campfire is cold (its out frame) by day. Copies, so cached drawables never change.
+  const phase = scenePhase(input);
+  const upright = base.upright
+    .filter((d) => isActive(d.sprite, phase))
+    .map((d) => (d.sprite === "campfire" && !campfireLit(phase) ? { ...d, frame: CAMPFIRE_OUT } : d));
+  const scene = { ...base, upright };
   if (!input.master || input.downed) return scene;
   return { ...scene, upright: [...scene.upright, placed("crown", { x: poses.player.x, y: poses.player.y - 11 })] };
 }
 
+/** The campfire sprite's third frame: cold logs. */
+const CAMPFIRE_OUT = 2;
+
+const scenePhase = (input: SceneInput): Phase => (input.lightMode === "day" ? "Day" : input.lightMode === "night" ? "Night" : phaseOf(input.minutes));
+
 function buildBaseScene(input: SceneInput, poses: Poses, t: number, reduced: boolean): Scene {
   const P = LANDMARK_POINTS;
-  const phase: Phase = input.lightMode === "day" ? "Day" : input.lightMode === "night" ? "Night" : phaseOf(input.minutes);
+  const phase = scenePhase(input);
   // The Peaks snow by default; elsewhere only when asked (/weather snow). /weather clear turns it off everywhere.
   const snow = (input.snow ?? input.zone === "peaks") ? snowfall(t, reduced) : [];
   const strength = GLOW_STRENGTH[phase];

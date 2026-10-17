@@ -27,9 +27,9 @@ describe("sprites", () => {
     }
   });
 
-  it("the forest's campfire (2 frames) and old oak (1 frame) are the declared size and anchor", () => {
+  it("the forest's campfire (3 frames: two flames and the cold logs) and old oak (1 frame) are the declared size and anchor", () => {
     expect([SPRITES.campfire.w, SPRITES.campfire.h, SPRITES.campfire.anchor]).toEqual([12, 14, "bottom"]);
-    expect(SPRITES.campfire.frames).toHaveLength(2);
+    expect(SPRITES.campfire.frames).toHaveLength(3);
     expect(SPRITES.campfire.frames[0]).not.toEqual(SPRITES.campfire.frames[1]);
     expect([SPRITES["old-oak"].w, SPRITES["old-oak"].h, SPRITES["old-oak"].anchor]).toEqual([40, 48, "bottom"]);
     expect(SPRITES["old-oak"].frames).toHaveLength(1);

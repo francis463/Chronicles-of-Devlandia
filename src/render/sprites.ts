@@ -1810,7 +1810,7 @@ export const SPRITES: Record<SpriteId, SpriteDef> = {
     w: 12,
     h: 14,
     anchor: "bottom",
-    palette: { o: "#0b1020", r: "#451a03", b: "#78350f", f: "#ea580c", y: "#fbbf24", w: "#fde68a" },
+    palette: { o: "#0b1020", r: "#451a03", b: "#78350f", f: "#ea580c", y: "#fbbf24", w: "#fde68a", a: "#6b7280" },
     frames: [
       [
         "............",
@@ -1841,6 +1841,23 @@ export const SPRITES: Record<SpriteId, SpriteDef> = {
         "..offyyffo..",
         "..oobbbbboo.",
         ".obbrbbrbbbo",
+        "obbrrbbrrbbo",
+        ".oooooooooo.",
+      ],
+      // Out (by day): cold logs and a little ash, no flame.
+      [
+        "............",
+        "............",
+        "............",
+        "............",
+        "............",
+        "............",
+        "............",
+        "............",
+        "............",
+        "............",
+        "..oooooooo..",
+        ".obbbaaabbbo",
         "obbrrbbrrbbo",
         ".oooooooooo.",
       ],
