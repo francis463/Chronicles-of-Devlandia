@@ -356,13 +356,14 @@ describe("the Snowy Peaks' lodge, wildlife and trail", () => {
 
 describe("the Sunbaked Desert's area", () => {
   const D = AREAS.desert;
+  const K = D.world.width / 320;
   const touch = (a: Rect, b: Rect) => a.x <= b.x + b.w && b.x <= a.x + a.w && a.y <= b.y + b.h && b.y <= a.y + a.h;
 
   it("is a plain dune area with an east mouth, its corridor beyond, no wall, gate or ice", () => {
     expect(D).toMatchObject({ id: "desert", wall: false, gateBox: null, ice: null });
-    expect(D.mouths).toEqual([{ x: 288, y: 112, w: 32, h: 32 }]);
-    expect(D.corridors).toEqual([{ x: 320, y: 112, w: 1000, h: 32 }]);
-    for (const [x, y] of [[0, 0], [160, 90], [319, 179], [-50, -50], [400, 300]]) expect(D.terrainAt(x, y)).toBe("dune");
+    expect(D.mouths).toEqual([{ x: D.world.width - 32, y: 112 * K, w: 32, h: 32 * K }]);
+    expect(D.corridors).toEqual([{ x: D.world.width, y: 112 * K, w: 1000, h: 32 * K }]);
+    for (const [x, y] of [[0, 0], [160 * K, 90 * K], [319 * K, 179 * K], [-50, -50], [400 * K, 300 * K]]) expect(D.terrainAt(x, y)).toBe("dune");
   });
 
   it("the forest's west mouth has a road that runs out through it and joins the trail", () => {
@@ -372,7 +373,7 @@ describe("the Sunbaked Desert's area", () => {
   });
 
   it("its places' art points are the game places' art points", () => {
-    expect(DESERT_POINTS).toMatchObject({ nomad: toArt(NOMAD), oasis: toArt(OASIS), pyramid: toArt(DESERT_PYRAMID), signpost: toArt(DESERT_SIGNPOST) });
+    expect(DESERT_POINTS).toMatchObject({ nomad: zoneToArt(NOMAD, "desert"), oasis: zoneToArt(OASIS, "desert"), pyramid: zoneToArt(DESERT_PYRAMID, "desert"), signpost: zoneToArt(DESERT_SIGNPOST, "desert") });
   });
 
   it("its road is one connected road from the east mouth and reaches every place", () => {
@@ -382,23 +383,27 @@ describe("the Sunbaked Desert's area", () => {
       D.paths.forEach((r, j) => void (!seen.has(j) && touch(D.paths[i], r) && (seen.add(j), queue.push(j))));
     }
     expect(seen.size).toBe(D.paths.length);
-    expect(D.paths.some((r) => r.x + r.w > 320)).toBe(true);
-    const reaches = (x: number, y: number) => D.paths.some((r) => Math.abs(x - (r.x + r.w / 2)) <= r.w / 2 + 14 && y >= r.y - 14 && y < r.y + r.h + 14);
+    expect(D.paths.some((r) => r.x + r.w > D.world.width)).toBe(true);
+    const slack = 14 * K; // a place sits as far from its road, in screens, on a bigger desert
+    const reaches = (x: number, y: number) => D.paths.some((r) => Math.abs(x - (r.x + r.w / 2)) <= r.w / 2 + slack && y >= r.y - slack && y < r.y + r.h + slack);
     for (const k of ["nomad", "oasis", "pyramid", "signpost"] as const) expect(reaches(DESERT_POINTS[k].x, DESERT_POINTS[k].y), k).toBe(true);
   });
 
   it("its props are inside the world, clear of each other and the mouth, and are protected", () => {
-    expect(D.props.map((p) => p.sprite).sort()).toEqual(["explorer-down", "oasis", "obelisk", "palm", "palm", "pyramid", "riverbed", "rock", "signpost", "temple-door", "tent", "well"]);
+    const base = ["explorer-down", "oasis", "obelisk", "palm", "palm", "pyramid", "riverbed", "rock", "signpost", "temple-door", "tent", "well"];
+    // A bigger desert has an arch, cacti, a skull and a palm out in the dunes.
+    const extras = K === 1 ? [] : ["arch", "bloom-cactus", "cactus", "cactus", "palm", "skull"];
+    expect(D.props.map((p) => p.sprite).sort()).toEqual([...base, ...extras].sort());
     const boxes = D.props.map((p) => spriteBox(p.sprite, p.at));
     for (const [i, a] of boxes.entries()) {
-      expect(a.x >= 0 && a.y >= 0 && a.x + a.w <= 320 && a.y + a.h <= 180, `prop ${i} in the world`).toBe(true);
+      expect(a.x >= 0 && a.y >= 0 && a.x + a.w <= D.world.width && a.y + a.h <= D.world.height, `prop ${i} in the world`).toBe(true);
       expect(intersects(a, D.mouths[0]), `prop ${i} on the mouth`).toBe(false);
       for (const b of boxes.slice(i + 1)) expect(intersects(a, b), `props ${i} overlap`).toBe(false);
       expect(D.protected).toContainEqual(a);
     }
     const pts = [DESERT_POINTS.nomad, DESERT_POINTS.oasis, DESERT_POINTS.pyramid, DESERT_POINTS.signpost];
     for (const [i, a] of pts.entries())
-      for (const b of pts.slice(i + 1)) expect(Math.hypot((a.x - b.x) / 3.2, (a.y - b.y) / 1.8)).toBeGreaterThanOrEqual(12);
+      for (const b of pts.slice(i + 1)) expect(Math.hypot((a.x - b.x) / (3.2 * K), (a.y - b.y) / (1.8 * K))).toBeGreaterThanOrEqual(12);
   });
 
   it("the lizard's rock is a prop and the lizard sits on its top", () => {

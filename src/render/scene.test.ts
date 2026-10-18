@@ -799,7 +799,10 @@ describe("scene: the Sunbaked Desert", () => {
     const b = desert(3000).light;
     expect(a.length).toBeGreaterThan(20);
     expect(a).not.toEqual(b);
-    for (const p of [...a, ...b]) expect(p.x >= 0 && p.x < 320 && p.y >= 0 && p.y < 180, `${p.x},${p.y}`).toBe(true);
+    const { width, height } = AREAS.desert.world;
+    for (const p of [...a, ...b]) expect(p.x >= 0 && p.x < width && p.y >= 0 && p.y < height, `${p.x},${p.y}`).toBe(true);
+    // The grains, the haze and the mirage cover every screen of the desert.
+    expect([a.some((p) => p.x >= 320), a.some((p) => p.y >= 180)]).toEqual([true, true]);
   });
 
   it("the tumbleweed rolls across the sand", () => {
@@ -941,7 +944,9 @@ describe("scene: the desert's wildlife, jars and weather", () => {
 
   it("a scorpion, a camel and a snake roam the desert by day, vultures circle, and none of them live elsewhere", () => {
     const s = desert(0);
-    expect(["scorpion", "camel", "snake", "vulture"].map((id) => count(s, id))).toEqual([1, 1, 1, 2]);
+    const screens = (AREAS.desert.world.width / 320) * (AREAS.desert.world.height / 180);
+    // One pair of vultures over every screen.
+    expect(["scorpion", "camel", "snake", "vulture"].map((id) => count(s, id))).toEqual([1, 1, 1, 2 * screens]);
     for (const zone of ["village", "peaks", "forest", "beach", "foggaten"] as const) {
       const other = scene({ zone, minutes: DAY }, 0);
       for (const id of ["scorpion", "camel", "snake", "vulture", "fennec", "jar"]) expect(count(other, id), `${zone} ${id}`).toBe(0);
@@ -989,7 +994,8 @@ describe("scene: the desert's wildlife, jars and weather", () => {
     const sparkle = (s: ReturnType<typeof scene>) => s.light.filter((p) => p.color === "#e0f2fe");
     expect([mirage(desert(0)).length > 0, sparkle(desert(0)).length]).toEqual([true, 0]);
     const night = desert(0, false, { minutes: NIGHT });
-    expect([mirage(night).length, sparkle(night).length]).toEqual([0, 28]);
+    const screens = (AREAS.desert.world.width / 320) * (AREAS.desert.world.height / 180);
+    expect([mirage(night).length, sparkle(night).length]).toEqual([0, 28 * screens]);
   });
 });
 
@@ -1095,7 +1101,7 @@ describe("scene: day and night", () => {
       ["forest", "squirrel", 1, 1, 0],
       ["forest", "owl", 0, 1, 1],
       ["village", "chicken", 1, 1, 0],
-      ["desert", "vulture", 2, 2, 0],
+      ["desert", "vulture", 2 * (AREAS.desert.world.width / 320) ** 2, 2 * (AREAS.desert.world.width / 320) ** 2, 0],
       ["desert", "lizard", 1, 1, 0],
       ["desert", "camel", 1, 1, 0],
       ["desert", "fennec", 0, 1, 1],
@@ -1206,5 +1212,35 @@ describe("scene: the bigger Sunny Beach", () => {
   it("shells lie on every screen of the sand", () => {
     const shells = beach().upright.filter((d) => d.sprite === "shell");
     for (const [name, test] of [["east", (d: { x: number }) => d.x > 320], ["south", (d: { y: number }) => d.y > 180]] as const) expect(shells.some(test), name).toBe(true);
+  });
+});
+
+describe("scene: the bigger Sunbaked Desert", () => {
+  const desert = (t = 0, over: Partial<SceneInput> = {}, reduced = false) => scene({ zone: "desert", player: { x: 10, y: 70 }, drone: { x: 14, y: 68 }, minutes: DAY, ...over }, t, reduced);
+  const { width, height } = AREAS.desert.world;
+
+  it("is 2 × 2 screens, with its east mouth on the east edge", () => {
+    expect([width, height]).toEqual([640, 360]);
+    expect(AREAS.desert.mouths).toEqual([{ x: 608, y: 224, w: 32, h: 64 }]);
+  });
+
+  it("the tumbleweed rolls the whole width, down at the south", () => {
+    const at = Array.from({ length: 50 }, (_, i) => desert(i * 1000).upright.find((d) => d.sprite === "tumbleweed")!);
+    expect(Math.max(...at.map((d) => d.x))).toBeGreaterThan(320);
+    expect(Math.min(...at.map((d) => d.y))).toBeGreaterThan(280);
+  });
+
+  it("a pair of vultures circles over every screen", () => {
+    const v = desert().upright.filter((d) => d.sprite === "vulture");
+    expect(v).toHaveLength(8);
+    for (const [name, test] of [["east", (d: { x: number }) => d.x > 320], ["south", (d: { y: number }) => d.y > 180]] as const) expect(v.some(test), name).toBe(true);
+  });
+
+  it("the animals live in the wider desert, each in its own zone", () => {
+    const zones = Object.values(DESERT_WILDLIFE).map((a) => a.zone);
+    expect(Math.max(...zones.map((z) => z.x + z.w))).toBeGreaterThan(320);
+    expect(Math.max(...zones.map((z) => z.y + z.h))).toBeGreaterThan(180);
+    const s = desert();
+    expect(["scorpion", "camel", "snake"].every((id) => s.upright.some((d) => d.sprite === id))).toBe(true);
   });
 });

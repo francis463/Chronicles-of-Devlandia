@@ -274,18 +274,22 @@ function desertSky(t: number, reduced: boolean, strength: number): Pixel[] {
 }
 
 /** Two vultures circling high over the dunes (wings beating), or hanging still when motion is reduced. */
-function vultures(t: number, reduced: boolean): Drawable[] {
-  return [0, 1].map((i) => {
-    const a = reduced ? i * Math.PI : (t / 1000) * 0.4 + i * Math.PI;
-    return placed("vulture", { x: Math.round(190 + (i ? 30 : 70) * Math.cos(a)), y: Math.round(26 + 12 * Math.sin(a)) }, { frame: reduced ? 0 : Math.floor(t / 260) % 2, flip: Math.sin(a) > 0 });
-  });
+function vultures(t: number, reduced: boolean, world: WorldSize): Drawable[] {
+  // One pair over every screen of the desert.
+  return screenOffsets(world).flatMap((o) =>
+    [0, 1].map((i) => {
+      const a = reduced ? i * Math.PI : (t / 1000) * 0.4 + i * Math.PI;
+      return placed("vulture", { x: Math.round(o.x + 190 + (i ? 30 : 70) * Math.cos(a)), y: Math.round(o.y + 26 + 12 * Math.sin(a)) }, { frame: reduced ? 0 : Math.floor(t / 260) % 2, flip: Math.sin(a) > 0 });
+    }),
+  );
 }
 
 /** The tumbleweed: it rolls right at 16 art px a second across the south of the map, bouncing; it rests in a fixed spot when motion is reduced. */
-function tumbleweed(t: number, reduced: boolean): Drawable {
-  if (reduced) return placed("tumbleweed", { x: 200, y: 160 });
-  const x = Math.floor(((t / 1000) * 16) % 380) - 30;
-  return placed("tumbleweed", { x, y: 160 - Math.round(3 * Math.abs(Math.sin(t / 300))) }, { frame: Math.floor(t / 250) % 2 });
+function tumbleweed(t: number, reduced: boolean, world: WorldSize): Drawable {
+  const k = worldScale(world);
+  if (reduced) return placed("tumbleweed", { x: 200 * k, y: 160 * k });
+  const x = Math.floor(((t / 1000) * 16) % (380 * k)) - 30;
+  return placed("tumbleweed", { x, y: 160 * k - Math.round(3 * Math.abs(Math.sin(t / 300))) }, { frame: Math.floor(t / 250) % 2 });
 }
 
 const FOAM = "#ffffff";
@@ -687,12 +691,12 @@ function buildBaseScene(input: SceneInput, poses: Poses, t: number, reduced: boo
         // The fennec only comes out once the sun is going down.
         ...(strength > 0 ? [placed("fennec", fennec, { frame: fennec.frame, flip: fennec.flip })] : []),
       ];
-      const withWeed = [...upright, ...wild, tumbleweed(t, reduced)].sort(byFeet);
+      const withWeed = [...upright, ...wild, tumbleweed(t, reduced, world)].sort(byFeet);
       withWeed.splice(withWeed.findIndex((d) => d.sprite === "rock" && d.x === spriteBox("rock", DESERT_POINTS.lizardRock).x) + 1, 0, lizard);
       const storm = stormStrength(t, reduced);
       // The storm browns the whole screen, over the hour's own tint.
       const tint = storm === 0 ? PHASE_TINT[phase] : `rgba(190,150,80,${Math.round(storm * 22) / 100})`;
-      return { zone: input.zone, glints: [], flat: [], upright: [...withWeed, ...vultures(t, reduced)], drone, tint, light: [...tiled(world, () => desertAir(t, reduced)), ...tiled(world, () => desertSky(t, reduced, strength))], snow };
+      return { zone: input.zone, glints: [], flat: [], upright: [...withWeed, ...vultures(t, reduced, world)], drone, tint, light: [...tiled(world, () => desertAir(t, reduced)), ...tiled(world, () => desertSky(t, reduced, strength))], snow };
     }
     if (input.zone === "beach") {
       const strips = tideStrips(input.minutes);
