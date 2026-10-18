@@ -23,7 +23,7 @@ describe("the hidden spots", () => {
       ["secret-pool", "beach", true],
       ["secret-bottle", "beach", false],
     ]);
-    expect(SECRETS.map((s) => [s.x, s.y])).toEqual([[14, 14], [88, 88], [10, 86], [90, 16], [14, 88], [86, 16]]);
+    expect(SECRETS.map((s) => [s.x, s.y])).toEqual([[14, 14], [88, 88], [10, 86], [84, 18], [14, 88], [86, 16]]);
     expect(isSecret("secret-moss")).toBe(true);
     expect(isSecret("remedy-herb")).toBe(false);
     expect(secretsIn("desert").map((s) => s.id)).toEqual(["secret-cave", "secret-ridge"]);
