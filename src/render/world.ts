@@ -13,6 +13,18 @@ export type ArtPoint = { x: number; y: number };
 /** A zone's world in art pixels. */
 export type WorldSize = { width: number; height: number };
 
+/** One screen: the 320 × 180 unit the art and the effects are authored in. */
+export const SCREEN: WorldSize = WORLD;
+
+/** How many screens wide a world is (2 for a 640-wide world). */
+export const worldScale = (world: WorldSize): number => world.width / SCREEN.width;
+
+/** The top-left corner of every screen a world is made of, row by row. */
+export function screenOffsets(world: WorldSize): ArtPoint[] {
+  const k = worldScale(world);
+  return Array.from({ length: k * (world.height / SCREEN.height) }, (_, n) => ({ x: (n % k) * SCREEN.width, y: Math.floor(n / k) * SCREEN.height }));
+}
+
 /** A zone's world: the 320 × 180 screen times the zone's scale (`ZONE_SCALE`). */
 export const zoneWorld = (zone: ZoneId): WorldSize => ({ width: WORLD.width * ZONE_SCALE[zone], height: WORLD.height * ZONE_SCALE[zone] });
 

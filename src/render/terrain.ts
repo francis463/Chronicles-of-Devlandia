@@ -1,7 +1,7 @@
 import { inRect, type Area, type TerrainKind } from "./areas/area";
 import { PEAKS } from "./areas/peaks";
 import { spriteBox, type SpriteId } from "./sprites";
-import { REACHABLE_RECT, WORLD, grow, intersects, type ArtPoint, type Rect } from "./world";
+import { SCREEN, grow, intersects, reachableRect, type ArtPoint, type Rect } from "./world";
 
 export type { TerrainKind } from "./areas/area";
 export { BRIDGE_RECT, ICE_RECT, LANDMARK_POINTS, PATH, PATH_WIDTH } from "./areas/peaks";
@@ -15,7 +15,7 @@ export const onPath = (x: number, y: number, area: Area = PEAKS): boolean => are
 // ── The north wall ─────────────────────────────────────────────────────────
 
 /** The north wall inside the world: art rows 80–89 (its game line is y 49 %, between rows players stand on). */
-export const WALL_RECT: Rect = { x: 0, y: 80, w: WORLD.width, h: 10 };
+export const WALL_RECT: Rect = { x: 0, y: 80, w: SCREEN.width, h: 10 };
 const WALL_TILE = 16;
 const WALL_FEET = WALL_RECT.y + WALL_RECT.h - 1;
 
@@ -43,9 +43,18 @@ export type Decoration = { sprite: DecorationSprite; at: ArtPoint };
 
 const CELL = 16;
 const SPACING = 24;
-const WORLD_RECT: Rect = { x: 0, y: 0, w: WORLD.width, h: WORLD.height };
-const LAST_ROW = Math.floor((WORLD.height - 1) / CELL); // the cell row holding the bottom hedge
-const LAST_COL = Math.floor((WORLD.width - 1) / CELL);
+/** What the decoration rules need to know about an area's world size, worked out once per area. */
+type Geometry = { world: Rect; reach: Rect; lastRow: number; lastCol: number };
+const geometries = new WeakMap<Area, Geometry>();
+function geometry(area: Area): Geometry {
+  let g = geometries.get(area);
+  if (!g) {
+    const { width, height } = area.world;
+    g = { world: { x: 0, y: 0, w: width, h: height }, reach: reachableRect(area.world), lastRow: Math.floor((height - 1) / CELL), lastCol: Math.floor((width - 1) / CELL) };
+    geometries.set(area, g);
+  }
+  return g;
+}
 
 /** mulberry32: four deterministic numbers in [0, 1) for a cell. */
 function rolls(cx: number, cy: number): number[] {
@@ -68,9 +77,10 @@ function barrier(cx: number, cy: number, r: number[], area: Area): Candidate | "
     const sprite = ground === "snow" ? "snow-rock" : ground === "sea" || ground === "beach" || r[3] >= 0.75 ? "rock" : ground === "dune" ? "dry-bush" : "bush";
     return area.mouths.some((m) => intersects(spriteBox(sprite, at), m)) ? "gap" : { sprite, at, priority: 0, interior: false };
   };
-  if (cy === LAST_ROW && cx >= 0 && cx <= LAST_COL) return bushOrRock({ x: cx * CELL + 8, y: WORLD.height - 1 });
-  if (cy >= 1 && cy < LAST_ROW && cx === 0) return bushOrRock({ x: 10, y: cy * CELL + 15 });
-  if (cy >= 1 && cy < LAST_ROW && cx === LAST_COL) return bushOrRock({ x: WORLD.width - 9, y: cy * CELL + 15 });
+  const { lastRow, lastCol } = geometry(area);
+  if (cy === lastRow && cx >= 0 && cx <= lastCol) return bushOrRock({ x: cx * CELL + 8, y: area.world.height - 1 });
+  if (cy >= 1 && cy < lastRow && cx === 0) return bushOrRock({ x: 10, y: cy * CELL + 15 });
+  if (cy >= 1 && cy < lastRow && cx === lastCol) return bushOrRock({ x: area.world.width - 9, y: cy * CELL + 15 });
   return null;
 }
 
@@ -82,7 +92,8 @@ function candidate(cx: number, cy: number, area: Area): Candidate | null {
   if (edge) return edge;
   const at = { x: cx * CELL + 2 + Math.floor(r[0] * 12), y: cy * CELL + 2 + Math.floor(r[1] * 12) };
   const ground = area.terrainAt(at.x, at.y);
-  const inWorld = inRect(at.x, at.y, WORLD_RECT);
+  const { world: worldRect, reach } = geometry(area);
+  const inWorld = inRect(at.x, at.y, worldRect);
   const pick = (options: Array<[DecorationSprite, number]>): DecorationSprite | null => {
     let acc = 0;
     for (const [sprite, p] of options) if (r[2] < (acc += p)) return sprite;
@@ -95,12 +106,12 @@ function candidate(cx: number, cy: number, area: Area): Candidate | null {
     const sprite = ground === "sea" ? pick([["rock", 0.2]]) : ground === "mountains" ? pick([["snow-rock", 0.3]]) : pick([[ground === "snow" ? "pine" : ground === "dune" ? (r[3] < 0.5 ? "cactus" : "dry-bush") : ground === "beach" ? (r[3] < 0.2 ? "palm" : "rock") : ground === "forest" && r[3] < 0.3 ? "birch" : "tree", 0.8]]);
     if (!sprite) return null;
     const box = spriteBox(sprite, at);
-    if (intersects(box, WORLD_RECT) || area.corridors.some((c) => intersects(box, c))) return null;
+    if (intersects(box, worldRect) || area.corridors.some((c) => intersects(box, c))) return null;
     return { sprite, at, priority: r[4], interior: false };
   }
   if (ground === "mountains") {
     const sprite = pick([["snow-rock", 0.4]]);
-    if (!sprite || intersects(spriteBox(sprite, at), grow(REACHABLE_RECT, 1))) return null;
+    if (!sprite || intersects(spriteBox(sprite, at), grow(reach, 1))) return null;
     return { sprite, at, priority: r[4], interior: false };
   }
   const options: Record<Exclude<TerrainKind, "mountains">, Array<[DecorationSprite, number]>> = {
@@ -116,7 +127,7 @@ function candidate(cx: number, cy: number, area: Area): Candidate | null {
   const sprite = pick(options[ground]);
   if (!sprite) return null;
   const box = spriteBox(sprite, at);
-  const r0 = REACHABLE_RECT;
+  const r0 = reach;
   const insideWalls = box.x >= r0.x && box.x + box.w <= r0.x + r0.w && at.y < r0.y + r0.h;
   if (!insideWalls || (area.wall && touchesWall(grow(box, 4))) || area.protected.some((p) => intersects(grow(box, 4), p))) return null;
   return { sprite, at, priority: r[4], interior: true };

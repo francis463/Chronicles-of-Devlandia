@@ -4,7 +4,7 @@ import { AREAS } from "./areas";
 import type { Area } from "./areas/area";
 import { spriteBox } from "./sprites";
 import { LANDMARK_POINTS, WALL_RECT, decorations, onPath, protectedBoxes, terrainAt, wallTiles } from "./terrain";
-import { REACHABLE_RECT, WORLD, grow, intersects, toArt, type Rect } from "./world";
+import { REACHABLE_RECT, WORLD, grow, intersects, reachableRect, toArt, type Rect } from "./world";
 
 const WORLD_RECT: Rect = { x: 0, y: 0, w: WORLD.width, h: WORLD.height };
 // A phone-sized view: 90 art px of scenery above and below the world, some to the sides.
@@ -249,5 +249,34 @@ describe("beach decorations", () => {
     expect(found.length).toBeGreaterThan(10);
     for (const d of found) expect(["palm", "rock"], d.sprite).toContain(d.sprite);
     expect(new Set(found.map((d) => d.sprite))).toContain("palm");
+  });
+});
+
+describe("decorations in a world bigger than one screen", () => {
+  const big: Area = { ...AREAS.forest, world: { width: 640, height: 360 } };
+  const everything: Rect = { x: -40, y: -40, w: 720, h: 440 };
+  const found = decorations(everything, big);
+  // Ferns, stumps, logs and mushrooms are only ever placed by the interior rules, never as the scenery around a world.
+  const interiorOnly = (d: { sprite: string }) => ["fern", "stump", "log", "mushroom"].includes(d.sprite);
+
+  it("fill every screen of the reachable rectangle with interior scenery, not only the first", () => {
+    for (const [name, inQuarter] of [
+      ["east", (d: { at: { x: number; y: number } }) => d.at.x > 360 && d.at.y < 160],
+      ["south", (d: { at: { x: number; y: number } }) => d.at.x < 280 && d.at.y > 200],
+      ["south-east", (d: { at: { x: number; y: number } }) => d.at.x > 360 && d.at.y > 200],
+    ] as const)
+      expect(found.some((d) => interiorOnly(d) && inQuarter(d)), name).toBe(true);
+  });
+
+  it("put the hedge along the big world's whole bottom edge and down its sides", () => {
+    for (let cx = 4; cx <= Math.floor(639 / 16); cx++) expect(found.some((d) => d.at.x === cx * 16 + 8 && d.at.y === 359), `bottom ${cx}`).toBe(true);
+    for (const cy of [3, 10, 15, 20]) {
+      expect(found.some((d) => d.at.x === 10 && d.at.y === cy * 16 + 15), `west ${cy}`).toBe(true);
+      expect(found.some((d) => d.at.x === 631 && d.at.y === cy * 16 + 15), `east ${cy}`).toBe(true);
+    }
+  });
+
+  it("keep interior scenery off the area's protected boxes", () => {
+    for (const d of found.filter(interiorOnly)) for (const p of big.protected) expect(intersects(boxOf(d), p), `${d.sprite}@${d.at.x},${d.at.y}`).toBe(false);
   });
 });

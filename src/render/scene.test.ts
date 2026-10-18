@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { ZoneId } from "../game/zones";
 import { AREAS } from "./areas";
 import { FOGGATEN_POINTS, LAMP_POINT } from "./areas/foggaten";
@@ -1130,5 +1130,27 @@ describe("scene: healing finds", () => {
       expect(scene({ zone, remedies: ["remedy-herb", "remedy-fruit", "remedy-drink"] }).upright.filter((d) => d.sprite === sprite)).toHaveLength(0);
       for (const other of ["peaks", "village"] as const) expect(scene({ zone: other }).upright.some((d) => d.sprite === sprite)).toBe(false);
     }
+  });
+});
+
+describe("scene: effects in a world bigger than one screen", () => {
+  const original = AREAS.forest.world;
+  beforeEach(() => void (AREAS.forest.world = { width: 640, height: 360 }));
+  afterEach(() => void (AREAS.forest.world = original));
+  const forest = (minutes: number, t = 0) => scene({ zone: "forest", minutes }, t).light;
+
+  it("the fireflies, leaves and mist cover all four screens", () => {
+    for (const [minutes, label] of [[NIGHT, "night"], [DAY, "day"]] as const) {
+      const pixels = forest(minutes);
+      for (const [name, test] of [["east", (p: { x: number; y: number }) => p.x >= 320], ["south", (p: { x: number; y: number }) => p.y >= 180]] as const)
+        expect(pixels.some(test), `${label} ${name}`).toBe(true);
+      expect(pixels.every((p) => p.x >= 0 && p.x < 640 && p.y >= 0 && p.y < 360), `${label} in the world`).toBe(true);
+    }
+  });
+
+  it("a one-screen zone's effects are exactly what they were", () => {
+    AREAS.forest.world = original;
+    const pixels = forest(NIGHT);
+    expect(pixels.every((p) => p.x < 320 && p.y < 180)).toBe(true);
   });
 });

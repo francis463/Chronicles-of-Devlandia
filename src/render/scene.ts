@@ -17,7 +17,7 @@ import type { Pose } from "./motion";
 import { circlePixels, diamondPixels } from "./pixels";
 import { LIGHTS, SPRITES, spriteBox, type SpriteId } from "./sprites";
 import { BRIDGE_RECT, LANDMARK_POINTS, WALL_RECT, decorations, wallTiles } from "./terrain";
-import { REACHABLE_RECT, WORLD, intersects, type ArtPoint, type Rect } from "./world";
+import { SCREEN, intersects, reachableRect, screenOffsets, type ArtPoint, type Rect, type WorldSize } from "./world";
 import type { ChestId } from "../learn/types";
 import { ARCHIVE_POINT, TERMINAL_POINT } from "./learnPoints";
 
@@ -114,11 +114,18 @@ const SNOW_DRIFT = 2;
  * The snowfall at time `t` (ms): 60 flakes from fixed start points, each falling 12 art px and drifting 2 right a second,
  * wrapping at the world's edges. Still when motion is reduced.
  */
+/** An effect authored for one screen, repeated over every screen of a bigger world (a 1-screen world is the effect itself). */
+const tiled = (world: WorldSize, make: () => Pixel[]): Pixel[] => {
+  const offsets = screenOffsets(world);
+  const one = make();
+  return offsets.length === 1 ? one : offsets.flatMap((o) => one.map((p) => ({ ...p, x: p.x + o.x, y: p.y + o.y })));
+};
+
 function snowfall(t: number, reduced: boolean): Pixel[] {
   const seconds = reduced ? 0 : t / 1000;
   return Array.from({ length: SNOW_COUNT }, (_, i) => ({
-    x: ((i * 53 + 11) % WORLD.width + Math.floor(SNOW_DRIFT * seconds)) % WORLD.width,
-    y: ((i * 89 + 7) % WORLD.height + Math.floor(SNOW_FALL * seconds)) % WORLD.height,
+    x: ((i * 53 + 11) % SCREEN.width + Math.floor(SNOW_DRIFT * seconds)) % SCREEN.width,
+    y: ((i * 89 + 7) % SCREEN.height + Math.floor(SNOW_FALL * seconds)) % SCREEN.height,
     color: WHITE,
     alpha: 1,
   }));
@@ -139,8 +146,8 @@ const DAPPLE_SPOTS: ArtPoint[] = [{ x: 40, y: 40 }, { x: 110, y: 70 }, { x: 250,
 function forestLeaves(t: number, reduced: boolean, strength: number): Pixel[] {
   const seconds = reduced ? 0 : t / 1000;
   const leaves = Array.from({ length: LEAF_COUNT }, (_, i): Pixel => ({
-    x: ((i * 47 + 13) % WORLD.width + Math.floor(LEAF_DRIFT * seconds)) % WORLD.width,
-    y: ((i * 71 + 5) % WORLD.height + Math.floor(LEAF_FALL * seconds)) % WORLD.height,
+    x: ((i * 47 + 13) % SCREEN.width + Math.floor(LEAF_DRIFT * seconds)) % SCREEN.width,
+    y: ((i * 71 + 5) % SCREEN.height + Math.floor(LEAF_FALL * seconds)) % SCREEN.height,
     color: LEAF_COLORS[i % LEAF_COLORS.length],
     alpha: 1,
   }));
@@ -165,15 +172,15 @@ function forestAir(t: number, reduced: boolean, strength: number): Pixel[] {
   const seconds = reduced ? 0 : t / 1000;
   if (strength > 0) {
     return Array.from({ length: FIREFLY_COUNT }, (_, i): Pixel => ({
-      x: Math.round(((i * 83 + 29) % (WORLD.width - 20)) + 10 + 5 * Math.sin(seconds * 0.7 + i * 2)),
-      y: Math.round(((i * 61 + 41) % (WORLD.height - 40)) + 20 + 4 * Math.cos(seconds * 0.5 + i * 3)),
+      x: Math.round(((i * 83 + 29) % (SCREEN.width - 20)) + 10 + 5 * Math.sin(seconds * 0.7 + i * 2)),
+      y: Math.round(((i * 61 + 41) % (SCREEN.height - 40)) + 20 + 4 * Math.cos(seconds * 0.5 + i * 3)),
       color: FIREFLY,
       alpha: Math.round(strength * (0.35 + 0.65 * Math.max(0, Math.sin(seconds * 1.6 + i * 1.7))) * 100) / 100,
     }));
   }
   return [0, 1, 2].flatMap((bank) =>
     Array.from({ length: 24 * 3 }, (_, k): Pixel => ({
-      x: (((k % 24) + bank * 97 + Math.floor(3 * seconds)) % WORLD.width),
+      x: (((k % 24) + bank * 97 + Math.floor(3 * seconds)) % SCREEN.width),
       y: 118 + bank * 22 + Math.floor(k / 24),
       color: MIST,
       alpha: 0.1,
@@ -193,8 +200,8 @@ const GRAIN_DRIFT = 14;
 function desertAir(t: number, reduced: boolean): Pixel[] {
   const seconds = reduced ? 0 : t / 1000;
   const grains = Array.from({ length: GRAIN_COUNT }, (_, i): Pixel => ({
-    x: ((i * 59 + 17) % WORLD.width + Math.floor(GRAIN_DRIFT * seconds)) % WORLD.width,
-    y: (((i * 37 + 9) % WORLD.height) + Math.round(1.5 * Math.sin(seconds * 2 + i)) + WORLD.height) % WORLD.height,
+    x: ((i * 59 + 17) % SCREEN.width + Math.floor(GRAIN_DRIFT * seconds)) % SCREEN.width,
+    y: (((i * 37 + 9) % SCREEN.height) + Math.round(1.5 * Math.sin(seconds * 2 + i)) + SCREEN.height) % SCREEN.height,
     color: GRAIN,
     alpha: 0.75,
   }));
@@ -249,16 +256,16 @@ function desertSky(t: number, reduced: boolean, strength: number): Pixel[] {
     }))).flat();
   });
   const sparkle = strength === 0 ? [] : Array.from({ length: 28 }, (_, i): Pixel => ({
-    x: (i * 97 + 31) % WORLD.width,
-    y: 20 + ((i * 53 + 7) % (WORLD.height - 30)),
+    x: (i * 97 + 31) % SCREEN.width,
+    y: 20 + ((i * 53 + 7) % (SCREEN.height - 30)),
     color: MOONLIT,
     alpha: Math.round(strength * (0.25 + 0.6 * Math.max(0, Math.sin(seconds * 1.4 + i * 2.3))) * 100) / 100,
   }));
   const storm = stormStrength(t, reduced);
   const streaks = storm === 0 ? [] : Array.from({ length: 150 }, (_, i) => i).flatMap((i) =>
     Array.from({ length: 4 }, (_, j): Pixel => ({
-      x: (((i * 53 + Math.floor(seconds * 230)) % (WORLD.width + 40)) - 20 + j) % WORLD.width,
-      y: (i * 29 + 11) % WORLD.height,
+      x: (((i * 53 + Math.floor(seconds * 230)) % (SCREEN.width + 40)) - 20 + j) % SCREEN.width,
+      y: (i * 29 + 11) % SCREEN.height,
       color: STORM,
       alpha: Math.round(storm * 0.7 * 100) / 100,
     })),
@@ -361,7 +368,7 @@ function lighthouseLight(t: number, reduced: boolean, strength: number): Pixel[]
     return Array.from({ length: 2 * spread + 1 }, (_, k): Pixel => ({ x: LAMP_POINT.x + dir * (i + 8), y: LAMP_POINT.y + k - spread, color: LAMPLIGHT, alpha }));
   })
     .flat()
-    .filter((p) => p.x >= 0 && p.x < WORLD.width);
+    .filter((p) => p.x >= 0 && p.x < SCREEN.width);
   return [...glow(LAMP_POINT, LAMPLIGHT, Math.max(0.5, strength)), ...beam];
 }
 
@@ -389,7 +396,7 @@ function aurora(t: number, reduced: boolean, strength: number): Pixel[] {
   if (strength <= 0) return [];
   const w = reduced ? 0 : t / 1500;
   const ribbon = (color: string, base: number, wave: (x: number) => number, rows: number): Pixel[] =>
-    Array.from({ length: WORLD.width / 2 }, (_, k) => k * 2).flatMap((x) =>
+    Array.from({ length: SCREEN.width / 2 }, (_, k) => k * 2).flatMap((x) =>
       Array.from({ length: rows }, (_, r): Pixel => ({ x, y: base + Math.round(wave(x)) + r, color, alpha: Math.round(0.45 * strength * (1 - r * 0.12) * 100) / 100 })),
     );
   return [
@@ -410,9 +417,9 @@ function coldFeel(t: number, reduced: boolean, player: Pose): Pixel[] {
   const gustAge = (t % 12_000) / 1500;
   if (gustAge < 1) {
     for (let i = 0; i < 30; i++) {
-      const y = (i * 37 + 11) % WORLD.height;
-      const x = Math.round(((i * 53) % WORLD.width) - 60 + gustAge * 420);
-      for (let k = 0; k < 3; k++) if (x + k >= 0 && x + k < WORLD.width) out.push({ x: x + k, y, color: GUST, alpha: 0.8 });
+      const y = (i * 37 + 11) % SCREEN.height;
+      const x = Math.round(((i * 53) % SCREEN.width) - 60 + gustAge * 420);
+      for (let k = 0; k < 3; k++) if (x + k >= 0 && x + k < SCREEN.width) out.push({ x: x + k, y, color: GUST, alpha: 0.8 });
     }
   }
   return out;
@@ -558,8 +565,8 @@ function perZone(build: (zone: ZoneId) => Drawable[]): (zone: ZoneId) => Drawabl
 
 /** Decorations whose drawings reach into the walkable area are y-sorted with the explorers. */
 const interiorDecorations = perZone((zone) =>
-  decorations(REACHABLE_RECT, AREAS[zone])
-    .filter((d) => intersects(spriteBox(d.sprite, d.at), REACHABLE_RECT))
+  decorations(reachableRect(AREAS[zone].world), AREAS[zone])
+    .filter((d) => intersects(spriteBox(d.sprite, d.at), reachableRect(AREAS[zone].world)))
     .map((d) => placed(d.sprite, d.at)),
 );
 
@@ -599,10 +606,11 @@ const CAMPFIRE_OUT = 2;
 const scenePhase = (input: SceneInput): Phase => (input.lightMode === "day" ? "Day" : input.lightMode === "night" ? "Night" : phaseOf(input.minutes));
 
 function buildBaseScene(input: SceneInput, poses: Poses, t: number, reduced: boolean): Scene {
+  const world = AREAS[input.zone].world;
   const P = LANDMARK_POINTS;
   const phase = scenePhase(input);
   // The Peaks snow by default; elsewhere only when asked (/weather snow). /weather clear turns it off everywhere.
-  const snow = (input.snow ?? input.zone === "peaks") ? snowfall(t, reduced) : [];
+  const snow = (input.snow ?? input.zone === "peaks") ? tiled(world, () => snowfall(t, reduced)) : [];
   const strength = GLOW_STRENGTH[phase];
 
   const player = input.downed
@@ -650,7 +658,7 @@ function buildBaseScene(input: SceneInput, poses: Poses, t: number, reduced: boo
         const owl = placed("owl", { x: FOREST_POINTS.oak.x + 8, y: FOREST_POINTS.oak.y - 30 }, { frame: !reduced && Math.floor(t / 1000) % 5 === 0 ? 1 : 0 });
         if (oak >= 0) upright.splice(oak + 1, 0, owl);
       }
-      const light = [...glow(LIGHTS.campfire, CAMPFIRE_GLOW, strength * (flame === 0 ? 1 : 0.8)), ...forestLeaves(t, reduced, strength), ...forestAir(t, reduced, strength)];
+      const light = [...glow(LIGHTS.campfire, CAMPFIRE_GLOW, strength * (flame === 0 ? 1 : 0.8)), ...tiled(world, () => forestLeaves(t, reduced, strength)), ...tiled(world, () => forestAir(t, reduced, strength))];
       return { zone: input.zone, glints: [], flat: [], upright, drone, tint: forestTint(PHASE_TINT[phase]), light, snow };
     }
     if (input.zone === "village") {
@@ -681,7 +689,7 @@ function buildBaseScene(input: SceneInput, poses: Poses, t: number, reduced: boo
       const storm = stormStrength(t, reduced);
       // The storm browns the whole screen, over the hour's own tint.
       const tint = storm === 0 ? PHASE_TINT[phase] : `rgba(190,150,80,${Math.round(storm * 22) / 100})`;
-      return { zone: input.zone, glints: [], flat: [], upright: [...withWeed, ...vultures(t, reduced)], drone, tint, light: [...desertAir(t, reduced), ...desertSky(t, reduced, strength)], snow };
+      return { zone: input.zone, glints: [], flat: [], upright: [...withWeed, ...vultures(t, reduced)], drone, tint, light: [...tiled(world, () => desertAir(t, reduced)), ...tiled(world, () => desertSky(t, reduced, strength))], snow };
     }
     if (input.zone === "beach") {
       const strips = tideStrips(input.minutes);

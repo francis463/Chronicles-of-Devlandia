@@ -10,7 +10,7 @@ import type { ChestId } from "../../learn/types";
 import { AREAS } from "../../render/areas";
 import type { Ctx2D } from "../../render/paint";
 import { terrainAt, type TerrainKind } from "../../render/terrain";
-import { WORLD } from "../../render/world";
+
 
 export const MINI_COLORS: Record<TerrainKind, string> = {
   ice: "#7cc4e8",
@@ -38,12 +38,12 @@ export function paintMiniTerrain(ctx: Ctx2D, width: number, height: number, zone
   const gate = area.gateBox;
   const wall = area.wall;
   for (let y = 0; y < height; y++) {
-    const ay = Math.round((y / height) * WORLD.height);
+    const ay = Math.round((y / height) * area.world.height);
     const onWall = wall && y >= wallTop && y < wallTop + wallRows;
     let start = 0;
     let color = "";
     for (let x = 0; x <= width; x++) {
-      const ax = Math.round((x / width) * WORLD.width);
+      const ax = Math.round((x / width) * area.world.width);
       const atGate = !!gate && ax >= gate.x && ax < gate.x + gate.w;
       const next = x < width ? (onWall && !atGate ? WALL_COLOR : MINI_COLORS[terrainAt(ax, ay, area)]) : "";
       if (next !== color) {
