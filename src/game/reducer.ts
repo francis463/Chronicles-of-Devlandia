@@ -185,7 +185,7 @@ function missed(state: GameState, open: ChallengeState, c: Challenge, error: str
 /** Every wrong answer costs a heart; at 0 the terminal and the lamp close so you can respawn. */
 function wrongCost(state: GameState): GameState {
   const hp = Math.max(0, state.hp - WRONG_DAMAGE);
-  const out = hp === 0 ? { ...state, hp, challenge: null, lampOpen: false } : { ...state, hp };
+  const out = hp === 0 ? { ...state, hp, challenge: null, lampOpen: false, logicOpen: false } : { ...state, hp };
   return warnLow(state, pushLog(out, LOG.wrongAnswer));
 }
 
@@ -493,7 +493,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     }
     case "submitLogic": {
       const error = circuitError(action.bits);
-      if (error) return { ...state, logicError: error };
+      if (error) return wrongCost({ ...state, logicError: error });
       return pushLog({ ...state, towerPowered: true, logicOpen: false, logicError: null }, LOG.towerPowered);
     }
     case "closeLogic":

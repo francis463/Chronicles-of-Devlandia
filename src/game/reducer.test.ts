@@ -314,6 +314,16 @@ describe("gameReducer: signal tower logic lock", () => {
     expect(lastLog(s)).toBe("Signal tower online: the fog lifts and the bridge returns.");
   });
 
+  it("a failing circuit costs a heart; at the last heart it closes the lock", () => {
+    const open = { ...gameReducer(opened, { type: "interact", poi: "tower" }), hp: 3 };
+    const miss = gameReducer(open, { type: "submitLogic", bits: [1, 1, 1, 0] });
+    expect([miss.hp, miss.logicOpen]).toEqual([2, true]);
+    expect(miss.logs).toContain("Wrong answer: -1 HP.");
+    const down = gameReducer({ ...open, hp: 1 }, { type: "submitLogic", bits: [1, 1, 1, 0] });
+    expect([down.hp, down.logicOpen]).toEqual([0, false]);
+    expect(gameReducer(open, { type: "submitLogic", bits: [1, 1, 0, 0] }).hp).toBe(3);
+  });
+
   it("a failing circuit keeps the lock open and names the failing line", () => {
     const open = gameReducer(opened, { type: "interact", poi: "tower" });
     const s = gameReducer(open, { type: "submitLogic", bits: [1, 1, 1, 0] });
