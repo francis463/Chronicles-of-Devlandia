@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import type { Ctx2D } from "../../render/paint";
 import { MINI_COLORS, MiniMap, paintMiniTerrain } from "./MiniMap";
@@ -261,5 +261,24 @@ describe("mini-map: the Sunny Beach cell", () => {
     paintMiniTerrain(ctx, 32, 18, "beach");
     expect(colorAt(10, 9)).toBe(MINI_COLORS.beach);
     expect(colorAt(31, 9)).toBe(MINI_COLORS.sea);
+  });
+});
+
+describe("mini-map view window", () => {
+  const draw = (view?: { x: number; y: number; w: number; h: number } | null) => render(<MiniMap zone="forest" player={{ x: 50, y: 50 }} artifactFound={false} badges={[]} archiveOpen={false} view={view} />);
+
+  it("draws no outline when the map shows the whole zone, or when nothing is reported", () => {
+    draw({ x: 0, y: 0, w: 1, h: 1 });
+    expect(screen.queryByTestId("minimap-view")).toBeNull();
+    cleanup();
+    draw(null);
+    expect(screen.queryByTestId("minimap-view")).toBeNull();
+  });
+
+  it("outlines the part of the current zone the main map shows, as fractions of its cell", () => {
+    draw({ x: 0.25, y: 0.5, w: 0.5, h: 0.5 });
+    const box = within(screen.getByTestId("minimap-cell-forest")).getByTestId("minimap-view");
+    expect([box.style.left, box.style.top, box.style.width, box.style.height]).toEqual(["25%", "50%", "50%", "50%"]);
+    expect(box).toHaveAttribute("aria-hidden", "true");
   });
 });

@@ -135,6 +135,7 @@ export function Overworld({
   const downed = isDowned(state);
   // Map zoom: "auto" fills the window when whole-pixel scaling would leave wide empty bands; the buttons make it a saved choice.
   const [zoom, setZoom] = useState<number | "auto">(loadZoom);
+  const [mapView, setMapView] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const changeZoom = (next: number) => {
     setZoom(next);
     saveZoom(next);
@@ -345,6 +346,7 @@ export function Overworld({
         pings={pings}
         playerColor={team?.me?.color}
         chatHint={team ? "Chat: [Enter]" : "Commands: [/]"}
+        view={mapView}
       />
       <div className={`relative flex min-w-0 flex-col ${mapOnly ? "min-h-0" : "md:col-start-2 md:row-start-2 md:row-span-3"}`}>
         {pulse && <div key={pulse.n} aria-hidden="true" className={`hp-flash hp-flash-${pulse.kind} pointer-events-none absolute inset-0 z-10`} />}
@@ -378,6 +380,7 @@ export function Overworld({
           fullscreen={mapOnly}
           onFullscreen={landscapePhone ? undefined : toggleMap}
           fill={mapOnly}
+          onView={setMapView}
           inRange={inRange}
           downed={downed}
           onInteract={(poi) => dispatch({ type: "interact", poi })}

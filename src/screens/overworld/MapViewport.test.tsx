@@ -613,3 +613,25 @@ describe("MapViewport in a zone bigger than one screen", () => {
     expect(layer().width).toBe(320 * 3);
   });
 });
+
+describe("MapViewport reports the part of the zone it shows", () => {
+  it("the whole zone for a one-screen map, a window for a scrolling one", () => {
+    const onView = vi.fn();
+    const { rerender } = render(<MapViewport {...props({ onView })} />);
+    expect(onView).toHaveBeenLastCalledWith({ x: 0, y: 0, w: 1, h: 1 });
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1100 });
+    Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 540 });
+    vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
+    try {
+      rerender(<MapViewport {...props({ onView, zone: "forest", world: { width: 640, height: 360 }, player: { x: 50, y: 50 }, zoom: 0 })} key="other" />);
+      const view = onView.mock.calls.at(-1)![0] as { x: number; y: number; w: number; h: number };
+      expect(view.w).toBeCloseTo(1100 / 1920, 3);
+      expect(view.h).toBeCloseTo(540 / 1080, 3);
+      expect(view.x + view.w / 2).toBeCloseTo(0.5, 2);
+    } finally {
+      vi.unstubAllGlobals();
+      Reflect.deleteProperty(HTMLElement.prototype, "clientWidth");
+      Reflect.deleteProperty(HTMLElement.prototype, "clientHeight");
+    }
+  });
+});

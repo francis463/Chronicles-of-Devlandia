@@ -119,6 +119,7 @@ export function MiniMap({
   badges,
   archiveOpen,
   chatHint,
+  view,
   className = "",
 }: {
   zone: ZoneId;
@@ -133,6 +134,8 @@ export function MiniMap({
   playerColor?: string;
   /** The key hint for the chat or command line: `Chat: [Enter]` or `Commands: [/]`. */
   chatHint?: string;
+  /** The part of the zone the main map shows, as fractions of it; outlined when it is less than the whole zone. */
+  view?: { x: number; y: number; w: number; h: number } | null;
   className?: string;
 }) {
   return (
@@ -174,6 +177,14 @@ export function MiniMap({
                   style={{ ...at(p), borderColor: p.color }}
                 />
               ))}
+            {cell.zone === zone && view && (view.w < 1 || view.h < 1) && (
+              <div
+                aria-hidden="true"
+                data-testid="minimap-view"
+                className="pointer-events-none absolute border border-[var(--text)]"
+                style={{ left: `${view.x * 100}%`, top: `${view.y * 100}%`, width: `${view.w * 100}%`, height: `${view.h * 100}%` }}
+              />
+            )}
             {cell.zone === zone && (
               <div
                 data-testid="minimap-player"

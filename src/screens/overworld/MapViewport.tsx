@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import type { ClassId } from "../../game/classes";
 import { HIDDEN_ARTIFACT } from "../../game/constants";
 import type { Card } from "../../game/cards";
@@ -243,6 +243,7 @@ export function MapViewport({
   fullscreen,
   onFullscreen,
   fill = false,
+  onView,
   inRange,
   downed,
   onInteract,
@@ -292,6 +293,8 @@ export function MapViewport({
   fill?: boolean;
   /** The zone's world in art pixels; the zone's own unless a test hands another. */
   world?: WorldSize;
+  /** Told which part of the zone is on screen (fractions of it), whenever that changes. */
+  onView?: (view: { x: number; y: number; w: number; h: number }) => void;
   inRange: Poi | null;
   downed: boolean;
   onInteract: (poi: PoiId) => void;
@@ -310,6 +313,14 @@ export function MapViewport({
   const extraZoom = Math.min(range.max, Math.max(range.min, zoom === "auto" ? autoZoom(size) : zoom));
   const world = fitWorld(size, extraZoom, toArt(player, zoneSize), zoneSize);
   const map = { width: size.width, height: size.height };
+  const round3 = (n: number) => Math.round(n * 1000) / 1000;
+  const shown = {
+    x: round3(Math.min(1, Math.max(0, -world.left / world.width))),
+    y: round3(Math.min(1, Math.max(0, -world.top / world.height))),
+    w: round3(Math.min(1, size.width / world.width)),
+    h: round3(Math.min(1, size.height / world.height)),
+  };
+  useEffect(() => onView?.(shown), [onView, shown.x, shown.y, shown.w, shown.h]); // eslint-disable-line react-hooks/exhaustive-deps
   const worldSize = { width: world.width, height: world.height };
   const inPeaks = zone === "peaks";
   const obstacles = [
