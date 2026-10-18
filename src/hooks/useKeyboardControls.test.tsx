@@ -14,9 +14,9 @@ describe("useKeyboardControls: movement", () => {
     const user = userEvent.setup();
     render(<Overworld onMenu={noop} />);
     await user.keyboard("{ArrowUp}");
-    expect(player().style.top).toBe("68%");
+    expect(player().style.top).toBe("70%");
     await user.keyboard("D");
-    expect(player().style.left).toBe("32%");
+    expect(player().style.left).toBe("30%");
     await user.keyboard("s");
     expect(player().style.top).toBe("72%");
     await user.keyboard("{ArrowLeft}");
@@ -38,11 +38,11 @@ describe("useKeyboardControls: movement", () => {
 
   it("ignores keys while the terminal is open", async () => {
     const user = userEvent.setup();
-    render(<Overworld onMenu={noop} initial={{ challenge: { target: "gate", error: null, wrongTries: 0, solved: false, lastWrong: null }, player: { x: 50, y: 58 } }} />);
+    render(<Overworld onMenu={noop} initial={{ challenge: { target: "gate", error: null, wrongTries: 0, solved: false, lastWrong: null }, player: { x: 50, y: 54 } }} />);
     // Move focus off the puzzle input so the terminal guard (not the text-field guard) is exercised.
     screen.getByRole("button", { name: "[ USE HINT ITEM ]" }).focus();
     await user.keyboard("{ArrowUp}we");
-    expect(player().style.top).toBe("58%");
+    expect(player().style.top).toBe("54%");
     expect(screen.queryByText("Gate terminal ready. Puzzle link found.")).toBeNull();
   });
 
@@ -78,23 +78,23 @@ describe("useKeyboardControls: interact", () => {
 
   it("[E] next to the gate opens the terminal dialog", async () => {
     const user = userEvent.setup();
-    render(<Overworld onMenu={noop} initial={{ player: { x: 50, y: 58 } }} />);
+    render(<Overworld onMenu={noop} initial={{ player: { x: 50, y: 54 } }} />);
     await user.keyboard("e");
     expect(screen.getByRole("dialog", { name: /terminal gate lock/i })).toBeInTheDocument();
   });
 
   it("typing in the terminal input does not move the player", async () => {
     const user = userEvent.setup();
-    render(<Overworld onMenu={noop} initial={{ player: { x: 50, y: 58 } }} />);
+    render(<Overworld onMenu={noop} initial={{ player: { x: 50, y: 54 } }} />);
     await user.keyboard("e");
     await user.type(screen.getByRole("textbox", { name: "display value" }), "wwaae");
-    expect(player().style.top).toBe("58%");
+    expect(player().style.top).toBe("54%");
     expect(player().style.left).toBe("50%");
   });
 
   it("Esc closes an open challenge", async () => {
     const user = userEvent.setup();
-    render(<Overworld onMenu={noop} initial={{ challenge: { target: "gate", error: null, wrongTries: 0, solved: false, lastWrong: null }, player: { x: 50, y: 58 } }} />);
+    render(<Overworld onMenu={noop} initial={{ challenge: { target: "gate", error: null, wrongTries: 0, solved: false, lastWrong: null }, player: { x: 50, y: 54 } }} />);
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     screen.getByRole("button", { name: "[ USE HINT ITEM ]" }).focus();
     await user.keyboard("{Escape}");
@@ -103,7 +103,7 @@ describe("useKeyboardControls: interact", () => {
 
   it("Escape closes the terminal dialog", async () => {
     const user = userEvent.setup();
-    render(<Overworld onMenu={noop} initial={{ player: { x: 50, y: 58 } }} />);
+    render(<Overworld onMenu={noop} initial={{ player: { x: 50, y: 54 } }} />);
     await user.keyboard("e");
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("dialog")).toBeNull();
@@ -126,10 +126,10 @@ describe("useKeyboardControls: scroll cipher", () => {
 describe("useKeyboardControls: signal tower lock", () => {
   it("ignores game keys while the logic lock is open and Escape closes it", async () => {
     const user = userEvent.setup();
-    render(<Overworld onMenu={noop} initial={{ logicOpen: true, player: { x: 14, y: 26 } }} />);
+    render(<Overworld onMenu={noop} initial={{ logicOpen: true, player: { x: 14, y: 22 } }} />);
     screen.getByRole("button", { name: "[ USE HINT ITEM ]" }).focus();
     await user.keyboard("{ArrowUp}we");
-    expect(player().style.top).toBe("26%");
+    expect(player().style.top).toBe("22%");
     expect(screen.queryByText("Signal tower terminal ready. Logic lock found.")).toBeNull();
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("dialog")).toBeNull();
@@ -180,10 +180,10 @@ describe("useKeyboardControls: the Codex (Review Focus 3)", () => {
 
   it("typing w a s d e c into a terminal input neither moves, interacts nor opens the Codex", async () => {
     const user = userEvent.setup();
-    render(<Overworld onMenu={noop} initial={{ player: { x: 50, y: 58 } }} />);
+    render(<Overworld onMenu={noop} initial={{ player: { x: 50, y: 54 } }} />);
     await user.keyboard("e");
     await user.type(screen.getByRole("textbox", { name: "display value" }), "wasdec");
-    expect(player().style.top).toBe("58%");
+    expect(player().style.top).toBe("54%");
     expect(player().style.left).toBe("50%");
     expect(codex()).toBeNull();
   });

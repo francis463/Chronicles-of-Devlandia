@@ -3,6 +3,7 @@ import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POIS } from "../../game/constants";
 import { SECRETS } from "../../game/secrets";
+import { zoneToArt } from "../../render/world";
 import type { SceneInput } from "../../render/scene";
 import { MapViewport } from "./MapViewport";
 
@@ -112,9 +113,15 @@ describe("MapViewport per zone", () => {
 
 describe("MapViewport on the canvas", () => {
   it("places the world layer at the world rect", () => {
-    render(<MapViewport {...props()} />);
+    render(<MapViewport {...props({ zone: "village" })} />);
     const layer = screen.getByTestId("world-layer");
     expect([layer.style.left, layer.style.top, layer.style.width, layer.style.height]).toEqual(["140px", "90px", "320px", "180px"]);
+  });
+
+  it("the Peaks are two screens across: the layer is the 640 × 360 world, at the same art scale as a one-screen zone", () => {
+    render(<MapViewport {...props()} />);
+    const layer = screen.getByTestId("world-layer");
+    expect([layer.style.width, layer.style.height]).toEqual(["640px", "360px"]);
   });
 
   it("landmark buttons keep their names, are ≥ 44 px, and contain their caption", () => {
@@ -174,9 +181,13 @@ describe("MapViewport on the canvas", () => {
   it("fog: gradient centred on the player in px, opacity 1, then 0 when powered, with a 1 s opacity transition", () => {
     const { rerender } = render(<MapViewport {...props()} />);
     const fog = screen.getByTestId("fog");
-    // player (28, 72) → art (90, 130); the middle of the sprite is 8 art px above its feet
+    // player (28, 72) → art (179, 259) in the Peaks; the middle of the sprite is 8 art px above its feet
     expect(fog.style.background).toContain("radial-gradient");
-    expect(fog.style.background).toContain("230px 212px");
+    const layer = screen.getByTestId("world-layer");
+    const scale = parseFloat(layer.style.width) / 640;
+    const art = zoneToArt({ x: 28, y: 72 }, "peaks");
+    const centre = `${parseFloat(layer.style.left) + art.x * scale}px ${parseFloat(layer.style.top) + (art.y - 8) * scale}px`;
+    expect(fog.style.background).toContain(`circle at ${centre}`);
     expect(fog.style.opacity).toBe("1");
     expect(fog.className).toContain("transition-opacity");
     expect(fog.className).toContain("duration-1000");
@@ -225,7 +236,7 @@ describe("MapViewport on the canvas", () => {
       addEventListener: (_: string, cb: () => void) => listeners.add(cb),
       removeEventListener: (_: string, cb: () => void) => listeners.delete(cb),
     })) as unknown as typeof window.matchMedia;
-    render(<MapViewport {...props()} />);
+    render(<MapViewport {...props({ zone: "village" })} />);
     expect((screen.getByTestId("map-canvas") as HTMLCanvasElement).width).toBe(600);
     Object.defineProperty(window, "devicePixelRatio", { configurable: true, value: 2 });
     act(() => [...listeners].forEach((cb) => cb()));
@@ -535,16 +546,16 @@ describe("MapViewport zoom", () => {
   };
 
   it("zoom 0 is the fit, and a step up scrolls with the player", () => {
-    const { rerender } = render(<MapViewport {...props({ zoom: 0 })} />);
+    const { rerender } = render(<MapViewport {...props({ zone: "village", zoom: 0 })} />);
     expect(layer()).toEqual(["140px", "90px", "320px", "180px"]);
-    rerender(<MapViewport {...props({ zoom: 1 })} />);
+    rerender(<MapViewport {...props({ zone: "village", zoom: 1 })} />);
     expect(layer()).toEqual(["0px", "0px", "640px", "360px"]);
-    rerender(<MapViewport {...props({ zoom: 2, player: { x: 90, y: 50 } })} />);
+    rerender(<MapViewport {...props({ zone: "village", zoom: 2, player: { x: 90, y: 50 } })} />);
     expect(parseFloat(screen.getByTestId("world-layer").style.left)).toBe(600 - 960);
   });
 
   it("auto zoom picks the step for the view", () => {
-    render(<MapViewport {...props({ zoom: "auto" })} />);
+    render(<MapViewport {...props({ zone: "village", zoom: "auto" })} />);
     expect(layer()).toEqual(["0px", "0px", "640px", "360px"]);
   });
 
@@ -615,7 +626,7 @@ describe("MapViewport in a zone bigger than one screen", () => {
 
   it("a one-screen zone cannot zoom out below its fit", () => {
     mapSize(1100, 540);
-    render(<MapViewport {...props({ zoom: -3, onZoom: vi.fn() })} />);
+    render(<MapViewport {...props({ zone: "village", zoom: -3, onZoom: vi.fn() })} />);
     expect(screen.getByRole("button", { name: "Zoom out" })).toBeDisabled();
     expect(layer().width).toBe(320 * 3);
   });
@@ -624,7 +635,7 @@ describe("MapViewport in a zone bigger than one screen", () => {
 describe("MapViewport reports the part of the zone it shows", () => {
   it("the whole zone for a one-screen map, a window for a scrolling one", () => {
     const onView = vi.fn();
-    const { rerender } = render(<MapViewport {...props({ onView })} />);
+    const { rerender } = render(<MapViewport {...props({ zone: "village", onView })} />);
     expect(onView).toHaveBeenLastCalledWith({ x: 0, y: 0, w: 1, h: 1 });
     Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1100 });
     Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 540 });

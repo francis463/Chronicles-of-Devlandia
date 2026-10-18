@@ -5,7 +5,7 @@ import { DOCK_POINT } from "../../render/areas/peaks";
 import { FOGGATEN_POINTS } from "../../render/areas/foggaten";
 import { ARCHIVE_POINT, TERMINAL_POINT } from "../../render/learnPoints";
 import { spriteBox } from "../../render/sprites";
-import { LANDMARK_POINTS } from "../../render/terrain";
+import { ICE_RECT, LANDMARK_POINTS } from "../../render/terrain";
 import { fitWorld, type Rect, type WorldRect } from "../../render/world";
 import { labelBoxes, labelLayout } from "./labelLayout";
 import {
@@ -202,7 +202,7 @@ describe("captions", () => {
   });
 
   it("tower and cache captions go above their landmark when there is room, and stay off the ice", () => {
-    const ice = spriteCss({ x: 77, y: 50, w: 167, h: 21 }, phone);
+    const ice = spriteCss(ICE_RECT, phone);
     for (const id of ["tower", "chest"] as const) {
       const l = LANDMARK_CAPTIONS.find((c) => c.id === id)!;
       const area = hitArea(spriteBox(l.sprite, P[id]), phone);
@@ -210,10 +210,10 @@ describe("captions", () => {
       expect(rect.top + rect.height).toBe(area.top - 2);
       expect(hit(rect, ice)).toBe(false);
     }
-    // On desktop the world starts at the map's top edge: no room above the tower, so its caption goes below.
+    // Where the map starts right at a landmark's top edge there is no room above, so its caption goes below.
     const tower = LANDMARK_CAPTIONS.find((c) => c.id === "tower")!;
-    const area = hitArea(spriteBox("tower", P.tower), desktop);
-    expect(captionRect(tower.texts[0], area, mapOf(desktop), tower.prefer).top).toBe(area.top + area.height + 2);
+    const cramped = hitArea(spriteBox("tower", { x: P.tower.x, y: 4 }), desktop);
+    expect(captionRect(tower.texts[0], cramped, mapOf(desktop), tower.prefer).top).toBe(cramped.top + cramped.height + 2);
   });
 
   it("at the start the player and drone labels clear the landmark captions and drawings", () => {
@@ -234,7 +234,8 @@ describe("captions", () => {
 
   it("the cache caption stays ≥ 2 px inside a 324-px map", () => {
     const narrow = fitWorld({ width: 324, height: 360, dpr: 3 });
-    const rect = captionRect("[X] Supply Cache", hitArea(spriteBox("chest-closed", P.chest), narrow), { width: 324, height: 360 }, "above");
+    // The cache stands at the map's right edge here (the Peaks are bigger than a phone's map, which scrolls to it).
+    const rect = captionRect("[X] Supply Cache", hitArea(spriteBox("chest-closed", { x: 300, y: P.chest.y }), narrow), { width: 324, height: 360 }, "above");
     expect(rect.left).toBeGreaterThanOrEqual(2);
     expect(rect.left + rect.width).toBeLessThanOrEqual(322);
   });

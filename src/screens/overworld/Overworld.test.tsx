@@ -180,7 +180,7 @@ describe("Overworld map", () => {
     const { unmount } = render(<Overworld onMenu={() => {}} initial={{ player: { x: 62, y: 90 } }} />);
     expect(screen.queryByText(/^\[E\] (Inspect|Read)/)).toBeNull();
     unmount();
-    render(<Overworld onMenu={() => {}} initial={{ player: { x: 50, y: 58 } }} />);
+    render(<Overworld onMenu={() => {}} initial={{ player: { x: 50, y: 54 } }} />);
     expect(screen.getByText("[E] Inspect Terminal Gate")).toBeInTheDocument();
   });
 
@@ -238,7 +238,8 @@ describe("Overworld timers", () => {
     const drone = screen.getByTestId("drone");
     act(() => vi.advanceTimersByTime(400));
     const startTop = parseFloat(drone.style.top);
-    for (let i = 0; i < 10; i++) {
+    // Peaks steps are two percent: twenty of them walk the same distance ten four-percent steps used to.
+    for (let i = 0; i < 20; i++) {
       fireEvent.keyDown(window, { key: "ArrowUp" });
       act(() => vi.advanceTimersByTime(100));
     }
@@ -447,7 +448,7 @@ describe("Overworld signal tower", () => {
   });
 
   it("[E] next to the tower opens the logic lock", () => {
-    render(<Overworld onMenu={() => {}} initial={{ player: { x: 14, y: 26 } }} />);
+    render(<Overworld onMenu={() => {}} initial={{ player: { x: 14, y: 22 } }} />);
     expect(screen.getByText("[E] Inspect Signal Tower")).toBeInTheDocument();
     fireEvent.keyDown(window, { key: "e" });
     expect(screen.getByRole("dialog", { name: "< SIGNAL TOWER: LOGIC LOCK >" })).toBeInTheDocument();
@@ -457,7 +458,7 @@ describe("Overworld signal tower", () => {
 describe("Overworld challenge terminal", () => {
   it("pressing E at the gate opens the challenge terminal, `block` opens the gate", async () => {
     const user = setup();
-    render(<Overworld onMenu={() => {}} initial={{ player: { x: 50, y: 58 } }} />);
+    render(<Overworld onMenu={() => {}} initial={{ player: { x: 50, y: 54 } }} />);
     await user.keyboard("e");
     const input = screen.getByRole("textbox", { name: "display value" });
     expect(screen.getByRole("dialog", { name: "< TERMINAL GATE LOCK: C++ PEAKS >" })).toBeInTheDocument();

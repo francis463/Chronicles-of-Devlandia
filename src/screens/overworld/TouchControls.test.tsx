@@ -31,20 +31,20 @@ describe("TouchControls: D-pad", () => {
     const user = setup();
     render(<Overworld onMenu={noop} />);
     await user.click(pad("up"));
-    expect(player().style.top).toBe("68%");
+    expect(player().style.top).toBe("70%");
     await user.click(pad("right"));
-    expect(player().style.left).toBe("32%");
+    expect(player().style.left).toBe("30%");
   });
 
   it("holding repeats a step every 150 ms until released", () => {
     render(<Overworld onMenu={noop} />);
     fireEvent.pointerDown(pad("up"));
-    expect(player().style.top).toBe("68%");
+    expect(player().style.top).toBe("70%");
     act(() => vi.advanceTimersByTime(450));
-    expect(player().style.top).toBe("56%");
+    expect(player().style.top).toBe("64%");
     fireEvent.pointerUp(pad("up"));
     act(() => vi.advanceTimersByTime(450));
-    expect(player().style.top).toBe("56%");
+    expect(player().style.top).toBe("64%");
   });
 
   it("sliding off or a cancelled touch stops the repeat", () => {
@@ -52,11 +52,11 @@ describe("TouchControls: D-pad", () => {
     fireEvent.pointerDown(pad("left"));
     fireEvent.pointerLeave(pad("left"));
     act(() => vi.advanceTimersByTime(450));
-    expect(player().style.left).toBe("24%");
+    expect(player().style.left).toBe("26%");
     fireEvent.pointerDown(pad("down"));
     fireEvent.pointerCancel(pad("down"));
     act(() => vi.advanceTimersByTime(450));
-    expect(player().style.top).toBe("76%");
+    expect(player().style.top).toBe("74%");
   });
 
   it("works from the keyboard (Enter on a focused button) without double steps", async () => {
@@ -64,7 +64,7 @@ describe("TouchControls: D-pad", () => {
     render(<Overworld onMenu={noop} />);
     pad("down").focus();
     await user.keyboard("{Enter}");
-    expect(player().style.top).toBe("76%");
+    expect(player().style.top).toBe("74%");
   });
 
   it("clears the repeat timer when the overworld unmounts mid-hold", () => {
@@ -83,7 +83,7 @@ describe("TouchControls: interact button", () => {
 
   it("names the point of interest in range and interacts with it", async () => {
     const user = setup();
-    render(<Overworld onMenu={noop} initial={{ player: { x: 50, y: 58 } }} />);
+    render(<Overworld onMenu={noop} initial={{ player: { x: 50, y: 54 } }} />);
     await user.click(screen.getByRole("button", { name: "[E] Terminal Gate" }));
     expect(screen.getByRole("dialog", { name: /terminal gate lock/i })).toBeInTheDocument();
   });
@@ -91,26 +91,26 @@ describe("TouchControls: interact button", () => {
 
 describe("TouchControls: disabled states", () => {
   it("disables every touch control while downed", () => {
-    render(<Overworld onMenu={noop} initial={{ hp: 0, player: { x: 50, y: 58 } }} />);
+    render(<Overworld onMenu={noop} initial={{ hp: 0, player: { x: 50, y: 54 } }} />);
     for (const dir of ["up", "down", "left", "right"] as const) expect(pad(dir)).toBeDisabled();
     expect(screen.getByRole("button", { name: "[E] Interact" })).toBeDisabled();
   });
 
   it("disables every touch control while the terminal is open", () => {
-    render(<Overworld onMenu={noop} initial={{ challenge: { target: "gate", error: null, wrongTries: 0, solved: false, lastWrong: null }, player: { x: 50, y: 58 } }} />);
+    render(<Overworld onMenu={noop} initial={{ challenge: { target: "gate", error: null, wrongTries: 0, solved: false, lastWrong: null }, player: { x: 50, y: 54 } }} />);
     for (const dir of ["up", "down", "left", "right"] as const) expect(pad(dir)).toBeDisabled();
     expect(screen.getByRole("button", { name: "[E] Terminal Gate" })).toBeDisabled();
   });
 
   it("stops a held move when the controls become disabled", () => {
-    render(<Overworld onMenu={noop} initial={{ player: { x: 50, y: 66 } }} />);
+    render(<Overworld onMenu={noop} initial={{ player: { x: 50, y: 58 } }} />);
     fireEvent.pointerDown(pad("up"));
-    expect(player().style.top).toBe("62%");
+    expect(player().style.top).toBe("56%");
     fireEvent.keyDown(window, { key: "e" });
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     fireEvent.keyDown(window, { key: "Escape" });
     act(() => vi.advanceTimersByTime(450));
-    expect(player().style.top).toBe("62%");
+    expect(player().style.top).toBe("56%");
   });
 });
 
@@ -140,7 +140,7 @@ describe("TouchControls: hidden artifact", () => {
 describe("TouchControls: signal tower", () => {
   it("names the tower on the [E] button and opens its lock", async () => {
     const user = setup();
-    render(<Overworld onMenu={noop} initial={{ player: { x: 14, y: 26 } }} />);
+    render(<Overworld onMenu={noop} initial={{ player: { x: 14, y: 22 } }} />);
     await user.click(screen.getByRole("button", { name: "[E] Signal Tower" }));
     expect(screen.getByRole("dialog", { name: "< SIGNAL TOWER: LOGIC LOCK >" })).toBeInTheDocument();
   });

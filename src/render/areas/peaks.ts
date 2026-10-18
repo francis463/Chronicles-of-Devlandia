@@ -126,6 +126,9 @@ const CAMP_PROPS: Prop[] = [
   { sprite: "cave-mouth", at: { x: 235 * K, y: 16 * K } },
 ];
 
+/** Where the ski lodge stands (its foot). */
+export const LODGE_POINT: ArtPoint = CAMP_PROPS[0].at;
+
 /** The start-here arrow hangs 29 px above the lodge's foot, and its room is kept clear. */
 export const START_ARROW_AT: ArtPoint = { x: CAMP_PROPS[0].at.x, y: CAMP_PROPS[0].at.y - 29 };
 const START_ARROW_BOX: Rect = { x: START_ARROW_AT.x - 8, y: START_ARROW_AT.y - 12, w: 16, h: 14 };

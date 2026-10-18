@@ -57,8 +57,8 @@ async function startedPair({ inLodge = false }: { inLodge?: boolean } = {}) {
   await flush();
   await user.click(ana.getByRole("button", { name: "[ Start Expedition ]" }));
   await flush();
-  // Out through the mat and back up to the camp's row (26, 72).
-  if (!inLodge) for (const app of [ana, kai]) for (const dir of ["down", "down", "up", "up", "up", "up"]) await user.click(app.getByRole("button", { name: `Move ${dir}` }));
+  // Out through the mat and back up to the camp's row (26, 72): the Peaks' steps are two percent, so eight of them.
+  if (!inLodge) for (const app of [ana, kai]) for (const dir of ["down", "down", ...Array(8).fill("up")]) await user.click(app.getByRole("button", { name: `Move ${dir}` }));
   act(() => void vi.advanceTimersByTime(POS_INTERVAL_MS * 2));
   await flush();
   return { ...t, user, ana, kai, code };
@@ -78,12 +78,12 @@ describe("Overworld in team mode", () => {
     expect(ana.getByTestId("minimap-teammate-Kai")).toBeInTheDocument();
     await user.click(kai.getByRole("button", { name: "Move up" }));
     act(() => vi.advanceTimersByTime(POS_INTERVAL_MS * 2));
-    expect(ana.getByTestId("teammate-Kai").style.top).toBe("68%");
+    expect(ana.getByTestId("teammate-Kai").style.top).toBe("70%");
   });
 
   it("a teammate who walks into the village leaves your Peaks map and the log says so", async () => {
     const { user, ana, kai } = await startedPair();
-    for (let i = 0; i < 6; i++) await user.click(kai.getByRole("button", { name: "Move left" }));
+    for (let i = 0; i < 11; i++) await user.click(kai.getByRole("button", { name: "Move left" }));
     act(() => vi.advanceTimersByTime(POS_INTERVAL_MS * 2));
     expect(ana.queryByTestId("teammate-Kai")).toBeNull();
     expect(countIn(logText(ana), "Kai went to Dev Village.")).toBe(1);
@@ -164,7 +164,7 @@ describe("Overworld in team mode", () => {
       await user.click(kai.getByRole("button", { name: "[ SUBMIT CODE ]" }));
       await user.click(kai.getByRole("button", { name: "[ CONTINUE ]" }));
       // Out through the mat, up to the village road and west into Dev Village.
-      for (const dir of ["down", "down", "up", "up", "up", "left", "left", "left", "left", "left", "left"]) await user.click(kai.getByRole("button", { name: `Move ${dir}` }));
+      for (const dir of ["down", "down", ...Array(6).fill("up"), ...Array(11).fill("left")]) await user.click(kai.getByRole("button", { name: `Move ${dir}` }));
       await user.click(kai.getByRole("button", { name: "Hut, PHP chest" }));
       await user.type(kai.getByRole("textbox", { name: "answer" }), "echo");
       await user.click(kai.getByRole("button", { name: "[ SUBMIT CODE ]" }));
@@ -373,10 +373,10 @@ describe("Overworld team chat", () => {
     const { user, ana, kai } = await startedPair();
     await say(user, kai, "/ping gate");
     expect(ana.getByTestId(/^minimap-ping-/)).toBeInTheDocument();
-    expect(ana.getByTestId(/^ping-/)).toHaveTextContent("Kai");
+    expect(ana.getByTestId(/^ping-(?!arrow-)/)).toHaveTextContent("Kai");
     expect(lines(ana)).toHaveTextContent("Kai pinged the Terminal Gate.");
     expect(lines(kai)).toHaveTextContent("Ping sent: the Terminal Gate.");
-    expect(kai.getByTestId(/^ping-/)).toHaveTextContent("Kai");
+    expect(kai.getByTestId(/^ping-(?!arrow-)/)).toHaveTextContent("Kai");
     await say(user, kai, "/ping");
     expect(lines(kai)).toHaveTextContent("Wait a moment before pinging again.");
   });
@@ -417,7 +417,7 @@ describe("Overworld team chat", () => {
     await say(user, kai, "/ping gate");
     expect(lines(ana)).not.toHaveTextContent(/muted hello|pinged/);
     expect(chatTab(ana)).toHaveTextContent(/^CHAT$/);
-    expect(ana.getByTestId(/^ping-/)).toHaveTextContent("Kai");
+    expect(ana.getByTestId(/^ping-(?!arrow-)/)).toHaveTextContent("Kai");
     expect(ana.getByTestId(/^minimap-ping-/)).toBeInTheDocument();
   });
 
@@ -493,8 +493,8 @@ describe("Overworld team chat", () => {
 
   it("a teammate who walks south into the Dense Forest shows in its mini-map cell, in the log and in /where (Review Focus 2)", async () => {
     const { user, ana, kai } = await startedPair();
-    for (let i = 0; i < 10; i++) await user.click(kai.getByRole("button", { name: "Move right" }));
-    for (let i = 0; i < 6; i++) await user.click(kai.getByRole("button", { name: "Move down" }));
+    for (let i = 0; i < 20; i++) await user.click(kai.getByRole("button", { name: "Move right" }));
+    for (let i = 0; i < 12; i++) await user.click(kai.getByRole("button", { name: "Move down" }));
     act(() => vi.advanceTimersByTime(POS_INTERVAL_MS * 2));
     expect(kai.getByText("REGION: DENSE FOREST")).toBeInTheDocument();
     expect(within(ana.getByTestId("minimap-cell-forest")).getByTestId("minimap-teammate-Kai")).toBeInTheDocument();
@@ -506,7 +506,7 @@ describe("Overworld team chat", () => {
 
   it("/where follows a teammate into the village", async () => {
     const { user, ana, kai } = await startedPair();
-    for (let i = 0; i < 6; i++) await user.click(kai.getByRole("button", { name: "Move left" }));
+    for (let i = 0; i < 11; i++) await user.click(kai.getByRole("button", { name: "Move left" }));
     act(() => vi.advanceTimersByTime(POS_INTERVAL_MS * 2));
     await say(user, ana, "/where");
     expect(lines(ana)).toHaveTextContent("Kai: Dev Village");
@@ -516,7 +516,7 @@ describe("Overworld team chat", () => {
     const random = vi.spyOn(Math, "random").mockReturnValue(0);
     try {
       const { user, ana, kai } = await startedPair();
-      for (const dir of ["down", "down", "down", "down", "left", "left"]) await user.click(kai.getByRole("button", { name: `Move ${dir}` })); // down to the lodge door and in
+      for (const dir of [...Array(9).fill("down"), "left", "left", "left"]) await user.click(kai.getByRole("button", { name: `Move ${dir}` })); // down to the lodge door and in
       await user.click(kai.getByRole("button", { name: "Shelf, HTML chest" }));
       await user.type(kai.getByRole("textbox", { name: "answer" }), "href");
       await user.click(kai.getByRole("button", { name: "[ SUBMIT CODE ]" }));

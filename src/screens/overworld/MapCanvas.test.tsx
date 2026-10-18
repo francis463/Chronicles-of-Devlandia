@@ -3,7 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Scene, SceneInput } from "../../render/scene";
 import { spriteBox } from "../../render/sprites";
 import { AREAS } from "../../render/areas";
-import { fitWorld, toArt } from "../../render/world";
+import { fitWorld, toArt, zoneToArt } from "../../render/world";
+
+/** Art point of a game point in the Peaks (two screens across). */
+const peaksArt = (p: { x: number; y: number }) => zoneToArt(p, "peaks");
 import { MapCanvas } from "./MapCanvas";
 
 const input: SceneInput = {
@@ -133,7 +136,7 @@ describe("MapCanvas", () => {
     frame();
     frame();
     const kaiNow = explorers(scenes.at(-1)!).find((d) => d.variant === kai.color)!;
-    expect(kaiNow.x).toBe(spriteBox("explorer-down", toArt(back)).x);
+    expect(kaiNow.x).toBe(spriteBox("explorer-down", peaksArt(back)).x);
   });
 
   it("snaps the player and drone when downed turns false", () => {
@@ -145,8 +148,8 @@ describe("MapCanvas", () => {
     rerender(<MapCanvas input={{ ...input, downed: false }} world={world} onScene={(s) => scenes.push(s)} />);
     frame();
     const me = explorers(scenes.at(-1)!)[0];
-    expect(me.x).toBe(spriteBox("explorer-down", toArt(input.player)).x);
-    expect(me.y).toBe(spriteBox("explorer-down", toArt(input.player)).y);
+    expect(me.x).toBe(spriteBox("explorer-down", peaksArt(input.player)).x);
+    expect(me.y).toBe(spriteBox("explorer-down", peaksArt(input.player)).y);
   });
 
   it("jumps the player and drone when the zone changes", () => {
@@ -175,8 +178,8 @@ describe("MapCanvas", () => {
     rerender(<MapCanvas input={{ ...input, player: { x: 40, y: 72 } }} world={world} onScene={(s) => scenes.push(s)} />);
     frame(); // the glide starts in the frame that first sees the new position
     frame();
-    const start = spriteBox("explorer-down", toArt(input.player)).x;
-    const end = spriteBox("explorer-down", toArt({ x: 40, y: 72 })).x;
+    const start = spriteBox("explorer-down", peaksArt(input.player)).x;
+    const end = spriteBox("explorer-down", peaksArt({ x: 40, y: 72 })).x;
     const x = explorers(scenes.at(-1)!)[0].x;
     expect(x).toBeGreaterThan(start);
     expect(x).toBeLessThan(end);
@@ -186,7 +189,7 @@ describe("MapCanvas", () => {
     fakeContexts();
     const media = fakeMedia(true);
     const scenes: Scene[] = [];
-    const boxX = (p: { x: number; y: number }) => spriteBox("explorer-down", toArt(p)).x;
+    const boxX = (p: { x: number; y: number }) => spriteBox("explorer-down", peaksArt(p)).x;
     const { rerender } = render(<MapCanvas input={input} world={world} onScene={(s) => scenes.push(s)} />);
     frame();
     const a = { x: 40, y: 72 };
