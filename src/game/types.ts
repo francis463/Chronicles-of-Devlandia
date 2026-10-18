@@ -47,6 +47,7 @@ export type PoiId =
   | "obelisk"
   | JarId
   | RemedyId
+  | SecretId
   | Exclude<ChestId, "chest-cs">;
 
 /** The ranger's three lost glow mushrooms. */
@@ -54,6 +55,9 @@ export type MushroomId = "mushroom-1" | "mushroom-2" | "mushroom-3";
 
 /** The healing finds: a herb in the forest, a cactus fruit in the desert and a cold drink on the beach. */
 export type RemedyId = "remedy-herb" | "remedy-fruit" | "remedy-drink";
+
+/** The six hidden spots: two in each of the forest, the desert and the beach. */
+export type SecretId = "secret-moss" | "secret-den" | "secret-cave" | "secret-ridge" | "secret-pool" | "secret-bottle";
 
 /** The nomad's three lost water jars. */
 export type JarId = "jar-1" | "jar-2" | "jar-3";
@@ -121,6 +125,8 @@ export type GameState = {
   jars: JarId[];
   /** Which healing finds you have used up (each heals once). */
   remedies: RemedyId[];
+  /** The hidden spots you have found (personal, not shared with the team). */
+  secrets: SecretId[];
   nomadServed: boolean;
   /** The Sunny Beach's sandcastle puzzle, solved: the castle stands finished, with its flag. */
   sandcastleBuilt: boolean;

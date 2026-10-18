@@ -898,7 +898,7 @@ describe("gameReducer: the Dense Forest's places", () => {
   const forest: GameState = { ...s0, zone: "forest" };
 
   it("the forest's places are the ranger, campfire, signpost and the old oak's JavaScript chest", () => {
-    expect(reachPlaces(forest).map((p) => p.id)).toEqual(["ranger", "campfire", "forest-signpost", "hunter-cabin", "forest-well", "forest-brook", "fairy-ring", "hollow-tree", "mushroom-1", "mushroom-2", "mushroom-3", "remedy-herb", "chest-js"]);
+    expect(reachPlaces(forest).map((p) => p.id)).toEqual(["ranger", "campfire", "forest-signpost", "hunter-cabin", "forest-well", "forest-brook", "fairy-ring", "hollow-tree", "mushroom-1", "mushroom-2", "mushroom-3", "remedy-herb", "secret-moss", "secret-den", "chest-js"]);
   });
 
   it("talking to the ranger opens her card and logs her line once", () => {
@@ -930,7 +930,7 @@ describe("gameReducer: the Sunbaked Desert's places", () => {
   const desert: GameState = { ...s0, zone: "desert" };
 
   it("the desert's places are the nomad, signpost and the pyramid and oasis chests", () => {
-    expect(reachPlaces(desert).map((p) => p.id)).toEqual(["nomad", "desert-signpost", "caravan-camp", "desert-well", "temple-door", "dry-riverbed", "obelisk", "jar-1", "jar-2", "jar-3", "remedy-fruit", "chest-java", "chest-py-2"]);
+    expect(reachPlaces(desert).map((p) => p.id)).toEqual(["nomad", "desert-signpost", "caravan-camp", "desert-well", "temple-door", "dry-riverbed", "obelisk", "jar-1", "jar-2", "jar-3", "remedy-fruit", "secret-cave", "secret-ridge", "chest-java", "chest-py-2"]);
   });
 
   it("the nomad speaks once; the signpost inspects and logs nothing", () => {
@@ -961,7 +961,7 @@ describe("gameReducer: the Sunbaked Desert's places", () => {
 describe("gameReducer: the Sunny Beach's places", () => {
   const beach: GameState = { ...s0, zone: "beach" };
   it("the beach's places are the fisher, signpost and the pier and shipwreck chests", () => {
-    expect(reachPlaces(beach).map((p) => p.id)).toEqual(["fisher", "beach-signpost", "sandcastle", "remedy-drink", "chest-cpp-1", "chest-cpp-2"]);
+    expect(reachPlaces(beach).map((p) => p.id)).toEqual(["fisher", "beach-signpost", "sandcastle", "remedy-drink", "secret-pool", "secret-bottle", "chest-cpp-1", "chest-cpp-2"]);
   });
   it("the fisher speaks once; the signpost inspects and logs nothing", () => {
     const once = gameReducer(beach, { type: "interact", poi: "fisher" });

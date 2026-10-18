@@ -36,6 +36,7 @@ import { FISHER_LINE } from "./beach";
 import { nomadSays } from "./desert";
 import { reachFor, stepFor } from "./zoneSize";
 import { REMEDIES, REMEDY_HEAL, isRemedy, remedyFine } from "./remedies";
+import { SECRETS, firstSentence, isSecret } from "./secrets";
 import { DESERT_JARS, DESERT_LOG, DESERT_LORE, JAR_TIPS, isJar } from "./desertLore";
 import { goToNote } from "../learn/codexModel";
 import { rangerSays } from "./forest";
@@ -78,6 +79,7 @@ export const initialState: GameState = {
   rangerFed: false,
   jars: [],
   remedies: [],
+  secrets: [],
   nomadServed: false,
   sandcastleBuilt: false,
   codexOpen: false,
@@ -345,6 +347,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         if (state.remedies.includes(remedy.id) || distance(state.player, remedy) > reachFor(state.zone)) return { ...state, inspected: remedy.id };
         if (state.hp >= MAX_HP) return pushLog({ ...state, inspected: remedy.id }, remedyFine(remedy.label));
         return pushLog({ ...state, inspected: remedy.id, remedies: [...state.remedies, remedy.id], hp: Math.min(MAX_HP, state.hp + REMEDY_HEAL) }, remedy.healed);
+      }
+      if (isSecret(action.poi)) {
+        const secret = SECRETS.find((x) => x.id === action.poi)!;
+        // The map's button works from anywhere; a find needs you beside the spot, and counts once.
+        if (state.secrets.includes(secret.id) || distance(state.player, secret) > reachFor(state.zone)) return { ...state, inspected: secret.id };
+        const hp = secret.heal ? Math.min(MAX_HP, state.hp + REMEDY_HEAL) : state.hp;
+        return pushLog({ ...state, inspected: secret.id, secrets: [...state.secrets, secret.id], hp }, `Found ${secret.label}. ${firstSentence(secret.text)}`);
       }
       if (isJar(action.poi)) {
         const id = action.poi;

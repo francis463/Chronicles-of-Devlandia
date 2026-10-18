@@ -1,5 +1,6 @@
 import { CHESTS } from "../learn/chests";
 import { BOUNDS, INTERACT_RADIUS, POIS, RIVER_ZONE } from "./constants";
+import { isSecret } from "./secrets";
 import type { GameState, Poi, Point } from "./types";
 
 export function distance(a: Point, b: Point): number {
@@ -53,6 +54,7 @@ const chestVerb = (s: GameState, id: string, host: string, open = "Search") => `
 function verbFor(s: GameState, poi: Poi): string | null {
   const chest = CHESTS.find((c) => c.id === poi.id);
   if (chest) return chestVerb(s, chest.id, chest.host!);
+  if (isSecret(poi.id)) return s.secrets.includes(poi.id) ? null : `Search ${poi.label}`;
   if (poi.id === "sandcastle") return s.sandcastleBuilt ? null : "Build the Sandcastle";
   if (poi.id === "lighthouse") return s.lighthouseLit ? null : "Light the Lamp";
   if (poi.id === "archive") return s.archiveOpen ? chestVerb(s, "chest-cs", "C# Chest", "Open") : "Unseal Archive";
