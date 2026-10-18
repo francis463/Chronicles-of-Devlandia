@@ -32,6 +32,7 @@ const FURNITURE: Prop[] = [
   { sprite: "table", at: LODGE_POINTS.table },
   { sprite: "bunk", at: LODGE_POINTS.bunkHigh },
   { sprite: "bunk", at: LODGE_POINTS.bunkLow },
+  { sprite: "explorer-down", at: LODGE_POINTS.keeper, variant: "#b45309" },
 ];
 
 /** Flat floor things the scene draws under everyone: the rug and the door mat you walk onto to leave. */

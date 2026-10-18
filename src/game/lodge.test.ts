@@ -7,6 +7,10 @@ import { ZONE_ORDER } from "../learn/codexModel";
 import { CHESTS, chestById } from "../learn/chests";
 import { cardFor } from "./cards";
 import { promptText } from "./geometry";
+import { KEEPER, SOUP, keeperLine } from "./lodge";
+import { MAX_HP } from "./constants";
+import { REMEDY_HEAL } from "./remedies";
+import { loadGame } from "./resume";
 
 const at = (zone: ZoneId, x: number, y: number) => ({ ...initialState, zone, player: { x, y } });
 
@@ -71,7 +75,7 @@ describe("the lodge's places and the HTML chest", () => {
   it("the Peaks have the lodge door as a place and the lodge the fireplace and the shelf chest", () => {
     expect(ZONES.peaks.places.find((p) => p.id === "lodge-door")).toMatchObject({ label: "Ski Lodge", x: 19.4, y: 89.4 });
     expect(ZONES.peaks.places.some((p) => p.id === "chest-html")).toBe(false);
-    expect(ZONES.lodge.places.map((p) => p.id)).toEqual(["lodge-fireplace", "chest-html"]);
+    expect(ZONES.lodge.places.map((p) => p.id)).toEqual(["lodge-keeper", "lodge-fireplace", "chest-html"]);
   });
 
   it("the HTML chest is on the lodge's shelf, and the chest count is still 11", () => {
@@ -91,6 +95,70 @@ describe("the lodge's places and the HTML chest", () => {
   it("the prompts read Inspect for the door and fireplace and Search for the shelf", () => {
     expect(promptText(initialState, ZONES.peaks.places.find((p) => p.id === "lodge-door")!)).toBe("[E] Inspect Ski Lodge");
     expect(promptText(initialState, ZONES.lodge.places.find((p) => p.id === "chest-html")!)).toBe("[E] Search Shelf");
+  });
+});
+
+describe("the lodge keeper and her soup", () => {
+  const beside = (over: Partial<typeof initialState> = {}) => ({ ...initialState, zone: "lodge" as const, player: { x: 38, y: 56 }, ...over });
+  const talk = (s: typeof initialState) => gameReducer(s, { type: "interact", poi: "lodge-keeper" });
+
+  it("is a place in the lodge at (38, 52) that you talk to", () => {
+    expect(KEEPER).toMatchObject({ id: "lodge-keeper", label: "Keeper", x: 38, y: 52 });
+    expect(ZONES.lodge.places.map((p) => p.id)).toEqual(["lodge-keeper", "lodge-fireplace", "chest-html"]);
+    expect(promptText(initialState, KEEPER)).toBe("[E] Talk to Keeper");
+  });
+
+  it("her hint names the first thing you have not done, and every line ends with a full stop", () => {
+    const base = { gateUnlocked: false, hasLoot: false, clueDecoded: false, artifactFound: false, badges: [] };
+    const lines = [
+      keeperLine(base),
+      keeperLine({ ...base, gateUnlocked: true }),
+      keeperLine({ ...base, gateUnlocked: true, hasLoot: true }),
+      keeperLine({ ...base, gateUnlocked: true, hasLoot: true, clueDecoded: true }),
+      keeperLine({ ...base, gateUnlocked: true, hasLoot: true, clueDecoded: true, artifactFound: true, badges: ["chest-html"] }),
+    ];
+    expect(new Set(lines).size).toBe(5);
+    for (const l of lines) expect(l.endsWith(".")).toBe(true);
+    expect(lines[0]).toContain("shelf");
+    expect(lines[4]).not.toContain("shelf");
+  });
+
+  it("a hurt player beside her gets the soup once: +2 hearts, logged, and not again", () => {
+    const s = talk(beside({ hp: 2 }));
+    expect(s.hp).toBe(2 + REMEDY_HEAL);
+    expect(s.soupTaken).toBe(true);
+    expect(s.logs.at(-1)).toBe(SOUP.served);
+    const again = talk({ ...s, hp: 1 });
+    expect(again.hp).toBe(1);
+    expect(again.logs.at(-1)).toMatch(/^Keeper: /);
+  });
+
+  it("at full health she only says to come back, and the soup is not used up", () => {
+    const s = talk(beside({ hp: MAX_HP }));
+    expect(s.soupTaken).toBe(false);
+    expect(s.hp).toBe(MAX_HP);
+    expect(s.logs.at(-1)).toBe(SOUP.fine);
+    expect(talk({ ...s, hp: 1 }).hp).toBe(1 + REMEDY_HEAL);
+  });
+
+  it("never in hard mode, and from far away she only talks", () => {
+    expect(talk(beside({ hp: 2, hard: true })).hp).toBe(2);
+    expect(talk(beside({ hp: 2, hard: true })).soupTaken).toBe(false);
+    const far = talk(beside({ hp: 2, player: { x: 80, y: 20 } }));
+    expect([far.hp, far.soupTaken, far.inspected]).toEqual([2, false, "lodge-keeper"]);
+    expect(far.logs.at(-1)).toMatch(/^Keeper: /);
+  });
+
+  it("her card is the line she says", () => {
+    expect(cardFor({ ...initialState, zone: "lodge", inspected: "lodge-keeper" })?.text).toContain("shelf");
+  });
+
+  it("an old save without soupTaken loads with false", () => {
+    const { soupTaken: _gone, ...old } = initialState;
+    localStorage.setItem("devlandia.savedGame", JSON.stringify({ v: 2, owner: "guest", game: { playerClass: "warrior", hard: false, state: old } }));
+    expect(loadGame(null)?.state.soupTaken).toBe(false);
+    localStorage.setItem("devlandia.savedGame", JSON.stringify({ v: 2, owner: "guest", game: { playerClass: "warrior", hard: false, state: { ...old, zone: "lodge", soupTaken: true } } }));
+    expect(loadGame(null)?.state).toMatchObject({ zone: "lodge", soupTaken: true });
   });
 });
 

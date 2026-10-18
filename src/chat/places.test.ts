@@ -30,6 +30,7 @@ const TABLE = [
   ["hermit", "foggaten", 68, 62, "the Hermit"],
   ["nomad", "desert", 62, 70, "the Nomad"],
   ["fisher", "beach", 34, 72, "the Fisher"],
+  ["keeper", "lodge", 38, 52, "the Keeper"],
 ] as const;
 
 describe("ping places", () => {

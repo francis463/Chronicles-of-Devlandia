@@ -1406,9 +1406,16 @@ describe("scene: the Ski Lodge", () => {
       for (const b of boxes.slice(i + 1)) expect(intersects(a, b), `props ${i} overlap`).toBe(false);
       expect(area.protected).toContainEqual(a);
       for (const flat of [spriteBox("door-mat", LODGE_POINTS.mat), spriteBox("rug", LODGE_POINTS.rug)]) expect(intersects(a, flat), `prop ${i} on a floor piece`).toBe(false);
-      expect(intersects(a, spriteBox("explorer-down", LODGE_POINTS.keeper)), `prop ${i} on the keeper`).toBe(false);
+      if (area.props[i].sprite !== "explorer-down") expect(intersects(a, spriteBox("explorer-down", LODGE_POINTS.keeper)), `prop ${i} on the keeper`).toBe(false);
     }
     expect(area.terrainAt(100, 100)).toBe("floor");
+  });
+
+  it("the keeper stands at her spot in the room, once, in her own colour", () => {
+    const keepers = lodge(DAY).upright.filter((d) => d.variant === "#b45309");
+    expect(keepers).toHaveLength(1);
+    const box = spriteBox("explorer-down", LODGE_POINTS.keeper);
+    expect([keepers[0].x, keepers[0].y]).toEqual([box.x, box.y]);
   });
 
   it("has no scenery or hedge round it", () => {

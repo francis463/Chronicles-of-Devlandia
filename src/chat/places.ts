@@ -1,4 +1,5 @@
 import { ADA, ARCHIVE, CAMPFIRE, DOCK, FISHER, HERMIT, ISLAND_DOCK, LIGHTHOUSE, NOMAD, POIS, RANGER, SIGNPOST, TERMINAL } from "../game/constants";
+import { KEEPER } from "../game/lodge";
 import type { Poi } from "../game/types";
 import { ZONES, type ZoneId } from "../game/zones";
 import { chestById } from "../learn/chests";
@@ -8,7 +9,7 @@ import type { ChestId } from "../learn/types";
 export const PING_PLACE_NAMES = [
   "gate", "tower", "cache", "river", "ada", "signpost", "terminal", "archive",
   "html", "css", "java", "cpp1", "cpp2", "py1", "php", "sql", "py2", "cs", "ranger", "campfire", "js",
-  "dock", "pier", "lighthouse", "hermit", "nomad", "fisher",
+  "dock", "pier", "lighthouse", "hermit", "nomad", "fisher", "keeper",
 ] as const;
 export type PingPlace = (typeof PING_PLACE_NAMES)[number];
 
@@ -53,6 +54,7 @@ const SPOTS: Record<PingPlace, Spot> = {
   hermit: the(HERMIT, "foggaten"),
   nomad: the(NOMAD, "desert"),
   fisher: the(FISHER, "beach"),
+  keeper: the(KEEPER, "lodge"),
 };
 
 /** Where a place is: its zone and its point in game percentages. */

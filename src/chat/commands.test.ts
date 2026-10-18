@@ -20,7 +20,7 @@ const LOBBY = ctx({ where: "lobby", minutes: 0, badges: [], known: {} });
 const notes = (text: string, c: CommandContext = GAME) => runCommand(text, c).notes;
 const effect = (text: string, c: CommandContext = GAME) => runCommand(text, c).effect;
 
-const PLACES = 'No place called "%". Try: gate, tower, cache, river, ada, signpost, terminal, archive, ranger, campfire, dock, pier, lighthouse, hermit, nomad, fisher, or a chest: html, css, java, cpp1, cpp2, py1, php, sql, py2, cs, js.';
+const PLACES = 'No place called "%". Try: gate, tower, cache, river, ada, signpost, terminal, archive, ranger, campfire, dock, pier, lighthouse, hermit, nomad, fisher, keeper, or a chest: html, css, java, cpp1, cpp2, py1, php, sql, py2, cs, js.';
 
 describe("/help", () => {
   it("in a game lists the eight lines", () => {

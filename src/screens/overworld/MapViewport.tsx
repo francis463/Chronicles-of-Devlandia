@@ -521,6 +521,7 @@ export function MapViewport({
           </>
         ) : zone === "lodge" ? (
           <>
+            <LandmarkButton hit={hits["lodge-keeper"]} name={caption("lodge-keeper")} label="Keeper" color="var(--accent-border)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "lodge-keeper"} onClick={() => onInteract("lodge-keeper")} />
             <LandmarkButton hit={hits["lodge-fireplace"]} name={caption("lodge-fireplace")} label="Fireplace" color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={smallMap && inRange?.id !== "lodge-fireplace"} peek passive={smallMap} onClick={() => onInteract("lodge-fireplace")} />
           </>
         ) : (

@@ -37,6 +37,7 @@ import { FISHER_LINE } from "./beach";
 import { nomadSays } from "./desert";
 import { reachFor, stepFor } from "./zoneSize";
 import { REMEDIES, REMEDY_HEAL, isRemedy, remedyFine } from "./remedies";
+import { KEEPER, SOUP, keeperSays } from "./lodge";
 import { SECRETS, firstSentence, isSecret } from "./secrets";
 import { DESERT_JARS, DESERT_LOG, DESERT_LORE, JAR_TIPS, isJar } from "./desertLore";
 import { goToNote } from "../learn/codexModel";
@@ -339,6 +340,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         // The map's button works from anywhere; the lamp lock needs you beside the lighthouse.
         if (distance(state.player, LIGHTHOUSE) > reachFor(state.zone)) return { ...state, inspected: "lighthouse" };
         return pushLog({ ...state, inspected: "lighthouse", lampOpen: true, lampError: null, lampTries: 0, lampHintRevealed: false }, LOG.lampOpened);
+      }
+      if (action.poi === "lodge-keeper") {
+        const talked = pushLogOnce({ ...state, inspected: "lodge-keeper" }, `Keeper: "${keeperSays(state)}"`);
+        // The map's button works from anywhere; the soup needs you beside her. Hard mode never offers it.
+        if (state.hard || state.soupTaken || distance(state.player, KEEPER) > reachFor(state.zone)) return talked;
+        if (state.hp >= MAX_HP) return pushLogOnce(talked, SOUP.fine);
+        return pushLog({ ...talked, soupTaken: true, hp: Math.min(MAX_HP, state.hp + REMEDY_HEAL) }, SOUP.served);
       }
       if (action.poi === "lodge-door" || action.poi === "lodge-fireplace") return { ...state, inspected: action.poi };
       if (action.poi === "fisher") return pushLogOnce({ ...state, inspected: "fisher" }, `Fisher: "${FISHER_LINE}"`);

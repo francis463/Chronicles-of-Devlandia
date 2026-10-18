@@ -261,6 +261,7 @@ describe("MapViewport chests, the Syntax Terminal and the Archive", () => {
     rerender(<MapViewport {...props({ zone: "lodge", onInteract })} />);
     expect(screen.getByRole("button", { name: "Shelf, HTML chest" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Fireplace" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Keeper" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Ice Cave, CSS chest" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Shelf, HTML chest" }));
     rerender(<MapViewport {...props({ zone: "village", onInteract })} />);

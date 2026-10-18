@@ -50,6 +50,7 @@ export type PoiId =
   | SecretId
   | "lodge-door"
   | "lodge-fireplace"
+  | "lodge-keeper"
   | Exclude<ChestId, "chest-cs">;
 
 /** The ranger's three lost glow mushrooms. */
