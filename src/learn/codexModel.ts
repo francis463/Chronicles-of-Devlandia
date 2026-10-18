@@ -38,9 +38,10 @@ const hostOf = (c: Chest): string => c.host ?? "Archive";
 export function nextHint({ badges, zone, player }: { badges: readonly ChestId[]; zone: ZoneId; player: Point }): string {
   const left = CHESTS.filter((c) => !badges.includes(c.id));
   if (left.length === 0) return `All ${CHESTS.length} badges earned. Well done, explorer!`;
-  const here = left.filter((c) => c.zone === zone);
+  // The lodge is a room in the Peaks: from outside, its chest is as near as the lodge's door.
+  const here = left.filter((c) => c.zone === zone || (zone === "peaks" && c.zone === "lodge"));
   if (here.length) {
-    const nearest = here.map((c) => ({ c, d: distance(player, spotOf(c)) })).reduce((a, b) => (b.d < a.d ? b : a));
+    const nearest = here.map((c) => ({ c, d: distance(player, c.zone === zone ? spotOf(c) : ZONES.peaks.doors[0].at) })).reduce((a, b) => (b.d < a.d ? b : a));
     const steps = Math.ceil(nearest.d / stepFor(zone));
     return `Next closest: ${hostOf(nearest.c)}, ${steps} ${steps === 1 ? "step" : "steps"} away.`;
   }
@@ -70,8 +71,10 @@ export function goToNote(id: ChestId): string {
 }
 
 /** Where "Go there" rings: the chest's landmark. */
-export const goToSpot = (id: ChestId): { zone: ZoneId; x: number; y: number } => {
+export const goToSpot = (id: ChestId, from?: ZoneId): { zone: ZoneId; x: number; y: number } => {
   const c = chestById(id);
+  // From outside the lodge, the ring marks its door on the Peaks map.
+  if (c.zone === "lodge" && from !== undefined && from !== "lodge") return { zone: "peaks", ...ZONES.peaks.doors[0].at };
   return { zone: c.zone, ...spotOf(c) };
 };
 

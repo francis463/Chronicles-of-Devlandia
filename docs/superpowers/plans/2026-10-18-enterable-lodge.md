@@ -15,7 +15,7 @@
 - Game positions stay percent of the zone (0–100); `BOUNDS` is x 6–94, y 10–90.
 - `ZoneId` becomes `"peaks" | "village" | "forest" | "foggaten" | "desert" | "beach" | "lodge"`; the lodge's name is `Ski Lodge` and its entered log line `Entered the Ski Lodge.`.
 - The lodge zone has no wall, no gate, no river, no edge exits, scale 1 (320 × 180).
-- Doors: Peaks door at percent (19.4, 88) radius 2.5 → lodge, arriving at (50, 78); lodge mat at (50, 88) radius 2.5 → Peaks, arriving at (26, 88). Arrival points lie outside every door radius of the zone they arrive in.
+- Doors: Peaks door at percent (19.4, 88) radius 3 → lodge, arriving at (50, 78); lodge mat at (50, 88) radius 3 → Peaks, arriving at (26, 88). Arrival points lie outside every door radius of the zone they arrive in.
 - New `PoiId`s: `lodge-door` (Peaks, label `Ski Lodge`, at (19.4, 89.4) — the lodge's feet), `lodge-keeper` (label `Keeper`), `lodge-fireplace` (label `Fireplace`). `GameState.soupTaken: boolean`, default `false`.
 - Soup: interacting beside the keeper (within `reachFor("lodge")`) while `hp < MAX_HP`, `!soupTaken` and not `hard` heals `REMEDY_HEAL` (2) and sets `soupTaken`; otherwise she only talks. Hard mode never offers it.
 - `chest-html` moves to zone `lodge`, host `Shelf`, at percent (66, 46); its Codex place text reads `Ski Lodge · Shelf`. Badges stay 11.

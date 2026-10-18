@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ARCHIVE } from "../game/constants";
 import { ZONE_SCALE } from "../game/zoneSize";
 import { CHESTS } from "./chests";
-import { LANG_TAGS, QUESTS, filterGroups, groupChests, goToNote, nextHint, practiceQuestion } from "./codexModel";
+import { LANG_TAGS, QUESTS, filterGroups, groupChests, goToNote, goToSpot, nextHint, practiceQuestion } from "./codexModel";
 
 describe("groupChests", () => {
   it("groups the 11 chests by zone in world order, with each group's earned count", () => {
@@ -106,3 +106,23 @@ describe("nextHint in a bigger zone", () => {
     expect(hint()).toContain("8 steps away");
   });
 });
+
+describe("the Ski Lodge in the Codex", () => {
+  it("at the start in the Peaks the next chest is the shelf inside the lodge, measured to its door", () => {
+    // From (28, 72) to the lodge door at (19.4, 88): 18.2 percent, 4 percent a step.
+    expect(nextHint({ badges: [], zone: "peaks", player: { x: 28, y: 72 } })).toBe("Next closest: Shelf, 5 steps away.");
+    expect(nextHint({ badges: ["chest-html"], zone: "peaks", player: { x: 28, y: 72 } })).toMatch(/^Next closest: Ice Cave,/);
+  });
+
+  it("inside the lodge it is measured to the shelf itself", () => {
+    expect(nextHint({ badges: [], zone: "lodge", player: { x: 66, y: 54 } })).toBe("Next closest: Shelf, 2 steps away.");
+  });
+
+  it("Go there rings the lodge door from outside and the shelf from inside", () => {
+    expect(goToSpot("chest-html", "peaks")).toEqual({ zone: "peaks", x: 19.4, y: 88 });
+    expect(goToSpot("chest-html", "lodge")).toEqual({ zone: "lodge", x: 66, y: 46 });
+    expect(goToSpot("chest-html")).toEqual({ zone: "lodge", x: 66, y: 46 });
+    expect(goToSpot("chest-js", "peaks")).toMatchObject({ zone: "forest" });
+  });
+});
+

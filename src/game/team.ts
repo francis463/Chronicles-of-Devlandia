@@ -5,7 +5,7 @@ import type { ChestId } from "../learn/types";
 import { classOrDefault, type ClassId } from "./classes";
 import { BOUNDS, MINUTES_PER_DAY, START_MINUTES, TICK_MINUTES, TICK_MS } from "./constants";
 import type { GameState } from "./types";
-import type { ZoneId } from "./zones";
+import { isZone, type ZoneId } from "./zones";
 
 // ── Shapes ────────────────────────────────────────────────────────────────
 
@@ -157,7 +157,7 @@ const isStart = (v: unknown, now: number): v is number => isNum(v) && Math.abs(v
 /** Older clients send no zone (they are in the Peaks); a zone we don't know is "elsewhere", never a reason to drop. */
 function parseZone(v: unknown): ZoneId | null {
   if (v === undefined) return "peaks";
-  return v === "peaks" || v === "village" || v === "forest" || v === "foggaten" || v === "desert" || v === "beach" || v === "lodge" ? v : null;
+  return isZone(v) ? v : null;
 }
 
 /** The six original flags must be booleans; the newer ones are read leniently (missing or odd means false). */
@@ -206,7 +206,7 @@ export function parseMessage(raw: unknown, now: number): TeamMessage | null {
   if (raw.type === "ping") {
     const name = typeof raw.name === "string" ? normalizeNickname(raw.name) : null;
     // The zone is strict here (parseZone's lenient default is for older clients' positions).
-    const zone = raw.zone === "peaks" || raw.zone === "village" || raw.zone === "forest" || raw.zone === "foggaten" || raw.zone === "desert" || raw.zone === "beach" ? raw.zone : null;
+    const zone = isZone(raw.zone) ? raw.zone : null;
     const place = raw.place === null ? null : isPingPlace(raw.place) ? raw.place : undefined;
     if (!isId(raw.id) || !name || !zone || !isX(raw.x) || !isY(raw.y) || place === undefined) return null;
     return { type: "ping", id: raw.id, name, ...(place ? { ...placeSpot(place), place } : { zone, x: raw.x, y: raw.y, place }) };

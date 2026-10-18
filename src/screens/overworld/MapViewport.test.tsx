@@ -726,6 +726,13 @@ describe("MapViewport: the hidden spots", () => {
     expect(container.querySelector(".overflow-hidden")).toBeNull();
   });
 
+  it("the lodge is not under the fog of war: it is always lit", () => {
+    const { rerender } = render(<MapViewport {...props({ zone: "lodge" })} />);
+    expect(screen.getByTestId("fog").style.opacity).toBe("0");
+    rerender(<MapViewport {...props({ zone: "peaks" })} />);
+    expect(screen.getByTestId("fog").style.opacity).toBe("1");
+  });
+
   it("pressing one asks the game to interact with it from anywhere", () => {
     const onInteract = vi.fn();
     render(<MapViewport {...props({ zone: "desert", onInteract })} />);

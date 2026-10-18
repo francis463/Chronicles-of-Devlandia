@@ -23,8 +23,8 @@ describe("the Ski Lodge zone", () => {
   it("only the Peaks and the lodge have doors", () => {
     for (const zone of Object.keys(ZONES) as ZoneId[]) expect(Array.isArray(ZONES[zone].doors), zone).toBe(true);
     expect((Object.keys(ZONES) as ZoneId[]).filter((z) => ZONES[z].doors.length > 0).sort()).toEqual(["lodge", "peaks"]);
-    expect(ZONES.peaks.doors[0]).toMatchObject({ at: { x: 19.4, y: 88 }, radius: 2.5, to: "lodge", arrive: { x: 50, y: 78 } });
-    expect(ZONES.lodge.doors[0]).toMatchObject({ at: { x: 50, y: 88 }, radius: 2.5, to: "peaks", arrive: { x: 26, y: 88 } });
+    expect(ZONES.peaks.doors[0]).toMatchObject({ at: { x: 19.4, y: 88 }, radius: 3, to: "lodge", arrive: { x: 50, y: 78 } });
+    expect(ZONES.lodge.doors[0]).toMatchObject({ at: { x: 50, y: 88 }, radius: 3, to: "peaks", arrive: { x: 26, y: 88 } });
   });
 
   it("walking onto the Peaks door goes inside, arriving in the room", () => {
@@ -50,10 +50,23 @@ describe("the Ski Lodge zone", () => {
         expect(doorAt(door.to, door.arrive), `${zone} -> ${door.to}`).toBeNull();
       }
     for (const zone of Object.keys(ZONES) as ZoneId[])
-      for (const exit of ZONES[zone].exits) for (const y of [exit.min, exit.max]) {
-        const land = arrival(exit, { x: 50, y }).player;
-        expect(doorAt(exit.to, land), `${zone} exit to ${exit.to}`).toBeNull();
-      }
+      for (const exit of ZONES[zone].exits)
+        for (const along of [exit.min, exit.max]) {
+          // A west or east exit spans rows, a north or south one columns.
+          const from = exit.edge === "west" || exit.edge === "east" ? { x: 50, y: along } : { x: along, y: 50 };
+          expect(doorAt(exit.to, arrival(exit, from).player), `${zone} exit to ${exit.to}`).toBeNull();
+        }
+  });
+
+  it("the Peaks door can be reached from either parity of the 4-percent lattice, on the bottom row or the one above", () => {
+    for (const y of [84, 86, 88, 90]) for (const x of [18, 20, 22, 24]) {
+      const near = doorAt("peaks", { x, y });
+      // Every lattice point within one step of the door's row and column is on the door.
+      if (Math.abs(x - 19.4) <= 1.4 && Math.abs(y - 88) <= 2) expect(near, `${x},${y}`).not.toBeNull();
+    }
+    expect(doorAt("peaks", { x: 18, y: 90 })).not.toBeNull();
+    expect(doorAt("peaks", { x: 20, y: 90 })).not.toBeNull();
+    expect(doorAt("peaks", { x: 26, y: 88 })).toBeNull();
   });
 
   it("a downed player or an open window cannot use a door", () => {

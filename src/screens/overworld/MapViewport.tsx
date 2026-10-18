@@ -442,7 +442,7 @@ export function MapViewport({
         className="pointer-events-none absolute inset-0 z-10 transition-opacity duration-1000 ease-linear motion-reduce:transition-none"
         style={{
           background: `radial-gradient(circle farthest-corner at ${fogX}px ${fogY}px, transparent 0%, transparent 15%, rgba(15,23,42,0.35) 32%, rgba(15,23,42,0.7) 62%)`,
-          opacity: towerPowered || zone === "forest" || zone === "foggaten" || zone === "desert" || zone === "beach" ? 0 : 1,
+          opacity: towerPowered || zone === "forest" || zone === "foggaten" || zone === "desert" || zone === "beach" || zone === "lodge" ? 0 : 1,
         }}
       />
 

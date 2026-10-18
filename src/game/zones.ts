@@ -42,7 +42,7 @@ export const ZONES: Record<ZoneId, Zone> = {
     gate: true,
     places: [...POIS, DOCK, PEAKS_SIGNPOST, WEATHER_STATION, LODGE_DOOR, ...chestPlaces("peaks")],
     river: true,
-    doors: [{ at: { x: 19.4, y: 88 }, radius: 2.5, to: "lodge", arrive: { x: 50, y: 78 } }],
+    doors: [{ at: { x: 19.4, y: 88 }, radius: 3, to: "lodge", arrive: { x: 50, y: 78 } }],
   },
   village: {
     id: "village",
@@ -114,9 +114,12 @@ export const ZONES: Record<ZoneId, Zone> = {
     gate: false,
     places: [KEEPER, LODGE_FIREPLACE, ...chestPlaces("lodge")],
     river: false,
-    doors: [{ at: { x: 50, y: 88 }, radius: 2.5, to: "peaks", arrive: { x: 26, y: 88 } }],
+    doors: [{ at: { x: 50, y: 88 }, radius: 3, to: "peaks", arrive: { x: 26, y: 88 } }],
   },
 };
+
+/** Whether a value is the id of a zone. */
+export const isZone = (v: unknown): v is ZoneId => typeof v === "string" && Object.hasOwn(ZONES, v);
 
 /** The door a position is on, if any: within a door's radius. */
 export const doorAt = (zone: ZoneId, p: Point): Door | null => ZONES[zone].doors.find((d) => Math.hypot(p.x - d.at.x, p.y - d.at.y) <= d.radius) ?? null;

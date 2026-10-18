@@ -208,7 +208,7 @@ export function Overworld({
   // The Codex's "Go there": the game logs where the chest is, and a ring marks its landmark when you are in that zone.
   const goTo = (chest: ChestId) => {
     dispatch({ type: "goTo", chest });
-    addPing({ id: "guide", name: chestById(chest).host ?? "Archive", color: "#fde047", ...goToSpot(chest) });
+    addPing({ id: "guide", name: chestById(chest).host ?? "Archive", color: "#fde047", ...goToSpot(chest, state.zone) });
   };
 
   // ── Team mode ──

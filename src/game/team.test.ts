@@ -250,6 +250,13 @@ describe("team: chat and ping messages", () => {
   const chat = (text: unknown, over: Record<string, unknown> = {}) => parseMessage({ type: "chat", id: "a", name: "Kai", text, ...over }, NOW);
   const ping = (over: Record<string, unknown> = {}) => parseMessage({ type: "ping", id: "a", name: "Kai", zone: "peaks", x: 40, y: 50, place: null, ...over }, NOW);
 
+  it("a ping in the lodge parses, with or without a place, and an unknown zone still drops", () => {
+    expect(ping({ zone: "lodge", x: 50, y: 50 })).toEqual({ type: "ping", id: "a", name: "Kai", zone: "lodge", x: 50, y: 50, place: null });
+    expect(ping({ zone: "lodge", place: "keeper" })).toMatchObject({ zone: "lodge", x: 38, y: 52, place: "keeper" });
+    expect(ping({ zone: "lodge", place: "html" })).toMatchObject({ zone: "lodge", x: 66, y: 46, place: "html" });
+    expect(ping({ zone: "marsh" })).toBeNull();
+  });
+
   it("a chat parses with its text cleaned and masked", () => {
     expect(chat("hello   team")).toEqual({ type: "chat", id: "a", name: "Kai", text: "hello team" });
     expect(chat("fu" + ZWSP + "ck")).toEqual({ type: "chat", id: "a", name: "Kai", text: "***" });
