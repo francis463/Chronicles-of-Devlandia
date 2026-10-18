@@ -302,4 +302,10 @@ describe("mini-map: inside the Ski Lodge", () => {
     const mate = screen.getByTestId("minimap-teammate-Ana");
     expect([mate.style.left, mate.style.top]).toEqual(["19.4%", "88%"]);
   });
+
+  it("a ping inside the lodge rings the Peaks cell's door", () => {
+    render(<MiniMap {...props} zone="peaks" player={{ x: 50, y: 50 }} pings={[{ id: "p1", name: "Ana", color: "#f472b6", zone: "lodge", x: 66, y: 46 }]} />);
+    const ring = within(screen.getByTestId("minimap-cell-peaks")).getByTestId("minimap-ping-p1");
+    expect([ring.style.left, ring.style.top]).toEqual(["19.4%", "88%"]);
+  });
 });

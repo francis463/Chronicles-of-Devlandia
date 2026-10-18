@@ -288,6 +288,22 @@ describe("Overworld badges with a stub session", () => {
     });
   });
 
+  describe("the Ski Lodge in a team game", () => {
+    const kai = (zone: "peaks" | "lodge", x: number, y: number) => ({ id: "t1", name: "Kai", color: "#22c55e", x, y, zone });
+
+    it("a teammate in the lodge is with you when you are in it, and on the Peaks cell's door when you are outside", () => {
+      const inside = render(<Overworld onMenu={() => {}} team={stub({ teammates: [kai("lodge", 52, 54)] })} initial={{ zone: "lodge", player: { x: 50, y: 54 } }} />);
+      expect(screen.getByRole("button", { name: "[ Share water with Kai ]" })).toBeInTheDocument();
+      expect(screen.getByTestId("minimap-current")).toBeInTheDocument();
+      inside.unmount();
+      render(<Overworld onMenu={() => {}} team={stub({ teammates: [kai("lodge", 52, 54)] })} initial={{ zone: "peaks", player: { x: 28, y: 72 } }} />);
+      expect(screen.queryByRole("button", { name: "[ Share water with Kai ]" })).toBeNull();
+      const dot = screen.getByTestId("minimap-teammate-Kai");
+      expect([dot.style.left, dot.style.top]).toEqual(["19.4%", "88%"]);
+      expect(within(screen.getByTestId("minimap-cell-peaks")).getByTestId("minimap-teammate-Kai")).toBe(dot);
+    });
+  });
+
   it("each badge in state is published once", () => {
     const session = stub();
     const { rerender } = render(<Overworld onMenu={() => {}} team={session} initial={{ badges: ["chest-html"] }} />);
