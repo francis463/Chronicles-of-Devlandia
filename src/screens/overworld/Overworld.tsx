@@ -13,6 +13,7 @@ import { rollGame } from "../../game/roll";
 import { loadRecent, saveRecent, withPicks } from "../../learn/recent";
 import { reachFor } from "../../game/zoneSize";
 import { distance, interactLabel, placeInReach, promptText } from "../../game/geometry";
+import { toastFor, type Toast, type ToastSnap } from "../../game/toasts";
 import { gameReducer, initialState, isDowned, isModalOpen, reachPlaces } from "../../game/reducer";
 import type { GameState } from "../../game/types";
 import { countUnread, lastSeq, useChat, type ChatFeed } from "../../hooks/useChat";
@@ -154,13 +155,17 @@ export function Overworld({
     setPulse((p) => ({ kind, n: (p?.n ?? 0) + 1 }));
   }, [state.hp]);
 
-  // "Ohh, a scroll!" pops up once, when the Supply Cache is first emptied in this game (also state, so its CSS fade plays once).
-  const hadLoot = useRef(state.hasLoot);
-  const [scrollPops, setScrollPops] = useState(0);
+  // A pop-up for the scroll, an NPC's food and a bite of it (see toastFor); also state, so its CSS fade plays once per pop.
+  const lastSnap = useRef<ToastSnap>(state);
+  const eaten = useRef(0);
+  const [toast, setToast] = useState<{ n: number } & Toast | null>(null);
   useEffect(() => {
-    if (state.hasLoot && !hadLoot.current) setScrollPops((n) => n + 1);
-    hadLoot.current = state.hasLoot;
-  }, [state.hasLoot]);
+    const next: ToastSnap = state;
+    const found = toastFor(lastSnap.current, next, eaten.current);
+    if (found && next.food < lastSnap.current.food) eaten.current += 1;
+    lastSnap.current = { hasLoot: next.hasLoot, food: next.food, hp: next.hp, rangerFed: next.rangerFed, nomadServed: next.nomadServed, soupTaken: next.soupTaken };
+    if (found) setToast((t) => ({ n: (t?.n ?? 0) + 1, ...found }));
+  }, [state.hasLoot, state.food, state.hp, state.rangerFed, state.nomadServed, state.soupTaken]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Chat, commands and your own view ──
   const own = useChat(chat ? null : (team ?? null));
@@ -363,10 +368,10 @@ export function Overworld({
         view={mapView}
       />
       <div className={`relative flex min-w-0 flex-col ${mapOnly ? "min-h-0" : "md:col-start-2 md:row-start-2 md:row-span-3"}`}>
-        {scrollPops > 0 && (
-          <div key={scrollPops} role="status" className="found-toast pointer-events-none absolute left-1/2 top-4 z-20 -translate-x-1/2 rounded border-2 border-[var(--accent-border)] bg-[var(--panel)] px-4 py-2 text-center">
-            <p className="text-sm font-bold uppercase tracking-widest text-[var(--accent)]">Ohh, a scroll!</p>
-            <p className="text-[10px] uppercase tracking-widest text-[var(--text)]">Decode it from your inventory.</p>
+        {toast && (
+          <div key={toast.n} role="status" className="found-toast pointer-events-none absolute left-1/2 top-4 z-20 -translate-x-1/2 rounded border-2 border-[var(--accent-border)] bg-[var(--panel)] px-4 py-2 text-center">
+            <p className="text-sm font-bold uppercase tracking-widest text-[var(--accent)]">{toast.title}</p>
+            <p className="text-[10px] uppercase tracking-widest text-[var(--text)]">{toast.sub}</p>
           </div>
         )}
         {pulse && <div key={pulse.n} aria-hidden="true" className={`hp-flash hp-flash-${pulse.kind} pointer-events-none absolute inset-0 z-10`} />}

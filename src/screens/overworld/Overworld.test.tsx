@@ -373,6 +373,29 @@ describe("Overworld hidden artifact", () => {
     expect(screen.getAllByText("Ohh, a scroll!")).toHaveLength(1);
   });
 
+  it("an NPC handing you food pops up a thank-you, and eating pops up a happy word, one after another", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} initial={{ zone: "forest", player: { x: 58, y: 62 }, mushrooms: ["mushroom-1", "mushroom-2", "mushroom-3"], hp: 2 }} />);
+    expect(screen.queryByText("Thank you!")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "[R] Ranger" }));
+    expect(screen.getByText("Thank you!")).toBeInTheDocument();
+    expect(screen.getByText("The ranger gave you a bowl of stew.")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Eat food (1 left)" }));
+    expect(screen.getByText("Yummy!")).toBeInTheDocument();
+    expect(screen.queryByText("Thank you!")).toBeNull();
+  });
+
+  it("each bite gets the next happy word", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} initial={{ hp: 1, food: 3 }} />);
+    await user.click(screen.getByRole("button", { name: "Eat food (3 left)" }));
+    expect(screen.getByText("Yummy!")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Eat food (2 left)" }));
+    expect(screen.getByText("Delicious!")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Eat food (1 left)" }));
+    expect(screen.getByText("Tasty!")).toBeInTheDocument();
+  });
+
   it("decoding the scroll: a wrong answer shows an error, the right one logs the clue", async () => {
     const user = setup();
     render(<Overworld onMenu={() => {}} initial={{ hasLoot: true }} />);
