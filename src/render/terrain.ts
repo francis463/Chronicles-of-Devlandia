@@ -103,7 +103,10 @@ function candidate(cx: number, cy: number, area: Area): Candidate | null {
   if (!inWorld) {
     // Scenery around the world: dense trees to the sides and below, scattered rocks above.
     // Out at sea there is only the odd reef rock, never a tree.
-    const sprite = ground === "sea" ? pick([["rock", 0.2]]) : ground === "mountains" ? pick([["snow-rock", 0.3]]) : pick([[ground === "snow" ? "pine" : ground === "dune" ? (r[3] < 0.5 ? "cactus" : "dry-bush") : ground === "beach" ? (r[3] < 0.2 ? "palm" : "rock") : ground === "forest" && r[3] < 0.3 ? "birch" : "tree", 0.8]]);
+    // The dunes thin out away from the world, so the scenery fades into open sand instead of walling the view in.
+    const away = Math.max(worldRect.x - at.x, 0, at.x - (worldRect.x + worldRect.w), worldRect.y - at.y, 0, at.y - (worldRect.y + worldRect.h));
+    const density = ground === "dune" ? Math.max(0.25, 0.8 - Math.max(0, away - 48) * 0.006) : 0.8;
+    const sprite = ground === "sea" ? pick([["rock", 0.2]]) : ground === "mountains" ? pick([["snow-rock", 0.3]]) : pick([[ground === "snow" ? "pine" : ground === "dune" ? (r[3] < 0.5 ? "cactus" : "dry-bush") : ground === "beach" ? (r[3] < 0.2 ? "palm" : "rock") : ground === "forest" && r[3] < 0.3 ? "birch" : "tree", density]]);
     if (!sprite) return null;
     const box = spriteBox(sprite, at);
     if (intersects(box, worldRect) || area.corridors.some((c) => intersects(box, c))) return null;

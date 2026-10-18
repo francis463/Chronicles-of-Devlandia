@@ -248,6 +248,33 @@ describe("dune decorations", () => {
   });
 });
 
+describe("the desert's scenery fades away from the world", () => {
+  const desert = AREAS.desert;
+  const w = desert.world;
+  const count = (from: number, to: number) => {
+    // Decorations in the band between `from` and `to` art px west of the world's edge (the world's height), per 1000 px².
+    const band = { x: -to, y: 0, w: to - from, h: w.height };
+    return (decorations(band, desert).length / (band.w * band.h)) * 1000;
+  };
+
+  it("is dense just behind the hedge and thin far out", () => {
+    const near = count(0, 48);
+    const far = count(400, 448);
+    expect(near).toBeGreaterThan(1.5);
+    expect(far).toBeLessThan(near * 0.45);
+    expect(far).toBeGreaterThan(0);
+  });
+
+  it("still never stands on the exit corridor or inside the world", () => {
+    for (const d of decorations({ x: -300, y: -300, w: w.width + 600, h: w.height + 600 }, desert)) {
+      const box = spriteBox(d.sprite, d.at);
+      const outside = box.x + box.w <= 0 || box.x >= w.width || box.y + box.h <= 0 || box.y >= w.height;
+      if (!outside) continue;
+      for (const c of desert.corridors) expect(intersects(box, c), d.sprite).toBe(false);
+    }
+  });
+});
+
 describe("beach decorations", () => {
   const sand: Area = { id: "beach", world: { width: 320, height: 180 }, wall: false, terrainAt: () => "beach", paths: [], mouths: [], corridors: [], gateBox: null, ice: null, props: [], protected: [] };
   const found = decorations(VIEW, sand);
