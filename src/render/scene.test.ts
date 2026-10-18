@@ -1339,7 +1339,7 @@ describe("scene: the bigger Dense Forest", () => {
 });
 
 describe("scene: the hidden spots", () => {
-  const SPOT_SPRITES = { "secret-moss": "moss", "secret-den": "fox-den", "secret-cave": "desert-cave", "secret-ridge": "dune-ridge", "secret-pool": "tide-pool", "secret-bottle": "bottle" } as const;
+  const SPOT_SPRITES = { "secret-moss": "moss", "secret-den": "fox-den", "secret-cave": "desert-cave", "secret-ridge": "dune-ridge", "secret-pool": "tide-pool", "secret-bottle": "bottle", "secret-pointer": "pointer-stone", "secret-hut": "ski-hut" } as const;
   const inZone = (zone: ZoneId, over: Partial<SceneInput> = {}) => scene({ zone, player: { x: 50, y: 50 }, drone: { x: 52, y: 50 }, minutes: DAY, ...over });
 
   it("each is drawn once, in its own zone only, and stays when found", () => {

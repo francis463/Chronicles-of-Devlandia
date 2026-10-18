@@ -562,7 +562,7 @@ describe("gameReducer: places and talking", () => {
 
   it("visiblePois: your zone's places, plus the dig spot on the island once revealed", () => {
     expect(visiblePois(s0).map((p) => p.id)).toEqual([
-      "gate", "chest", "river", "tower", "dock", "peaks-signpost", "weather-station", "lodge-door", "chest-css",
+      "gate", "chest", "river", "tower", "dock", "peaks-signpost", "weather-station", "lodge-door", "secret-pointer", "secret-hut", "chest-css",
     ]);
     expect(visiblePois({ ...village, clueDecoded: true }).map((p) => p.id)).toEqual([
       "villager", "signpost", "terminal", "archive", "chest-php", "chest-sql",

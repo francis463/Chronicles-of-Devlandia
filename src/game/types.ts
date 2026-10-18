@@ -61,7 +61,7 @@ export type MushroomId = "mushroom-1" | "mushroom-2" | "mushroom-3";
 export type RemedyId = "remedy-herb" | "remedy-fruit" | "remedy-drink";
 
 /** The six hidden spots: two in each of the forest, the desert and the beach. */
-export type SecretId = "secret-moss" | "secret-den" | "secret-cave" | "secret-ridge" | "secret-pool" | "secret-bottle";
+export type SecretId = "secret-moss" | "secret-den" | "secret-cave" | "secret-ridge" | "secret-pool" | "secret-bottle" | "secret-pointer" | "secret-hut";
 
 /** The nomad's three lost water jars. */
 export type JarId = "jar-1" | "jar-2" | "jar-3";

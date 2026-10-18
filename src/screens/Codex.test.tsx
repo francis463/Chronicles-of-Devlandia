@@ -113,12 +113,12 @@ describe("Codex", () => {
     expect(screen.getByText(/^Next closest: Ice Cave, \d+ steps away\.$/)).toBeInTheDocument();
   });
 
-  it("says how many of the six hidden spots you have found, and none before the first", () => {
+  it("says how many of the eight hidden spots you have found, and none before the first", () => {
     const { unmount } = render(codex([]).ui);
-    expect(screen.getByText("Secrets found: 0/6")).toBeInTheDocument();
+    expect(screen.getByText("Secrets found: 0/8")).toBeInTheDocument();
     unmount();
     render(codex([], { secrets: 2, team: true }).ui);
-    expect(screen.getByText("Secrets found: 2/6")).toBeInTheDocument();
+    expect(screen.getByText("Secrets found: 2/8")).toBeInTheDocument();
   });
 
   it("the story checklist ticks what is done and says where to look for the rest", () => {

@@ -1,5 +1,6 @@
 import { spriteBox, type SpriteId } from "../sprites";
 import { DOCK, PEAKS_SIGNPOST, SNOW_CAVE, WEATHER_STATION } from "../../game/constants";
+import { secretSpotsIn } from "./secrets";
 import { reachableRect, worldScale, zoneToArt, type ArtPoint, type Rect, zoneWorld } from "../world";
 import { inRect, type Area, type Prop, type TerrainKind } from "./area";
 
@@ -149,6 +150,8 @@ const keepClear: Rect[] = [
   spriteBox("station", STATION_POINT),
   spriteBox("snow-cave", CAVE_POINT),
   ...[WILDLIFE.fox, WILDLIFE.goat].map((a) => ({ x: a.zone.x - 14, y: a.zone.y - 12, w: a.zone.w + 28, h: a.zone.h + 14 })),
+  // The hidden spots.
+  ...secretSpotsIn("peaks").map((r) => spriteBox(r.sprite, r.at)),
   // The start-here arrow over the ski lodge, where the HTML chest is.
   START_ARROW_BOX,
 ];
@@ -207,5 +210,6 @@ export const PEAKS: Area = {
     SOUTH_PATH,
       spriteBox("dock", DOCK_POINT),
     ...PEAKS_PROPS.map((prop) => spriteBox(prop.sprite, prop.at)),
+    ...secretSpotsIn("peaks").map((r) => spriteBox(r.sprite, r.at)),
   ],
 };

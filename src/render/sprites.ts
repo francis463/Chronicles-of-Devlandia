@@ -109,6 +109,8 @@ export type SpriteId =
   | "dune-ridge"
   | "tide-pool"
   | "bottle"
+  | "pointer-stone"
+  | "ski-hut"
   | "fireplace"
   | "bunk"
   | "table"
@@ -967,6 +969,31 @@ function bottleGrid(): PixelGrid {
     ell(4.5, 9, 4, 4, "g"),
     rect(3, 7, 6, 11, "p"),
     rect(1, 12, 8, 13, "y"),
+  ]);
+}
+
+/** A standing stone frozen in snow, a white cap on top and an arrow carved into its face. */
+function pointerStoneGrid(): PixelGrid {
+  return creature(18, 22, [
+    ell(9, 17, 8.5, 4, "w"),
+    rect(4, 5, 13, 17, "s"),
+    ell(8.5, 5, 5.5, 3.4, "s"),
+    rect(3, 2, 14, 4, "w"),
+    rect(8, 8, 9, 15, "a"),
+    rect(6, 10, 11, 10, "a"),
+    rect(2, 18, 5, 19, "S"),
+  ]);
+}
+
+/** A ski hut buried to its roof: a snow-heaped roof, a bit of wall and a dark door. */
+function skiHutGrid(): PixelGrid {
+  return creature(28, 20, [
+    ell(14, 15, 13.5, 4.6, "w"),
+    rect(6, 7, 21, 15, "b"),
+    rect(4, 5, 23, 7, "B"),
+    rect(2, 2, 25, 4, "w"),
+    rect(11, 10, 16, 16, "k"),
+    ell(14, 3, 8, 2.2, "w"),
   ]);
 }
 
@@ -2221,6 +2248,8 @@ export const SPRITES: Record<SpriteId, SpriteDef> = {
   "desert-cave": { w: 28, h: 20, anchor: "bottom", palette: { o: "#0b1020", r: "#a8693a", R: "#c98852", k: "#150d08", y: "#fbbf24" }, frames: [desertCaveGrid()] },
   "dune-ridge": { w: 32, h: 14, anchor: "bottom", palette: { o: "#0b1020", d: "#d9a445", D: "#ecc072", s: "#8c7f66" }, frames: [duneRidgeGrid()] },
   "tide-pool": { w: 26, h: 12, anchor: "bottom", palette: { o: "#0b1020", s: "#7b8794", w: "#38bdf8", W: "#bae6fd", p: "#f97316" }, frames: [tidePoolGrid()] },
+  "pointer-stone": { w: 18, h: 22, anchor: "bottom", palette: { o: "#0b1020", s: "#aab4c0", S: "#7b8794", w: "#e2e8f0", a: "#38bdf8" }, frames: [pointerStoneGrid()] },
+  "ski-hut": { w: 28, h: 20, anchor: "bottom", palette: { o: "#0b1020", b: "#8f5f33", B: "#6b4423", k: "#1a1008", w: "#e2e8f0" }, frames: [skiHutGrid()] },
   bottle: { w: 10, h: 14, anchor: "bottom", palette: { o: "#0b1020", c: "#b4793a", g: "#7dd3d8", p: "#f8f1d8", y: "#e7c98a" }, frames: [bottleGrid()] },
   fireplace: { w: 24, h: 22, anchor: "bottom", palette: { o: "#0b1020", s: "#8a8f98", S: "#6b7280", m: "#6b4423", k: "#1a1008", f: "#f97316", y: "#fde047" }, frames: [fireplaceGrid(0), fireplaceGrid(1)] },
   bunk: { w: 28, h: 18, anchor: "bottom", palette: { o: "#0b1020", d: "#5b3a1e", w: "#b07a45", b: "#991b1b", B: "#1d4ed8", p: "#f1f5f9" }, frames: [bunkGrid()] },

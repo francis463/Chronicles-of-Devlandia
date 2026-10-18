@@ -13,7 +13,7 @@ const beside = (id: string, hp = 5, zone?: ZoneId) => {
 const interact = (s: ReturnType<typeof beside>, poi: string) => gameReducer(s, { type: "interact", poi: poi as never });
 
 describe("the hidden spots", () => {
-  it("are six, two in each of the forest, desert and beach, in that order", () => {
+  it("are eight, two in each of the forest, desert, beach and Peaks, in that order", () => {
     expect(SECRETS.map((s) => [s.id, s.zone])).toEqual([
       ["secret-moss", "forest"],
       ["secret-den", "forest"],
@@ -21,11 +21,14 @@ describe("the hidden spots", () => {
       ["secret-ridge", "desert"],
       ["secret-pool", "beach"],
       ["secret-bottle", "beach"],
+      ["secret-pointer", "peaks"],
+      ["secret-hut", "peaks"],
     ]);
-    expect(SECRETS.map((s) => [s.x, s.y])).toEqual([[14, 14], [88, 88], [10, 86], [84, 18], [14, 88], [86, 16]]);
+    expect(SECRETS.map((s) => [s.x, s.y])).toEqual([[14, 14], [88, 88], [10, 86], [84, 18], [14, 88], [86, 16], [92, 46], [10, 56]]);
     expect(isSecret("secret-moss")).toBe(true);
     expect(isSecret("remedy-herb")).toBe(false);
     expect(secretsIn("desert").map((s) => s.id)).toEqual(["secret-cave", "secret-ridge"]);
+    expect(secretsIn("peaks").map((s) => s.id)).toEqual(["secret-pointer", "secret-hut"]);
   });
 
   it("each is a place of its zone, with a card that is short", () => {

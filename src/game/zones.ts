@@ -40,7 +40,7 @@ export const ZONES: Record<ZoneId, Zone> = {
     ],
     wall: true,
     gate: true,
-    places: [...POIS, DOCK, PEAKS_SIGNPOST, WEATHER_STATION, LODGE_DOOR, ...chestPlaces("peaks")],
+    places: [...POIS, DOCK, PEAKS_SIGNPOST, WEATHER_STATION, LODGE_DOOR, ...secretsIn("peaks"), ...chestPlaces("peaks")],
     river: true,
     doors: [{ at: { x: 19.4, y: 88 }, radius: 3, to: "lodge", arrive: { x: 50, y: 78 } }],
   },

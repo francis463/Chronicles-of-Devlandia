@@ -1,7 +1,7 @@
 import type { Poi, PoiId, SecretId } from "./types";
 import type { ZoneId } from "./zones";
 
-/** Two hidden spots in each big area, far out in the new part of the map. */
+/** Two hidden spots in each big area (the forest, desert, beach and Peaks), far out in the new part of the map. */
 export const SECRETS: Array<Poi & { id: SecretId; zone: ZoneId; text: string }> = [
   {
     id: "secret-moss",
@@ -50,6 +50,22 @@ export const SECRETS: Array<Poi & { id: SecretId; zone: ZoneId; text: string }> 
     x: 86,
     y: 16,
     text: "A bottle with a note inside: return 42. A function hands its answer back with return and stops right there; the lines after it never run.",
+  },
+  {
+    id: "secret-pointer",
+    zone: "peaks",
+    label: "Frozen Pointer Stone",
+    x: 92,
+    y: 46,
+    text: "A standing stone with an arrow carved into it, frozen in the ice. A pointer holds an address, not the value itself: follow it with * to reach what it points at, and never follow one that points at nothing.",
+  },
+  {
+    id: "secret-hut",
+    zone: "peaks",
+    label: "Buried Ski Hut",
+    x: 10,
+    y: 56,
+    text: "A ski hut buried to its roof in snow. What you allocate with new you must free with delete, like digging the hut out and filling the hole again. RAII does it for you: the object cleans up when it goes out of scope.",
   },
 ];
 

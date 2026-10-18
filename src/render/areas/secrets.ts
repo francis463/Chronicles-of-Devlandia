@@ -10,6 +10,8 @@ const SPRITE_OF = {
   "secret-ridge": "dune-ridge",
   "secret-pool": "tide-pool",
   "secret-bottle": "bottle",
+  "secret-pointer": "pointer-stone",
+  "secret-hut": "ski-hut",
 } as const satisfies Record<string, SpriteId>;
 
 /** Where each hidden spot stands, in art px. Drawn by the scene (found or not), never as props. */

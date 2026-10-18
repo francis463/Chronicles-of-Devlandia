@@ -308,4 +308,4 @@ export function promptRect(text: string, player: ArtPoint, world: WorldRect, map
 }
 
 /** The hidden spots' buttons in each big area. Their captions show only when you are beside them, and never on hover, so you find them by looking. */
-export const SECRET_SCENERY = Object.fromEntries((["forest", "desert", "beach"] as const).map((z) => [z, secretsIn(z).map((p) => ({ id: p.id, label: p.label, prefer: "above" as const }))])) as Record<"forest" | "desert" | "beach", Array<{ id: PoiId; label: string; prefer: "above" }>>;
+export const SECRET_SCENERY = Object.fromEntries((["forest", "desert", "beach", "peaks"] as const).map((z) => [z, secretsIn(z).map((p) => ({ id: p.id, label: p.label, prefer: "above" as const }))])) as Record<"forest" | "desert" | "beach" | "peaks", Array<{ id: PoiId; label: string; prefer: "above" }>>;
