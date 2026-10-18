@@ -1,4 +1,5 @@
-import { ARCHIVE, STEP } from "../game/constants";
+import { ARCHIVE } from "../game/constants";
+import { stepFor } from "../game/zoneSize";
 import { distance } from "../game/geometry";
 import type { GameState, Point } from "../game/types";
 import { ZONES, type ZoneId } from "../game/zones";
@@ -40,7 +41,7 @@ export function nextHint({ badges, zone, player }: { badges: readonly ChestId[];
   const here = left.filter((c) => c.zone === zone);
   if (here.length) {
     const nearest = here.map((c) => ({ c, d: distance(player, spotOf(c)) })).reduce((a, b) => (b.d < a.d ? b : a));
-    const steps = Math.ceil(nearest.d / STEP);
+    const steps = Math.ceil(nearest.d / stepFor(zone));
     return `Next closest: ${hostOf(nearest.c)}, ${steps} ${steps === 1 ? "step" : "steps"} away.`;
   }
   const first = ZONE_ORDER.flatMap((z) => left.filter((c) => c.zone === z))[0];

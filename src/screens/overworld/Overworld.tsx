@@ -11,13 +11,14 @@ import { cardFor } from "../../game/cards";
 import { challengeOf, challengeView } from "../../game/challenges";
 import { rollGame } from "../../game/roll";
 import { loadRecent, saveRecent, withPicks } from "../../learn/recent";
+import { reachFor } from "../../game/zoneSize";
 import { distance, interactLabel, placeInReach, promptText } from "../../game/geometry";
 import { gameReducer, initialState, isDowned, isModalOpen, reachPlaces } from "../../game/reducer";
 import type { GameState } from "../../game/types";
 import { countUnread, lastSeq, useChat, type ChatFeed } from "../../hooks/useChat";
 import { usePings } from "../../hooks/usePings";
 import type { TeamSession } from "../../hooks/useTeamSession";
-import { INTERACT_RADIUS, LOG, LOW_HP, TICK_MS, WATER_COOLDOWN_MS } from "../../game/constants";
+import { LOG, LOW_HP, TICK_MS, WATER_COOLDOWN_MS } from "../../game/constants";
 import { tideName } from "../../game/tide";
 import { flagsOf, teamMinutes } from "../../game/team";
 import { ZONES } from "../../game/zones";
@@ -275,7 +276,7 @@ export function Overworld({
     () => onWater?.((from) => dispatch({ type: "shareWater", from: displayNames(playersRef.current ?? []).get(from.id) ?? maskRude(from.name) })),
     [onWater],
   );
-  const neighbour = team && !downed ? team.teammates.find((t) => t.zone === state.zone && distance(state.player, t) <= INTERACT_RADIUS) : undefined;
+  const neighbour = team && !downed ? team.teammates.find((t) => t.zone === state.zone && distance(state.player, t) <= reachFor(state.zone)) : undefined;
   const lastPour = useRef(0);
   const pourWater = () => {
     if (!neighbour || !shareWater) return;
@@ -290,7 +291,7 @@ export function Overworld({
   const minutes = team?.startedAt != null ? teamMinutes(team.startedAt, now) : state.minutes;
   const teamLabel = team?.room ? `ROOM ${team.room} · ${team.players.length} online` : undefined;
 
-  const inRange = downed ? null : placeInReach(state.player, reachPlaces(state));
+  const inRange = downed ? null : placeInReach(state.player, reachPlaces(state), reachFor(state.zone));
 
   const getContext = (): CommandContext => ({
     where: team ? "game" : "solo",

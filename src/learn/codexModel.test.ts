@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { ARCHIVE } from "../game/constants";
+import { ZONE_SCALE } from "../game/zoneSize";
 import { CHESTS } from "./chests";
 import { LANG_TAGS, QUESTS, filterGroups, groupChests, goToNote, nextHint, practiceQuestion } from "./codexModel";
 
@@ -87,5 +88,20 @@ describe("practiceQuestion", () => {
     const ids = Array.from({ length: 13 }, (_, n) => practiceQuestion(chest.id, 2, n).id);
     expect(ids.slice(0, 12)).toEqual([3, 4, 5, 6, 7, 8, 9, 10, 11, 0, 1, 2].map((i) => chest.bank[i].id));
     expect(ids[12]).toBe(ids[0]);
+  });
+});
+
+describe("nextHint in a bigger zone", () => {
+  afterEach(() => {
+    ZONE_SCALE.forest = 1;
+  });
+
+  it("counts steps in the zone's own step size", () => {
+    const spot = CHESTS.find((c) => c.zone === "forest")!.at!;
+    const player = { x: spot.x - 16, y: spot.y };
+    const hint = () => nextHint({ badges: CHESTS.filter((c) => c.zone !== "forest").map((c) => c.id), zone: "forest", player });
+    expect(hint()).toContain("4 steps away");
+    ZONE_SCALE.forest = 2;
+    expect(hint()).toContain("8 steps away");
   });
 });

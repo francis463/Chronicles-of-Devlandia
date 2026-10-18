@@ -11,11 +11,9 @@ import {
   PLAYER_START,
   RIVER_DAMAGE,
   START_MINUTES,
-  STEP,
   HIDDEN_ARTIFACT,
   HARD_WRONG_DAMAGE,
   DOCK,
-  INTERACT_RADIUS,
   LIGHTHOUSE,
   SNOW_CAVE,
   ISLAND_DOCK,
@@ -36,6 +34,7 @@ import { crossesWall, isNorthOfWall, wallBlock } from "./wall";
 import { ZONES, arrival, exitFor, type ZoneId } from "./zones";
 import { FISHER_LINE } from "./beach";
 import { nomadSays } from "./desert";
+import { reachFor, stepFor } from "./zoneSize";
 import { REMEDIES, REMEDY_HEAL, isRemedy, remedyFine } from "./remedies";
 import { DESERT_JARS, DESERT_LOG, DESERT_LORE, JAR_TIPS, isJar } from "./desertLore";
 import { goToNote } from "../learn/codexModel";
@@ -150,7 +149,7 @@ const DOCKS: Partial<Record<ZoneId, { dock: Poi; to: keyof typeof SAIL_LANDING; 
 function sail(state: GameState, to: ZoneId): GameState {
   const route = DOCKS[state.zone];
   if (!route || route.to !== to || isDowned(state) || isModalOpen(state)) return state;
-  if (distance(state.player, route.dock) > INTERACT_RADIUS) return state;
+  if (distance(state.player, route.dock) > reachFor(state.zone)) return state;
   if (state.zone === "peaks" && !state.gateUnlocked) return pushLogOnce(state, LOG.dockLocked);
   const landing = SAIL_LANDING[route.to];
   return pushLog({ ...state, zone: route.to, player: landing, drone: { x: landing.x - 4, y: landing.y }, inspected: null }, route.line);
@@ -261,7 +260,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case "move": {
       if (isDowned(state) || isModalOpen(state)) return state;
       const delta = DELTAS[action.dir];
-      const target = { x: state.player.x + delta.x * STEP, y: state.player.y + delta.y * STEP };
+      const step = stepFor(state.zone);
+      const target = { x: state.player.x + delta.x * step, y: state.player.y + delta.y * step };
       const exit = exitFor(state.zone, state.player, target);
       if (exit) {
         return pushLog(
@@ -322,13 +322,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (action.poi === "dock" || action.poi === "island-dock") {
         const route = DOCKS[state.zone]!;
         // The map's dock button works from anywhere, but boarding needs you beside it.
-        return distance(state.player, route.dock) > INTERACT_RADIUS ? { ...state, inspected: action.poi } : sail(state, route.to);
+        return distance(state.player, route.dock) > reachFor(state.zone) ? { ...state, inspected: action.poi } : sail(state, route.to);
       }
       if (action.poi === "hermit") return pushLogOnce({ ...state, inspected: "hermit" }, `Hermit: "${hermitLine(state)}"`);
       if (action.poi === "lighthouse") {
         if (state.lighthouseLit) return pushLog({ ...state, inspected: "lighthouse" }, LOG.lighthouseOnline);
         // The map's button works from anywhere; the lamp lock needs you beside the lighthouse.
-        if (distance(state.player, LIGHTHOUSE) > INTERACT_RADIUS) return { ...state, inspected: "lighthouse" };
+        if (distance(state.player, LIGHTHOUSE) > reachFor(state.zone)) return { ...state, inspected: "lighthouse" };
         return pushLog({ ...state, inspected: "lighthouse", lampOpen: true, lampError: null, lampTries: 0, lampHintRevealed: false }, LOG.lampOpened);
       }
       if (action.poi === "fisher") return pushLogOnce({ ...state, inspected: "fisher" }, `Fisher: "${FISHER_LINE}"`);
@@ -342,7 +342,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (isRemedy(action.poi)) {
         const remedy = REMEDIES.find((r) => r.id === action.poi)!;
         // The map's button works from anywhere; taking it needs you beside it. A full-health player saves it for later.
-        if (state.remedies.includes(remedy.id) || distance(state.player, remedy) > INTERACT_RADIUS) return { ...state, inspected: remedy.id };
+        if (state.remedies.includes(remedy.id) || distance(state.player, remedy) > reachFor(state.zone)) return { ...state, inspected: remedy.id };
         if (state.hp >= MAX_HP) return pushLog({ ...state, inspected: remedy.id }, remedyFine(remedy.label));
         return pushLog({ ...state, inspected: remedy.id, remedies: [...state.remedies, remedy.id], hp: Math.min(MAX_HP, state.hp + REMEDY_HEAL) }, remedy.healed);
       }
@@ -350,7 +350,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         const id = action.poi;
         const spot = DESERT_JARS.find((j) => j.id === id)!;
         // The map's button works from anywhere; picking up needs you beside the jar.
-        if (state.jars.includes(id) || distance(state.player, spot) > INTERACT_RADIUS) return { ...state, inspected: id };
+        if (state.jars.includes(id) || distance(state.player, spot) > reachFor(state.zone)) return { ...state, inspected: id };
         const jars = [...state.jars, id];
         return pushLog({ ...state, inspected: id, jars }, JAR_TIPS[jars.length - 1]);
       }
@@ -366,7 +366,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         const id = action.poi;
         const spot = FOREST_MUSHROOMS.find((m) => m.id === id)!;
         // The map's button works from anywhere; picking needs you beside the mushroom.
-        if (state.mushrooms.includes(id) || distance(state.player, spot) > INTERACT_RADIUS) return { ...state, inspected: id };
+        if (state.mushrooms.includes(id) || distance(state.player, spot) > reachFor(state.zone)) return { ...state, inspected: id };
         const mushrooms = [...state.mushrooms, id];
         return pushLog({ ...state, inspected: id, mushrooms }, MUSHROOM_TIPS[mushrooms.length - 1]);
       }

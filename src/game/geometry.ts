@@ -71,14 +71,14 @@ export function poiInRange(p: Point, extra: Poi[] = []): Poi | null {
   return nearest.distance <= INTERACT_RADIUS ? nearest.poi : null;
 }
 
-/** The nearest of `places` within reach (earlier entries win ties), or null; also null for no places. */
-export function placeInReach(p: Point, places: Poi[]): Poi | null {
+/** The nearest of `places` within `radius` (percent; a zone's `reachFor`), earlier entries winning ties, or null; also null for no places. */
+export function placeInReach(p: Point, places: Poi[], radius: number = INTERACT_RADIUS): Poi | null {
   let best: { poi: Poi; distance: number } | null = null;
   for (const poi of places) {
     const d = distance(p, poi);
     if (!best || d < best.distance) best = { poi, distance: d };
   }
-  return best && best.distance <= INTERACT_RADIUS ? best.poi : null;
+  return best && best.distance <= radius ? best.poi : null;
 }
 
 export function isInRiver(p: Point): boolean {

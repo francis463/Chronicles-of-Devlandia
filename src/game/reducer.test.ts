@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { gameReducer, initialState, isDowned, isModalOpen, reachPlaces, revealedPois, visiblePois } from "./reducer";
 import { placeInReach } from "./geometry";
 import type { ChallengeState, ChallengeTarget, GameState, Point } from "./types";
@@ -9,6 +9,7 @@ import { cardFor } from "./cards";
 import { hermitLine } from "./island";
 import { isNorthOfWall } from "./wall";
 import { ZONES, type ZoneId } from "./zones";
+import { ZONE_SCALE, reachFor } from "./zoneSize";
 
 const s0 = initialState;
 /** A freshly opened terminal for a target, as the reducer opens it. */
@@ -1301,5 +1302,37 @@ describe("gameReducer: healing finds", () => {
   it("the card says how to pick it, then that it is used", () => {
     expect(cardFor({ ...initialState, zone: "forest", inspected: "remedy-herb" })?.text).toMatch(/press \[E\]/);
     expect(cardFor({ ...initialState, zone: "forest", inspected: "remedy-herb", remedies: ["remedy-herb"] })?.text).toBe("You already picked the healing herb.");
+  });
+});
+
+describe("gameReducer: a bigger zone's step and reach are in art pixels", () => {
+  afterEach(() => {
+    ZONE_SCALE.forest = 1;
+  });
+  const inForest = (over: Partial<GameState> = {}): GameState => ({ ...initialState, zone: "forest", player: { x: 50, y: 50 }, ...over });
+
+  it("a step is 4 percent in a one-screen zone and 2 in a 2 × 2 zone", () => {
+    expect(gameReducer(inForest(), { type: "move", dir: "right" }).player.x).toBe(54);
+    ZONE_SCALE.forest = 2;
+    expect(gameReducer(inForest(), { type: "move", dir: "right" }).player.x).toBe(52);
+    expect(gameReducer({ ...inForest(), zone: "village" }, { type: "move", dir: "right" }).player.x).toBe(54);
+  });
+
+  it("reach is 13 percent, then 6.5: a mushroom 8 percent away is only inspected in the big forest, and picked from 6", () => {
+    const spot = ZONES.forest.places.find((p) => p.id === "mushroom-1")!;
+    const at = (dx: number): GameState => inForest({ player: { x: spot.x + dx, y: spot.y } });
+    expect(gameReducer(at(8), { type: "interact", poi: "mushroom-1" }).mushrooms).toEqual(["mushroom-1"]);
+    ZONE_SCALE.forest = 2;
+    expect(gameReducer(at(8), { type: "interact", poi: "mushroom-1" }).mushrooms).toEqual([]);
+    expect(gameReducer(at(6), { type: "interact", poi: "mushroom-1" }).mushrooms).toEqual(["mushroom-1"]);
+  });
+
+  it("what is in reach follows the zone's reach", () => {
+    const ranger = ZONES.forest.places.find((p) => p.id === "ranger")!;
+    const near = inForest({ player: { x: ranger.x + 8, y: ranger.y } });
+    expect(placeInReach(near.player, [ranger], reachFor("forest"))?.id).toBe("ranger");
+    ZONE_SCALE.forest = 2;
+    expect(placeInReach(near.player, [ranger], reachFor("forest"))).toBeNull();
+    expect(reachPlaces(near).length).toBeGreaterThan(0);
   });
 });

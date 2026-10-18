@@ -1,5 +1,6 @@
 import { useEffect, useRef, type Dispatch } from "react";
 import { placeInReach } from "../game/geometry";
+import { reachFor } from "../game/zoneSize";
 import { isDowned, isModalOpen, reachPlaces } from "../game/reducer";
 import type { Direction, GameAction, GameState } from "../game/types";
 
@@ -111,7 +112,7 @@ export function useKeyboardControls(
       }
 
       if (key === "e") {
-        const poi = placeInReach(current.player, reachPlaces(current));
+        const poi = placeInReach(current.player, reachPlaces(current), reachFor(current.zone));
         if (poi) {
           event.preventDefault();
           dispatch({ type: "interact", poi: poi.id });
