@@ -9,7 +9,7 @@ import type { Challenge, ChestId } from "./types";
 /** The Codex's pure side: how chests group by zone, what to do next, the story steps and the practice questions. */
 
 /** The zones that hold chests, in world order. */
-export const ZONE_ORDER: readonly ZoneId[] = ["peaks", "village", "forest", "desert", "beach", "foggaten"];
+export const ZONE_ORDER: readonly ZoneId[] = ["peaks", "village", "forest", "desert", "beach", "foggaten", "lodge"];
 
 export type CodexGroup = { zone: ZoneId; name: string; chests: Chest[]; earned: number };
 export type CodexFilter = "all" | "earned" | "todo";

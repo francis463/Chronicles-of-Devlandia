@@ -157,7 +157,7 @@ const isStart = (v: unknown, now: number): v is number => isNum(v) && Math.abs(v
 /** Older clients send no zone (they are in the Peaks); a zone we don't know is "elsewhere", never a reason to drop. */
 function parseZone(v: unknown): ZoneId | null {
   if (v === undefined) return "peaks";
-  return v === "peaks" || v === "village" || v === "forest" || v === "foggaten" || v === "desert" || v === "beach" ? v : null;
+  return v === "peaks" || v === "village" || v === "forest" || v === "foggaten" || v === "desert" || v === "beach" || v === "lodge" ? v : null;
 }
 
 /** The six original flags must be booleans; the newer ones are read leniently (missing or odd means false). */

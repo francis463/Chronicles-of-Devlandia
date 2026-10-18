@@ -6,7 +6,7 @@ import { remediesIn } from "./remedies";
 import { secretsIn } from "./secrets";
 import type { Poi, PoiId, Point } from "./types";
 
-export type ZoneId = "peaks" | "village" | "forest" | "foggaten" | "desert" | "beach";
+export type ZoneId = "peaks" | "village" | "forest" | "foggaten" | "desert" | "beach" | "lodge";
 
 /**
  * Where a zone's edge opens onto its neighbour. `min`/`max` are the rows (inclusive) a horizontal step
@@ -14,11 +14,14 @@ export type ZoneId = "peaks" | "village" | "forest" | "foggaten" | "desert" | "b
  */
 export type Exit = { edge: "west" | "east" | "south" | "north"; min: number; max: number; to: ZoneId };
 
+/** A spot you walk onto to pass through a door: it takes you to `arrive` (percent) in zone `to`. */
+export type Door = { at: Point; radius: number; to: ZoneId; arrive: Point };
+
 /**
  * One screen of the world. `wall`: the north wall runs across it; `gate`: that wall has the gate's opening
  * (otherwise it is solid everywhere); `river`: the frozen river's cold and survey apply there.
  */
-export type Zone = { id: ZoneId; name: string; entered: string; exits: Exit[]; wall: boolean; gate: boolean; places: Poi[]; river: boolean };
+export type Zone = { id: ZoneId; name: string; entered: string; exits: Exit[]; wall: boolean; gate: boolean; places: Poi[]; river: boolean; doors: Door[] };
 
 /** A zone's outdoor language chests as places, named after the landmark they are inside, in the chest table's order. */
 export function chestPlaces(zone: ZoneId): Poi[] {
@@ -38,6 +41,7 @@ export const ZONES: Record<ZoneId, Zone> = {
     gate: true,
     places: [...POIS, DOCK, PEAKS_SIGNPOST, WEATHER_STATION, ...chestPlaces("peaks")],
     river: true,
+    doors: [{ at: { x: 19.4, y: 88 }, radius: 2.5, to: "lodge", arrive: { x: 50, y: 78 } }],
   },
   village: {
     id: "village",
@@ -48,6 +52,7 @@ export const ZONES: Record<ZoneId, Zone> = {
     gate: false,
     places: [ADA, SIGNPOST, TERMINAL, ARCHIVE, ...chestPlaces("village")],
     river: false,
+    doors: [],
   },
   forest: {
     id: "forest",
@@ -62,6 +67,7 @@ export const ZONES: Record<ZoneId, Zone> = {
     gate: false,
     places: [RANGER, CAMPFIRE, FOREST_SIGNPOST, ...FOREST_LORE, ...FOREST_MUSHROOMS, ...remediesIn("forest"), ...secretsIn("forest"), ...chestPlaces("forest")],
     river: false,
+    doors: [],
   },
   desert: {
     id: "desert",
@@ -72,6 +78,7 @@ export const ZONES: Record<ZoneId, Zone> = {
     gate: false,
     places: [NOMAD, DESERT_SIGNPOST, ...DESERT_LORE, ...DESERT_JARS, ...remediesIn("desert"), ...secretsIn("desert"), ...chestPlaces("desert")],
     river: false,
+    doors: [],
   },
   beach: {
     id: "beach",
@@ -82,6 +89,7 @@ export const ZONES: Record<ZoneId, Zone> = {
     gate: false,
     places: [FISHER, BEACH_SIGNPOST, SANDCASTLE_POI, ...remediesIn("beach"), ...secretsIn("beach"), ...chestPlaces("beach")],
     river: false,
+    doors: [],
   },
   // No edge leads here: the island is entered and left by boat, from a dock (the `sail` action).
   foggaten: {
@@ -93,8 +101,24 @@ export const ZONES: Record<ZoneId, Zone> = {
     gate: false,
     places: [ISLAND_DOCK, LIGHTHOUSE, HERMIT, ISLAND_FIRE, ...chestPlaces("foggaten")],
     river: false,
+    doors: [],
+  },
+  // Indoors: no edge leads here, you come in through the Peaks' lodge door and leave by the mat.
+  lodge: {
+    id: "lodge",
+    name: "Ski Lodge",
+    entered: LOG.enteredLodge,
+    exits: [],
+    wall: false,
+    gate: false,
+    places: [],
+    river: false,
+    doors: [{ at: { x: 50, y: 88 }, radius: 2.5, to: "peaks", arrive: { x: 26, y: 88 } }],
   },
 };
+
+/** The door a position is on, if any: within a door's radius. */
+export const doorAt = (zone: ZoneId, p: Point): Door | null => ZONES[zone].doors.find((d) => Math.hypot(p.x - d.at.x, p.y - d.at.y) <= d.radius) ?? null;
 
 /**
  * The exit a step leaves through: a step whose target is off one of the zone's edges, taken along that

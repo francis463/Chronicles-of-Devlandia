@@ -125,6 +125,8 @@ export type GameState = {
   jars: JarId[];
   /** Which healing finds you have used up (each heals once). */
   remedies: RemedyId[];
+  /** The lodge keeper's soup has been served (once per game). */
+  soupTaken: boolean;
   /** The hidden spots you have found (personal, not shared with the team). */
   secrets: SecretId[];
   nomadServed: boolean;

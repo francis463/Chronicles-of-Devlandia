@@ -18,6 +18,7 @@ import {
   SNOW_CAVE,
   ISLAND_DOCK,
   SAIL_LANDING,
+  BOUNDS,
 } from "./constants";
 import { clampPlayer, distance, isInRiver } from "./geometry";
 import { isBits8, lampError } from "./lamp";
@@ -31,7 +32,7 @@ import { challengeOf } from "./challenges";
 import { flagsOf, mergeFlags, newlySet, teammateLog } from "./team";
 import type { ChallengeState, Direction, GameAction, GameState, Poi, Point } from "./types";
 import { crossesWall, isNorthOfWall, wallBlock } from "./wall";
-import { ZONES, arrival, exitFor, type ZoneId } from "./zones";
+import { ZONES, arrival, doorAt, exitFor, type ZoneId } from "./zones";
 import { FISHER_LINE } from "./beach";
 import { nomadSays } from "./desert";
 import { reachFor, stepFor } from "./zoneSize";
@@ -80,6 +81,7 @@ export const initialState: GameState = {
   jars: [],
   remedies: [],
   secrets: [],
+  soupTaken: false,
   nomadServed: false,
   sandcastleBuilt: false,
   codexOpen: false,
@@ -270,6 +272,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
           { ...state, zone: exit.to, ...arrival(exit, state.player), inspected: null },
           ZONES[exit.to].entered,
         );
+      }
+      const door = doorAt(state.zone, target);
+      if (door) {
+        const drone = { x: Math.max(BOUNDS.minX, door.arrive.x - 2), y: Math.min(BOUNDS.maxY, door.arrive.y + 2) };
+        return pushLog({ ...state, zone: door.to, player: door.arrive, drone, inspected: null }, ZONES[door.to].entered);
       }
       const player = clampPlayer(target);
       const zone = ZONES[state.zone];

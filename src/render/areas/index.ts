@@ -4,7 +4,8 @@ import { BEACH } from "./beach";
 import { DESERT } from "./desert";
 import { FOGGATEN } from "./foggaten";
 import { FOREST } from "./forest";
+import { LODGE } from "./lodge";
 import { PEAKS } from "./peaks";
 import { VILLAGE } from "./village";
 
-export const AREAS: Record<ZoneId, Area> = { peaks: PEAKS, village: VILLAGE, forest: FOREST, foggaten: FOGGATEN, desert: DESERT, beach: BEACH };
+export const AREAS: Record<ZoneId, Area> = { peaks: PEAKS, village: VILLAGE, forest: FOREST, foggaten: FOGGATEN, desert: DESERT, beach: BEACH, lodge: LODGE };

@@ -154,6 +154,7 @@ describe("validation of teammate input", () => {
     expect(parsePresence({ ...meta("a", 1), zone: undefined }, NOW)?.zone).toBe("peaks");
     expect(parsePresence({ ...meta("a", 1), zone: "village" }, NOW)?.zone).toBe("village");
     expect(parsePresence({ ...meta("a", 1), zone: "forest" }, NOW)?.zone).toBe("forest");
+    expect(parsePresence({ ...meta("a", 1), zone: "lodge" }, NOW)?.zone).toBe("lodge");
     const future = parsePresence({ ...meta("a", 1), zone: "marsh" }, NOW);
     expect(future).not.toBeNull();
     expect(future?.zone).toBeNull();

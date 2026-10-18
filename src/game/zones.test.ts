@@ -56,8 +56,8 @@ const NORTH: Exit = { edge: "north", min: 62, max: 78, to: "peaks" };
 const WEST: Exit = { edge: "west", min: 62, max: 78, to: "village" };
 
 describe("the Dense Forest zone", () => {
-  it("has six zones, the forest is named Dense Forest and has no wall, gate or river", () => {
-    expect(Object.keys(ZONES).sort()).toEqual(["beach", "desert", "foggaten", "forest", "peaks", "village"]);
+  it("has seven zones (six outdoors and the lodge), the forest is named Dense Forest and has no wall, gate or river", () => {
+    expect(Object.keys(ZONES).sort()).toEqual(["beach", "desert", "foggaten", "forest", "lodge", "peaks", "village"]);
     expect(ZONES.forest).toMatchObject({ name: "Dense Forest", wall: false, gate: false, river: false });
     expect(ZONES.peaks).toMatchObject({ wall: true, gate: true, river: true });
     expect(ZONES.village).toMatchObject({ wall: false, gate: false, river: false });

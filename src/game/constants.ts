@@ -104,6 +104,7 @@ export const LOG = {
   enteredVillage: "Entered Dev Village.",
   enteredForest: "Entered Dense Forest.",
   enteredBeach: "Entered Sunny Beach.",
+  enteredLodge: "Entered the Ski Lodge.",
   enteredDesert: "Entered the Sunbaked Desert.",
   enteredFoggaten: "Fog rolls over Foggaten Island. A lighthouse stands dark at the far end.",
   lampOpened: "Lighthouse terminal ready. Lamp lock found.",

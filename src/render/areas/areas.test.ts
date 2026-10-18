@@ -76,7 +76,7 @@ describe("areas", () => {
   });
 
   it("every area lists its exit mouths and corridors, each with the same count", () => {
-    for (const area of Object.values(AREAS).filter((a) => a.id !== "foggaten")) {
+    for (const area of Object.values(AREAS).filter((a) => a.id !== "foggaten" && a.id !== "lodge")) {
       expect(area.mouths.length, area.id).toBeGreaterThan(0);
       expect(area.corridors, area.id).toHaveLength(area.mouths.length);
     }
@@ -102,7 +102,7 @@ describe("areas", () => {
 
   it("every zone's dirt paths form one connected road (the Peaks' south road joins the camp path)", () => {
     const touch = (a: Rect, b: Rect) => a.x <= b.x + b.w && b.x <= a.x + a.w && a.y <= b.y + b.h && b.y <= a.y + a.h;
-    for (const [id, area] of Object.entries(AREAS)) {
+    for (const [id, area] of Object.entries(AREAS).filter(([id]) => id !== "lodge")) {
       const seen = new Set([0]);
       const queue = [0];
       while (queue.length) {
