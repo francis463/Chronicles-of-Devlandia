@@ -600,7 +600,7 @@ describe("MapViewport in a zone bigger than one screen", () => {
     mapSize(1100, 540);
     const onZoom = vi.fn();
     render(<MapViewport {...forest({ zoom: -9, onZoom })} />);
-    expect(layer()).toEqual({ left: 230, top: 90, width: 640, height: 360 });
+    expect(layer()).toEqual({ left: 70, top: 0, width: 960, height: 540 });
     expect(screen.getByText("Whole map")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Zoom out" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Zoom in" }));

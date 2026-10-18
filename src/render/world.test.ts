@@ -10,6 +10,25 @@ import { MAX_ZOOM, REACHABLE_RECT, autoZoom, reachableRect, zoneWorld, zoomRange
 const r1 = (n: number) => Math.round(n * 10) / 10;
 const inside = (p: ArtPoint, r: Rect) => p.x >= r.x && p.x < r.x + r.w && p.y >= r.y && p.y < r.y + r.h;
 
+describe("Whole map", () => {
+  const big = { width: 640, height: 360 };
+  it("fits the whole zone to the view exactly instead of in whole pixels, so no wide border shows", () => {
+    const size = { width: 1152, height: 672, dpr: 1 };
+    const { min } = zoomRange(size, big);
+    const w = fitWorld(size, min, { x: 320, y: 180 }, big);
+    expect(w.s).toBeCloseTo(1.8, 5);
+    expect(w.width).toBeCloseTo(1152, 3);
+    expect(w.height).toBeLessThanOrEqual(672);
+    // One step in is back to whole pixels.
+    expect(Number.isInteger(fitWorld(size, min + 1, { x: 320, y: 180 }, big).s)).toBe(true);
+  });
+
+  it("is the whole-pixel fit when that already fills the view", () => {
+    const size = { width: 1280, height: 720, dpr: 1 };
+    expect(fitWorld(size, zoomRange(size, big).min, { x: 320, y: 180 }, big).s).toBe(2);
+  });
+});
+
 describe("fitWorld", () => {
   it("fits the spec's examples", () => {
     const rows: Array<[number, number, number, number, number, number, number, number]> = [
@@ -234,8 +253,10 @@ describe("the camera in a world bigger than the screen", () => {
     const v = view(1100, 540);
     const { min } = zoomRange(v, big);
     const whole = fitWorld(v, min, undefined, big);
-    expect(whole.s).toBe(fitStep(v, big));
-    expect(whole.left).toBe(Math.round(((1100 - 640 * whole.scale) / 2) * 1));
+    // 1100 × 540: the height limits it, at exactly 1.5 device px per art px.
+    expect(whole.s).toBe(1.5);
+    expect([whole.width, whole.height]).toEqual([960, 540]);
+    expect(whole.left).toBe(70);
     expect(fitWorld(v, min - 5, undefined, big).s).toBe(whole.s);
   });
 

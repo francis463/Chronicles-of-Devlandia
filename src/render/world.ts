@@ -133,17 +133,19 @@ export function zoomLabel(size: ViewSize, zoom: number, world: WorldSize = SCREE
 }
 
 /**
- * `world` placed in the map area at `zoom` steps past a one-screen world's fit (clamped to `zoomRange`). Where the world is
+ * `world` placed in the map area at `zoom` steps past a one-screen world's fit (clamped to `zoomRange`; a big world's lowest zoom fits it exactly). Where the world is
  * larger than the area in a direction it scrolls so `focus` (the player, in art pixels) stays in the middle, never showing
  * beyond the world's edges; where it is smaller it is centred.
  */
 export function fitWorld(size: ViewSize, zoom = 0, focus: ArtPoint = { x: SCREEN.width / 2, y: SCREEN.height / 2 }, world: WorldSize = SCREEN): WorldRect {
   const { width, height, dpr } = size;
   const { min } = zoomRange(size, world);
-  const s = Math.max(1, fitStep(size) + Math.max(min, Math.round(zoom)));
-  const scale = s / dpr;
   const backingWidth = Math.round(width * dpr);
   const backingHeight = Math.round(height * dpr);
+  // "Whole map" fits the zone to the view exactly (a fractional scale), where whole pixels would leave wide bands of scenery round it.
+  const whole = min < 0 && Math.round(zoom) <= min;
+  const s = whole ? Math.max(1, Math.min(backingWidth / world.width, backingHeight / world.height)) : Math.max(1, fitStep(size) + Math.max(min, Math.round(zoom)));
+  const scale = s / dpr;
   const place = (backing: number, extent: number, at: number, css: number) =>
     extent * s <= backing ? Math.round(((css - extent * scale) / 2) * dpr) : Math.min(0, Math.max(backing - extent * s, Math.round(backing / 2 - (at + 0.5) * s)));
   const ox = place(backingWidth, world.width, focus.x, width);
