@@ -4,7 +4,7 @@ import { AREAS } from "./areas";
 import type { Area } from "./areas/area";
 import { spriteBox } from "./sprites";
 import { LANDMARK_POINTS, WALL_RECT, decorations, onPath, protectedBoxes, terrainAt, wallTiles } from "./terrain";
-import { REACHABLE_RECT, WORLD, grow, intersects, reachableRect, toArt, type Rect } from "./world";
+import { REACHABLE_RECT, WORLD, grow, intersects, toArt, type Rect } from "./world";
 
 const WORLD_RECT: Rect = { x: 0, y: 0, w: WORLD.width, h: WORLD.height };
 // A phone-sized view: 90 art px of scenery above and below the world, some to the sides.
