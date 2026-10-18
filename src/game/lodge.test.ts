@@ -21,7 +21,7 @@ describe("the Ski Lodge zone", () => {
   it("only the Peaks and the lodge have doors", () => {
     for (const zone of Object.keys(ZONES) as ZoneId[]) expect(Array.isArray(ZONES[zone].doors), zone).toBe(true);
     expect((Object.keys(ZONES) as ZoneId[]).filter((z) => ZONES[z].doors.length > 0).sort()).toEqual(["lodge", "peaks"]);
-    expect(ZONES.peaks.doors[0]).toMatchObject({ at: { x: 19.4, y: 88 }, radius: 3, to: "lodge", arrive: { x: 50, y: 78 } });
+    expect(ZONES.peaks.doors[0]).toMatchObject({ at: { x: 19.4, y: 88 }, radius: 1.5, to: "lodge", arrive: { x: 50, y: 78 } });
     expect(ZONES.lodge.doors[0]).toMatchObject({ at: { x: 50, y: 88 }, radius: 3, to: "peaks", arrive: { x: 26, y: 88 } });
   });
 
@@ -56,14 +56,12 @@ describe("the Ski Lodge zone", () => {
         }
   });
 
-  it("the Peaks door can be reached from either parity of the 4-percent lattice, on the bottom row or the one above", () => {
-    for (const y of [84, 86, 88, 90]) for (const x of [18, 20, 22, 24]) {
-      const near = doorAt("peaks", { x, y });
-      // Every lattice point within one step of the door's row and column is on the door.
-      if (Math.abs(x - 19.4) <= 1.4 && Math.abs(y - 88) <= 2) expect(near, `${x},${y}`).not.toBeNull();
-    }
-    expect(doorAt("peaks", { x: 18, y: 90 })).not.toBeNull();
-    expect(doorAt("peaks", { x: 20, y: 90 })).not.toBeNull();
+  it("the Peaks door is reachable on the 2-percent lattice the Peaks use: along its row, or one step up from the bottom row", () => {
+    for (const x of [18, 20]) expect(doorAt("peaks", { x, y: 88 }), `${x},88`).not.toBeNull();
+    const up = gameReducer(at("peaks", 22, 90), { type: "move", dir: "up" });
+    expect([up.zone, up.player]).toEqual(["peaks", { x: 22, y: 88 }]);
+    expect(gameReducer(up, { type: "move", dir: "left" }).zone).toBe("lodge");
+    expect(gameReducer(at("peaks", 20, 90), { type: "move", dir: "up" }).zone).toBe("lodge");
     expect(doorAt("peaks", { x: 26, y: 88 })).toBeNull();
   });
 
@@ -78,6 +76,16 @@ describe("the Ski Lodge zone", () => {
       expect([s.zone, s.player, s.drone, s.hp]).toEqual(["lodge", { x: 50, y: 78 }, { x: 48, y: 80 }, 1]);
       expect(doorAt("lodge", s.player), "not on the mat").toBeNull();
     }
+  });
+
+  it("the Peaks door is only about ten art pixels wide: walking along the lodge front does not enter it", () => {
+    const s = (x: number, y: number) => gameReducer({ ...at("peaks", x, y), gateUnlocked: false }, { type: "move", dir: "left" });
+    // From (22, 88) one step west lands at 20: inside the 1.5 % door. From (26, 88) it lands at 24: outside.
+    expect(s(22, 88).zone).toBe("lodge");
+    expect(s(26, 88).zone).toBe("peaks");
+    expect(doorAt("peaks", { x: 22, y: 88 })).toBeNull();
+    expect(doorAt("peaks", { x: 18, y: 86 })).toBeNull();
+    expect(doorAt("peaks", { x: 20, y: 88 })).not.toBeNull();
   });
 
   it("a fresh game has not had the soup", () => {

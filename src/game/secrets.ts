@@ -56,7 +56,7 @@ export const SECRETS: Array<Poi & { id: SecretId; zone: ZoneId; text: string }> 
     zone: "peaks",
     label: "Frozen Pointer Stone",
     x: 92,
-    y: 46,
+    y: 58,
     text: "A standing stone with an arrow carved into it, frozen in the ice. A pointer holds an address, not the value itself: follow it with * to reach what it points at, and never follow one that points at nothing.",
   },
   {

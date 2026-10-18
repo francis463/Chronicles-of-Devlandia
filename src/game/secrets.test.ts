@@ -24,7 +24,7 @@ describe("the hidden spots", () => {
       ["secret-pointer", "peaks"],
       ["secret-hut", "peaks"],
     ]);
-    expect(SECRETS.map((s) => [s.x, s.y])).toEqual([[14, 14], [88, 88], [10, 86], [84, 18], [14, 88], [86, 16], [92, 46], [10, 56]]);
+    expect(SECRETS.map((s) => [s.x, s.y])).toEqual([[14, 14], [88, 88], [10, 86], [84, 18], [14, 88], [86, 16], [92, 58], [10, 56]]);
     expect(isSecret("secret-moss")).toBe(true);
     expect(isSecret("remedy-herb")).toBe(false);
     expect(secretsIn("desert").map((s) => s.id)).toEqual(["secret-cave", "secret-ridge"]);
@@ -90,5 +90,11 @@ describe("the hidden spots", () => {
     const { secrets: _gone, ...old } = initialState;
     localStorage.setItem("devlandia.savedGame", JSON.stringify({ v: 2, owner: "guest", game: { playerClass: "warrior", hard: false, state: old } }));
     expect(loadGame(null)?.state.secrets).toEqual([]);
+  });
+});
+
+describe("hidden spots in the Peaks", () => {
+  it("none can be found from the south side of the locked wall while standing north of it, so neither is behind it", () => {
+    for (const spot of secretsIn("peaks")) expect(spot.y, spot.id).toBeGreaterThan(49);
   });
 });

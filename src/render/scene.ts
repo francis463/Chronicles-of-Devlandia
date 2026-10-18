@@ -109,7 +109,7 @@ const ICE_GLINTS: ArtPoint[] = [
   { x: 220, y: 58 },
   { x: 130, y: 60 },
   { x: 190, y: 54 },
-  { x: 250, y: 64 },
+  { x: 236, y: 64 },
 ].map((g) => ({ x: g.x * ZONE_SCALE.peaks, y: g.y * ZONE_SCALE.peaks }));
 const GLOW_STRENGTH: Record<Phase, number> = { Day: 0, Dusk: 0.5, Night: 1 };
 const SEMICOLON_STEPS = [0.25, 0.5, 0.75, 1, 0.75, 0.5];

@@ -516,7 +516,7 @@ describe("Overworld team chat", () => {
     const random = vi.spyOn(Math, "random").mockReturnValue(0);
     try {
       const { user, ana, kai } = await startedPair();
-      for (const dir of [...Array(9).fill("down"), "left", "left", "left"]) await user.click(kai.getByRole("button", { name: `Move ${dir}` })); // down to the lodge door and in
+      for (const dir of [...Array(8).fill("down"), "left", "left", "left"]) await user.click(kai.getByRole("button", { name: `Move ${dir}` })); // down to the lodge door and in
       await user.click(kai.getByRole("button", { name: "Shelf, HTML chest" }));
       await user.type(kai.getByRole("textbox", { name: "answer" }), "href");
       await user.click(kai.getByRole("button", { name: "[ SUBMIT CODE ]" }));

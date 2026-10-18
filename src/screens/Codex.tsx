@@ -51,7 +51,7 @@ export function Codex({
   /** Where you stand, for the "next closest" hint. */
   zone: ZoneId;
   player: Point;
-  /** How many of the six hidden spots you have found (your own count, in a team game too). */
+  /** How many of the eight hidden spots you have found (your own count, in a team game too). */
   secrets?: number;
   /** "Go there": the game closes the Codex and writes where the chest is. */
   onGoTo: (chest: ChestId) => void;

@@ -42,7 +42,8 @@ export const ZONES: Record<ZoneId, Zone> = {
     gate: true,
     places: [...POIS, DOCK, PEAKS_SIGNPOST, WEATHER_STATION, LODGE_DOOR, ...secretsIn("peaks"), ...chestPlaces("peaks")],
     river: true,
-    doors: [{ at: { x: 19.4, y: 88 }, radius: 3, to: "lodge", arrive: { x: 50, y: 78 } }],
+    // The door's reach is a fixed ~10 art px, so half the percent in the two-screen Peaks (like `reachFor`).
+    doors: [{ at: { x: 19.4, y: 88 }, radius: 1.5, to: "lodge", arrive: { x: 50, y: 78 } }],
   },
   village: {
     id: "village",

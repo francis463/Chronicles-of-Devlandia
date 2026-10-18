@@ -60,7 +60,7 @@ export type MushroomId = "mushroom-1" | "mushroom-2" | "mushroom-3";
 /** The healing finds: a herb in the forest, a cactus fruit in the desert and a cold drink on the beach. */
 export type RemedyId = "remedy-herb" | "remedy-fruit" | "remedy-drink";
 
-/** The six hidden spots: two in each of the forest, the desert and the beach. */
+/** The eight hidden spots: two in each of the forest, the desert, the beach and the Peaks. */
 export type SecretId = "secret-moss" | "secret-den" | "secret-cave" | "secret-ridge" | "secret-pool" | "secret-bottle" | "secret-pointer" | "secret-hut";
 
 /** The nomad's three lost water jars. */

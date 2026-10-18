@@ -286,7 +286,7 @@ describe("App: saved badges", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: /solo quest/i })).toBeEnabled());
     await user.click(screen.getByRole("button", { name: /solo quest/i }));
     await user.click(screen.getByRole("button", { name: "[ Start ]" }));
-    await user.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}{ArrowLeft}{ArrowLeft}{ArrowLeft}"); // out of the lodge, then down and west to its door in the Peaks (steps are two percent there)
+    await user.keyboard("{ArrowDown}{ArrowDown}{ArrowLeft}{ArrowLeft}{ArrowLeft}"); // out of the lodge, then west along the lodge front to its door in the Peaks (steps are two percent there)
     await user.click(screen.getByRole("button", { name: "Shelf, HTML chest" }));
     await user.keyboard("href{Enter}");
     expect(await screen.findByText("Couldn't save your badge. It'll retry.")).toBeInTheDocument();
@@ -315,7 +315,7 @@ describe("App: saved badges", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: /solo quest/i })).toBeEnabled());
     await user.click(screen.getByRole("button", { name: /solo quest/i }));
     await user.click(screen.getByRole("button", { name: "[ Start ]" }));
-    await user.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}{ArrowLeft}{ArrowLeft}{ArrowLeft}"); // out of the lodge, then down and west to its door in the Peaks (steps are two percent there)
+    await user.keyboard("{ArrowDown}{ArrowDown}{ArrowLeft}{ArrowLeft}{ArrowLeft}"); // out of the lodge, then west along the lodge front to its door in the Peaks (steps are two percent there)
     await user.click(screen.getByRole("button", { name: "Shelf, HTML chest" }));
     await user.keyboard("href{Enter}");
     await waitFor(() => expect(store.rows).toHaveLength(1));
