@@ -664,3 +664,25 @@ describe("MapViewport: pings off the screen", () => {
     expect(screen.queryByRole("img", { name: /off screen/ })).toBeNull();
   });
 });
+
+describe("MapViewport on the real Sunny Beach", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    Reflect.deleteProperty(HTMLElement.prototype, "clientWidth");
+    Reflect.deleteProperty(HTMLElement.prototype, "clientHeight");
+  });
+  const view = (player: { x: number; y: number }) => {
+    vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1100 });
+    Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 540 });
+    const { container } = render(<MapViewport {...props({ zone: "beach", player, zoom: 0 })} />);
+    const l = within(container).getByTestId("world-layer");
+    return { left: parseFloat(l.style.left), width: parseFloat(l.style.width) };
+  };
+
+  it("arriving at the west mouth shows the west edge, and the far east shows the east edge", () => {
+    expect(view({ x: 6, y: 70 })).toEqual({ left: 0, width: 640 * 3 });
+    cleanup();
+    expect(view({ x: 94, y: 70 }).left).toBe(1100 - 640 * 3);
+  });
+});

@@ -196,12 +196,13 @@ describe("zone worlds", () => {
   });
 
   it("zoneWorld is the screen times the zone's scale, and every area carries it", () => {
+    const real = ZONE_SCALE.forest;
     try {
-      ZONE_SCALE.beach = 2;
-      expect(zoneWorld("beach")).toEqual(big);
-      expect(zoneWorld("forest")).toEqual({ width: 320, height: 180 });
+      ZONE_SCALE.forest = 2;
+      expect(zoneWorld("forest")).toEqual(big);
+      expect(zoneWorld("village")).toEqual({ width: 320, height: 180 });
     } finally {
-      ZONE_SCALE.beach = 1;
+      ZONE_SCALE.forest = real;
     }
     for (const zone of Object.keys(AREAS) as ZoneId[]) expect(AREAS[zone].world, zone).toEqual(zoneWorld(zone));
   });

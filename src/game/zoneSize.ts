@@ -6,7 +6,7 @@ import type { ZoneId } from "./zones";
  * The game layer owns it; the render layer derives each zone's world from it (`zoneWorld`). Positions stay
  * percent of the zone whatever the scale, so saves and the team protocol never change.
  */
-export const ZONE_SCALE: Record<ZoneId, number> = { peaks: 1, village: 1, forest: 1, foggaten: 1, desert: 1, beach: 1 };
+export const ZONE_SCALE: Record<ZoneId, number> = { peaks: 1, village: 1, forest: 1, foggaten: 1, desert: 1, beach: 2 };
 
 /** A step in percent of the zone: a fixed number of art pixels, so a bigger zone takes more steps to cross. */
 export const stepFor = (zone: ZoneId): number => STEP / ZONE_SCALE[zone];

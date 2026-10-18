@@ -5,7 +5,7 @@ import { campfireLit, isActive } from "./activity";
 import type { ZoneId } from "../game/zones";
 import { AREAS } from "./areas";
 import { FOGGATEN_POINTS, LAMP_POINT } from "./areas/foggaten";
-import { BEACH_POINTS, BEACH_SHELLS, TIDE_SHELLS } from "./areas/beach";
+import { BEACH_POINTS, BEACH_SHELLS, SEA_X, TIDE_SHELLS } from "./areas/beach";
 import { tideStrips } from "../game/tide";
 import { DESERT_POINTS, JAR_POINTS, camelPose, fennecPose, scorpionPose, snakePose } from "./areas/desert";
 import { FOREST_POINTS, MUSHROOM_POINTS, deerPose, rabbitPose, squirrelPose } from "./areas/forest";
@@ -17,7 +17,7 @@ import type { Pose } from "./motion";
 import { circlePixels, diamondPixels } from "./pixels";
 import { LIGHTS, SPRITES, spriteBox, type SpriteId } from "./sprites";
 import { BRIDGE_RECT, LANDMARK_POINTS, WALL_RECT, decorations, wallTiles } from "./terrain";
-import { SCREEN, intersects, reachableRect, screenOffsets, type ArtPoint, type Rect, type WorldSize } from "./world";
+import { SCREEN, intersects, reachableRect, screenOffsets, worldScale, type ArtPoint, type Rect, type WorldSize } from "./world";
 import type { ChestId } from "../learn/types";
 import { ARCHIVE_POINT, TERMINAL_POINT } from "./learnPoints";
 
@@ -295,26 +295,27 @@ const SEA_GLINT = "#e0f2fe";
  * The beach's water at time `t` (ms): foam washing in and out along the shoreline (a wavering white line every third row) and
  * twelve glints twinkling on the sea. Both hold still when motion is reduced (the glints show every third one).
  */
-function beachWater(t: number, reduced: boolean, strips = 0): Pixel[] {
+function beachWater(t: number, reduced: boolean, world: WorldSize, strips = 0): Pixel[] {
   const seconds = reduced ? 0 : t / 1000;
-  const foam = Array.from({ length: 56 }, (_, k): Pixel[] => {
-    const y = 12 + k * 3;
+  const k = worldScale(world);
+  const foam = Array.from({ length: 56 * k }, (_, i): Pixel[] => {
+    const y = 12 + i * 3;
     // The foam rides the tide: each strip of shallow water pushes the waterline 8 px up the sand.
-    const x = 298 - 8 * strips + Math.round(3 * Math.sin(seconds * 1.1 + y / 9));
+    const x = SEA_X - 5 - 8 * strips + Math.round(3 * Math.sin(seconds * 1.1 + y / 9));
     return [0, 1, 2].map((j) => ({ x: x + j, y, color: FOAM, alpha: 0.55 }));
   }).flat();
-  const glints = Array.from({ length: 12 }, (_, i): Pixel[] =>
-    (reduced ? i % 3 === 0 : (t + i * 170) % 1800 < 300) ? [{ x: 306 + ((i * 5) % 12), y: 14 + ((i * 29) % 160), color: SEA_GLINT, alpha: 0.9 }] : [],
+  const glints = Array.from({ length: 12 * k }, (_, i): Pixel[] =>
+    (reduced ? i % 3 === 0 : (t + i * 170) % 1800 < 300) ? [{ x: SEA_X + 3 + ((i * 5) % 12), y: 14 + ((i * 29) % (160 * k)), color: SEA_GLINT, alpha: 0.9 }] : [],
   ).flat();
   return [...foam, ...glints];
 }
 
-const STRIP_ROWS = Array.from({ length: 21 }, (_, i) => 18 + i * 8);
+const stripRows = (world: WorldSize) => Array.from({ length: 21 * worldScale(world) }, (_, i) => 18 + i * 8);
 
 /** The tide's shallow water: `strips` columns of 8 px tiles up the shore from the sea, the outermost with a foam edge. Nothing blocks you: it only looks wet. */
-function tideTiles(strips: number): Drawable[] {
+function tideTiles(strips: number, world: WorldSize): Drawable[] {
   return Array.from({ length: strips }, (_, k) => k + 1).flatMap((k) =>
-    STRIP_ROWS.map((y) => placed("shallow", { x: 303 - 8 * k + 4, y: y + 8 }, { frame: k === strips ? 1 : 0 })),
+    stripRows(world).map((y) => placed("shallow", { x: SEA_X - 8 * k + 4, y: y + 8 }, { frame: k === strips ? 1 : 0 })),
   );
 }
 
@@ -325,7 +326,7 @@ const LINE = "#e2e8f0";
  * The pier's life at time `t` (ms): two lanterns that glow from dusk, an angler's line dropping into the sea with a bobber that bobs,
  * a mooring rope down to a rowboat that rocks on the water. Everything holds still when motion is reduced.
  */
-function pierLife(t: number, reduced: boolean, strength: number): { lanterns: Drawable[]; rowboat: Drawable; light: Pixel[] } {
+function pierLife(t: number, reduced: boolean, strength: number, world: WorldSize): { lanterns: Drawable[]; rowboat: Drawable; light: Pixel[] } {
   const box = spriteBox("pier", BEACH_POINTS.pier);
   const bob = reduced ? 0 : Math.round(Math.sin(t / 650));
   const lanterns = [box.x + 5, box.x + 35].map((x) => placed("lantern", { x, y: box.y + 3 }));
@@ -333,7 +334,7 @@ function pierLife(t: number, reduced: boolean, strength: number): { lanterns: Dr
   const line = Array.from({ length: 14 }, (_, i): Pixel => ({ x: lineX, y: box.y + 4 + i, color: LINE, alpha: 0.85 }));
   const bobber: Pixel[] = [{ x: lineX, y: box.y + 18 + bob, color: "#dc2626", alpha: 1 }, { x: lineX, y: box.y + 19 + bob, color: "#f8fafc", alpha: 1 }];
   const from = { x: box.x + 38, y: box.y + 13 };
-  const to = { x: 311, y: 134 + bob - 4 };
+  const to = { x: SEA_X + 8, y: 134 * worldScale(world) + bob - 4 };
   const rope = Array.from({ length: 12 }, (_, i): Pixel => ({
     x: Math.round(from.x + ((to.x - from.x) * i) / 11),
     y: Math.round(from.y + ((to.y - from.y) * i) / 11),
@@ -341,14 +342,15 @@ function pierLife(t: number, reduced: boolean, strength: number): { lanterns: Dr
     alpha: 0.9,
   }));
   const lamps = strength > 0 ? lanterns.flatMap((l) => glow({ x: l.x + 3, y: l.y + 2 }, LANTERN_LIGHT, strength)) : [];
-  return { lanterns, rowboat: placed("rowboat", { x: 312, y: 134 + bob }), light: [...line, ...bobber, ...rope, ...lamps] };
+  return { lanterns, rowboat: placed("rowboat", { x: SEA_X + 9, y: 134 * worldScale(world) + bob }), light: [...line, ...bobber, ...rope, ...lamps] };
 }
 
 /** The crab: it shuffles back and forth along the sand at 10 art px a second; it rests in a fixed spot when motion is reduced. */
-function crab(t: number, reduced: boolean): Drawable {
-  if (reduced) return placed("crab", { x: 150, y: 160 });
-  const p = ((t / 1000) * 10) % 560;
-  return placed("crab", { x: 20 + Math.round(p < 280 ? p : 560 - p), y: 160 }, { frame: Math.floor(t / 200) % 2 });
+function crab(t: number, reduced: boolean, world: WorldSize): Drawable {
+  const k = worldScale(world);
+  if (reduced) return placed("crab", { x: 150 * k, y: 160 * k });
+  const p = ((t / 1000) * 10) % (560 * k);
+  return placed("crab", { x: 20 + Math.round(p < 280 * k ? p : 560 * k - p), y: 160 * k }, { frame: Math.floor(t / 200) % 2 });
 }
 
 const LAMPLIGHT = "#fde047";
@@ -510,11 +512,12 @@ function campLight(t: number, reduced: boolean, strength: number): Pixel[] {
 }
 
 /** Three birds crossing the sky (wings beating), or perched in fixed places when motion is reduced. */
-function birds(t: number, reduced: boolean): Drawable[] {
-  return Array.from({ length: WILDLIFE.birds }, (_, i) =>
+function birds(t: number, reduced: boolean, world: WorldSize): Drawable[] {
+  const k = worldScale(world);
+  return Array.from({ length: WILDLIFE.birds * k }, (_, i) =>
     reduced
-      ? placed("bird", { x: 70 + i * 100, y: 12 + i * 3 })
-      : placed("bird", { x: Math.floor(((t / 1000) * 14 + i * 110) % 360) - 20, y: 14 + i * 4 + Math.round(2 * Math.sin(t / 500 + i)) }, { frame: Math.floor(t / 180) % 2 }),
+      ? placed("bird", { x: 70 + i * 100, y: 12 + (i % WILDLIFE.birds) * 3 })
+      : placed("bird", { x: Math.floor(((t / 1000) * 14 + i * 110) % (360 * k)) - 20, y: 14 + (i % WILDLIFE.birds) * 4 + Math.round(2 * Math.sin(t / 500 + i)) }, { frame: Math.floor(t / 180) % 2 }),
   );
 }
 
@@ -693,14 +696,14 @@ function buildBaseScene(input: SceneInput, poses: Poses, t: number, reduced: boo
     }
     if (input.zone === "beach") {
       const strips = tideStrips(input.minutes);
-      const pier = pierLife(t, reduced, strength);
+      const pier = pierLife(t, reduced, strength, world);
       const castle = input.sandcastleBuilt ? 1 : 0;
       const props = upright.map((d) => (d.sprite === "sandcastle" ? { ...d, frame: castle } : d));
       const bare = strips === 0 ? TIDE_SHELLS.map((at) => placed("shell", at)) : [];
-      const withLife = [...props, ...BEACH_SHELLS.map((at) => placed("shell", at)), ...bare, ...birds(t, reduced), crab(t, reduced), pier.rowboat, ...remedyDrawables("beach", input.remedies)].sort(byFeet);
+      const withLife = [...props, ...BEACH_SHELLS.map((at) => placed("shell", at)), ...bare, ...birds(t, reduced, world), crab(t, reduced, world), pier.rowboat, ...remedyDrawables("beach", input.remedies)].sort(byFeet);
       // The lanterns stand on the planks: drawn right after the pier, so the planks do not hide them.
       withLife.splice(withLife.findIndex((d) => d.sprite === "pier") + 1, 0, ...pier.lanterns);
-      return { zone: input.zone, glints: [], flat: tideTiles(strips), upright: withLife, drone, tint: PHASE_TINT[phase], light: [...beachWater(t, reduced, strips), ...pier.light], snow };
+      return { zone: input.zone, glints: [], flat: tideTiles(strips, world), upright: withLife, drone, tint: PHASE_TINT[phase], light: [...beachWater(t, reduced, world, strips), ...pier.light], snow };
     }
     if (input.zone === "foggaten") {
       const lighthouse = upright.find((d) => d.sprite === "lighthouse");
@@ -738,7 +741,7 @@ function buildBaseScene(input: SceneInput, poses: Poses, t: number, reduced: boo
   const you = { x: poses.player.x, y: poses.player.y };
   const fox = foxPose(t, reduced, you);
   const goat = goatPose(t, reduced, you);
-  const wildlife = [placed("fox", fox, { frame: fox.frame, flip: fox.flip }), placed("goat", goat, { flip: goat.flip }), ...birds(t, reduced)];
+  const wildlife = [placed("fox", fox, { frame: fox.frame, flip: fox.flip }), placed("goat", goat, { flip: goat.flip }), ...birds(t, reduced, world)];
   const startArrow = placed("arrow", { x: 62, y: 132 - (!reduced && Math.floor(t / 400) % 2 === 1 ? 1 : 0) });
 
   const upright = [

@@ -24,8 +24,10 @@ import {
   type CssRect,
 } from "./mapLayout";
 
-const phone = fitWorld({ width: 354, height: 360, dpr: 3 }); // world 320×180 at (17, 90)
-const desktop = fitWorld({ width: 668, height: 360, dpr: 1 }); // world 640×360 at (14, 0)
+const PHONE_SIZE = { width: 354, height: 360, dpr: 3 };
+const DESKTOP_SIZE = { width: 668, height: 360, dpr: 1 };
+const phone = fitWorld(PHONE_SIZE); // world 320×180 at (17, 90)
+const desktop = fitWorld(DESKTOP_SIZE); // world 640×360 at (14, 0)
 const mapOf = (w: WorldRect) => ({ width: w.backingWidth / (w.s / w.scale), height: w.backingHeight / (w.s / w.scale) });
 type Edges = { left: number; right: number; top: number; bottom: number };
 const overlapBox = (a: Edges, b: Edges) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
@@ -132,8 +134,13 @@ describe("captions", () => {
   // showing one sits above the other buttons (MapViewport).
   it("at 320×180 (without chest captions) and 640×360 (with them) no caption box intersects another, a landmark or chest drawing, the dig spot or an exit sign, nor at 640×360 another place's hit area", () => {
     for (const zone of ["peaks", "village", "forest", "foggaten", "desert", "beach"] as const) {
-      for (const world of [phone, desktop]) {
-        const map = mapOf(world);
+      for (const size of [PHONE_SIZE, DESKTOP_SIZE]) {
+        // A zone bigger than the view is checked as a map the size of the whole zone, so what is tested is its own geometry,
+        // not where a camera happens to cut it; a one-screen zone is the view itself.
+        const zoneSize = AREAS[zone].world;
+        const big = zoneSize.width > 320;
+        const world = big ? fitWorld(size, 0, { x: 0, y: 0 }, zoneSize) : fitWorld(size);
+        const map = big ? { width: world.width, height: world.height } : mapOf(world);
         const hits = zoneHitAreas(world, zone);
         const showsChests = world.scale >= 2;
         const captions: Array<{ group: string; rect: CssRect }> = [

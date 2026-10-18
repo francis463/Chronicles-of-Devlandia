@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ADA, SIGNPOST } from "../../game/constants";
 import { spriteBox } from "../sprites";
-import { intersects, toArt, type Rect } from "../world";
+import { intersects, reachableRect, toArt, zoneToArt, type Rect } from "../world";
 import { AREAS } from ".";
 import { FOREST_POINTS } from "./forest";
 import { FOGGATEN, FOGGATEN_POINTS } from "./foggaten";
@@ -409,16 +409,17 @@ describe("the Sunbaked Desert's area", () => {
 
 describe("the Sunny Beach's area", () => {
   const B = AREAS.beach;
+  const K = B.world.width / 320;
   const touch = (a: Rect, b: Rect) => a.x <= b.x + b.w && b.x <= a.x + a.w && a.y <= b.y + b.h && b.y <= a.y + a.h;
 
   it("is a beach area with a west mouth, its corridor beyond, no wall, gate or ice, and sea past the walkable east and north", () => {
     expect(B).toMatchObject({ id: "beach", wall: false, gateBox: null, ice: null });
-    expect(B.mouths).toEqual([{ x: 0, y: 112, w: 32, h: 32 }]);
-    expect(B.corridors).toEqual([{ x: -1000, y: 112, w: 1000, h: 32 }]);
-    const r = REACHABLE_RECT;
+    expect(B.mouths).toEqual([{ x: 0, y: 112 * K, w: 32, h: 32 * K }]);
+    expect(B.corridors).toEqual([{ x: -1000, y: 112 * K, w: 1000, h: 32 * K }]);
+    const r = reachableRect(B.world);
     for (let y = r.y; y < r.y + r.h; y += 3) for (let x = r.x; x < r.x + r.w; x += 3) expect(B.terrainAt(x, y), `${x},${y}`).toBe("beach");
-    for (const [x, y] of [[310, 90], [200, 4], [400, 300 - 150]]) expect(B.terrainAt(x, y), `${x},${y}`).toBe("sea");
-    for (const [x, y] of [[-50, 100], [100, 179]]) expect(B.terrainAt(x, y)).toBe("beach");
+    for (const [x, y] of [[310 * K, 90 * K], [200 * K, 4 * K], [400 * K, 150 * K]]) expect(B.terrainAt(x, y), `${x},${y}`).toBe("sea");
+    for (const [x, y] of [[-50, 100 * K], [100 * K, 179 * K]]) expect(B.terrainAt(x, y)).toBe("beach");
   });
 
   it("the forest's east mouth has a road that runs out through it and joins the trail", () => {
@@ -428,7 +429,7 @@ describe("the Sunny Beach's area", () => {
   });
 
   it("its places' art points are the game places' art points", () => {
-    expect(BEACH_POINTS).toMatchObject({ fisher: toArt(FISHER), pier: toArt(BEACH_PIER), shipwreck: toArt(SHIPWRECK), signpost: toArt(BEACH_SIGNPOST) });
+    expect(BEACH_POINTS).toMatchObject({ fisher: zoneToArt(FISHER, "beach"), pier: zoneToArt(BEACH_PIER, "beach"), shipwreck: zoneToArt(SHIPWRECK, "beach"), signpost: zoneToArt(BEACH_SIGNPOST, "beach") });
   });
 
   it("its road is one connected road from the west mouth and reaches every place", () => {
@@ -439,22 +440,26 @@ describe("the Sunny Beach's area", () => {
     }
     expect(seen.size).toBe(B.paths.length);
     expect(B.paths.some((r) => r.x < 0)).toBe(true);
-    const reaches = (x: number, y: number) => B.paths.some((r) => Math.abs(x - (r.x + r.w / 2)) <= r.w / 2 + 14 && y >= r.y - 14 && y < r.y + r.h + 14);
+    const slack = 14 * K; // a place sits as far from its road, in screens, on a bigger beach
+    const reaches = (x: number, y: number) => B.paths.some((r) => Math.abs(x - (r.x + r.w / 2)) <= r.w / 2 + slack && y >= r.y - slack && y < r.y + r.h + slack);
     for (const k of ["fisher", "pier", "shipwreck", "signpost"] as const) expect(reaches(BEACH_POINTS[k].x, BEACH_POINTS[k].y), k).toBe(true);
   });
 
   it("its props are inside the world, clear of each other and the mouth, and protected", () => {
-    expect(B.props.map((p) => p.sprite).sort()).toEqual(["boat", "explorer-down", "palm", "palm", "pier", "sandcastle", "shipwreck", "signpost", "umbrella", "umbrella"]);
+    const base = ["boat", "explorer-down", "palm", "palm", "pier", "sandcastle", "shipwreck", "signpost", "umbrella", "umbrella"];
+    // A bigger beach has extra palms, umbrellas and a boat along its paths.
+    const extras = K === 1 ? [] : ["boat", "palm", "palm", "palm", "umbrella", "umbrella"];
+    expect(B.props.map((p) => p.sprite).sort()).toEqual([...base, ...extras].sort());
     const boxes = B.props.map((p) => spriteBox(p.sprite, p.at));
     for (const [i, a] of boxes.entries()) {
-      expect(a.x >= 0 && a.y >= 0 && a.x + a.w <= 320 && a.y + a.h <= 180, `prop ${i} in the world`).toBe(true);
+      expect(a.x >= 0 && a.y >= 0 && a.x + a.w <= B.world.width && a.y + a.h <= B.world.height, `prop ${i} in the world`).toBe(true);
       expect(intersects(a, B.mouths[0]), `prop ${i} on the mouth`).toBe(false);
       for (const b of boxes.slice(i + 1)) expect(intersects(a, b), `props ${i} overlap`).toBe(false);
       expect(B.protected).toContainEqual(a);
     }
     const pts = [BEACH_POINTS.fisher, BEACH_POINTS.pier, BEACH_POINTS.shipwreck, BEACH_POINTS.signpost];
     for (const [i, a] of pts.entries())
-      for (const b of pts.slice(i + 1)) expect(Math.hypot((a.x - b.x) / 3.2, (a.y - b.y) / 1.8)).toBeGreaterThanOrEqual(12);
+      for (const b of pts.slice(i + 1)) expect(Math.hypot((a.x - b.x) / (3.2 * K), (a.y - b.y) / (1.8 * K))).toBeGreaterThanOrEqual(12);
   });
 
   it("the crab's lane and the boat are named points", () => {
@@ -468,7 +473,7 @@ describe("hosted chests' landmarks", () => {
   it("every chest stands at a landmark drawing of its zone, so the landmark is the chest", () => {
     for (const [id, sprite] of HOSTS) {
       const chest = CHESTS.find((c) => c.id === id)!;
-      const spot = toArt(chest.at!);
+      const spot = zoneToArt(chest.at!, chest.zone);
       expect(AREAS[chest.zone].props.some((p) => p.sprite === sprite && p.at.x === spot.x && p.at.y === spot.y), `${id} at ${sprite}`).toBe(true);
     }
   });

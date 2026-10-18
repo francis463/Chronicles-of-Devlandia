@@ -4,7 +4,7 @@ import { AREAS } from "./areas";
 import type { Area } from "./areas/area";
 import { spriteBox } from "./sprites";
 import { LANDMARK_POINTS, WALL_RECT, decorations, onPath, protectedBoxes, terrainAt, wallTiles } from "./terrain";
-import { REACHABLE_RECT, WORLD, grow, intersects, toArt, type Rect } from "./world";
+import { REACHABLE_RECT, WORLD, grow, intersects, reachableRect, toArt, type Rect } from "./world";
 
 const WORLD_RECT: Rect = { x: 0, y: 0, w: WORLD.width, h: WORLD.height };
 // A phone-sized view: 90 art px of scenery above and below the world, some to the sides.
@@ -87,23 +87,30 @@ describe("decorations", () => {
     ["beach", 9, 311],
   ] as const)("barrier decorations lie outside REACHABLE_RECT, and the barrier closes the sides and bottom (%s: open at its exit)", (id, exitX, otherX) => {
     const area = AREAS[id];
-    const touching = decorations(VIEW, area).filter((d) => intersects(boxOf(d), WORLD_RECT) && !intersects(boxOf(d), REACHABLE_RECT));
+    // A bigger area has the same hedge, one screen's art scaled out to its own edges.
+    const { width, height } = area.world;
+    const K = width / WORLD.width;
+    const view: Rect = { x: -40, y: -96, w: width + 80, h: height + 192 };
+    const touching = decorations(view, area).filter((d) => intersects(boxOf(d), { x: 0, y: 0, w: width, h: height }) && !intersects(boxOf(d), reachableRect(area.world)));
     // The forest has no hedge on top: trees from the scenery above reach into its top rows.
     for (const d of touching) expect(["bush", "rock", "snow-rock", ...(id === "forest" || id === "village" ? ["tree", "birch", "stump", "log", "mushroom", "fern", "flowers"] : []), ...(id === "desert" ? ["dry-bush", "cactus", "bloom-cactus", "skull", "arch"] : []), ...(id === "beach" ? ["palm"] : [])], key(d)).toContain(d.sprite);
     const covers = (x: number, y: number) => touching.some((d) => intersects(boxOf(d), { x, y, w: 1, h: 1 }));
     // The Peaks' bottom hedge is open at its south exit (art x 192–255); everywhere clear of it the hedge is closed.
-    for (let x = 0; x < WORLD.width; x += 4) {
+    for (let x = 0; x < width; x += 4) {
       const gap = id === "peaks" && x >= 192 && x < 256;
       const nearGap = id === "peaks" && x >= 176 && x < 272;
-      if (gap) expect(covers(x, 172), `south mouth at ${x}`).toBe(false);
-      else if (!nearGap) expect(covers(x, 172), `bottom at ${x}`).toBe(true);
+      if (gap) expect(covers(x, height - 8), `south mouth at ${x}`).toBe(false);
+      else if (!nearGap) expect(covers(x, height - 8), `bottom at ${x}`).toBe(true);
     }
-    for (let y = 24; y < 170; y += 4) {
-      if (exitX !== null) expect(covers(exitX, y), `exit side at ${y}`).toBe(y < 112 || y > 143);
-      // The forest's west side is open at its exit to the desert (rows 112–143).
-      expect(covers(otherX, y), `other side at ${y}`).toBe(!(id === "forest" && y >= 112 && y <= 143));
+    const exitRows = (y: number) => y >= 112 * K && y <= 144 * K - 1;
+    const eastX = width - 9;
+    const wallX = (x: number) => (x === 311 ? width - 9 : x);
+    for (let y = 24; y < height - 10; y += 4) {
+      if (exitX !== null) expect(covers(wallX(exitX), y), `exit side at ${y}`).toBe(!exitRows(y));
+      // The forest's west side is open at its exit to the desert (rows 112–143, scaled).
+      expect(covers(wallX(otherX), y), `other side at ${y}`).toBe(!(id === "forest" && exitRows(y)));
     }
-    if (exitX === null) for (let y = 24; y < 170; y += 4) expect(covers(311, y), `east side at ${y}`).toBe(!(id === "forest" && y >= 112 && y <= 143));
+    if (exitX === null) for (let y = 24; y < height - 10; y += 4) expect(covers(eastX, y), `east side at ${y}`).toBe(!(id === "forest" && exitRows(y)));
   });
 
   it("no scenery stands in the corridor beyond an exit", () => {

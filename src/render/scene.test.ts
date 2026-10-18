@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { ZoneId } from "../game/zones";
 import { AREAS } from "./areas";
 import { FOGGATEN_POINTS, LAMP_POINT } from "./areas/foggaten";
+import { SEA_X, TIDE_SHELLS } from "./areas/beach";
 import { DESERT_WILDLIFE, camelPose, fennecPose, scorpionPose, snakePose } from "./areas/desert";
 import { FOREST_WILDLIFE, deerPose, rabbitPose, squirrelPose } from "./areas/forest";
 import { VILLAGE_LIFE, wandererPose } from "./areas/village";
@@ -835,7 +836,10 @@ describe("scene: the Sunny Beach", () => {
     const b = beach(1500).light;
     expect(a.length).toBeGreaterThan(20);
     expect(a).not.toEqual(b);
-    for (const p of [...a, ...b]) expect(p.x >= 0 && p.x < 320 && p.y >= 0 && p.y < 180, `${p.x},${p.y}`).toBe(true);
+    const { width, height } = AREAS.beach.world;
+    for (const p of [...a, ...b]) expect(p.x >= 0 && p.x < width && p.y >= 0 && p.y < height, `${p.x},${p.y}`).toBe(true);
+    // The foam runs down the whole shore of a bigger beach.
+    expect(Math.max(...a.map((p) => p.y))).toBeGreaterThan(height - 40);
   });
 
   it("the crab scuttles along the sand and the gulls cross the sky", () => {
@@ -1035,7 +1039,7 @@ describe("scene: the Sunny Beach's tide, pier and sandcastle", () => {
     const high = tiles(beach({ minutes: HIGH })).length;
     expect(rising).toBeGreaterThan(0);
     expect(high).toBe(rising * 2);
-    for (const d of tiles(beach({ minutes: HIGH }))) expect(d.x + SPRITES.shallow.w).toBeLessThanOrEqual(303 + 1);
+    for (const d of tiles(beach({ minutes: HIGH }))) expect(d.x + SPRITES.shallow.w).toBeLessThanOrEqual(SEA_X + 1);
   });
 
   it("the outermost column has the foam edge, and the shallows are drawn on the beach only", () => {
@@ -1047,7 +1051,8 @@ describe("scene: the Sunny Beach's tide, pier and sandcastle", () => {
   });
 
   it("low tide uncovers three extra shells, which the water hides again", () => {
-    expect(up(beach({ minutes: LOW }), "shell").length).toBe(up(beach({ minutes: HIGH }), "shell").length + 3);
+    expect(up(beach({ minutes: LOW }), "shell").length).toBe(up(beach({ minutes: HIGH }), "shell").length + TIDE_SHELLS.length);
+    expect(TIDE_SHELLS.length).toBe(3 * (AREAS.beach.world.width / 320));
   });
 
   it("two lanterns stand on the pier right after it, glowing from dusk", () => {
@@ -1094,7 +1099,7 @@ describe("scene: day and night", () => {
       ["desert", "lizard", 1, 1, 0],
       ["desert", "camel", 1, 1, 0],
       ["desert", "fennec", 0, 1, 1],
-      ["beach", "bird", 3, 3, 0],
+      ["beach", "bird", 3 * (AREAS.beach.world.width / 320), 3 * (AREAS.beach.world.width / 320), 0],
       ["peaks", "goat", 1, 1, 0],
       ["peaks", "fox", 0, 1, 1],
       ["forest", "deer", 1, 1, 1],
@@ -1152,5 +1157,54 @@ describe("scene: effects in a world bigger than one screen", () => {
     AREAS.forest.world = original;
     const pixels = forest(NIGHT);
     expect(pixels.every((p) => p.x < 320 && p.y < 180)).toBe(true);
+  });
+});
+
+describe("scene: the bigger Sunny Beach", () => {
+  const beach = (t = 0, over: Partial<SceneInput> = {}, reduced = false) => scene({ zone: "beach", player: { x: 10, y: 70 }, drone: { x: 14, y: 68 }, minutes: DAY, ...over }, t, reduced);
+  const { width, height } = AREAS.beach.world;
+  const K = width / 320;
+
+  it("is 2 × 2 screens, with the sea past x = 606", () => {
+    expect([width, height]).toEqual([640, 360]);
+    expect(SEA_X).toBe(606);
+    expect(AREAS.beach.terrainAt(605, 100)).toBe("beach");
+    expect(AREAS.beach.terrainAt(606, 100)).toBe("sea");
+    expect(AREAS.beach.terrainAt(300, 19)).toBe("sea");
+    expect(AREAS.beach.terrainAt(300, 20)).toBe("beach");
+  });
+
+  it("the crab shuffles along the whole length of the sand", () => {
+    const xs = Array.from({ length: 60 }, (_, i) => beach(i * 1000).upright.find((d) => d.sprite === "crab")!.x);
+    expect(Math.max(...xs)).toBeGreaterThan(320);
+    expect(Math.min(...xs)).toBeLessThan(60);
+    for (const x of xs) expect(x >= 0 && x < width).toBe(true);
+    expect(beach(0).upright.find((d) => d.sprite === "crab")!.y).toBeGreaterThan(300);
+  });
+
+  it("gulls cross the whole sky, and there are more of them", () => {
+    const xs = Array.from({ length: 40 }, (_, i) => beach(i * 1000).upright.filter((d) => d.sprite === "bird").map((d) => d.x)).flat();
+    expect(beach(0).upright.filter((d) => d.sprite === "bird")).toHaveLength(3 * K);
+    expect(Math.max(...xs)).toBeGreaterThan(320);
+  });
+
+  it("the pier's lanterns stand on its planks and the rowboat rides the sea beside it", () => {
+    const s = beach(0, { minutes: NIGHT });
+    const pier = spriteBox("pier", AREAS.beach.props.find((p) => p.sprite === "pier")!.at);
+    for (const lantern of s.upright.filter((d) => d.sprite === "lantern")) expect(lantern.x >= pier.x && lantern.x <= pier.x + pier.w, "on the pier").toBe(true);
+    const boat = s.upright.find((d) => d.sprite === "rowboat")!;
+    expect(boat.x + SPRITES.rowboat.w / 2).toBeGreaterThan(SEA_X);
+    expect(boat.y).toBeGreaterThan(200);
+  });
+
+  it("the tide's shallows run down the whole shore", () => {
+    const ys = scene({ zone: "beach", minutes: 180 }, 0).flat.filter((d) => d.sprite === "shallow").map((d) => d.y);
+    expect(Math.max(...ys)).toBeGreaterThan(height - 40);
+    expect(Math.min(...ys)).toBeLessThan(40);
+  });
+
+  it("shells lie on every screen of the sand", () => {
+    const shells = beach().upright.filter((d) => d.sprite === "shell");
+    for (const [name, test] of [["east", (d: { x: number }) => d.x > 320], ["south", (d: { y: number }) => d.y > 180]] as const) expect(shells.some(test), name).toBe(true);
   });
 });
