@@ -27,7 +27,7 @@ const OWNS_ENTER = "button, a, input, select, textarea, summary, [role='tab'], [
 
 /**
  * `paused`: a dialog outside the game state (the leave confirmation) owns the keys, Esc included.
- * `onChatKey`: Enter (`false`) or `/` (`true`) asks for the chat input. `onHelpKey`: `?` opens the help.
+ * `onChatKey`: Enter (`false`) or `/` (`true`) asks for the chat input. `onHelpKey`: `?` opens the help. `onMapKey`: `F` toggles the full-screen map.
  */
 export function useKeyboardControls(
   state: GameState,
@@ -35,6 +35,7 @@ export function useKeyboardControls(
   paused = false,
   onChatKey?: (slash: boolean) => void,
   onHelpKey?: () => void,
+  onMapKey?: () => void,
 ): void {
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -44,6 +45,8 @@ export function useKeyboardControls(
   chatKeyRef.current = onChatKey;
   const helpKeyRef = useRef(onHelpKey);
   helpKeyRef.current = onHelpKey;
+  const mapKeyRef = useRef(onMapKey);
+  mapKeyRef.current = onMapKey;
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -72,6 +75,13 @@ export function useKeyboardControls(
       if (key === "?" && !event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey && helpKeyRef.current) {
         event.preventDefault();
         helpKeyRef.current();
+        return;
+      }
+
+      // F toggles the full-screen map (plain presses only, never a held key's repeats).
+      if (key === "f" && !event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey && mapKeyRef.current) {
+        event.preventDefault();
+        mapKeyRef.current();
         return;
       }
 

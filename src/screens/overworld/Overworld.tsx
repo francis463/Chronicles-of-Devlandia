@@ -6,6 +6,7 @@ import { maskRude } from "../../chat/filter";
 import { displayNames } from "../../chat/names";
 import { Button } from "../../ui/Button";
 import { MAX_ZOOM } from "../../render/world";
+import { LANDSCAPE_PHONE, useMediaQuery } from "../../hooks/useMediaQuery";
 import { cardFor } from "../../game/cards";
 import { challengeOf, challengeView } from "../../game/challenges";
 import { rollGame } from "../../game/roll";
@@ -175,7 +176,30 @@ export function Overworld({
     }
     input.setSelectionRange(input.value.length, input.value.length);
   }, [focusRequest, setDraft]);
-  useKeyboardControls(state, dispatch, leaving || helpOpen, onChatKey, () => setHelpOpen(true));
+  // Full-screen map (the F key or its button; a phone held sideways does it by itself): only the map, a slim top bar and the newest log line stay in view.
+  const [mapManual, setMapManual] = useState(false);
+  const landscapePhone = useMediaQuery(LANDSCAPE_PHONE);
+  const mapOnly = mapManual || landscapePhone;
+  const toggleMap = useCallback(() => {
+    setMapManual((on) => {
+      // Best effort: the browser's own full screen too (phones and some browsers have none), kept in step by fullscreenchange.
+      try {
+        if (!on) void document.documentElement.requestFullscreen?.()?.catch(() => undefined);
+        else if (document.fullscreenElement) void document.exitFullscreen?.()?.catch(() => undefined);
+      } catch {
+        // The map is still full-window without it.
+      }
+      return !on;
+    });
+  }, []);
+  useEffect(() => {
+    const onChange = () => {
+      if (!document.fullscreenElement) setMapManual(false);
+    };
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+  useKeyboardControls(state, dispatch, leaving || helpOpen, onChatKey, () => setHelpOpen(true), toggleMap);
   // `snow: undefined` is the default (the Peaks snow, other zones do not); /weather snow and /weather clear set it for every zone.
   const [view, setView] = useState<{ snow: boolean | undefined; light: "auto" | "day" | "night" }>({ snow: undefined, light: "auto" });
   const { pings, add: addPing } = usePings();
@@ -285,9 +309,16 @@ export function Overworld({
   };
 
   return (
-    <Panel className="mx-auto w-full max-w-screen-2xl overflow-hidden md:grid md:min-h-[calc(100dvh-1rem)] md:grid-cols-[14rem_minmax(0,1fr)] md:grid-rows-[auto_auto_auto_1fr_auto]">
+    <Panel
+      className={
+        mapOnly
+          ? "fixed! inset-0 z-40 m-0 grid h-dvh w-full max-w-none grid-cols-1 grid-rows-[auto_minmax(0,1fr)] overflow-hidden"
+          : "mx-auto w-full max-w-screen-2xl overflow-hidden md:grid md:min-h-[calc(100dvh-1rem)] md:grid-cols-[14rem_minmax(0,1fr)] md:grid-rows-[auto_auto_auto_1fr_auto]"
+      }
+    >
       {/* DOM order is the phone order; at md the grid places the sidebar (mini-map, quests, log) beside the map. */}
       <TopHud
+        compact={mapOnly}
         className="md:col-span-2"
         hp={state.hp}
         minutes={minutes}
@@ -303,7 +334,7 @@ export function Overworld({
         tide={state.zone === "beach" ? tideName(minutes) : undefined}
       />
       <MiniMap
-        className="md:col-start-1 md:row-start-2"
+        className={mapOnly ? "hidden!" : "md:col-start-1 md:row-start-2"}
         zone={state.zone}
         player={state.player}
         artifactFound={state.artifactFound}
@@ -314,7 +345,7 @@ export function Overworld({
         playerColor={team?.me?.color}
         chatHint={team ? "Chat: [Enter]" : "Commands: [/]"}
       />
-      <div className="relative flex min-w-0 flex-col md:col-start-2 md:row-start-2 md:row-span-3">
+      <div className={`relative flex min-w-0 flex-col ${mapOnly ? "min-h-0" : "md:col-start-2 md:row-start-2 md:row-span-3"}`}>
         {pulse && <div key={pulse.n} aria-hidden="true" className={`hp-flash hp-flash-${pulse.kind} pointer-events-none absolute inset-0 z-10`} />}
         {state.hp > 0 && state.hp <= LOW_HP && <div aria-hidden="true" data-testid="low-hp" className="hp-low pointer-events-none absolute inset-0 z-10 motion-safe:animate-pulse" />}
         <MapViewport
@@ -343,6 +374,9 @@ export function Overworld({
           playerClass={playerClass}
           zoom={zoom}
           onZoom={changeZoom}
+          fullscreen={mapOnly}
+          onFullscreen={landscapePhone ? undefined : toggleMap}
+          fill={mapOnly}
           inRange={inRange}
           downed={downed}
           onInteract={(poi) => dispatch({ type: "interact", poi })}
@@ -356,7 +390,13 @@ export function Overworld({
             {`[ Share water with ${displayNames(players ?? []).get(neighbour.id) ?? maskRude(neighbour.name)} ]`}
           </Button>
         )}
+        {mapOnly && (
+          <p aria-hidden="true" className="pointer-events-none absolute top-2 left-2 z-10 max-w-[55%] rounded bg-[rgba(15,23,42,0.8)] px-2 py-1 text-[10px] text-[var(--text)]">
+            {state.logs.at(-1)}
+          </p>
+        )}
         <TouchControls
+          floating={mapOnly}
           disabled={downed || leaving || helpOpen || isModalOpen(state)}
           inRange={inRange}
           label={inRange ? interactLabel(state, inRange) : null}
@@ -365,7 +405,7 @@ export function Overworld({
         />
       </div>
       <EventLog
-        className="md:col-start-1 md:row-start-4"
+        className={mapOnly ? "sr-only absolute!" : "md:col-start-1 md:row-start-4"}
         logs={state.logs}
         logCount={state.logCount}
         chat={{
@@ -380,14 +420,14 @@ export function Overworld({
         }}
       />
       <BottomHud
-        className="md:col-span-2 md:row-start-5"
+        className={mapOnly ? "hidden!" : "md:col-span-2 md:row-start-5"}
         hasLoot={state.hasLoot}
         clueDecoded={state.clueDecoded}
         artifactFound={state.artifactFound}
         onDecodeScroll={() => dispatch({ type: "openCipher" })}
       />
       <QuestList
-        className="md:col-start-1 md:row-start-3"
+        className={mapOnly ? "hidden!" : "md:col-start-1 md:row-start-3"}
         questComplete={state.questComplete}
         artifactFound={state.artifactFound}
         towerPowered={state.towerPowered}

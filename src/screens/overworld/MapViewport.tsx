@@ -197,6 +197,9 @@ function LandmarkButton({
   );
 }
 
+const VIEW_BUTTON =
+  "min-h-6 min-w-6 cursor-pointer rounded text-[var(--primary-border)] focus-visible:outline-2 focus-visible:outline-[var(--primary-border)] disabled:cursor-not-allowed disabled:opacity-40 pointer-coarse:min-h-11 pointer-coarse:min-w-11";
+
 function MapCaption({ id, text, world }: { id: MapCaptionId; text: string; world: WorldRect }) {
   const rect = mapCaptionRect(id, text, world);
   return (
@@ -235,6 +238,9 @@ export function MapViewport({
   playerClass,
   zoom = 0,
   onZoom,
+  fullscreen,
+  onFullscreen,
+  fill = false,
   inRange,
   downed,
   onInteract,
@@ -277,6 +283,11 @@ export function MapViewport({
   zoom?: number | "auto";
   /** Shows the zoom buttons; called with the new step. */
   onZoom?: (zoom: number) => void;
+  /** Whether the map is full-screen, and the button that toggles it (shown when given). */
+  fullscreen?: boolean;
+  onFullscreen?: () => void;
+  /** Take the height the parent gives instead of at least 360 px (the full-screen map). */
+  fill?: boolean;
   inRange: Poi | null;
   downed: boolean;
   onInteract: (poi: PoiId) => void;
@@ -344,18 +355,27 @@ export function MapViewport({
   const csEarned = badges.includes("chest-cs");
 
   return (
-    <div ref={mapRef} className="relative min-h-[360px] flex-1 overflow-hidden bg-[var(--panel)]">
+    <div ref={mapRef} className={`relative ${fill ? "min-h-0" : "min-h-[360px]"} flex-1 overflow-hidden bg-[var(--panel)]`}>
       <MapCanvas input={scene} world={world} />
 
-      {onZoom && (
-        <div role="group" aria-label="Map zoom" className="absolute top-2 right-2 z-30 flex items-center gap-1 rounded border border-[var(--panel-border)] bg-[rgba(15,23,42,0.8)] px-1 py-0.5 text-[10px] font-bold">
-          <button type="button" aria-label="Zoom out" disabled={extraZoom <= 0} onClick={() => onZoom(extraZoom - 1)} className="min-h-6 min-w-6 cursor-pointer rounded text-[var(--primary-border)] focus-visible:outline-2 focus-visible:outline-[var(--primary-border)] disabled:cursor-not-allowed disabled:opacity-40 pointer-coarse:min-h-11 pointer-coarse:min-w-11">
-            −
-          </button>
-          <span aria-live="polite" className="min-w-8 text-center text-[var(--text)]">{zoomLabel(size, extraZoom)}</span>
-          <button type="button" aria-label="Zoom in" disabled={extraZoom >= MAX_ZOOM} onClick={() => onZoom(extraZoom + 1)} className="min-h-6 min-w-6 cursor-pointer rounded text-[var(--primary-border)] focus-visible:outline-2 focus-visible:outline-[var(--primary-border)] disabled:cursor-not-allowed disabled:opacity-40 pointer-coarse:min-h-11 pointer-coarse:min-w-11">
-            +
-          </button>
+      {(onZoom || onFullscreen) && (
+        <div role="group" aria-label="Map view" className="absolute top-2 right-2 z-30 flex items-center gap-1 rounded border border-[var(--panel-border)] bg-[rgba(15,23,42,0.8)] px-1 py-0.5 text-[10px] font-bold">
+          {onZoom && (
+            <>
+              <button type="button" aria-label="Zoom out" disabled={extraZoom <= 0} onClick={() => onZoom(extraZoom - 1)} className={VIEW_BUTTON}>
+                −
+              </button>
+              <span aria-live="polite" className="min-w-8 text-center text-[var(--text)]">{zoomLabel(size, extraZoom)}</span>
+              <button type="button" aria-label="Zoom in" disabled={extraZoom >= MAX_ZOOM} onClick={() => onZoom(extraZoom + 1)} className={VIEW_BUTTON}>
+                +
+              </button>
+            </>
+          )}
+          {onFullscreen && (
+            <button type="button" aria-label={fullscreen ? "Exit full-screen map" : "Full-screen map"} aria-pressed={!!fullscreen} onClick={onFullscreen} className={VIEW_BUTTON}>
+              {fullscreen ? "✕" : "⛶"}
+            </button>
+          )}
         </div>
       )}
 

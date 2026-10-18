@@ -18,6 +18,7 @@ export function TopHud({
   playerClass,
   hard = false,
   tide,
+  compact = false,
   className = "",
 }: {
   hp: number;
@@ -38,16 +39,18 @@ export function TopHud({
   hard?: boolean;
   /** On the Sunny Beach: the tide's name (Low, Rising, High or Falling). */
   tide?: string;
+  /** Full-screen map: one slim row. */
+  compact?: boolean;
   className?: string;
 }) {
   return (
-    <header className={`flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b-2 border-[var(--panel-border)] bg-[var(--bg)] px-3 py-2 ${className}`}>
+    <header className={`flex flex-wrap items-center justify-between gap-x-4 border-b-2 border-[var(--panel-border)] bg-[var(--bg)] px-3 ${compact ? "gap-y-0 py-1" : "gap-y-2 py-2"} ${className}`}>
       <div className="flex flex-wrap items-center gap-4">
         <Hearts value={hp} max={MAX_HP} />
         {playerClass && <span className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">{`Class: ${CLASSES[playerClass].name}`}</span>}
         {hard && <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--danger-border)]">Hard mode</span>}
       </div>
-      <h2 className="order-first w-full text-center text-sm font-bold tracking-widest sm:order-none sm:w-auto">
+      <h2 className={`text-center font-bold tracking-widest ${compact ? "text-xs" : "order-first w-full text-sm sm:order-none sm:w-auto"}`}>
         {`REGION: ${region.toUpperCase()}`}
       </h2>
       <div className="flex flex-wrap items-center gap-3">

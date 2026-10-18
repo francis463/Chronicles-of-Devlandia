@@ -6,6 +6,7 @@ import { RIVER_DAMAGE_MS } from "../../game/constants";
 import type { SceneInput } from "../../render/scene";
 import { CHEST_IDS, CHESTS } from "../../learn/chests";
 import { LOG } from "../../game/constants";
+import { LANDSCAPE_PHONE } from "../../hooks/useMediaQuery";
 import { Overworld } from "./Overworld";
 
 // The real canvas still renders; this only records what the game asks it to draw.
@@ -925,5 +926,61 @@ describe("Overworld: the beach's tide tag", () => {
     render(<Overworld onMenu={() => {}} initial={{ zone: "beach", player: { x: 56, y: 80 }, sandcastleBuilt: true }} />);
     expect(drawn[drawn.length - 1].input.sandcastleBuilt).toBe(true);
     expect(screen.getByRole("button", { name: "Sandcastle, finished" })).toBeInTheDocument();
+  });
+});
+
+describe("Overworld: a bigger map", () => {
+  const root = (container: HTMLElement) => container.firstElementChild as HTMLElement;
+  const FULL = "grid-rows-[auto_minmax(0,1fr)]";
+  const hiddenAbove = (el: HTMLElement) => el.closest("[class~='hidden!']") !== null;
+  const originalMatchMedia = window.matchMedia;
+  afterEach(() => {
+    window.matchMedia = originalMatchMedia;
+  });
+
+  it("F toggles the full-screen map and its button says so", () => {
+    const { container } = render(<Overworld onMenu={() => {}} />);
+    expect(root(container).className).not.toContain(FULL);
+    fireEvent.keyDown(window, { key: "f" });
+    expect(root(container).className).toContain(FULL);
+    expect(screen.getByRole("button", { name: "Exit full-screen map" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.keyDown(window, { key: "f" });
+    expect(root(container).className).not.toContain(FULL);
+    expect(screen.getByRole("button", { name: "Full-screen map" })).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("the full-screen map hides the side panels but keeps the log for screen readers and shows the newest line", () => {
+    const { container } = render(<Overworld onMenu={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: "Full-screen map" }));
+    expect(hiddenAbove(screen.getByText("Quest: Survey Frozen River (0/1)"))).toBe(true);
+    expect(hiddenAbove(screen.getByText("Move: WASD / Arrows"))).toBe(true);
+    const log = container.querySelector("aside");
+    expect(log?.className).toContain("sr-only");
+    expect(container.querySelector("p[aria-hidden='true']")?.textContent).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Exit full-screen map" }));
+    expect(hiddenAbove(screen.getByText("Quest: Survey Frozen River (0/1)"))).toBe(false);
+  });
+
+  it("a phone held sideways gets the full-screen map by itself, with controls over the map", () => {
+    window.matchMedia = ((query: string) => ({ matches: query === LANDSCAPE_PHONE, addEventListener: () => {}, removeEventListener: () => {} })) as unknown as typeof window.matchMedia;
+    const { container } = render(<Overworld onMenu={() => {}} />);
+    expect(root(container).className).toContain(FULL);
+    expect(screen.queryByRole("button", { name: /full-screen map/i })).toBeNull();
+    expect(screen.getByRole("group", { name: "Touch controls", hidden: true }).className).toContain("absolute");
+  });
+
+  it("the zoom buttons change the map and the choice is remembered", () => {
+    const first = render(<Overworld onMenu={() => {}} />);
+    const label = () => screen.getByRole("group", { name: "Map view" }).textContent;
+    expect(label()).toContain("×");
+    fireEvent.click(screen.getByRole("button", { name: "Zoom out" }));
+    expect(localStorage.getItem("devlandia.mapZoom")).toBe("0");
+    expect(screen.getByRole("button", { name: "Zoom out" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Zoom in" }));
+    expect(localStorage.getItem("devlandia.mapZoom")).toBe("1");
+    first.unmount();
+    render(<Overworld onMenu={() => {}} />);
+    expect(screen.getByRole("button", { name: "Zoom out" })).not.toBeDisabled();
+    localStorage.setItem("devlandia.mapZoom", "nonsense");
   });
 });

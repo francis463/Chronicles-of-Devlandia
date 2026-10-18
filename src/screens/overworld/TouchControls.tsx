@@ -16,6 +16,7 @@ export function TouchControls({
   label,
   onMove,
   onInteract,
+  floating = false,
 }: {
   disabled: boolean;
   inRange: Poi | null;
@@ -23,6 +24,8 @@ export function TouchControls({
   label: string | null;
   onMove: (dir: Direction) => void;
   onInteract: (poi: Poi["id"]) => void;
+  /** Laid over the bottom of the map (a phone held sideways) instead of in a bar under it. */
+  floating?: boolean;
 }) {
   const repeat = useRef<number | undefined>(undefined);
 
@@ -53,7 +56,11 @@ export function TouchControls({
     <div
       role="group"
       aria-label="Touch controls"
-      className="hidden touch-none items-center justify-between gap-4 border-t-2 border-dashed border-[var(--panel-border)] bg-[var(--bg)] px-4 py-3 select-none pointer-coarse:flex"
+      className={
+        floating
+          ? "pointer-events-none absolute inset-x-0 bottom-0 z-30 hidden touch-none items-end justify-between gap-4 px-3 pb-2 select-none pointer-coarse:flex [&>*]:pointer-events-auto"
+          : "hidden touch-none items-center justify-between gap-4 border-t-2 border-dashed border-[var(--panel-border)] bg-[var(--bg)] px-4 py-3 select-none pointer-coarse:flex"
+      }
       onContextMenu={(event) => event.preventDefault()}
     >
       <div className="grid grid-cols-3 grid-rows-3 gap-1">
@@ -68,7 +75,7 @@ export function TouchControls({
             onPointerLeave={stop}
             onPointerCancel={stop}
             onClick={keyboardStep(dir)}
-            className={`${area} flex h-12 w-12 items-center justify-center rounded border-[1.5px] border-[var(--primary-border)] bg-[var(--panel)] text-lg text-[var(--primary-border)] active:bg-[var(--primary)] active:text-[var(--text)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary-border)] disabled:opacity-40`}
+            className={`${area} flex h-12 w-12 items-center justify-center rounded border-[1.5px] border-[var(--primary-border)] ${floating ? "bg-[rgba(15,23,42,0.65)]" : "bg-[var(--panel)]"} text-lg text-[var(--primary-border)] active:bg-[var(--primary)] active:text-[var(--text)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary-border)] disabled:opacity-40`}
           >
             {glyph}
           </button>

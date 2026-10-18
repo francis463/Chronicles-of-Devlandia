@@ -544,7 +544,7 @@ describe("MapViewport zoom", () => {
   it("the zoom buttons show only when asked, name the step and stop at the ends", () => {
     const onZoom = vi.fn();
     const { rerender } = render(<MapViewport {...props({ zoom: 0 })} />);
-    expect(screen.queryByRole("group", { name: "Map zoom" })).toBeNull();
+    expect(screen.queryByRole("group", { name: "Map view" })).toBeNull();
     rerender(<MapViewport {...props({ zoom: 0, onZoom })} />);
     expect(screen.getByRole("button", { name: "Zoom out" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Zoom in" }));
