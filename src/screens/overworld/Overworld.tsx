@@ -67,6 +67,7 @@ function saveZoom(zoom: number): void {
 export function Overworld({
   onMenu,
   initial,
+  start,
   team,
   chat,
   saved,
@@ -80,6 +81,8 @@ export function Overworld({
 }: {
   onMenu: () => void;
   initial?: Partial<GameState>;
+  /** Where a new game begins (a resumed game's own `initial` state wins over it). */
+  start?: Pick<GameState, "zone" | "player" | "drone">;
   /** A signed-in player's saved badges: they start the game earned, with the question they answered. */
   saved?: readonly SavedBadge[];
   /** Called once for each badge earned during this game (never for the saved ones). */
@@ -104,7 +107,7 @@ export function Overworld({
   // Each game rolls its questions, shuffle seed, Matcher round and access code once, at mount; a team shares the code.
   const [state, dispatch] = useReducer(gameReducer, undefined, () => {
     const rolled = rollGame(Math.random, team?.startedAt ?? undefined, loadRecent(), hard);
-    return { ...initialState, ...rolled, hard, ...seedFromSaved(saved ?? [], rolled.picks), ...initial };
+    return { ...initialState, ...rolled, hard, ...seedFromSaved(saved ?? [], rolled.picks), ...start, ...initial };
   });
   // Remember this game's questions, so the next game picks others.
   useEffect(() => (hard || initial ? undefined : saveRecent(withPicks(loadRecent(), state.picks))), []); // eslint-disable-line react-hooks/exhaustive-deps

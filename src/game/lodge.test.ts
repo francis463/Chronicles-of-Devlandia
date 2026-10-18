@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { distance } from "./geometry";
-import { gameReducer, initialState } from "./reducer";
+import { LODGE_START, gameReducer, initialState } from "./reducer";
 import { ZONES, arrival, doorAt, type ZoneId } from "./zones";
 import { ZONE_ORDER } from "../learn/codexModel";
 import { CHESTS, chestById } from "../learn/chests";
@@ -174,6 +174,15 @@ describe("the lodge keeper and her soup", () => {
     expect(loadGame(null)?.state.soupTaken).toBe(false);
     localStorage.setItem("devlandia.savedGame", JSON.stringify({ v: 2, owner: "guest", game: { playerClass: "warrior", hard: false, state: { ...old, zone: "lodge", soupTaken: true } } }));
     expect(loadGame(null)?.state).toMatchObject({ zone: "lodge", soupTaken: true });
+  });
+});
+
+describe("where a new game begins", () => {
+  it("is just inside the Ski Lodge by the fire, the same place a respawn puts you, off the mat", () => {
+    expect(LODGE_START).toEqual({ zone: "lodge", player: { x: 50, y: 78 }, drone: { x: 48, y: 80 } });
+    const respawned = gameReducer({ ...initialState, hp: 0 }, { type: "respawn" });
+    expect({ zone: respawned.zone, player: respawned.player, drone: respawned.drone }).toEqual(LODGE_START);
+    expect(doorAt(LODGE_START.zone, LODGE_START.player)).toBeNull();
   });
 });
 

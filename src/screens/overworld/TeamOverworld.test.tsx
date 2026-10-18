@@ -41,7 +41,8 @@ async function enterLobby(user: ReturnType<typeof setup>, app: App, name: string
   await user.type(app.getByRole("textbox", { name: "Nickname" }), name);
 }
 
-async function startedPair() {
+/** Both players in a started game; a new game begins inside the Ski Lodge, so unless `inLodge` they walk out through the mat first. */
+async function startedPair({ inLodge = false }: { inLodge?: boolean } = {}) {
   const user = setup();
   const t = team();
   const ana = t.app();
@@ -55,6 +56,10 @@ async function startedPair() {
   await user.click(kai.getByRole("button", { name: "[ Join ]" }));
   await flush();
   await user.click(ana.getByRole("button", { name: "[ Start Expedition ]" }));
+  await flush();
+  // Out through the mat and back up to the camp's row (26, 72).
+  if (!inLodge) for (const app of [ana, kai]) for (const dir of ["down", "down", "up", "up", "up", "up"]) await user.click(app.getByRole("button", { name: `Move ${dir}` }));
+  act(() => void vi.advanceTimersByTime(POS_INTERVAL_MS * 2));
   await flush();
   return { ...t, user, ana, kai, code };
 }
@@ -129,7 +134,8 @@ describe("Overworld in team mode", () => {
     await user.type(zed.getByRole("textbox", { name: "Room code" }), code);
     await user.click(zed.getByRole("button", { name: "[ Join ]" }));
     await flush();
-    expect(zed.getByText("REGION: C++ PEAKS")).toBeInTheDocument();
+    expect(zed.getByText("REGION: SKI LODGE")).toBeInTheDocument();
+    for (let i = 0; i < 2; i++) await user.click(zed.getByRole("button", { name: "Move down" })); // out to the Peaks, where the river is
     expect(zed.getByText("Frozen River")).toBeInTheDocument();
     expect(logText(zed)).toContain("Ana opened the gate.");
     expect(logText(ana)).toContain("Zed joined the team.");
@@ -152,8 +158,7 @@ describe("Overworld in team mode", () => {
     // Every pick is 0: the HTML chest asks for href, the PHP chest for echo.
     const random = vi.spyOn(Math, "random").mockReturnValue(0);
     try {
-      const { user, ana, kai } = await startedPair();
-      for (const dir of ["down", "down", "down", "down", "left", "left"]) await user.click(kai.getByRole("button", { name: `Move ${dir}` })); // down to the lodge door and in
+      const { user, ana, kai } = await startedPair({ inLodge: true });
       await user.click(kai.getByRole("button", { name: "Shelf, HTML chest" }));
       await user.type(kai.getByRole("textbox", { name: "answer" }), "href");
       await user.click(kai.getByRole("button", { name: "[ SUBMIT CODE ]" }));
@@ -395,6 +400,8 @@ describe("Overworld team chat", () => {
     await user.click(ana.getByRole("button", { name: "Mute Kai" }));
     await user.click(ana.getByRole("button", { name: "[ Start Expedition ]" }));
     await flush();
+    // The game begins inside the lodge: Ana steps out to the Peaks, where the gate ping rings.
+    for (let i = 0; i < 2; i++) await user.click(ana.getByRole("button", { name: "Move down" }));
 
     // In the game: the lobby line, the draft and the mute all carried over; nothing is unread.
     expect(chatTab(ana)).toHaveTextContent(/^CHAT$/);
@@ -460,7 +467,7 @@ describe("Overworld team chat", () => {
     expect(lines(ana)).toHaveTextContent("Kai: first");
     expect(lines(ana)).toHaveTextContent("Kai (2): second");
     await say(user, ana, "/where");
-    expect(lines(ana)).toHaveTextContent("Kai: C++ Peaks · Kai (2): C++ Peaks");
+    expect(lines(ana)).toHaveTextContent("Kai: C++ Peaks · Kai (2): Ski Lodge");
   });
 
   it("shows a rude nickname masked in the line, /where and the ring label", async () => {

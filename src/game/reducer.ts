@@ -263,8 +263,12 @@ function submitBuiltIn(state: GameState, open: ChallengeState, c: BlankChallenge
 /** Where the drone waits beside you after you arrive somewhere by a door: a little behind and below. */
 const droneBeside = (p: Point): Point => ({ x: Math.max(BOUNDS.minX, p.x - 2), y: Math.min(BOUNDS.maxY, p.y + 2) });
 
-/** Respawning puts you inside the Ski Lodge, just in from the Peaks door, by the fire (away from the mat). */
-const RESPAWN = ZONES.peaks.doors[0];
+/** A new game begins, and a respawn lands, inside the Ski Lodge just in from the Peaks door, by the fire (away from the mat). */
+export const LODGE_START: Pick<GameState, "zone" | "player" | "drone"> = {
+  zone: ZONES.peaks.doors[0].to,
+  player: ZONES.peaks.doors[0].arrive,
+  drone: droneBeside(ZONES.peaks.doors[0].arrive),
+};
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
@@ -527,7 +531,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     }
     case "respawn":
       return pushLog(
-        { ...state, hp: MAX_HP, zone: RESPAWN.to, player: RESPAWN.arrive, drone: droneBeside(RESPAWN.arrive), inspected: null },
+        { ...state, ...LODGE_START, hp: MAX_HP, inspected: null },
         LOG.revived,
       );
   }

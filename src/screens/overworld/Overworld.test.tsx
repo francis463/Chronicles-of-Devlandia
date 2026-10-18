@@ -35,6 +35,14 @@ afterEach(() => {
 });
 
 describe("Overworld HUD", () => {
+  it("a new game's start place is where it begins, and a resumed game's own state wins", () => {
+    const { unmount } = render(<Overworld onMenu={() => {}} start={{ zone: "lodge", player: { x: 50, y: 78 }, drone: { x: 48, y: 80 } }} />);
+    expect(screen.getByText("REGION: SKI LODGE")).toBeInTheDocument();
+    unmount();
+    render(<Overworld onMenu={() => {}} start={{ zone: "lodge", player: { x: 50, y: 78 }, drone: { x: 48, y: 80 } }} initial={{ zone: "forest", player: { x: 40, y: 40 } }} />);
+    expect(screen.getByText("REGION: DENSE FOREST")).toBeInTheDocument();
+  });
+
   it("shows region, phase/time, full bars, quest and the initial log", () => {
     render(<Overworld onMenu={() => {}} />);
     expect(screen.getByText("REGION: C++ PEAKS")).toBeInTheDocument();

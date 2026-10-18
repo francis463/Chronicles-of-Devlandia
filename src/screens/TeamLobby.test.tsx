@@ -155,8 +155,8 @@ describe("TeamLobby with two players (App + memory hub)", () => {
     expect(within(ana.getByRole("list", { name: "Players" })).getAllByRole("listitem")).toHaveLength(2);
 
     await user.click(ana.getByRole("button", { name: "[ Start Expedition ]" }));
-    expect(ana.getByText("REGION: C++ PEAKS")).toBeInTheDocument();
-    expect(kai.getByText("REGION: C++ PEAKS")).toBeInTheDocument();
+    expect(ana.getByText("REGION: SKI LODGE")).toBeInTheDocument();
+    expect(kai.getByText("REGION: SKI LODGE")).toBeInTheDocument();
   });
 
   it("double-clicking Create Room creates one room (Review Focus 5)", async () => {

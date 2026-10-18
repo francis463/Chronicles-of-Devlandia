@@ -42,7 +42,7 @@ export const PLAY: ReadonlyArray<{ title: string; text: string }> = [
 ];
 
 export const TUTORIAL: ReadonlyArray<{ title: string; text: string; tryIt: string }> = [
-  { title: "Move around", text: "Walk with W A S D or the arrow keys, or the D-pad on a phone. The map is one screen per region; the small map at the top left shows where you are.", tryIt: "Walk a few steps toward the ski lodge at the bottom left; its door is on the bottom row." },
+  { title: "Move around", text: "Walk with W A S D or the arrow keys, or the D-pad on a phone. The map is one screen per region; the small map at the top left shows where you are.", tryIt: "You start inside the Ski Lodge: walk down onto the door mat to go outside." },
   { title: "Use a place", text: "Stand next to a landmark and a prompt appears over your head, such as \"[E] Talk to Keeper\". Press E (or tap the landmark) to use it.", tryIt: "Walk into the Ski Lodge door, then press E next to the keeper." },
   { title: "Answer a chest", text: "A chest shows a code snippet with a gap. Type the missing piece (or pick blocks), and the line under it says whether it is valid. Press SUBMIT. Stuck? The drone's hint button helps, and a wrong answer costs nothing.", tryIt: "Answer the HTML question to earn your first badge." },
   { title: "Check your Codex", text: "Press C. The bar shows your badges, \"Next closest\" names a chest to try, and [ Go there ] writes in the log where any chest is and how to reach it.", tryIt: "Open the Codex and press [ Go there ] on a badge you have not earned." },

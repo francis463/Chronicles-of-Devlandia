@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AuthClient } from "./auth/authClient";
 import { DEFAULT_CLASS, type ClassId } from "./game/classes";
+import { LODGE_START } from "./game/reducer";
 import { hasSavedGame, loadGame, saveGame, type SavedGame } from "./game/resume";
 import type { LeaderboardStore } from "./leaderboard/leaderboard";
 import { createSupabaseLeaderboard } from "./leaderboard/supabaseLeaderboard";
@@ -180,12 +181,13 @@ export default function App({
           playerName={userName ?? ""}
           onNewGamePlus={() => (setResumeGame(null), setHardRun(true))}
           initial={resumeGame?.state}
+          start={LODGE_START}
           onSave={(state) => saveGame(userId, { state, playerClass, hard: hardRun })}
         />
       )}
       {screen === "lobby" &&
         (team.phase === "playing" ? (
-          <Overworld key={`team-${team.room}`} playerClass={playerClass} team={team} chat={chat} playerName={userName ?? ""} onMenu={leaveTeam} saved={loadedRows} onBadgeEarned={onBadgeEarned} saveFailed={saver.failed} />
+          <Overworld key={`team-${team.room}`} start={LODGE_START} playerClass={playerClass} team={team} chat={chat} playerName={userName ?? ""} onMenu={leaveTeam} saved={loadedRows} onBadgeEarned={onBadgeEarned} saveFailed={saver.failed} />
         ) : (
           <TeamLobby session={team} onBack={leaveTeam} chat={chat} defaultNickname={userName ?? undefined} playerClass={playerClass} />
         ))}

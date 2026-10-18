@@ -79,7 +79,7 @@ describe("App", () => {
     render(<GuestApp />);
     await user.click(screen.getByRole("button", { name: /solo quest/i }));
     await user.click(screen.getByRole("button", { name: "[ Start ]" }));
-    expect(screen.getByText("REGION: C++ PEAKS")).toBeInTheDocument();
+    expect(screen.getByText("REGION: SKI LODGE")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /solo quest/i })).toBeNull();
   });
 
@@ -101,12 +101,25 @@ describe("App", () => {
   });
 });
 
+describe("App: where a game begins", () => {
+  it("a new solo game starts inside the Ski Lodge, and walking out through the mat leads to the Peaks", async () => {
+    const user = userEvent.setup();
+    render(<GuestApp />);
+    await user.click(screen.getByRole("button", { name: /solo quest/i }));
+    await user.click(screen.getByRole("button", { name: "[ Start ]" }));
+    expect(screen.getByText("REGION: SKI LODGE")).toBeInTheDocument();
+    await user.keyboard("{ArrowDown}{ArrowDown}");
+    expect(screen.getByText("REGION: C++ PEAKS")).toBeInTheDocument();
+  });
+});
+
 describe("App navigation from the overworld", () => {
   it("[=] Menu returns to the main menu and Solo Quest starts a fresh game", async () => {
     const user = userEvent.setup();
     render(<GuestApp />);
     await user.click(screen.getByRole("button", { name: /solo quest/i }));
     await user.click(screen.getByRole("button", { name: "[ Start ]" }));
+    await user.keyboard("{ArrowDown}{ArrowDown}"); // out of the lodge, into the Peaks
     // The cache is north of the wall: open the gate first.
     await user.click(screen.getByRole("button", { name: "[G] Gate" }));
     await user.keyboard("block{Enter}");
@@ -119,6 +132,7 @@ describe("App navigation from the overworld", () => {
     await user.click(screen.getByRole("button", { name: "[ LEAVE ]" }));
     await user.click(screen.getByRole("button", { name: /solo quest/i }));
     await user.click(screen.getByRole("button", { name: "[ Start ]" }));
+    await user.keyboard("{ArrowDown}{ArrowDown}"); // out of the lodge, into the Peaks
     expect(screen.getByRole("button", { name: "[X] Supply Cache" })).toBeInTheDocument();
   });
 });
@@ -185,7 +199,7 @@ describe("App: accounts", () => {
     await user.click(screen.getByRole("button", { name: "[ Play as guest ]" }));
     await user.click(screen.getByRole("button", { name: /solo quest/i }));
     await user.click(screen.getByRole("button", { name: "[ Start ]" }));
-    expect(screen.getByText("REGION: C++ PEAKS")).toBeInTheDocument();
+    expect(screen.getByText("REGION: SKI LODGE")).toBeInTheDocument();
   });
 
   it("[ Add email ] is offered until the account has an email, validates it, and asks the player to confirm", async () => {
@@ -520,6 +534,7 @@ describe("App: a refresh resumes the solo game", () => {
   const begin = async (user: ReturnType<typeof userEvent.setup>) => {
     await user.click(screen.getByRole("button", { name: /solo quest/i }));
     await user.click(screen.getByRole("button", { name: "[ Start ]" }));
+    await user.keyboard("{ArrowDown}{ArrowDown}"); // out of the lodge, into the Peaks
   };
 
   it("there is no Continue before a game; after a refresh the game resumes by itself with its progress and class", async () => {
@@ -529,6 +544,7 @@ describe("App: a refresh resumes the solo game", () => {
     await user.click(screen.getByRole("button", { name: /solo quest/i }));
     await user.click(screen.getByRole("radio", { name: "Mage" }));
     await user.click(screen.getByRole("button", { name: "[ Start ]" }));
+    await user.keyboard("{ArrowDown}{ArrowDown}"); // out of the lodge, into the Peaks
     await user.click(screen.getByRole("button", { name: "[G] Gate" }));
     await user.keyboard("block{Enter}");
     first.unmount(); // a refresh: the page is gone, the browser's storage is not
