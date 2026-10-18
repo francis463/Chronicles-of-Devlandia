@@ -2,6 +2,7 @@ import { spriteBox } from "../sprites";
 import { BEACH_PIER, BEACH_SIGNPOST, FISHER, SANDCASTLE_POI, SHIPWRECK } from "../../game/constants";
 import { screenOffsets, worldScale, zoneToArt, zoneWorld, type ArtPoint, type Rect } from "../world";
 import { remedySpotsIn } from "./remedies";
+import { secretSpotsIn } from "./secrets";
 import type { Area, Prop, TerrainKind } from "./area";
 
 const WORLD_SIZE = zoneWorld("beach");
@@ -83,5 +84,5 @@ export const BEACH: Area = {
   gateBox: null,
   ice: null,
   props: PROPS,
-  protected: [...PATHS, MOUTH, ...PROPS.map((prop) => spriteBox(prop.sprite, prop.at)), ...remedySpotsIn("beach").map((r) => spriteBox(r.sprite, r.at))],
+  protected: [...PATHS, MOUTH, ...PROPS.map((prop) => spriteBox(prop.sprite, prop.at)), ...remedySpotsIn("beach").map((r) => spriteBox(r.sprite, r.at)), ...secretSpotsIn("beach").map((r) => spriteBox(r.sprite, r.at))],
 };

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SECRETS } from "../game/secrets";
 import type { Point } from "../game/types";
 import type { ZoneId } from "../game/zones";
 import { CHESTS, chestChallenge, type Chest, type Picks } from "../learn/chests";
@@ -36,6 +37,7 @@ export function Codex({
   progress,
   zone,
   player,
+  secrets = 0,
   onGoTo,
   onFinale,
   onClose,
@@ -49,6 +51,8 @@ export function Codex({
   /** Where you stand, for the "next closest" hint. */
   zone: ZoneId;
   player: Point;
+  /** How many of the six hidden spots you have found (your own count, in a team game too). */
+  secrets?: number;
   /** "Go there": the game closes the Codex and writes where the chest is. */
   onGoTo: (chest: ChestId) => void;
   /** With every badge earned: reopen the Master of Devlandia finale. */
@@ -151,6 +155,7 @@ export function Codex({
             <div className="h-full bg-[var(--success-border)] transition-all" style={{ width: `${(badges.length / total) * 100}%` }} />
           </div>
           <p className="text-[var(--text-muted)]">{nextHint({ badges, zone, player })}</p>
+          <p className="text-[var(--text-muted)]">{`Secrets found: ${secrets}/${SECRETS.length}`}</p>
           {onFinale && badges.length === total && (
             <button
               type="button"

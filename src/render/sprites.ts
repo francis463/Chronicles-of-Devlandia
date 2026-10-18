@@ -102,7 +102,13 @@ export type SpriteId =
   | "cold-drink"
   | "skull"
   | "bloom-cactus"
-  | "arch";
+  | "arch"
+  | "moss"
+  | "fox-den"
+  | "desert-cave"
+  | "dune-ridge"
+  | "tide-pool"
+  | "bottle";
 /** bottom: bottom-centre on the art point; centre: centred on it; hover: centred 12 px above it. */
 export type SpriteDef = { w: number; h: number; frames: PixelGrid[]; palette: Palette; anchor: "bottom" | "centre" | "hover" };
 export type TextureId = "ice" | "mountains" | "snow" | "forest" | "meadow" | "path" | "bank" | "sand" | "sea" | "dune" | "beach";
@@ -882,6 +888,77 @@ function coldDrinkGrid(): PixelGrid {
     rect(5, 0, 5, 5, "r"),
     ell(1.5, 3, 1.5, 1.5, "y"),
     rect(0, 10, 7, 10, "c"),
+  ]);
+}
+
+/** A soft clearing of moss: a green mound with paler tufts and two small stones. */
+function mossGrid(): PixelGrid {
+  return creature(24, 12, [
+    ell(12, 8, 11.5, 3.6, "m"),
+    ell(12, 6, 8.5, 3.6, "M"),
+    ell(9, 5, 3, 1.6, "l"),
+    ell(16, 6, 2.6, 1.4, "l"),
+    ell(4.5, 9, 2, 1.5, "s"),
+    ell(20, 9.4, 1.8, 1.3, "s"),
+  ]);
+}
+
+/** A fox's den: an earth mound with a dark round hole and a few roots over it. */
+function foxDenGrid(): PixelGrid {
+  return creature(24, 16, [
+    ell(12, 11, 11.5, 5, "e"),
+    ell(12, 8, 9, 6.5, "E"),
+    ell(12, 11.4, 4, 3.4, "k"),
+    rect(7, 4, 7, 7, "r"),
+    rect(16, 3, 16, 6, "r"),
+    rect(10, 13, 14, 14, "k"),
+  ]);
+}
+
+/** A hidden cave: a rock face with a dark opening and a pale mark above it. */
+function desertCaveGrid(): PixelGrid {
+  return creature(28, 20, [
+    ell(14, 13, 13.5, 6.5, "r"),
+    ell(14, 9, 11, 8.5, "R"),
+    ell(14, 14, 5, 5.2, "k"),
+    rect(9, 14, 19, 18, "k"),
+    rect(12, 3, 16, 3, "y"),
+    rect(3, 15, 6, 17, "r"),
+  ]);
+}
+
+/** A dune ridge: a long sand crest with a crooked line of stones along it. */
+function duneRidgeGrid(): PixelGrid {
+  return creature(32, 14, [
+    ell(16, 10, 15.5, 3.8, "d"),
+    ell(14, 7, 12, 4.5, "D"),
+    ell(6, 5, 1.8, 1.5, "s"),
+    ell(11, 3.6, 1.8, 1.5, "s"),
+    ell(17, 4.4, 1.8, 1.5, "s"),
+    ell(23, 3, 1.8, 1.5, "s"),
+  ]);
+}
+
+/** A tide pool: a rock-ringed oval of water with a starfish. */
+function tidePoolGrid(): PixelGrid {
+  return creature(26, 12, [
+    ell(13, 7, 12.5, 4.8, "s"),
+    ell(13, 7, 10, 3.2, "w"),
+    ell(10, 7, 3, 1.2, "W"),
+    ell(17, 6.4, 1.6, 1.3, "o"),
+    rect(2, 3, 4, 4, "s"),
+    rect(21, 2, 24, 3, "s"),
+  ]);
+}
+
+/** A glass bottle half buried in the sand, with a cork and a rolled note inside. */
+function bottleGrid(): PixelGrid {
+  return creature(10, 14, [
+    rect(3, 0, 6, 2, "c"),
+    rect(4, 3, 5, 5, "g"),
+    ell(4.5, 9, 4, 4, "g"),
+    rect(3, 7, 6, 11, "p"),
+    rect(1, 12, 8, 13, "y"),
   ]);
 }
 
@@ -2055,6 +2132,12 @@ export const SPRITES: Record<SpriteId, SpriteDef> = {
   herb: { w: 9, h: 10, anchor: "bottom", palette: { o: "#0b1020", g: "#22c55e", G: "#15803d", w: "#f8fafc", y: "#facc15" }, frames: [herbGrid()] },
   "cactus-fruit": { w: 10, h: 11, anchor: "bottom", palette: { o: "#0b1020", g: "#16a34a", G: "#14532d", r: "#ef4444" }, frames: [cactusFruitGrid()] },
   "cold-drink": { w: 8, h: 11, anchor: "bottom", palette: { o: "#0b1020", c: "#e0f2fe", b: "#38bdf8", r: "#ef4444", y: "#fde047" }, frames: [coldDrinkGrid()] },
+  moss: { w: 24, h: 12, anchor: "bottom", palette: { o: "#0b1020", m: "#3f8f3a", M: "#4ea84a", l: "#86d06a", s: "#8a8f98" }, frames: [mossGrid()] },
+  "fox-den": { w: 24, h: 16, anchor: "bottom", palette: { o: "#0b1020", e: "#6b4a2b", E: "#8a6238", k: "#1a1008", r: "#4a3320" }, frames: [foxDenGrid()] },
+  "desert-cave": { w: 28, h: 20, anchor: "bottom", palette: { o: "#0b1020", r: "#a8693a", R: "#c98852", k: "#150d08", y: "#fbbf24" }, frames: [desertCaveGrid()] },
+  "dune-ridge": { w: 32, h: 14, anchor: "bottom", palette: { o: "#0b1020", d: "#d9a445", D: "#ecc072", s: "#8c7f66" }, frames: [duneRidgeGrid()] },
+  "tide-pool": { w: 26, h: 12, anchor: "bottom", palette: { o: "#0b1020", s: "#7b8794", w: "#38bdf8", W: "#bae6fd", p: "#f97316" }, frames: [tidePoolGrid()] },
+  bottle: { w: 10, h: 14, anchor: "bottom", palette: { o: "#0b1020", c: "#b4793a", g: "#7dd3d8", p: "#f8f1d8", y: "#e7c98a" }, frames: [bottleGrid()] },
   skull: { w: 14, h: 10, anchor: "bottom", palette: { o: "#0b1020", w: "#f1ead6", k: "#2b2417" }, frames: [skullGrid()] },
   "bloom-cactus": { w: 18, h: 28, anchor: "bottom", palette: { o: "#0b1020", c: "#4d9e4d", G: "#2f7d3a", p: "#f472b6" }, frames: [bloomCactusGrid()] },
   arch: { w: 30, h: 24, anchor: "bottom", palette: { o: "#0b1020", r: "#c2763a", R: "#d99a5c", D: "#9a5a2a" }, frames: [archGrid()] },

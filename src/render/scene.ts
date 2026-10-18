@@ -10,6 +10,7 @@ import { tideStrips } from "../game/tide";
 import { DESERT_POINTS, JAR_POINTS, camelPose, fennecPose, scorpionPose, snakePose } from "./areas/desert";
 import { FOREST_POINTS, MUSHROOM_POINTS, deerPose, rabbitPose, squirrelPose } from "./areas/forest";
 import { remedySpotsIn } from "./areas/remedies";
+import { secretSpotsIn } from "./areas/secrets";
 import { CAVE_POINT, WILDLIFE, foxPose, goatPose } from "./areas/peaks";
 import { VILLAGE_LIFE, wandererPose } from "./areas/village";
 import { DOCK_POINT } from "./areas/peaks";
@@ -66,6 +67,8 @@ export type SceneInput = {
   jars?: readonly string[];
   /** The healing finds you have used: they leave the map. */
   remedies?: readonly string[];
+  /** The hidden spots you have found: they sparkle. */
+  secrets?: readonly string[];
   /** Every badge earned: your explorer wears a crown and the village lights fireworks. */
   master?: boolean;
   /** The Sunny Beach's sandcastle puzzle is solved: the castle stands finished. */
@@ -602,9 +605,35 @@ export function buildScene(input: SceneInput, poses: Poses, t: number, reduced: 
   const upright = base.upright
     .filter((d) => isActive(d.sprite, phase))
     .map((d) => (d.sprite === "campfire" && !campfireLit(phase) ? { ...d, frame: CAMPFIRE_OUT } : d));
-  const scene = { ...base, upright };
+  const spots = secretSpotsIn(input.zone);
+  const scene = spots.length === 0 ? { ...base, upright } : { ...base, upright: withSecrets(upright, spots), light: [...base.light, ...secretSparkles(spots, input.secrets ?? [], t, reduced)] };
   if (!input.master || input.downed) return scene;
   return { ...scene, upright: [...scene.upright, placed("crown", { x: poses.player.x, y: poses.player.y - 11 })] };
+}
+
+/** The zone's hidden spots, each placed among the sprites by its feet so what stands before it hides it. */
+function withSecrets(upright: Drawable[], spots: ReturnType<typeof secretSpotsIn>): Drawable[] {
+  const out = [...upright];
+  for (const spot of spots) {
+    const d = placed(spot.sprite, spot.at);
+    const at = out.findIndex((o) => feetRow(o) > feetRow(d));
+    out.splice(at < 0 ? out.length : at, 0, d);
+  }
+  return out;
+}
+
+/** A found spot twinkles: three pale pixels over it that take turns. Still when motion is reduced. */
+function secretSparkles(spots: ReturnType<typeof secretSpotsIn>, found: readonly string[], t: number, reduced: boolean): Pixel[] {
+  const step = reduced ? 0 : Math.floor(t / 400) % 3;
+  return spots.filter((s) => found.includes(s.id)).flatMap((s) => {
+    const box = spriteBox(s.sprite, s.at);
+    return [0, 1, 2].map((i): Pixel => ({
+      x: box.x + Math.floor(box.w * (0.2 + 0.3 * i)),
+      y: box.y - 3 - ((i + step) % 3),
+      color: "#fde68a",
+      alpha: i === step ? 1 : 0.5,
+    }));
+  });
 }
 
 /** The campfire sprite's third frame: cold logs. */

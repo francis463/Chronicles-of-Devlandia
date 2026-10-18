@@ -9,7 +9,8 @@ import { VILLAGE_LIFE, wandererPose } from "./areas/village";
 import { PHASE_TINT, buildScene, stormStrength, type Poses, type SceneInput } from "./scene";
 import { LIGHTS, SPRITES, spriteBox, type SpriteId } from "./sprites";
 import { BRIDGE_RECT, decorations } from "./terrain";
-import { REACHABLE_RECT, intersects, toArt } from "./world";
+import { SECRET_SPOTS } from "./areas/secrets";
+import { REACHABLE_RECT, intersects, reachableRect, toArt } from "./world";
 import { TERMINAL } from "../game/constants";
 
 /** How many 320 × 180 screens a zone is made of. */
@@ -1280,5 +1281,46 @@ describe("scene: the bigger Dense Forest", () => {
   it("the oak, the campfire and the lore landmarks all stand inside the world", () => {
     for (const p of Object.values(FOREST_POINTS)) expect(p.x >= 0 && p.x < width && p.y >= 0 && p.y < height).toBe(true);
     expect(Math.max(...Object.values(FOREST_POINTS).map((p) => p.x))).toBeGreaterThan(320);
+  });
+});
+
+describe("scene: the hidden spots", () => {
+  const SPOT_SPRITES = { "secret-moss": "moss", "secret-den": "fox-den", "secret-cave": "desert-cave", "secret-ridge": "dune-ridge", "secret-pool": "tide-pool", "secret-bottle": "bottle" } as const;
+  const inZone = (zone: ZoneId, over: Partial<SceneInput> = {}) => scene({ zone, player: { x: 50, y: 50 }, drone: { x: 52, y: 50 }, minutes: DAY, ...over });
+
+  it("each is drawn once, in its own zone only, and stays when found", () => {
+    for (const spot of SECRET_SPOTS) {
+      const sprite = SPOT_SPRITES[spot.id];
+      for (const zone of ["forest", "desert", "beach", "peaks", "village"] as const) {
+        const n = inZone(zone).upright.filter((d) => d.sprite === sprite).length;
+        expect(n, `${spot.id} in ${zone}`).toBe(zone === spot.zone ? 1 : 0);
+      }
+      expect(inZone(spot.zone, { secrets: [spot.id] }).upright.filter((d) => d.sprite === sprite)).toHaveLength(1);
+    }
+  });
+
+  it("a found one sparkles, an unfound one does not", () => {
+    for (const spot of SECRET_SPOTS) {
+      const box = spriteBox(SPOT_SPRITES[spot.id], spot.at);
+      const sparkles = (found: boolean) => inZone(spot.zone, { secrets: found ? [spot.id] : [] }).light.filter((p) => p.color === "#fde68a" && p.x >= box.x && p.x < box.x + box.w && p.y >= box.y - 4 && p.y < box.y + box.h);
+      expect(sparkles(true).length, spot.id).toBeGreaterThan(0);
+      expect(sparkles(false), spot.id).toHaveLength(0);
+    }
+  });
+
+  it("they stand in the new part of the big areas, away from the start", () => {
+    for (const spot of SECRET_SPOTS) expect(spot.at.x > 320 || spot.at.y > 180 || spot.at.x < 90 || spot.at.y < 60, spot.id).toBe(true);
+  });
+
+  it("each stands inside the walkable area, clear of every prop, path and other spot", () => {
+    for (const spot of SECRET_SPOTS) {
+      const area = AREAS[spot.zone];
+      const box = spriteBox(spot.sprite, spot.at);
+      const walk = reachableRect(area.world);
+      expect(box.x >= walk.x && box.y >= walk.y && box.x + box.w <= walk.x + walk.w && box.y + box.h <= walk.y + walk.h, `${spot.id} inside`).toBe(true);
+      for (const prop of area.props) expect(intersects(box, spriteBox(prop.sprite, prop.at)), `${spot.id} vs ${prop.sprite}`).toBe(false);
+      for (const path of area.paths) expect(intersects(box, path), `${spot.id} vs a path`).toBe(false);
+      for (const other of SECRET_SPOTS) if (other.id !== spot.id && other.zone === spot.zone) expect(intersects(box, spriteBox(other.sprite, other.at)), `${spot.id} vs ${other.id}`).toBe(false);
+    }
   });
 });

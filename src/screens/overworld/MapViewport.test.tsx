@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, screen, within } from "@testing-librar
 import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POIS } from "../../game/constants";
+import { SECRETS } from "../../game/secrets";
 import type { SceneInput } from "../../render/scene";
 import { MapViewport } from "./MapViewport";
 
@@ -684,5 +685,37 @@ describe("MapViewport on the real Sunny Beach", () => {
     expect(view({ x: 6, y: 70 })).toEqual({ left: 0, width: 640 * 3 });
     cleanup();
     expect(view({ x: 94, y: 70 }).left).toBe(1100 - 640 * 3);
+  });
+});
+
+describe("MapViewport: the hidden spots", () => {
+  const SPOTS = [["forest", "secret-moss", "Moss Clearing"], ["forest", "secret-den", "Fox Den"], ["desert", "secret-cave", "Hidden Cave"], ["desert", "secret-ridge", "Dune Ridge"], ["beach", "secret-pool", "Tide Pool"], ["beach", "secret-bottle", "Message in a Bottle"]] as const;
+
+  it("each is a button of its zone whose caption shows only when you are beside it, and it never peeks on hover", () => {
+    for (const [zone, id, label] of SPOTS) {
+      const spot = SECRETS.find((s) => s.id === id)!;
+      const { unmount } = render(<MapViewport {...props({ zone })} />);
+      const button = screen.getByRole("button", { name: label });
+      const caption = within(button).getByText(label, { selector: "span" });
+      expect(caption, `${id} far`).toHaveClass("opacity-0");
+      expect(caption.className, `${id} peek`).not.toContain("group-hover");
+      unmount();
+      render(<MapViewport {...props({ zone, player: { x: spot.x, y: spot.y }, inRange: spot, prompt: `[E] Search ${label}` })} />);
+      expect(within(screen.getByRole("button", { name: label })).getByText(label, { selector: "span" }), `${id} near`).not.toHaveClass("opacity-0");
+      cleanup();
+    }
+  });
+
+  it("pressing one asks the game to interact with it from anywhere", () => {
+    const onInteract = vi.fn();
+    render(<MapViewport {...props({ zone: "desert", onInteract })} />);
+    fireEvent.click(screen.getByRole("button", { name: "Hidden Cave" }));
+    expect(onInteract).toHaveBeenCalledWith("secret-cave");
+  });
+
+  it("the scene is told which spots you have found, and a spot is not one zone's button in another", () => {
+    render(<MapViewport {...props({ zone: "forest", secrets: ["secret-moss"] })} />);
+    expect(drawn.at(-1)!.input.secrets).toEqual(["secret-moss"]);
+    expect(screen.queryByRole("button", { name: "Hidden Cave" })).toBeNull();
   });
 });

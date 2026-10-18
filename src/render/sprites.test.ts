@@ -569,3 +569,32 @@ describe("the Sunny Beach's tide and pier art", () => {
     expect(top(built)).toBeLessThan(top(unbuilt));
   });
 });
+
+describe("the hidden spots' art", () => {
+  const SIZES = [["moss", 24, 12], ["fox-den", 24, 16], ["desert-cave", 28, 20], ["dune-ridge", 32, 14], ["tide-pool", 26, 12], ["bottle", 10, 14]] as const;
+
+  it("have their declared sizes, one frame and a bottom anchor, with only palette characters", () => {
+    for (const [id, w, h] of SIZES) {
+      expect([SPRITES[id].w, SPRITES[id].h, SPRITES[id].anchor, SPRITES[id].frames.length], id).toEqual([w, h, "bottom", 1]);
+      expect(SPRITES[id].frames[0], id).toHaveLength(h);
+      for (const row of SPRITES[id].frames[0]) {
+        expect(row, id).toHaveLength(w);
+        for (const ch of row) if (ch !== ".") expect(SPRITES[id].palette[ch], `${id} '${ch}'`).toBeDefined();
+      }
+    }
+  });
+
+  it("every edge is the shared dark outline", () => {
+    for (const [id] of SIZES) {
+      const frame = SPRITES[id].frames[0];
+      const solid = (x: number, y: number) => y >= 0 && y < frame.length && x >= 0 && x < frame[y].length && frame[y][x] !== ".";
+      frame.forEach((row, y) =>
+        [...row].forEach((ch, x) => {
+          if (ch === ".") return;
+          const edge = !solid(x - 1, y) || !solid(x + 1, y) || !solid(x, y - 1) || !solid(x, y + 1);
+          if (edge) expect(SPRITES[id].palette[ch], `${id} edge at ${x},${y}`).toBe(OUTLINE);
+        }),
+      );
+    }
+  });
+});

@@ -1,6 +1,8 @@
 import { DESERT_JARS, DESERT_LORE } from "../../game/desertLore";
 import { REMEDIES, remediesIn } from "../../game/remedies";
 import { REMEDY_SPOTS } from "../../render/areas/remedies";
+import { SECRET_SPOTS } from "../../render/areas/secrets";
+import { SECRETS, secretsIn } from "../../game/secrets";
 import { FOREST_LORE, FOREST_MUSHROOMS } from "../../game/forestLore";
 import type { PoiId, Point } from "../../game/types";
 import type { ZoneId } from "../../game/zones";
@@ -154,6 +156,7 @@ export const LANDMARK_CAPTIONS: readonly LandmarkCaption[] = [
   { id: "obelisk", zone: "desert", sprite: "obelisk", point: DESERT_POINTS.obelisk, texts: ["Obelisk"], prefer: "above", quiet: true },
   ...JAR_POINTS.map((j): LandmarkCaption => ({ id: j.id, zone: "desert", sprite: "jar", point: j.at, texts: ["Jar"], prefer: "below", quiet: true })),
   ...REMEDY_SPOTS.map((r): LandmarkCaption => ({ id: r.id, zone: r.zone, sprite: r.sprite, point: r.at, texts: [REMEDIES.find((x) => x.id === r.id)!.short], prefer: "below", quiet: true })),
+  ...SECRET_SPOTS.map((s): LandmarkCaption => ({ id: s.id, zone: s.zone, sprite: s.sprite, point: s.at, texts: [SECRETS.find((x) => x.id === s.id)!.label], prefer: "above", quiet: true })),
   { id: "dock", zone: "peaks", sprite: "dock", point: DOCK_POINT, texts: ["[B] Dock"], prefer: "below" },
   { id: "peaks-signpost", zone: "peaks", sprite: "signpost", point: SIGNPOST_POINT, texts: ["[P] Signpost"], prefer: "above", quiet: true },
   { id: "weather-station", zone: "peaks", sprite: "station", point: STATION_POINT, texts: ["[W] Weather Station"], prefer: "above", quiet: true },
@@ -297,3 +300,6 @@ export function promptRect(text: string, player: ArtPoint, world: WorldRect, map
   const below = above < EDGE;
   return { left: centre - width / 2, top: below ? feet + 4 : above, width, height, below };
 }
+
+/** The hidden spots' buttons in each big area. Their captions show only when you are beside them, and never on hover, so you find them by looking. */
+export const SECRET_SCENERY = Object.fromEntries((["forest", "desert", "beach"] as const).map((z) => [z, secretsIn(z).map((p) => ({ id: p.id, label: p.label, prefer: "above" as const }))])) as Record<"forest" | "desert" | "beach", Array<{ id: PoiId; label: string; prefer: "above" }>>;

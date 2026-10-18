@@ -9,7 +9,7 @@ import type { QuestProgress } from "../learn/codexModel";
 
 const picks = Object.fromEntries(CHEST_IDS.map((id) => [id, 0])) as Picks;
 const NONE: QuestProgress = { gateUnlocked: false, questComplete: false, hasLoot: false, clueDecoded: false, artifactFound: false, towerPowered: false, lighthouseLit: false, archiveOpen: false };
-const codex = (badges: ChestId[], over: { team?: boolean; answered?: Partial<Record<ChestId, string>>; picks?: Picks; progress?: Partial<QuestProgress>; onGoTo?: (c: ChestId) => void } = {}) => {
+const codex = (badges: ChestId[], over: { team?: boolean; answered?: Partial<Record<ChestId, string>>; picks?: Picks; progress?: Partial<QuestProgress>; onGoTo?: (c: ChestId) => void; secrets?: number } = {}) => {
   const onClose = vi.fn();
   const onGoTo = over.onGoTo ?? vi.fn();
   return {
@@ -22,6 +22,7 @@ const codex = (badges: ChestId[], over: { team?: boolean; answered?: Partial<Rec
         picks={over.picks ?? picks}
         team={over.team ?? false}
         progress={{ ...NONE, ...over.progress }}
+        secrets={over.secrets}
         zone="peaks"
         player={{ x: 28, y: 72 }}
         onGoTo={onGoTo}
@@ -110,6 +111,14 @@ describe("Codex", () => {
     const meter = screen.getByRole("meter", { name: "Badges earned" });
     expect([meter.getAttribute("aria-valuenow"), meter.getAttribute("aria-valuemax")]).toEqual(["1", "11"]);
     expect(screen.getByText(/^Next closest: Ice Cave, \d+ steps away\.$/)).toBeInTheDocument();
+  });
+
+  it("says how many of the six hidden spots you have found, and none before the first", () => {
+    const { unmount } = render(codex([]).ui);
+    expect(screen.getByText("Secrets found: 0/6")).toBeInTheDocument();
+    unmount();
+    render(codex([], { secrets: 2, team: true }).ui);
+    expect(screen.getByText("Secrets found: 2/6")).toBeInTheDocument();
   });
 
   it("the story checklist ticks what is done and says where to look for the rest", () => {

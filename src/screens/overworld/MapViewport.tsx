@@ -24,6 +24,7 @@ import {
   BEACH_SCENERY,
   DESERT_SCENERY,
   FOREST_SCENERY,
+  SECRET_SCENERY,
   LANDMARK_CAPTIONS,
   captionRect,
   captionText,
@@ -228,6 +229,7 @@ export function MapViewport({
   mushrooms = [],
   jars = [],
   remedies = [],
+  secrets = [],
   sandcastleBuilt = false,
   matcherSolved,
   archiveOpen,
@@ -270,6 +272,8 @@ export function MapViewport({
   jars?: readonly PoiId[];
   /** The healing finds you have used: they leave the map. */
   remedies?: readonly PoiId[];
+  /** The hidden spots you have found: they sparkle, and their captions show only when you are beside them. */
+  secrets?: readonly PoiId[];
   /** The sandcastle puzzle is solved: the castle draws finished, and its caption gets a tick. */
   sandcastleBuilt?: boolean;
   matcherSolved: boolean;
@@ -357,6 +361,7 @@ export function MapViewport({
     mushrooms,
     jars,
     remedies,
+    secrets,
     sandcastleBuilt,
     master: badges.length >= CHEST_COUNT,
     minutes,
@@ -470,6 +475,9 @@ export function MapViewport({
             {FOREST_SCENERY.filter((l) => !mushrooms.includes(l.id) && !remedies.includes(l.id)).map((l) => (
               <LandmarkButton key={l.id} hit={hits[l.id]} name={caption(l.id)} label={l.label} color="var(--accent)" world={world} map={map} prefer={l.prefer} disabled={downed} hideCaption={smallMap && inRange?.id !== l.id} peek passive={smallMap} onClick={() => onInteract(l.id)} />
             ))}
+            {SECRET_SCENERY.forest.map((l) => (
+              <LandmarkButton key={l.id} hit={hits[l.id]} name={caption(l.id)} label={l.label} color="var(--accent)" world={world} map={map} prefer={l.prefer} disabled={downed} hideCaption={inRange?.id !== l.id} onClick={() => onInteract(l.id)} />
+            ))}
           </>
         ) : zone === "beach" ? (
           <>
@@ -481,6 +489,9 @@ export function MapViewport({
               <LandmarkButton key={l.id} hit={hits[l.id]} name={caption(l.id)} label={l.label} color="var(--accent)" world={world} map={map} prefer={l.prefer} disabled={downed} hideCaption={smallMap && inRange?.id !== l.id} peek passive={smallMap} onClick={() => onInteract(l.id)} />
             ))}
             <LandmarkButton hit={hits["beach-signpost"]} name={caption("beach-signpost")} label="Signpost" color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "beach-signpost"} onClick={() => onInteract("beach-signpost")} />
+            {SECRET_SCENERY.beach.map((l) => (
+              <LandmarkButton key={l.id} hit={hits[l.id]} name={caption(l.id)} label={l.label} color="var(--accent)" world={world} map={map} prefer={l.prefer} disabled={downed} hideCaption={inRange?.id !== l.id} onClick={() => onInteract(l.id)} />
+            ))}
           </>
         ) : zone === "desert" ? (
           <>
@@ -490,6 +501,9 @@ export function MapViewport({
             <LandmarkButton hit={hits["desert-signpost"]} name={caption("desert-signpost")} label="Signpost" color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "desert-signpost"} onClick={() => onInteract("desert-signpost")} />
             {DESERT_SCENERY.filter((l) => !jars.includes(l.id) && !remedies.includes(l.id)).map((l) => (
               <LandmarkButton key={l.id} hit={hits[l.id]} name={caption(l.id)} label={l.label} color="var(--accent)" world={world} map={map} prefer={l.prefer} disabled={downed} hideCaption={smallMap && inRange?.id !== l.id} peek passive={smallMap} onClick={() => onInteract(l.id)} />
+            ))}
+            {SECRET_SCENERY.desert.map((l) => (
+              <LandmarkButton key={l.id} hit={hits[l.id]} name={caption(l.id)} label={l.label} color="var(--accent)" world={world} map={map} prefer={l.prefer} disabled={downed} hideCaption={inRange?.id !== l.id} onClick={() => onInteract(l.id)} />
             ))}
           </>
         ) : zone === "foggaten" ? (

@@ -365,6 +365,7 @@ export function Overworld({
           mushrooms={state.mushrooms}
           jars={state.jars}
           remedies={state.remedies}
+          secrets={state.secrets}
           sandcastleBuilt={state.sandcastleBuilt}
           matcherSolved={state.matcherSolved}
           archiveOpen={state.archiveOpen}
@@ -445,6 +446,7 @@ export function Overworld({
           picks={state.picks}
           team={team !== undefined}
           progress={state}
+          secrets={state.secrets.length}
           zone={state.zone}
           player={state.player}
           onGoTo={goTo}
