@@ -402,8 +402,8 @@ describe("the Sunbaked Desert's area", () => {
 
   it("its props are inside the world, clear of each other and the mouth, and are protected", () => {
     const base = ["explorer-down", "oasis", "obelisk", "palm", "palm", "pyramid", "riverbed", "rock", "signpost", "temple-door", "tent", "well"];
-    // A bigger desert has an arch, cacti, a skull and a palm out in the dunes.
-    const extras = K === 1 ? [] : ["arch", "bloom-cactus", "cactus", "cactus", "palm", "skull"];
+    // A bigger desert has a palm grove round the oasis, a ruin, bones, cactus and rock patches and bushes out in the dunes.
+    const extras = K === 1 ? [] : ["arch", "arch", "bloom-cactus", "bloom-cactus", "bloom-cactus", "bloom-cactus", "cactus", "cactus", "cactus", "cactus", "cactus", "cactus", "cactus", "cactus", "dry-bush", "dry-bush", "dry-bush", "dry-bush", "dry-bush", "palm", "palm", "palm", "palm", "rock", "rock", "rock", "rock", "skull", "skull"];
     expect(D.props.map((p) => p.sprite).sort()).toEqual([...base, ...extras].sort());
     const boxes = D.props.map((p) => spriteBox(p.sprite, p.at));
     for (const [i, a] of boxes.entries()) {

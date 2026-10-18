@@ -1249,6 +1249,21 @@ describe("scene: the bigger Sunbaked Desert", () => {
     for (const [name, test] of [["east", (d: { x: number }) => d.x > 320], ["south", (d: { y: number }) => d.y > 180]] as const) expect(v.some(test), name).toBe(true);
   });
 
+  it("the sand between the landmarks has little scenes, a palm grove round the oasis and cactus patches, in every quarter", () => {
+    const oasis = AREAS.desert.props.find((p) => p.sprite === "oasis")!.at;
+    const palms = AREAS.desert.props.filter((p) => p.sprite === "palm" && Math.hypot(p.at.x - oasis.x, p.at.y - oasis.y) < 90);
+    expect(palms.length).toBeGreaterThanOrEqual(4);
+    const walk = reachableRect(AREAS.desert.world);
+    const scenery = AREAS.desert.props.filter((p) => !["pyramid", "oasis", "signpost", "explorer-down", "tent", "well", "temple-door", "riverbed", "obelisk"].includes(p.sprite));
+    for (const [qx, qy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
+      const inQuarter = scenery.filter((p) => (p.at.x >= walk.x + (walk.w / 2) * qx) && p.at.x < walk.x + (walk.w / 2) * (qx + 1) && p.at.y >= walk.y + (walk.h / 2) * qy && p.at.y < walk.y + (walk.h / 2) * (qy + 1));
+      expect(inQuarter.length, `quarter ${qx},${qy}`).toBeGreaterThanOrEqual(5);
+    }
+    const cacti = scenery.filter((p) => p.sprite === "cactus" || p.sprite === "bloom-cactus");
+    const clustered = cacti.filter((c) => cacti.some((o) => o !== c && Math.hypot(o.at.x - c.at.x, o.at.y - c.at.y) < 30));
+    expect(clustered.length).toBeGreaterThanOrEqual(6);
+  });
+
   it("the animals live in the wider desert, each in its own zone", () => {
     const zones = Object.values(DESERT_WILDLIFE).map((a) => a.zone);
     expect(Math.max(...zones.map((z) => z.x + z.w))).toBeGreaterThan(320);
