@@ -5,6 +5,7 @@ import {
   INITIAL_LOGS,
   LOG,
   LOG_LIMIT,
+  LOW_HP,
   MAX_HP,
   PLAYER_START,
   RIVER_DAMAGE,
@@ -119,6 +120,11 @@ const DELTAS: Record<Direction, Point> = {
 };
 
 /** Adds a line unless it is already the newest one (bumping the wall again, or pressing on). */
+/** The log warns once, as your health falls to LOW_HP (not again until you have healed above it). */
+function warnLow(before: GameState, after: GameState): GameState {
+  return before.hp > LOW_HP && after.hp > 0 && after.hp <= LOW_HP ? pushLog(after, LOG.lowHp) : after;
+}
+
 function pushLogOnce(state: GameState, message: string): GameState {
   return state.logs.at(-1) === message ? state : pushLog(state, message);
 }
@@ -208,7 +214,7 @@ function submitChest(state: GameState, open: ChallengeState, chest: ChestId, c: 
 /** New Game+: a wrong chest answer costs HP, and at 0 the terminal closes so you can respawn. */
 function hardPenalty(state: GameState): GameState {
   const hp = Math.max(0, state.hp - HARD_WRONG_DAMAGE);
-  return pushLog({ ...state, hp, challenge: hp === 0 ? null : state.challenge }, LOG.hardMiss);
+  return warnLow(state, pushLog({ ...state, hp, challenge: hp === 0 ? null : state.challenge }, LOG.hardMiss));
 }
 
 /** The Syntax Matcher: a right pairing prints the access code and shows the success view. */
@@ -283,7 +289,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       };
     case "riverDamage": {
       if (isDowned(state) || state.towerPowered || !inRiver(state)) return state;
-      const hurt = pushLog({ ...state, hp: Math.max(0, state.hp - RIVER_DAMAGE) }, LOG.coldExposure);
+      const hurt = warnLow(state, pushLog({ ...state, hp: Math.max(0, state.hp - RIVER_DAMAGE) }, LOG.coldExposure));
       return isDowned(hurt) ? pushLog(hurt, LOG.downed) : hurt;
     }
     case "droneFollow":

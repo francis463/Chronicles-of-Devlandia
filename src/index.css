@@ -62,3 +62,12 @@ body {
 @keyframes ping-ring { from { scale: 0.4; opacity: 1; } to { scale: 1.6; opacity: 0; } }
 /* The finale's confetti: each piece falls once past the card and fades out. */
 @keyframes confetti-fall { from { translate: 0 -30px; opacity: 1; } to { translate: 0 260px; opacity: 0; } }
+
+/* Health feedback: a red flash when hurt, a green one when healed (each plays once; not at all with reduced motion). */
+@keyframes hp-hurt { from { opacity: 0.55; } to { opacity: 0; } }
+@keyframes hp-heal { from { opacity: 0.45; } to { opacity: 0; } }
+.hp-flash { animation-duration: 500ms; animation-fill-mode: forwards; animation-timing-function: ease-out; }
+.hp-flash-hurt { background: radial-gradient(ellipse at center, transparent 35%, #dc2626 100%); animation-name: hp-hurt; }
+.hp-flash-heal { background: radial-gradient(ellipse at center, transparent 35%, #22c55e 100%); animation-name: hp-heal; }
+.hp-low { background: radial-gradient(ellipse at center, transparent 55%, rgba(220, 38, 38, 0.4) 100%); }
+@media (prefers-reduced-motion: reduce) { .hp-flash { display: none; } }

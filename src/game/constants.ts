@@ -55,6 +55,8 @@ export const SAIL_LANDING = { foggaten: { x: 24, y: 62 }, peaks: { x: 78, y: 74 
 export const RIVER_ZONE = { minX: 24, maxX: 76, minY: 28, maxY: 39 };
 
 export const MAX_HP = 100;
+/** At or under this many HP the hearts pulse, the screen edges glow red and the log warns you once. */
+export const LOW_HP = 30;
 export const START_MINUTES = 19 * 60 + 29;
 export const MINUTES_PER_DAY = 1440;
 export const TICK_MS = 2000;
@@ -108,6 +110,7 @@ export const LOG = {
   dockLocked: "The boatman waits for the gate to open",
   castleBuilt: "The sandcastle stands finished, a flag on its tallest tower.",
   finale: "All 11 badges earned: you are a Master of Devlandia!",
+  lowHp: "Low health! Eat or rest, or ask a teammate to share water.",
   hardMiss: `Hard mode: -${HARD_WRONG_DAMAGE} HP.`,
   badge: (badge: string) => `Earned the ${badge} Badge.`,
   matcher: (code: string) => `Syntax Terminal: access code ${code}.`,

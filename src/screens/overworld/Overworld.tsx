@@ -14,7 +14,7 @@ import type { GameState } from "../../game/types";
 import { countUnread, lastSeq, useChat, type ChatFeed } from "../../hooks/useChat";
 import { usePings } from "../../hooks/usePings";
 import type { TeamSession } from "../../hooks/useTeamSession";
-import { LOG, TICK_MS } from "../../game/constants";
+import { LOG, LOW_HP, TICK_MS } from "../../game/constants";
 import { tideName } from "../../game/tide";
 import { flagsOf, teamMinutes } from "../../game/team";
 import { ZONES } from "../../game/zones";
@@ -112,6 +112,15 @@ export function Overworld({
   const hasProgress = state.badges.length > 0 || state.matcherSolved || Object.values(flagsOf(state)).some(Boolean);
   useGameTimers(state, dispatch, leaving || helpOpen);
   const downed = isDowned(state);
+  // A flash over the map when your health falls (red) or rises (green); it is state, not a timer, so the CSS animation plays once.
+  const lastHp = useRef(state.hp);
+  const [pulse, setPulse] = useState<{ kind: "hurt" | "heal"; n: number } | null>(null);
+  useEffect(() => {
+    if (state.hp === lastHp.current) return;
+    const kind = state.hp < lastHp.current ? "hurt" : "heal";
+    lastHp.current = state.hp;
+    setPulse((p) => ({ kind, n: (p?.n ?? 0) + 1 }));
+  }, [state.hp]);
 
   // ── Chat, commands and your own view ──
   const own = useChat(chat ? null : (team ?? null));
@@ -262,7 +271,9 @@ export function Overworld({
         playerColor={team?.me?.color}
         chatHint={team ? "Chat: [Enter]" : "Commands: [/]"}
       />
-      <div className="flex min-w-0 flex-col md:col-start-2 md:row-start-2 md:row-span-3">
+      <div className="relative flex min-w-0 flex-col md:col-start-2 md:row-start-2 md:row-span-3">
+        {pulse && <div key={pulse.n} aria-hidden="true" className={`hp-flash hp-flash-${pulse.kind} pointer-events-none absolute inset-0 z-10`} />}
+        {state.hp > 0 && state.hp <= LOW_HP && <div aria-hidden="true" data-testid="low-hp" className="hp-low pointer-events-none absolute inset-0 z-10 motion-safe:animate-pulse" />}
         <MapViewport
           zone={state.zone}
           player={state.player}

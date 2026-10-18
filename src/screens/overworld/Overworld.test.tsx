@@ -58,6 +58,23 @@ describe("Overworld HUD", () => {
     expect(screen.getByText("Dusk / 19:29")).toBeInTheDocument();
   });
 
+  it("a red edge glow shows at 30 HP or less, and not above 30 or at 0", () => {
+    const glow = (hp: number) => {
+      const view = render(<Overworld onMenu={() => {}} initial={{ hp }} />);
+      const shown = screen.queryByTestId("low-hp") !== null;
+      view.unmount();
+      return shown;
+    };
+    expect([glow(20), glow(30), glow(31), glow(100), glow(0)]).toEqual([true, true, false, false, false]);
+  });
+
+  it("flashes red over the map when you are hurt", () => {
+    const { container } = render(<Overworld onMenu={() => {}} initial={{ hp: 90, player: { x: 50, y: 33 } }} />);
+    expect(container.querySelector(".hp-flash")).toBeNull();
+    act(() => vi.advanceTimersByTime(RIVER_DAMAGE_MS));
+    expect(container.querySelector(".hp-flash-hurt")).not.toBeNull();
+  });
+
   it("pauses the clock while downed", () => {
     render(<Overworld onMenu={() => {}} initial={{ hp: 0 }} />);
     act(() => vi.advanceTimersByTime(6000));

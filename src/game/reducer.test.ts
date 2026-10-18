@@ -85,6 +85,15 @@ describe("gameReducer: riverDamage", () => {
     expect(lastLog(s)).toBe("Cold exposure: -8 HP.");
   });
 
+  it("warns once as health falls to 30, not again while it stays low", () => {
+    const falling = gameReducer({ ...inRiver, hp: 36 }, { type: "riverDamage" });
+    expect(falling.hp).toBe(28);
+    expect(falling.logs.slice(-2)).toEqual(["Cold exposure: -8 HP.", "Low health! Eat or rest, or ask a teammate to share water."]);
+    const again = gameReducer(falling, { type: "riverDamage" });
+    expect(again.logs.filter((l) => l.startsWith("Low health")).length).toBe(falling.logs.filter((l) => l.startsWith("Low health")).length);
+    expect(gameReducer({ ...inRiver, hp: 60 }, { type: "riverDamage" }).logs.some((l) => l.startsWith("Low health"))).toBe(false);
+  });
+
   it("floors HP at 0", () => {
     const s = gameReducer({ ...inRiver, hp: 5 }, { type: "riverDamage" });
     expect(s.hp).toBe(0);

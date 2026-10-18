@@ -2,7 +2,7 @@ import { CLASSES, type ClassId } from "../../game/classes";
 import { formatTime, phaseOf } from "../../game/clock";
 import { MAX_HP } from "../../game/constants";
 import { Button } from "../../ui/Button";
-import { Meter } from "../../ui/Meter";
+import { Hearts } from "../../ui/Hearts";
 import { PhaseIcon } from "./PhaseIcon";
 
 export function TopHud({
@@ -43,7 +43,7 @@ export function TopHud({
   return (
     <header className={`flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b-2 border-[var(--panel-border)] bg-[var(--bg)] px-3 py-2 ${className}`}>
       <div className="flex flex-wrap items-center gap-4">
-        <Meter label="HP" value={hp} max={MAX_HP} tone="accent" />
+        <Hearts value={hp} max={MAX_HP} />
         {playerClass && <span className="text-[10px] uppercase tracking-widest text-[var(--text-muted)]">{`Class: ${CLASSES[playerClass].name}`}</span>}
         {hard && <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--danger-border)]">Hard mode</span>}
       </div>
