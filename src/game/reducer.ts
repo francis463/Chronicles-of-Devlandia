@@ -36,7 +36,7 @@ import { ZONES, arrival, doorAt, exitFor, type ZoneId } from "./zones";
 import { FISHER_LINE } from "./beach";
 import { nomadSays } from "./desert";
 import { reachFor, stepFor } from "./zoneSize";
-import { REMEDIES, REMEDY_HEAL, isRemedy, remedyFine } from "./remedies";
+import { REMEDIES, REMEDY_HEAL, isRemedy, remedyPacked } from "./remedies";
 import { KEEPER, LODGE_BOOK, SOUP, keeperSays } from "./lodge";
 import { SECRETS, firstSentence, isSecret } from "./secrets";
 import { DESERT_JARS, DESERT_LOG, DESERT_LORE, JAR_TIPS, isJar } from "./desertLore";
@@ -83,6 +83,7 @@ export const initialState: GameState = {
   remedies: [],
   secrets: [],
   soupTaken: false,
+  food: 0,
   nomadServed: false,
   sandcastleBuilt: false,
   codexOpen: false,
@@ -359,8 +360,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         const talked = pushLogOnce({ ...state, inspected: "lodge-keeper" }, `Keeper: "${keeperSays(state)}"`);
         // The map's button works from anywhere; the soup needs you beside her. Hard mode never offers it.
         if (state.hard || state.soupTaken || distance(state.player, KEEPER) > reachFor(state.zone)) return talked;
-        if (state.hp >= MAX_HP) return pushLogOnce(talked, SOUP.fine);
-        return pushLog({ ...talked, soupTaken: true, hp: Math.min(MAX_HP, state.hp + REMEDY_HEAL) }, SOUP.served);
+        return pushLog({ ...talked, soupTaken: true, food: state.food + 1 }, SOUP.served);
       }
       if (action.poi === "lodge-door" || action.poi === "lodge-fireplace") return { ...state, inspected: action.poi };
       if (action.poi === "fisher") return pushLogOnce({ ...state, inspected: "fisher" }, `Fisher: "${FISHER_LINE}"`);
@@ -373,10 +373,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       }
       if (isRemedy(action.poi)) {
         const remedy = REMEDIES.find((r) => r.id === action.poi)!;
-        // The map's button works from anywhere; taking it needs you beside it. A full-health player saves it for later.
+        // The map's button works from anywhere; taking it needs you beside it. It goes into your bag as food.
         if (state.remedies.includes(remedy.id) || distance(state.player, remedy) > reachFor(state.zone)) return { ...state, inspected: remedy.id };
-        if (state.hp >= MAX_HP) return pushLog({ ...state, inspected: remedy.id }, remedyFine(remedy.label));
-        return pushLog({ ...state, inspected: remedy.id, remedies: [...state.remedies, remedy.id], hp: Math.min(MAX_HP, state.hp + REMEDY_HEAL) }, remedy.healed);
+        return pushLog({ ...state, inspected: remedy.id, remedies: [...state.remedies, remedy.id], food: state.food + 1 }, remedyPacked(remedy.label));
       }
       if (isSecret(action.poi)) {
         const secret = SECRETS.find((x) => x.id === action.poi)!;
@@ -531,6 +530,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     }
     case "note":
       return pushLog(state, action.text);
+    case "eat": {
+      if (isDowned(state) || state.food <= 0) return state;
+      if (state.hp >= MAX_HP) return pushLogOnce(state, LOG.notHungry);
+      return pushLog({ ...state, food: state.food - 1, hp: Math.min(MAX_HP, state.hp + REMEDY_HEAL) }, LOG.ate);
+    }
     case "shareWater": {
       if (isDowned(state)) return state;
       if (state.hp >= MAX_HP) return pushLog(state, LOG.waterNotNeeded(action.from));

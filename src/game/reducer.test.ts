@@ -1274,24 +1274,35 @@ describe("gameReducer: healing finds", () => {
     }
   });
 
-  it("picking one beside it heals 2 HP once, logs it, and it leaves the map", () => {
+  it("picking one beside it packs it as food once, logs it, and it leaves the map", () => {
     for (const f of FINDS) {
       const s = gameReducer(beside(f.id, f.zone, 2), { type: "interact", poi: f.id });
-      expect(s.hp, f.id).toBe(4);
+      expect(s.hp, f.id).toBe(2);
+      expect(s.food).toBe(1);
       expect(s.remedies).toEqual([f.id]);
-      expect(lastLog(s)).toMatch(/\+2 HP\.$/);
-      expect(gameReducer(s, { type: "interact", poi: f.id }).hp).toBe(4);
+      expect(lastLog(s)).toMatch(/as food\./);
+      expect(gameReducer(s, { type: "interact", poi: f.id }).food).toBe(1);
     }
   });
 
-  it("never heals past the maximum", () => {
-    expect(gameReducer(beside("remedy-herb", "forest", 4), { type: "interact", poi: "remedy-herb" }).hp).toBe(5);
+  it("a full-health player can pick one up too: it waits in the bag", () => {
+    const s = gameReducer(beside("remedy-fruit", "desert", 5), { type: "interact", poi: "remedy-fruit" });
+    expect([s.remedies, s.food, s.hp]).toEqual([["remedy-fruit"], 1, 5]);
   });
 
-  it("at full health you save it for later: nothing is used up", () => {
-    const s = gameReducer(beside("remedy-fruit", "desert", 5), { type: "interact", poi: "remedy-fruit" });
-    expect(s.remedies).toEqual([]);
-    expect(lastLog(s)).toBe("You feel fine. Come back to the cactus fruit when you are hurt.");
+  it("eating heals 2 HP and uses one up, never past the maximum", () => {
+    const hurt = gameReducer({ ...initialState, hp: 2, food: 2 }, { type: "eat" });
+    expect([hurt.hp, hurt.food]).toEqual([4, 1]);
+    expect(lastLog(hurt)).toBe("You eat some food: +2 HP.");
+    expect(gameReducer({ ...initialState, hp: 4, food: 1 }, { type: "eat" }).hp).toBe(5);
+  });
+
+  it("eating at full health or with no food changes nothing", () => {
+    const full = gameReducer({ ...initialState, hp: 5, food: 1 }, { type: "eat" });
+    expect([full.hp, full.food]).toEqual([5, 1]);
+    expect(lastLog(full)).toMatch(/not hungry/);
+    const none = { ...initialState, hp: 2, food: 0 };
+    expect(gameReducer(none, { type: "eat" })).toBe(none);
   });
 
   it("from across the map the button only shows its card", () => {

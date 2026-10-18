@@ -8,7 +8,6 @@ import { cardFor } from "./cards";
 import { promptText } from "./geometry";
 import { KEEPER, LODGE_BOOK, SOUP, keeperLine } from "./lodge";
 import { MAX_HP } from "./constants";
-import { REMEDY_HEAL } from "./remedies";
 import { loadGame } from "./resume";
 
 const at = (zone: ZoneId, x: number, y: number) => ({ ...initialState, zone, player: { x, y } });
@@ -138,26 +137,19 @@ describe("the lodge keeper and her soup", () => {
     expect(lines[4]).not.toContain("shelf");
   });
 
-  it("a hurt player beside her gets the soup once: +2 hearts, logged, and not again", () => {
-    const s = talk(beside({ hp: 2 }));
-    expect(s.hp).toBe(2 + REMEDY_HEAL);
-    expect(s.soupTaken).toBe(true);
-    expect(s.logs.at(-1)).toBe(SOUP.served);
-    const again = talk({ ...s, hp: 1 });
-    expect(again.hp).toBe(1);
-    expect(again.logs.at(-1)).toMatch(/^Keeper: /);
-  });
-
-  it("at full health she only says to come back, and the soup is not used up", () => {
-    const s = talk(beside({ hp: MAX_HP }));
-    expect(s.soupTaken).toBe(false);
-    expect(s.hp).toBe(MAX_HP);
-    expect(s.logs.at(-1)).toBe(SOUP.fine);
-    expect(talk({ ...s, hp: 1 }).hp).toBe(1 + REMEDY_HEAL);
+  it("beside her you get a bowl of soup once, packed as food, hurt or not", () => {
+    for (const hp of [2, MAX_HP]) {
+      const s = talk(beside({ hp }));
+      expect([s.hp, s.food, s.soupTaken]).toEqual([hp, 1, true]);
+      expect(s.logs.at(-1)).toBe(SOUP.served);
+      const again = talk({ ...s, hp: 1 });
+      expect(again.food).toBe(1);
+      expect(again.logs.at(-1)).toMatch(/^Keeper: /);
+    }
   });
 
   it("never in hard mode, and from far away she only talks", () => {
-    expect(talk(beside({ hp: 2, hard: true })).hp).toBe(2);
+    expect(talk(beside({ hp: 2, hard: true })).food).toBe(0);
     expect(talk(beside({ hp: 2, hard: true })).soupTaken).toBe(false);
     const far = talk(beside({ hp: 2, player: { x: 80, y: 20 } }));
     expect([far.hp, far.soupTaken, far.inspected]).toEqual([2, false, "lodge-keeper"]);

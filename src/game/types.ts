@@ -131,6 +131,8 @@ export type GameState = {
   remedies: RemedyId[];
   /** The lodge keeper's soup has been served (once per game). */
   soupTaken: boolean;
+  /** Pieces of food in your bag: healing finds and the keeper's soup. Eating one heals. */
+  food: number;
   /** The hidden spots you have found (personal, not shared with the team). */
   secrets: SecretId[];
   nomadServed: boolean;
@@ -165,6 +167,7 @@ export type GameAction =
   | { type: "resetLogic" }
   | { type: "toggleCodex" }
   | { type: "toggleBook" }
+  | { type: "eat" }
   | { type: "openFinale" }
   | { type: "closeFinale" }
   /** The Codex's "Go there": close it and log where the chest is. */

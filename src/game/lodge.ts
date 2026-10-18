@@ -37,9 +37,8 @@ export function keeperLine(s: Progress): string {
 
 /** Her soup: served once when you are hurt, never in hard mode. */
 export const SOUP = {
-  served: "The keeper's soup is hot and hearty: +2 HP.",
-  fine: "You feel fine. Come back for the keeper's soup when you are hurt.",
-  offer: "Hurt? A bowl of my soup will mend you.",
+  served: "The keeper packs you a bowl of soup. Eat it from your inventory when you are hurt.",
+  offer: "Take a bowl of my soup for the road. It will mend you.",
   taken: "Warm up by the fire any time.",
 } as const;
 

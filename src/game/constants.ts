@@ -120,6 +120,8 @@ export const LOG = {
   waterGiven: (name: string) => `You shared water with ${name}.`,
   waterOffline: "The team connection is down: your water did not go out.",
   waterEmpty: "Your bottle is empty. Give it a few seconds to fill.",
+  ate: "You eat some food: +2 HP.",
+  notHungry: "You are not hungry. Eat when you are hurt.",
   lowHp: "Low health! Eat or rest, or ask a teammate to share water.",
   hardMiss: `Hard mode: -${HARD_WRONG_DAMAGE} HP.`,
   badge: (badge: string) => `Earned the ${badge} Badge.`,

@@ -430,6 +430,8 @@ export function Overworld({
       />
       <BottomHud
         className={mapOnly ? "hidden!" : "md:col-span-2 md:row-start-5"}
+        food={state.food}
+        onEat={() => dispatch({ type: "eat" })}
         hasLoot={state.hasLoot}
         clueDecoded={state.clueDecoded}
         artifactFound={state.artifactFound}
