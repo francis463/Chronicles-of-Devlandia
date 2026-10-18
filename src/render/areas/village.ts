@@ -1,3 +1,4 @@
+import { zoneWorld } from "../world";
 import type { Pose } from "../motion";
 import { ARCHIVE_POINT, TERMINAL_POINT } from "../learnPoints";
 import { spriteBox } from "../sprites";
@@ -84,6 +85,7 @@ const PROPS: Prop[] = [
 
 export const VILLAGE: Area = {
   id: "village",
+  world: zoneWorld("village"),
   wall: false,
   terrainAt,
   paths: PATHS,

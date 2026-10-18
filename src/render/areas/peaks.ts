@@ -1,6 +1,6 @@
 import { spriteBox, type SpriteId } from "../sprites";
 import { DOCK, PEAKS_SIGNPOST, SNOW_CAVE, WEATHER_STATION } from "../../game/constants";
-import { toArt, type ArtPoint, type Rect } from "../world";
+import { toArt, type ArtPoint, type Rect, zoneWorld } from "../world";
 import { inRect, type Area, type Prop, type TerrainKind } from "./area";
 
 /** Exactly the river's cold-damage zone (RIVER_ZONE x 24–76 %, y 28–39 %). */
@@ -160,6 +160,7 @@ const PEAKS_PROPS: Prop[] = [...CAMP_PROPS, ...TRAIL_POSTS.map((at): Prop => ({ 
 
 export const PEAKS: Area = {
   id: "peaks",
+  world: zoneWorld("peaks"),
   wall: true,
   terrainAt,
   paths: [...PATH_RECTS, WEST_PATH, SOUTH_BRANCH, SOUTH_PATH],

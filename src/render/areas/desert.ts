@@ -1,7 +1,7 @@
 import { spriteBox } from "../sprites";
 import { DESERT_PYRAMID, DESERT_SIGNPOST, NOMAD, OASIS } from "../../game/constants";
 import { DESERT_JARS, DESERT_LORE } from "../../game/desertLore";
-import { toArt, type Rect } from "../world";
+import { toArt, type Rect, zoneWorld } from "../world";
 import { remedySpotsIn } from "./remedies";
 import type { Area, Prop, TerrainKind } from "./area";
 import { animalPose, type AnimalPose, type Wild } from "./peaks";
@@ -74,6 +74,7 @@ const PATHS: Rect[] = [
 
 export const DESERT: Area = {
   id: "desert",
+  world: zoneWorld("desert"),
   wall: false,
   terrainAt,
   paths: PATHS,

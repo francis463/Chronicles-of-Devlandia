@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import { DRONE_START, PLAYER_START } from "../game/constants";
 import { visibleArt } from "./paint";
 import { spriteBox } from "./sprites";
-import { MAX_ZOOM, REACHABLE_RECT, autoZoom, backdropWorld, fitStep, fitWorld, zoomLabel, grow, intersects, toArt, type ArtPoint, type Rect, type ViewSize } from "./world";
+import { ZONE_SCALE } from "../game/zoneSize";
+import { AREAS } from "./areas";
+import type { ZoneId } from "../game/zones";
+import { MAX_ZOOM, REACHABLE_RECT, autoZoom, reachableRect, zoneWorld, backdropWorld, fitStep, fitWorld, zoomLabel, grow, intersects, toArt, type ArtPoint, type Rect, type ViewSize } from "./world";
 
 const r1 = (n: number) => Math.round(n * 10) / 10;
 const inside = (p: ArtPoint, r: Rect) => p.x >= r.x && p.x < r.x + r.w && p.y >= r.y && p.y < r.y + r.h;
@@ -175,5 +178,31 @@ describe("fitWorld zoom", () => {
     expect(zoomLabel(view(900, 600), 1)).toBe("1.5×");
     expect(zoomLabel(view(900, 600), 2)).toBe("2×");
     expect(zoomLabel(view(320, 180), 3)).toBe("4×");
+  });
+});
+
+describe("zone worlds", () => {
+  const big = { width: 640, height: 360 };
+
+  it("the reachable rectangle is the game's bounds in art pixels, for any world size", () => {
+    expect(reachableRect()).toEqual({ x: 19, y: 18, w: 283, h: 145 });
+    expect(REACHABLE_RECT).toEqual(reachableRect());
+    expect(reachableRect(big)).toEqual({ x: 38, y: 36, w: 565, h: 289 });
+  });
+
+  it("toArt scales a percent by the world it is given", () => {
+    expect(toArt({ x: 50, y: 50 })).toEqual({ x: 160, y: 90 });
+    expect(toArt({ x: 50, y: 50 }, big)).toEqual({ x: 320, y: 180 });
+  });
+
+  it("zoneWorld is the screen times the zone's scale, and every area carries it", () => {
+    try {
+      ZONE_SCALE.beach = 2;
+      expect(zoneWorld("beach")).toEqual(big);
+      expect(zoneWorld("forest")).toEqual({ width: 320, height: 180 });
+    } finally {
+      ZONE_SCALE.beach = 1;
+    }
+    for (const zone of Object.keys(AREAS) as ZoneId[]) expect(AREAS[zone].world, zone).toEqual(zoneWorld(zone));
   });
 });

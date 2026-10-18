@@ -1,6 +1,6 @@
 import { spriteBox } from "../sprites";
 import { HERMIT, HIDDEN_ARTIFACT, ISLAND_DOCK, ISLAND_FIRE, LIGHTHOUSE, RUINS } from "../../game/constants";
-import { REACHABLE_RECT, toArt, type Rect } from "../world";
+import { REACHABLE_RECT, toArt, type Rect, zoneWorld } from "../world";
 import { inRect, type Area, type Prop, type TerrainKind } from "./area";
 
 /** Foggaten Island's places in art px (the game's ISLAND_DOCK, LIGHTHOUSE, HERMIT, ISLAND_FIRE and RUINS). */
@@ -51,6 +51,7 @@ function terrainAt(x: number, y: number): TerrainKind {
 
 export const FOGGATEN: Area = {
   id: "foggaten",
+  world: zoneWorld("foggaten"),
   wall: false,
   terrainAt,
   paths: PATHS,

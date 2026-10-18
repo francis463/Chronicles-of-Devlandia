@@ -1,4 +1,7 @@
+import { BOUNDS } from "../game/constants";
 import type { Point } from "../game/types";
+import { ZONE_SCALE } from "../game/zoneSize";
+import type { ZoneId } from "../game/zones";
 
 /** The map's art resolution: one art pixel is drawn as a whole number of device pixels. */
 export const WORLD = { width: 320, height: 180 } as const;
@@ -7,19 +10,30 @@ export const WORLD = { width: 320, height: 180 } as const;
 export type Rect = { x: number; y: number; w: number; h: number };
 export type ArtPoint = { x: number; y: number };
 
-/** Where the player can stand: the game's BOUNDS (x 6–94 %, y 10–90 %) in art pixels. */
-export const REACHABLE_RECT: Rect = { x: 19, y: 18, w: 283, h: 145 };
+/** A zone's world in art pixels. */
+export type WorldSize = { width: number; height: number };
+
+/** A zone's world: the 320 × 180 screen times the zone's scale (`ZONE_SCALE`). */
+export const zoneWorld = (zone: ZoneId): WorldSize => ({ width: WORLD.width * ZONE_SCALE[zone], height: WORLD.height * ZONE_SCALE[zone] });
+
+/** Where the player can stand: the game's BOUNDS (x 6–94 %, y 10–90 %) in art pixels, in a world of any size. */
+export function reachableRect(world: WorldSize = WORLD): Rect {
+  const lo = toArt({ x: BOUNDS.minX, y: BOUNDS.minY }, world);
+  const hi = toArt({ x: BOUNDS.maxX, y: BOUNDS.maxY }, world);
+  return { x: lo.x, y: lo.y, w: hi.x - lo.x + 1, h: hi.y - lo.y + 1 };
+}
+
+export const REACHABLE_RECT: Rect = reachableRect();
 
 export const intersects = (a: Rect, b: Rect): boolean =>
   a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 
 export const grow = (r: Rect, by: number): Rect => ({ x: r.x - by, y: r.y - by, w: r.w + 2 * by, h: r.h + 2 * by });
 
-/** A game point (percent of the world) as an art pixel. */
-export const toArt = (p: Point): ArtPoint => ({
-  x: Math.round((p.x / 100) * WORLD.width),
-  y: Math.round((p.y / 100) * WORLD.height),
-});
+/** A game point (percent of the zone) as an art pixel of that zone's world (the 320 × 180 screen unless told otherwise). */
+export function toArt(p: Point, world: WorldSize = WORLD): ArtPoint {
+  return { x: Math.round((p.x / 100) * world.width), y: Math.round((p.y / 100) * world.height) };
+}
 
 export type ViewSize = { width: number; height: number; dpr: number };
 

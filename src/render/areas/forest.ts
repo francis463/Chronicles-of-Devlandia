@@ -1,7 +1,7 @@
 import { FOREST_LORE, FOREST_MUSHROOMS } from "../../game/forestLore";
 import { remedySpotsIn } from "./remedies";
 import { spriteBox } from "../sprites";
-import { toArt, type Rect } from "../world";
+import { toArt, type Rect, zoneWorld } from "../world";
 import { inRect, type Area, type Prop, type TerrainKind } from "./area";
 import { animalPose, type AnimalPose, type Wild } from "./peaks";
 import type { ArtPoint } from "../world";
@@ -88,6 +88,7 @@ const PATHS: Rect[] = [
 
 export const FOREST: Area = {
   id: "forest",
+  world: zoneWorld("forest"),
   wall: false,
   terrainAt,
   paths: PATHS,

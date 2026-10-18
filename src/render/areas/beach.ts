@@ -1,6 +1,6 @@
 import { spriteBox } from "../sprites";
 import { BEACH_PIER, BEACH_SIGNPOST, FISHER, SANDCASTLE_POI, SHIPWRECK } from "../../game/constants";
-import { toArt, type Rect } from "../world";
+import { toArt, type Rect, zoneWorld } from "../world";
 import { remedySpotsIn } from "./remedies";
 import type { Area, Prop, TerrainKind } from "./area";
 
@@ -51,6 +51,7 @@ const PATHS: Rect[] = [
 
 export const BEACH: Area = {
   id: "beach",
+  world: zoneWorld("beach"),
   wall: false,
   terrainAt,
   paths: PATHS,

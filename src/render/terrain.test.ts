@@ -226,7 +226,7 @@ describe("decorations at sea", () => {
 });
 
 describe("dune decorations", () => {
-  const dunes: Area = { id: "desert", wall: false, terrainAt: () => "dune", paths: [], mouths: [], corridors: [], gateBox: null, ice: null, props: [], protected: [] };
+  const dunes: Area = { id: "desert", world: { width: 320, height: 180 }, wall: false, terrainAt: () => "dune", paths: [], mouths: [], corridors: [], gateBox: null, ice: null, props: [], protected: [] };
   const found = decorations(VIEW, dunes);
 
   it("a dune area gets only desert scenery: cacti, palms, dry bushes, rocks, skulls and arches", () => {
@@ -242,7 +242,7 @@ describe("dune decorations", () => {
 });
 
 describe("beach decorations", () => {
-  const sand: Area = { id: "beach", wall: false, terrainAt: () => "beach", paths: [], mouths: [], corridors: [], gateBox: null, ice: null, props: [], protected: [] };
+  const sand: Area = { id: "beach", world: { width: 320, height: 180 }, wall: false, terrainAt: () => "beach", paths: [], mouths: [], corridors: [], gateBox: null, ice: null, props: [], protected: [] };
   const found = decorations(VIEW, sand);
 
   it("a beach area gets only palms and rocks", () => {

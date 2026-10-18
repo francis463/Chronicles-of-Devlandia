@@ -1,6 +1,6 @@
 import type { ZoneId } from "../../game/zones";
 import type { SpriteId } from "../sprites";
-import type { ArtPoint, Rect } from "../world";
+import type { ArtPoint, Rect, WorldSize } from "../world";
 
 export type TerrainKind = "ice" | "mountains" | "snow" | "forest" | "meadow" | "sand" | "sea" | "dune" | "beach";
 
@@ -14,6 +14,8 @@ export type Prop = { sprite: SpriteId; at: ArtPoint; variant?: string };
  */
 export type Area = {
   id: ZoneId;
+  /** The area's world in art pixels (a whole number of screens). */
+  world: WorldSize;
   /** Whether the north wall runs across this zone. */
   wall: boolean;
   terrainAt(x: number, y: number): TerrainKind;
