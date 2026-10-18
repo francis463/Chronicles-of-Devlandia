@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AuthClient } from "./auth/authClient";
 import { DEFAULT_CLASS, type ClassId } from "./game/classes";
-import { loadGame, saveGame, type SavedGame } from "./game/resume";
+import { hasSavedGame, loadGame, saveGame, type SavedGame } from "./game/resume";
 import type { LeaderboardStore } from "./leaderboard/leaderboard";
 import { createSupabaseLeaderboard } from "./leaderboard/supabaseLeaderboard";
 import { createSupabaseAuth } from "./auth/supabaseAuth";
@@ -139,6 +139,8 @@ export default function App({
   };
 
   // Before the menu: the login screen, a Google player's name, or a password reset.
+  // A saved game is about to resume: show a blank page meanwhile, not a flash of the login screen or the menu.
+  if ((auth.status === "loading" && hasSavedGame()) || (playing && !autoResumed.current && resumable)) return <main className="min-h-screen" aria-busy="true" />;
   if (auth.status === "loading" || auth.status === "signedOut") return <AuthScreen auth={auth} />;
   if (auth.status === "needsName") return <ChooseName auth={auth} />;
   if (auth.status === "recovery") return <SetPassword auth={auth} />;

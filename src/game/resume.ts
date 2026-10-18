@@ -54,6 +54,15 @@ export function loadGame(userId: string | null): SavedGame | null {
   }
 }
 
+/** Whether any saved game is waiting in this browser (whoever it belongs to). */
+export function hasSavedGame(): boolean {
+  try {
+    return localStorage.getItem(KEY) !== null;
+  } catch {
+    return false;
+  }
+}
+
 export function clearGame(): void {
   try {
     localStorage.removeItem(KEY);
