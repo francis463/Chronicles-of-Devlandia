@@ -54,7 +54,7 @@ The touch controls only appear on touch screens; keyboard players never see them
 - **Supply Cache:** open it for a Repair Patch.
 - **Hidden artifact:** the Supply Cache also holds an encrypted scroll. Click `[ Decode Scroll ]` in the bottom bar and decode it (it uses ROT13: every letter is shifted 13 places). The decoded clue says where the **Golden Semicolon** is buried; take the boat to Foggaten Island and walk to its south-east corner (the dig spot is only there) and press `E` (or the touch `[E]` button) to dig it up. The spot stays hidden until you've decoded the scroll.
 - **Signal Tower:** press `E` next to the tower in the snowy top-left (or click `[T] Tower`). Flip switches A–D and press `[ RUN CIRCUIT ]`: every line (`A AND B`, `B XOR C`, `NOT D`) must output 1. The readout shows your switches as a binary and decimal number. Powering the tower lifts the fog of war and rebuilds the bridge, which makes the river safe to cross.
-- **At 0 HP** you're downed. Click `[ Respawn ]` to return to base camp.
+- **At 0 HP** you're downed. Click `[ Respawn ]` to wake up inside the Ski Lodge, by the fire, with full hearts (from any zone).
 - The clock advances 5 in-game minutes every 2 seconds and cycles through day, dusk and night.
 - **Commands:** the side panel has a `LOG` tab and a `CHAT` tab (`COMMANDS` in a solo game). Type `/help` to see what runs where you are:
   - `/where` where your teammates are · `/time` the game clock · `/badges [name]` your badges, or what you know of a teammate's

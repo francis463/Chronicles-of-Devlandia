@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { DRONE_START, PLAYER_START } from "./constants";
 import { distance } from "./geometry";
 import { gameReducer, initialState } from "./reducer";
 import { ZONES, arrival, doorAt, type ZoneId } from "./zones";
@@ -74,9 +73,12 @@ describe("the Ski Lodge zone", () => {
     expect(gameReducer({ ...at("peaks", 22, 88), codexOpen: true }, { type: "move", dir: "left" }).zone).toBe("peaks");
   });
 
-  it("respawning from the lodge returns to the Peaks start", () => {
-    const s = gameReducer({ ...at("lodge", 50, 50), hp: 0 }, { type: "respawn" });
-    expect([s.zone, s.player, s.drone]).toEqual(["peaks", PLAYER_START, DRONE_START]);
+  it("respawning, from the Peaks or from inside the lodge, puts you inside the lodge by the fire, away from the mat", () => {
+    for (const from of [at("lodge", 50, 50), at("peaks", 60, 40), at("forest", 30, 30)]) {
+      const s = gameReducer({ ...from, hp: 0 }, { type: "respawn" });
+      expect([s.zone, s.player, s.drone, s.hp]).toEqual(["lodge", { x: 50, y: 78 }, { x: 48, y: 80 }, 5]);
+      expect(doorAt("lodge", s.player), "not on the mat").toBeNull();
+    }
   });
 
   it("a fresh game has not had the soup", () => {

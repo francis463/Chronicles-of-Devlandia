@@ -37,7 +37,7 @@ export const PLAY: ReadonlyArray<{ title: string; text: string }> = [
   },
   {
     title: "Staying safe",
-    text: "Only the frozen river hurts you: its cold drains HP until the signal tower's beam brings the bridge back. If your HP runs out you wake up at base camp.",
+    text: "Only the frozen river hurts you: its cold drains HP until the signal tower's beam brings the bridge back. If your HP runs out you wake up inside the Ski Lodge.",
   },
 ];
 

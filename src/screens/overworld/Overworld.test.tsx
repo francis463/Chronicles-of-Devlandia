@@ -234,7 +234,7 @@ describe("Overworld timers", () => {
     await user.click(screen.getByRole("button", { name: "[ Respawn ]" }));
     expect(screen.queryByText("DOWNED")).toBeNull();
     expect(screen.getAllByRole("meter")[0]).toHaveAttribute("aria-valuenow", "5");
-    expect(screen.getByText("Drone revived you at base camp.")).toBeInTheDocument();
+    expect(screen.getByText("Drone revived you in the Ski Lodge.")).toBeInTheDocument();
   });
 
   it("focuses Respawn when the player goes down and disables the covered map buttons", () => {

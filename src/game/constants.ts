@@ -89,7 +89,7 @@ export const LOG = {
   questComplete: "Quest complete: Frozen River surveyed.",
   coldExposure: `Cold exposure: -${RIVER_DAMAGE} HP.`,
   gateUnlocked: "Gate unlocked. The way north is open.",
-  revived: "Drone revived you at base camp.",
+  revived: "Drone revived you in the Ski Lodge.",
   gateOpen: "Gate open. The way north is clear.",
   downed: "You are downed. Press Respawn.",
   scrollFound: "Found an encrypted scroll: QRAFR SBERFG",

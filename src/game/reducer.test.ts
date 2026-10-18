@@ -202,12 +202,13 @@ describe("gameReducer: terminal", () => {
 });
 
 describe("gameReducer: respawn", () => {
-  it("restores HP, returns player and drone to start, and logs", () => {
+  it("restores HP, brings player and drone inside the Ski Lodge by the fire, and logs", () => {
     const s = gameReducer({ ...s0, hp: 0, player: { x: 50, y: 33 }, drone: { x: 52, y: 34 } }, { type: "respawn" });
     expect(s.hp).toBe(5);
-    expect(s.player).toEqual({ x: 28, y: 72 });
-    expect(s.drone).toEqual({ x: 36, y: 70 });
-    expect(lastLog(s)).toBe("Drone revived you at base camp.");
+    expect(s.zone).toBe("lodge");
+    expect(s.player).toEqual({ x: 50, y: 78 });
+    expect(s.drone).toEqual({ x: 48, y: 80 });
+    expect(lastLog(s)).toBe("Drone revived you in the Ski Lodge.");
   });
 });
 
@@ -519,10 +520,10 @@ describe("gameReducer: zones", () => {
     expect(s.player).toEqual({ x: 90, y: 72 });
   });
 
-  it("respawn returns to camp in the Peaks", () => {
+  it("respawn returns to the Ski Lodge from any zone", () => {
     const s = gameReducer({ ...s0, zone: "village", hp: 0, player: { x: 60, y: 70 } }, { type: "respawn" });
-    expect(s.zone).toBe("peaks");
-    expect(s.player).toEqual({ x: 28, y: 72 });
+    expect(s.zone).toBe("lodge");
+    expect(s.player).toEqual({ x: 50, y: 78 });
   });
 
   it("the village has no wall: you walk north of the old wall line, gate open or not", () => {
@@ -887,11 +888,11 @@ describe("gameReducer: the Dense Forest (Review Focus 1 and 5)", () => {
     expect(south.logs).toEqual(s0.logs);
   });
 
-  it("the river's cold never applies in the forest, and a downed player respawns at the Peaks camp", () => {
+  it("the river's cold never applies in the forest, and a downed player respawns in the Ski Lodge", () => {
     const onIce: GameState = { ...s0, zone: "forest", player: { x: 50, y: 33 } };
     expect(gameReducer(onIce, { type: "riverDamage" })).toBe(onIce);
     const s = gameReducer({ ...s0, zone: "forest", hp: 0, player: { x: 60, y: 70 } }, { type: "respawn" });
-    expect([s.zone, s.player, s.drone]).toEqual(["peaks", { x: 28, y: 72 }, { x: 36, y: 70 }]);
+    expect([s.zone, s.player, s.drone]).toEqual(["lodge", { x: 50, y: 78 }, { x: 48, y: 80 }]);
   });
 });
 
