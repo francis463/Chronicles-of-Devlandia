@@ -42,6 +42,9 @@ export const intersects = (a: Rect, b: Rect): boolean =>
 
 export const grow = (r: Rect, by: number): Rect => ({ x: r.x - by, y: r.y - by, w: r.w + 2 * by, h: r.h + 2 * by });
 
+/** A game point (percent of a zone) as an art pixel of that zone's world. */
+export const zoneToArt = (p: Point, zone: ZoneId): ArtPoint => toArt(p, zoneWorld(zone));
+
 /** A game point (percent of the zone) as an art pixel of that zone's world (the 320 × 180 screen unless told otherwise). */
 export function toArt(p: Point, world: WorldSize = WORLD): ArtPoint {
   return { x: Math.round((p.x / 100) * world.width), y: Math.round((p.y / 100) * world.height) };

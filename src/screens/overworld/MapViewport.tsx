@@ -351,7 +351,7 @@ export function MapViewport({
     lightMode,
     snow,
   };
-  const me = toArt(player);
+  const me = toArt(player, zoneSize);
   const fogX = world.left + me.x * world.scale;
   const fogY = world.top + (me.y - 8) * world.scale;
   const prompt = inRange ? promptRect(promptText, me, world, map) : null;

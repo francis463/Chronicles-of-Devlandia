@@ -2,6 +2,7 @@ import { act, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Scene, SceneInput } from "../../render/scene";
 import { spriteBox } from "../../render/sprites";
+import { AREAS } from "../../render/areas";
 import { fitWorld, toArt } from "../../render/world";
 import { MapCanvas } from "./MapCanvas";
 
@@ -232,5 +233,23 @@ describe("MapCanvas footprints", () => {
     rerender(<MapCanvas input={{ ...input, player: { x: 36, y: 72 } }} world={world} onScene={(s) => scenes.push(s)} />);
     for (let i = 0; i < 12; i++) frame();
     expect(scenes.at(-1)!.glints.filter((p) => p.color === "#94a3b8")).toEqual([]);
+  });
+});
+
+describe("MapCanvas in a bigger zone", () => {
+  const forest = AREAS.forest.world;
+  afterEach(() => void (AREAS.forest.world = forest));
+
+  it("draws the explorer where the zone's own world puts the player", () => {
+    fakeContexts();
+    const scenes: Scene[] = [];
+    AREAS.forest.world = { width: 640, height: 360 };
+    const bigWorld = fitWorld({ width: 1100, height: 540, dpr: 1 }, 0, toArt({ x: 50, y: 50 }, AREAS.forest.world), AREAS.forest.world);
+    render(<MapCanvas input={{ ...input, zone: "forest", player: { x: 50, y: 50 }, drone: { x: 52, y: 50 } }} world={bigWorld} onScene={(s) => scenes.push(s)} />);
+    frame();
+    frame();
+    const me = explorers(scenes.at(-1)!).find((d) => d.variant.startsWith(input.playerColor))!;
+    expect(me.x).toBe(spriteBox("explorer-down", { x: 320, y: 180 }).x);
+    expect(me.y).toBe(spriteBox("explorer-down", { x: 320, y: 180 }).y);
   });
 });

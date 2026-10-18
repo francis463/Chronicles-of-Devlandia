@@ -3,6 +3,7 @@ import { useReducedMotion } from "../../hooks/useReducedMotion";
 import { createMotion, poseAt, retarget, snap, type EntityKind, type Motion } from "../../render/motion";
 import { createGroundCache, createSpriteCache, paintScene, type Ctx2D, type MakeCanvas } from "../../render/paint";
 import { buildScene, type Poses, type Scene, type SceneInput } from "../../render/scene";
+import { AREAS } from "../../render/areas";
 import { toArt, type WorldRect } from "../../render/world";
 import type { Point } from "../../game/types";
 
@@ -49,7 +50,7 @@ export function MapCanvas({ input, world, onScene }: { input: SceneInput; world:
     let raf = 0;
 
     const track = (key: string, kind: EntityKind, p: Point, t: number, reducedNow: boolean, jump: boolean) => {
-      const at = toArt(p);
+      const at = toArt(p, AREAS[latest.current.input.zone].world);
       const m = motions.get(key);
       const next = !m ? createMotion(kind, at, t) : jump ? snap(m, at, t) : retarget(m, at, t, reducedNow);
       motions.set(key, next);

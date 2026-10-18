@@ -294,3 +294,23 @@ describe("exit signs per zone", () => {
     expect(west.right <= south.left || south.right <= west.left || west.bottom <= south.top || south.bottom <= west.top).toBe(true);
   });
 });
+
+describe("captions of landmarks far off the map (a zone bigger than the view)", () => {
+  const map = { width: 600, height: 360 };
+  const hitAt = (left: number, top: number): CssRect => ({ left, top, width: 44, height: 44 });
+
+  it("a landmark on the map keeps its chip inside it", () => {
+    const chip = captionRect("[G] Gate", hitAt(-10, 100), map);
+    expect(chip.left).toBeGreaterThanOrEqual(2);
+    const east = captionRect("[G] Gate", hitAt(590, 100), map);
+    expect(east.left + east.width).toBeLessThanOrEqual(map.width - 2);
+  });
+
+  it("a landmark far outside it keeps its chip beside it, not pulled onto the map", () => {
+    const far = hitAt(1500, 100);
+    const chip = captionRect("[G] Gate", far, map);
+    expect(chip.left + chip.width / 2).toBeCloseTo(far.left + far.width / 2);
+    const west = hitAt(-900, 100);
+    expect(captionRect("[G] Gate", west, map).left + captionRect("[G] Gate", west, map).width / 2).toBeCloseTo(west.left + west.width / 2);
+  });
+});

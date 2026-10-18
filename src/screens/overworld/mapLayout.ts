@@ -15,7 +15,7 @@ import { VILLAGE_POINTS } from "../../render/areas/village";
 import { ARCHIVE_POINT, TERMINAL_POINT } from "../../render/learnPoints";
 import { spriteBox, type SpriteId } from "../../render/sprites";
 import { LANDMARK_POINTS } from "../../render/terrain";
-import { toArt, type ArtPoint, type Rect, type WorldRect } from "../../render/world";
+import { zoneToArt, type ArtPoint, type Rect, type WorldRect } from "../../render/world";
 
 // Text metrics of the 10 px uppercase tracking-widest JetBrains Mono used on the map:
 // 6 px per character plus 1 px of letter spacing, on a 15 px line (preflight's 1.5).
@@ -53,12 +53,15 @@ export function hitArea(spriteBox: Rect, world: WorldRect): CssRect {
 
 /**
  * A landmark's caption chip, 2 px above its hit area when preferred and there is room in the map
- * area, otherwise 2 px under it; shifted sideways only to stay ≥ 2 px inside the map area.
+ * area, otherwise 2 px under it; shifted sideways only to stay ≥ 2 px inside the map area (while the landmark is on it).
  */
 export function captionRect(text: string, hit: CssRect, map: MapArea, prefer: "above" | "below" = "below"): CssRect {
   const width = textWidth(text) + 2 * (CHIP.padX + CHIP.border);
   const height = LINE_H + 2 * (CHIP.padY + CHIP.border);
-  const left = clamp(hit.left + hit.width / 2 - width / 2, EDGE, map.width - EDGE - width);
+  const centre = hit.left + hit.width / 2;
+  // Keep the chip on the map only for a landmark that is on it: one far off-screen (a zone bigger than the view) keeps its own place.
+  const onMap = hit.left < map.width && hit.left + hit.width > 0;
+  const left = onMap ? clamp(centre - width / 2, EDGE, map.width - EDGE - width) : centre - width / 2;
   const above = hit.top - 2 - height;
   return { left, top: prefer === "above" && above >= EDGE ? above : hit.top + hit.height + 2, width, height };
 }
@@ -168,7 +171,7 @@ export const LANDMARK_CAPTIONS: readonly LandmarkCaption[] = [
   { id: "archive", zone: "village", sprite: "archive", point: ARCHIVE_POINT, texts: ["Archive", "C#", "C# ✓"], prefer: "above" },
   ...CHESTS.flatMap((c): LandmarkCaption[]  => {
     const host = c.at && HOSTS[c.id];
-    return host ? [{ id: c.id as PoiId, zone: c.zone, sprite: host.sprite, point: toArt(c.at!), texts: [host.name ?? c.host!, `${host.name ?? c.host} ✓`], prefer: host.prefer, chest: c.id }] : [];
+    return host ? [{ id: c.id as PoiId, zone: c.zone, sprite: host.sprite, point: zoneToArt(c.at!, c.zone), texts: [host.name ?? c.host!, `${host.name ?? c.host} ✓`], prefer: host.prefer, chest: c.id }] : [];
   }),
 ];
 
