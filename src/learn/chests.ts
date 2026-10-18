@@ -47,7 +47,7 @@ const ROWS: readonly Row[] = [
   { id: "chest-cpp-1", badge: "C++ I", spoken: "C++ 1", language: "C++", zone: "beach", host: "Pier", at: { x: 90, y: 62 }, north: false, questions: CPP1_BANK },
   { id: "chest-java", badge: "Java", spoken: "Java", language: "Java", zone: "desert", host: "Pyramid", at: { x: 20, y: 34 }, north: false, questions: JAVA_BANK },
   { id: "chest-cpp-2", badge: "C++ II", spoken: "C++ 2", language: "C++", zone: "beach", host: "Shipwreck", at: { x: 60, y: 30 }, north: false, questions: CPP2_BANK },
-  { id: "chest-html", badge: "HTML", spoken: "HTML", language: "HTML", zone: "peaks", host: "Ski Lodge", at: { x: 19.4, y: 89.4 }, north: false, questions: HTML_BANK },
+  { id: "chest-html", badge: "HTML", spoken: "HTML", language: "HTML", zone: "lodge", host: "Shelf", at: { x: 66, y: 46 }, north: false, questions: HTML_BANK },
   { id: "chest-css", badge: "CSS", spoken: "CSS", language: "CSS", zone: "peaks", host: "Ice Cave", at: { x: 46.9, y: 8.9 }, north: true, questions: CSS_BANK },
   { id: "chest-py-1", badge: "Python I", spoken: "Python 1", language: "Python", zone: "foggaten", host: "Ruins", at: { x: 28, y: 50 }, north: false, questions: PY1_BANK },
   { id: "chest-php", badge: "PHP", spoken: "PHP", language: "PHP", zone: "village", host: "Hut", at: { x: 28.75, y: 22.8 }, north: false, questions: PHP_BANK },

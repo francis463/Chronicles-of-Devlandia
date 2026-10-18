@@ -108,10 +108,17 @@ export type SpriteId =
   | "desert-cave"
   | "dune-ridge"
   | "tide-pool"
-  | "bottle";
+  | "bottle"
+  | "fireplace"
+  | "bunk"
+  | "table"
+  | "rug"
+  | "shelf"
+  | "door-mat"
+  | "lodge-wall";
 /** bottom: bottom-centre on the art point; centre: centred on it; hover: centred 12 px above it. */
 export type SpriteDef = { w: number; h: number; frames: PixelGrid[]; palette: Palette; anchor: "bottom" | "centre" | "hover" };
-export type TextureId = "ice" | "mountains" | "snow" | "forest" | "meadow" | "path" | "bank" | "sand" | "sea" | "dune" | "beach";
+export type TextureId = "ice" | "mountains" | "snow" | "forest" | "meadow" | "path" | "bank" | "sand" | "sea" | "dune" | "beach" | "floor";
 
 export const OUTLINE = "#0b1020";
 
@@ -960,6 +967,77 @@ function bottleGrid(): PixelGrid {
     rect(3, 7, 6, 11, "p"),
     rect(1, 12, 8, 13, "y"),
   ]);
+}
+
+/** The lodge's stone fireplace: a mantel over a dark opening, with a flame that flickers between two shapes. */
+function fireplaceGrid(frame: 0 | 1): PixelGrid {
+  const flame = frame === 0
+    ? [ell(11.5, 17, 3.2, 3.6, "f"), ell(11.5, 17.6, 1.6, 2.2, "y"), rect(8, 19, 15, 20, "f")]
+    : [ell(12.5, 16.4, 3, 4.2, "f"), ell(12.5, 17.4, 1.5, 2.4, "y"), rect(8, 19, 15, 20, "f")];
+  return creature(24, 22, [
+    rect(8, 0, 15, 4, "s"),
+    rect(0, 3, 23, 6, "m"),
+    rect(1, 6, 22, 21, "s"),
+    rect(5, 9, 18, 21, "k"),
+    rect(3, 10, 3, 21, "S"),
+    rect(20, 10, 20, 21, "S"),
+    ...flame,
+  ]);
+}
+
+/** A wooden bunk bed: two mattresses with blankets and pillows between two posts. */
+function bunkGrid(): PixelGrid {
+  return creature(28, 18, [
+    rect(0, 0, 1, 17, "d"),
+    rect(26, 0, 27, 17, "d"),
+    rect(0, 3, 27, 7, "w"),
+    rect(2, 3, 25, 6, "b"),
+    rect(2, 3, 7, 5, "p"),
+    rect(0, 11, 27, 16, "w"),
+    rect(2, 11, 25, 15, "B"),
+    rect(2, 11, 7, 13, "p"),
+  ]);
+}
+
+/** A plank table with a bowl and a candle stub on it. */
+function tableGrid(): PixelGrid {
+  return creature(24, 14, [
+    rect(0, 0, 23, 4, "t"),
+    rect(0, 4, 23, 5, "d"),
+    rect(2, 5, 3, 13, "d"),
+    rect(20, 5, 21, 13, "d"),
+    ell(7, 1.2, 2.6, 1.2, "c"),
+    rect(16, 0, 16, 1, "y"),
+  ]);
+}
+
+/** A round woven rug with a lighter middle. */
+function rugGrid(): PixelGrid {
+  return creature(32, 10, [ell(16, 5, 15.5, 4.5, "r"), ell(16, 5, 11, 3, "R"), ell(16, 5, 5, 1.6, "y")]);
+}
+
+/** A bookcase: three shelves of books in a plank frame. */
+function shelfGrid(): PixelGrid {
+  const books = (y: number, colours: string[]) => colours.map((c, i) => rect(2 + i * 4, y, 4 + i * 4, y + 4, c));
+  return creature(28, 24, [
+    rect(0, 0, 27, 23, "w"),
+    rect(1, 1, 26, 22, "d"),
+    ...books(2, ["r", "g", "b", "y", "r", "g"]),
+    rect(1, 8, 26, 9, "w"),
+    ...books(10, ["b", "y", "r", "g", "b", "y"]),
+    rect(1, 16, 26, 17, "w"),
+    ...books(18, ["g", "r", "y", "b", "g", "r"]),
+  ]);
+}
+
+/** The door mat: a coarse mat with two stripes. */
+function doorMatGrid(): PixelGrid {
+  return creature(20, 6, [rect(0, 0, 19, 5, "m"), rect(2, 2, 17, 2, "M"), rect(2, 3, 17, 3, "m")]);
+}
+
+/** A log wall tile: stacked logs with a darker line between them. */
+function lodgeWallGrid(): PixelGrid {
+  return outlined(16, 16, (x, y) => (y % 4 === 3 ? "L" : x % 8 === 0 ? "d" : "l"));
 }
 
 /** A bleached cow skull half buried in the sand, horns curling out. */
@@ -2138,6 +2216,13 @@ export const SPRITES: Record<SpriteId, SpriteDef> = {
   "dune-ridge": { w: 32, h: 14, anchor: "bottom", palette: { o: "#0b1020", d: "#d9a445", D: "#ecc072", s: "#8c7f66" }, frames: [duneRidgeGrid()] },
   "tide-pool": { w: 26, h: 12, anchor: "bottom", palette: { o: "#0b1020", s: "#7b8794", w: "#38bdf8", W: "#bae6fd", p: "#f97316" }, frames: [tidePoolGrid()] },
   bottle: { w: 10, h: 14, anchor: "bottom", palette: { o: "#0b1020", c: "#b4793a", g: "#7dd3d8", p: "#f8f1d8", y: "#e7c98a" }, frames: [bottleGrid()] },
+  fireplace: { w: 24, h: 22, anchor: "bottom", palette: { o: "#0b1020", s: "#8a8f98", S: "#6b7280", m: "#6b4423", k: "#1a1008", f: "#f97316", y: "#fde047" }, frames: [fireplaceGrid(0), fireplaceGrid(1)] },
+  bunk: { w: 28, h: 18, anchor: "bottom", palette: { o: "#0b1020", d: "#5b3a1e", w: "#b07a45", b: "#991b1b", B: "#1d4ed8", p: "#f1f5f9" }, frames: [bunkGrid()] },
+  table: { w: 24, h: 14, anchor: "bottom", palette: { o: "#0b1020", t: "#c58b4f", d: "#5b3a1e", c: "#e7e5e4", y: "#fde68a" }, frames: [tableGrid()] },
+  rug: { w: 32, h: 10, anchor: "bottom", palette: { o: "#0b1020", r: "#7f1d1d", R: "#b91c1c", y: "#fbbf24" }, frames: [rugGrid()] },
+  shelf: { w: 28, h: 24, anchor: "bottom", palette: { o: "#0b1020", w: "#b07a45", d: "#5b3a1e", r: "#dc2626", g: "#16a34a", b: "#2563eb", y: "#facc15" }, frames: [shelfGrid()] },
+  "door-mat": { w: 20, h: 6, anchor: "bottom", palette: { o: "#0b1020", m: "#a16207", M: "#713f12" }, frames: [doorMatGrid()] },
+  "lodge-wall": { w: 16, h: 16, anchor: "bottom", palette: { o: "#0b1020", l: "#b07a45", L: "#8f5f33", d: "#7a4f28" }, frames: [lodgeWallGrid()] },
   skull: { w: 14, h: 10, anchor: "bottom", palette: { o: "#0b1020", w: "#f1ead6", k: "#2b2417" }, frames: [skullGrid()] },
   "bloom-cactus": { w: 18, h: 28, anchor: "bottom", palette: { o: "#0b1020", c: "#4d9e4d", G: "#2f7d3a", p: "#f472b6" }, frames: [bloomCactusGrid()] },
   arch: { w: 30, h: 24, anchor: "bottom", palette: { o: "#0b1020", r: "#c2763a", R: "#d99a5c", D: "#9a5a2a" }, frames: [archGrid()] },
@@ -2146,6 +2231,27 @@ export const SPRITES: Record<SpriteId, SpriteDef> = {
 };
 
 export const TEXTURES: Record<TextureId, { grid: PixelGrid; palette: Palette }> = {
+  floor: {
+    palette: { a: "#b07a45", b: "#a06c3a", c: "#8a5a2e" },
+    grid: [
+      "aaaaabaaaaaaabaa",
+      "aaabaaaaaabaaaaa",
+      "cccccccccccccccc",
+      "aaaaaaaabaaaaaba",
+      "abaaaaaaaaabaaaa",
+      "cccccccccccccccc",
+      "aabaaaaaaaaaabaa",
+      "aaaaaabaaabaaaaa",
+      "cccccccccccccccc",
+      "baaaaaaaabaaaaaa",
+      "aaaabaaaaaaaaaba",
+      "cccccccccccccccc",
+      "aaaaaabaaaabaaaa",
+      "abaaaaaaaaaaaaba",
+      "cccccccccccccccc",
+      "aaaabaaaaaaaaaaa",
+    ],
+  },
   meadow: {
     palette: { g: "#3f7d3a", l: "#4f9a45", d: "#356b31" },
     grid: [

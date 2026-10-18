@@ -310,8 +310,8 @@ describe("useKeyboardControls: arrows on tabs", () => {
 describe("useKeyboardControls: with the Overworld", () => {
   it("Enter on a focused chest button still opens its terminal", async () => {
     const user = userEvent.setup();
-    render(<Overworld onMenu={noop} initial={{ player: { x: 10, y: 60 } }} />);
-    screen.getByRole("button", { name: "Ski Lodge, HTML chest" }).focus();
+    render(<Overworld onMenu={noop} initial={{ zone: "lodge", player: { x: 66, y: 44 } }} />);
+    screen.getByRole("button", { name: "Shelf, HTML chest" }).focus();
     await user.keyboard("{Enter}");
     expect(screen.getByText(/CODE CHEST: HTML/i)).toBeInTheDocument();
   });

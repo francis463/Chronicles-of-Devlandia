@@ -598,3 +598,42 @@ describe("the hidden spots' art", () => {
     }
   });
 });
+
+describe("the Ski Lodge's furniture", () => {
+  const SIZES = [["fireplace", 24, 22, 2], ["bunk", 28, 18, 1], ["table", 24, 14, 1], ["rug", 32, 10, 1], ["shelf", 28, 24, 1], ["door-mat", 20, 6, 1], ["lodge-wall", 16, 16, 1]] as const;
+
+  it("have their declared sizes, anchors and frame counts, with only palette characters", () => {
+    for (const [id, w, h, frames] of SIZES) {
+      expect([SPRITES[id].w, SPRITES[id].h, SPRITES[id].anchor, SPRITES[id].frames.length], id).toEqual([w, h, "bottom", frames]);
+      for (const frame of SPRITES[id].frames) {
+        expect(frame, id).toHaveLength(h);
+        for (const row of frame) {
+          expect(row, id).toHaveLength(w);
+          for (const ch of row) if (ch !== ".") expect(SPRITES[id].palette[ch], `${id} '${ch}'`).toBeDefined();
+        }
+      }
+    }
+    expect(SPRITES.fireplace.frames[0]).not.toEqual(SPRITES.fireplace.frames[1]);
+  });
+
+  it("every edge of every frame is the shared dark outline", () => {
+    for (const [id] of SIZES)
+      for (const frame of SPRITES[id].frames) {
+        const solid = (x: number, y: number) => y >= 0 && y < frame.length && x >= 0 && x < frame[y].length && frame[y][x] !== ".";
+        frame.forEach((row, y) =>
+          [...row].forEach((ch, x) => {
+            if (ch === ".") return;
+            const edge = !solid(x - 1, y) || !solid(x + 1, y) || !solid(x, y - 1) || !solid(x, y + 1);
+            if (edge) expect(SPRITES[id].palette[ch], `${id} edge at ${x},${y}`).toBe(OUTLINE);
+          }),
+        );
+      }
+  });
+
+  it("the floor texture is 16 x 16 with at least three colours and is not the sand", () => {
+    expect(TEXTURES.floor.grid).toHaveLength(16);
+    for (const row of TEXTURES.floor.grid) expect(row).toHaveLength(16);
+    expect(Object.keys(TEXTURES.floor.palette).length).toBeGreaterThanOrEqual(3);
+    expect(TEXTURES.floor.palette).not.toEqual(TEXTURES.sand.palette);
+  });
+});

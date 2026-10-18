@@ -8,14 +8,15 @@ describe("groupChests", () => {
   it("groups the 11 chests by zone in world order, with each group's earned count", () => {
     const groups = groupChests(["chest-html", "chest-sql", "chest-cs"]);
     expect(groups.map((g) => [g.zone, g.chests.map((c) => c.id), g.earned])).toEqual([
-      ["peaks", ["chest-html", "chest-css"], 1],
+      ["lodge", ["chest-html"], 1],
+      ["peaks", ["chest-css"], 0],
       ["village", ["chest-php", "chest-sql", "chest-cs"], 2],
       ["forest", ["chest-js"], 0],
       ["desert", ["chest-java", "chest-py-2"], 0],
       ["beach", ["chest-cpp-1", "chest-cpp-2"], 0],
       ["foggaten", ["chest-py-1"], 0],
     ]);
-    expect(groups.map((g) => g.name)).toEqual(["C++ Peaks", "Dev Village", "Dense Forest", "Sunbaked Desert", "Sunny Beach", "Foggaten Island"]);
+    expect(groups.map((g) => g.name)).toEqual(["Ski Lodge", "C++ Peaks", "Dev Village", "Dense Forest", "Sunbaked Desert", "Sunny Beach", "Foggaten Island"]);
     expect(groups.flatMap((g) => g.chests)).toHaveLength(CHESTS.length);
   });
 });
@@ -39,7 +40,7 @@ describe("nextHint", () => {
   });
 
   it("with none left in your zone, points at the first unearned chest elsewhere", () => {
-    expect(nextHint({ badges: ["chest-js"], zone: "forest", player: { x: 50, y: 50 } })).toBe("Next: Ski Lodge in C++ Peaks.");
+    expect(nextHint({ badges: ["chest-js"], zone: "forest", player: { x: 50, y: 50 } })).toBe("Next: Shelf in Ski Lodge.");
   });
 
   it("when all 11 are earned, says so", () => {
@@ -54,7 +55,7 @@ describe("nextHint", () => {
 
 describe("goToNote", () => {
   it("says where the landmark is and what it takes to get there", () => {
-    expect(goToNote("chest-html")).toBe("Head to the Ski Lodge in C++ Peaks.");
+    expect(goToNote("chest-html")).toBe("Head to the Shelf in Ski Lodge: walk into the lodge door in the C++ Peaks.");
     expect(goToNote("chest-css")).toBe("Head to the Ice Cave in C++ Peaks, north of the wall: the gate must be open first.");
     expect(goToNote("chest-py-1")).toBe("Head to the Ruins in Foggaten Island: take the boat from the Peaks' east dock.");
     expect(goToNote("chest-java")).toBe("Head to the Pyramid in the Sunbaked Desert, west of the Dense Forest.");

@@ -4,13 +4,16 @@ import { distance } from "./geometry";
 import { gameReducer, initialState } from "./reducer";
 import { ZONES, arrival, doorAt, type ZoneId } from "./zones";
 import { ZONE_ORDER } from "../learn/codexModel";
+import { CHESTS, chestById } from "../learn/chests";
+import { cardFor } from "./cards";
+import { promptText } from "./geometry";
 
 const at = (zone: ZoneId, x: number, y: number) => ({ ...initialState, zone, player: { x, y } });
 
 describe("the Ski Lodge zone", () => {
   it("is an indoor zone: no wall, gate, river or edge exits", () => {
     expect(ZONES.lodge).toMatchObject({ id: "lodge", name: "Ski Lodge", exits: [], wall: false, gate: false, river: false });
-    expect(ZONE_ORDER.at(-1)).toBe("lodge");
+    expect(ZONE_ORDER.slice(0, 2)).toEqual(["lodge", "peaks"]);
   });
 
   it("only the Peaks and the lodge have doors", () => {
@@ -63,3 +66,31 @@ describe("the Ski Lodge zone", () => {
     expect(initialState.soupTaken).toBe(false);
   });
 });
+
+describe("the lodge's places and the HTML chest", () => {
+  it("the Peaks have the lodge door as a place and the lodge the fireplace and the shelf chest", () => {
+    expect(ZONES.peaks.places.find((p) => p.id === "lodge-door")).toMatchObject({ label: "Ski Lodge", x: 19.4, y: 89.4 });
+    expect(ZONES.peaks.places.some((p) => p.id === "chest-html")).toBe(false);
+    expect(ZONES.lodge.places.map((p) => p.id)).toEqual(["lodge-fireplace", "chest-html"]);
+  });
+
+  it("the HTML chest is on the lodge's shelf, and the chest count is still 11", () => {
+    expect(chestById("chest-html")).toMatchObject({ zone: "lodge", host: "Shelf", at: { x: 66, y: 46 } });
+    expect(CHESTS).toHaveLength(11);
+  });
+
+  it("interacting beside the shelf opens the HTML terminal; the door and fireplace only show cards", () => {
+    expect(gameReducer(at("lodge", 66, 44), { type: "interact", poi: "chest-html" }).challenge?.target).toBe("chest-html");
+    const door = gameReducer(at("peaks", 22, 84), { type: "interact", poi: "lodge-door" });
+    expect([door.inspected, door.challenge, door.zone]).toEqual(["lodge-door", null, "peaks"]);
+    expect(cardFor(door)?.text).toBe("The Ski Lodge. Walk into its door to go inside.");
+    const fire = gameReducer(at("lodge", 20, 36), { type: "interact", poi: "lodge-fireplace" });
+    expect(cardFor(fire)?.title).toBe("Fireplace");
+  });
+
+  it("the prompts read Inspect for the door and fireplace and Search for the shelf", () => {
+    expect(promptText(initialState, ZONES.peaks.places.find((p) => p.id === "lodge-door")!)).toBe("[E] Inspect Ski Lodge");
+    expect(promptText(initialState, ZONES.lodge.places.find((p) => p.id === "chest-html")!)).toBe("[E] Search Shelf");
+  });
+});
+

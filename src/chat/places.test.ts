@@ -11,7 +11,7 @@ const TABLE = [
   ["signpost", "village", 86, 62, "the Signpost"],
   ["terminal", "village", 68, 60, "the Syntax Terminal"],
   ["archive", "village", 55, 66, "the Archive"],
-  ["html", "peaks", 19.4, 89.4, "the Ski Lodge"],
+  ["html", "lodge", 66, 46, "the Shelf"],
   ["css", "peaks", 46.9, 8.9, "the Ice Cave"],
   ["java", "desert", 20, 34, "the Pyramid"],
   ["cpp1", "beach", 90, 62, "the Pier"],

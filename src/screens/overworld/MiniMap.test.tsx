@@ -1,5 +1,6 @@
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import type { ChestId } from "../../learn/types";
 import type { Ctx2D } from "../../render/paint";
 import { MINI_COLORS, MiniMap, paintMiniTerrain } from "./MiniMap";
 
@@ -280,5 +281,25 @@ describe("mini-map view window", () => {
     const box = within(screen.getByTestId("minimap-cell-forest")).getByTestId("minimap-view");
     expect([box.style.left, box.style.top, box.style.width, box.style.height]).toEqual(["25%", "50%", "50%", "50%"]);
     expect(box).toHaveAttribute("aria-hidden", "true");
+  });
+});
+
+describe("mini-map: inside the Ski Lodge", () => {
+  const props = { artifactFound: false, badges: [] as ChestId[], archiveOpen: false };
+
+  it("outlines the Peaks cell and puts your dot at the lodge's door", () => {
+    render(<MiniMap {...props} zone="lodge" player={{ x: 50, y: 50 }} />);
+    expect(screen.getByTestId("minimap-cell-peaks")).toHaveAttribute("data-current", "true");
+    const dot = within(screen.getByTestId("minimap-cell-peaks")).getByTestId("minimap-player");
+    expect([dot.style.left, dot.style.top]).toEqual(["19.4%", "88%"]);
+    expect(screen.queryByTestId("minimap-view")).toBeNull();
+  });
+
+  it("shows the HTML chest's diamond at the door on the Peaks cell, and a teammate in the lodge there too", () => {
+    render(<MiniMap {...props} zone="peaks" player={{ x: 50, y: 50 }} teammates={[{ id: "a", name: "Ana", color: "#f472b6", x: 70, y: 30, zone: "lodge" }]} />);
+    const diamond = within(screen.getByTestId("minimap-cell-peaks")).getByTestId("minimap-chest-chest-html");
+    expect([diamond.style.left, diamond.style.top]).toEqual(["19.4%", "88%"]);
+    const mate = screen.getByTestId("minimap-teammate-Ana");
+    expect([mate.style.left, mate.style.top]).toEqual(["19.4%", "88%"]);
   });
 });

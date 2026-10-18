@@ -64,14 +64,15 @@ const GROUPS = {
   foggaten: ["foggaten", "island-dock", "lighthouse", "hermit", "island-fire"],
   desert: ["desert", "desert-east-exit", "nomad", "desert-signpost"],
   beach: ["beach", "beach-west-exit", "fisher", "beach-signpost", "sandcastle"],
+  lodge: ["lodge-fireplace"].slice(0, 0),
 };
-const quietGroups = (zone: "peaks" | "village" | "forest" | "foggaten" | "desert" | "beach") => LANDMARK_CAPTIONS.filter((l) => l.zone === zone && l.quiet).map((l) => l.id as string);
+const quietGroups = (zone: "peaks" | "village" | "forest" | "foggaten" | "desert" | "beach" | "lodge") => LANDMARK_CAPTIONS.filter((l) => l.zone === zone && l.quiet).map((l) => l.id as string);
 /** A hosted chest's caption is its landmark's: always shown. */
-const chestGroups = (zone: "peaks" | "village" | "forest" | "foggaten" | "desert" | "beach") => CHESTS.filter((c) => c.zone === zone && c.at).map((c) => c.id as string);
+const chestGroups = (zone: "peaks" | "village" | "forest" | "foggaten" | "desert" | "beach" | "lodge") => CHESTS.filter((c) => c.zone === zone && c.at).map((c) => c.id as string);
 const inside = (inner: CssRect, outer: CssRect) =>
   inner.left >= outer.left - 1e-9 && inner.top >= outer.top - 1e-9 && inner.left + inner.width <= outer.left + outer.width + 1e-9 && inner.top + inner.height <= outer.top + outer.height + 1e-9;
 /** Every drawing with a button in the zone, by its button's id. */
-const drawings = (zone: "peaks" | "village" | "forest" | "foggaten" | "desert" | "beach") =>
+const drawings = (zone: "peaks" | "village" | "forest" | "foggaten" | "desert" | "beach" | "lodge") =>
   LANDMARK_CAPTIONS.filter((l) => l.zone === zone).map((l) => ({ id: l.id as string, box: spriteBox(l.sprite, l.point) }));
 
 describe("hit areas", () => {
@@ -89,7 +90,7 @@ describe("hit areas", () => {
   });
 
   it("no two hit areas intersect after the midline cut, and the centre of every drawing lies in its own hit area", () => {
-    for (const zone of ["peaks", "village", "forest", "foggaten", "desert", "beach"] as const) {
+    for (const zone of ["peaks", "village", "forest", "foggaten", "desert", "beach", "lodge"] as const) {
       for (const world of [phone, desktop]) {
         const hits = zoneHitAreas(world, zone);
         const ids = Object.keys(hits);
@@ -105,7 +106,7 @@ describe("hit areas", () => {
   });
 
   it("hit areas never shrink below their drawing", () => {
-    for (const zone of ["peaks", "village", "forest", "foggaten", "desert", "beach"] as const) {
+    for (const zone of ["peaks", "village", "forest", "foggaten", "desert", "beach", "lodge"] as const) {
       for (const world of [phone, desktop]) {
         const hits = zoneHitAreas(world, zone);
         for (const { id, box } of drawings(zone)) expect(inside(spriteCss(box, world), hits[id]), `${id} ${zone} @${world.width}`).toBe(true);
@@ -133,7 +134,7 @@ describe("captions", () => {
   // other places' hit areas are checked where every caption shows; at 1× a hidden caption takes no taps, and a
   // showing one sits above the other buttons (MapViewport).
   it("at 320×180 (without chest captions) and 640×360 (with them) no caption box intersects another, a landmark or chest drawing, the dig spot or an exit sign, nor at 640×360 another place's hit area", () => {
-    for (const zone of ["peaks", "village", "forest", "foggaten", "desert", "beach"] as const) {
+    for (const zone of ["peaks", "village", "forest", "foggaten", "desert", "beach", "lodge"] as const) {
       for (const size of [PHONE_SIZE, DESKTOP_SIZE]) {
         // A zone bigger than the view is checked as a map the size of the whole zone, so what is tested is its own geometry,
         // not where a camera happens to cut it; a one-screen zone is the view itself.
@@ -164,7 +165,7 @@ describe("captions", () => {
                 ]
               : zone === "foggaten"
                 ? [...AREAS.foggaten.props.map((p) => spriteBox(p.sprite, p.at)), spriteBox("x-mark", FOGGATEN_POINTS.dig), spriteBox("semicolon", FOGGATEN_POINTS.dig)]
-              : zone === "desert" || zone === "beach"
+              : zone === "desert" || zone === "beach" || zone === "lodge"
                 ? AREAS[zone].props.map((p) => spriteBox(p.sprite, p.at))
                 : AREAS.forest.props.map((p) => spriteBox(p.sprite, p.at));
         const blockers = sprites.map((box) => ({ id: "", rect: spriteCss(box, world) }));
@@ -292,7 +293,7 @@ describe("exit signs per zone", () => {
 
   it("exitSignBox gives one box per sign, inside the world, and the signs of a zone do not overlap each other or its place name", () => {
     const world = fitWorld({ width: 668, height: 360, dpr: 1 });
-    for (const zone of ["peaks", "village", "forest", "foggaten", "desert", "beach"] as const) {
+    for (const zone of ["peaks", "village", "forest", "foggaten", "desert", "beach", "lodge"] as const) {
       const boxes = exitSignBox(world, zone);
       expect(boxes, zone).toHaveLength(EXIT_SIGNS[zone].length);
       for (const b of boxes) expect(b.left >= 0 && b.right <= world.width && b.top >= 0 && b.bottom <= world.height, `${zone} ${JSON.stringify(b)}`).toBe(true);

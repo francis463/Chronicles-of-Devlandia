@@ -549,7 +549,7 @@ describe("gameReducer: places and talking", () => {
 
   it("visiblePois: your zone's places, plus the dig spot on the island once revealed", () => {
     expect(visiblePois(s0).map((p) => p.id)).toEqual([
-      "gate", "chest", "river", "tower", "dock", "peaks-signpost", "weather-station", "chest-html", "chest-css",
+      "gate", "chest", "river", "tower", "dock", "peaks-signpost", "weather-station", "lodge-door", "chest-css",
     ]);
     expect(visiblePois({ ...village, clueDecoded: true }).map((p) => p.id)).toEqual([
       "villager", "signpost", "terminal", "archive", "chest-php", "chest-sql",
@@ -675,7 +675,7 @@ describe("gameReducer: chests", () => {
   const sqlOpen: GameState = { ...village, challenge: openOn("chest-sql") };
 
   it("a south chest opens its picked challenge and sets inspected", () => {
-    const s = gameReducer({ ...s0, player: { x: 19, y: 84 } }, { type: "interact", poi: "chest-html" });
+    const s = gameReducer({ ...s0, zone: "lodge", player: { x: 66, y: 44 } }, { type: "interact", poi: "chest-html" });
     expect(s.challenge?.target).toBe("chest-html");
     expect(s.inspected).toBe("chest-html");
   });
@@ -747,7 +747,8 @@ describe("gameReducer: chests", () => {
     const p = { x: 16, y: 50 };
     expect(reachPlaces({ ...s0, player: p }).map((q) => q.id)).not.toContain("chest-css");
     expect(reachPlaces({ ...opened, player: p }).map((q) => q.id)).toContain("chest-css");
-    expect(placeInReach({ x: 19, y: 84 }, reachPlaces({ ...s0, player: { x: 19, y: 84 } }))?.id).toBe("chest-html");
+    expect(placeInReach({ x: 19, y: 84 }, reachPlaces({ ...s0, player: { x: 19, y: 84 } }))?.id).toBe("lodge-door");
+    expect(placeInReach({ x: 66, y: 44 }, reachPlaces({ ...s0, zone: "lodge", player: { x: 66, y: 44 } }))?.id).toBe("chest-html");
   });
 });
 
@@ -986,7 +987,7 @@ describe("gameReducer: the Sunny Beach's places", () => {
 });
 
 describe("gameReducer: chests hosted in landmarks", () => {
-  const HOSTED = [["chest-html", "peaks"], ["chest-css", "peaks"], ["chest-php", "village"], ["chest-sql", "village"], ["chest-js", "forest"], ["chest-java", "desert"], ["chest-py-2", "desert"], ["chest-cpp-2", "beach"], ["chest-cpp-1", "beach"], ["chest-py-1", "foggaten"]] as const;
+  const HOSTED = [["chest-html", "lodge"], ["chest-css", "peaks"], ["chest-php", "village"], ["chest-sql", "village"], ["chest-js", "forest"], ["chest-java", "desert"], ["chest-py-2", "desert"], ["chest-cpp-2", "beach"], ["chest-cpp-1", "beach"], ["chest-py-1", "foggaten"]] as const;
 
   it("standing at its landmark opens each chest's question, and an earned chest can be reviewed", () => {
     for (const [id, zone] of HOSTED) {

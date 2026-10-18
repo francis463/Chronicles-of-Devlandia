@@ -249,14 +249,20 @@ describe("MapViewport on the canvas", () => {
 });
 
 describe("MapViewport chests, the Syntax Terminal and the Archive", () => {
-  it("the Peaks show the lodge and cave chests and the village the hut and windmill chests plus Terminal and Archive, each named for its landmark and spoken language", () => {
+  it("the Peaks show the Ski Lodge door and the cave chest, the lodge the shelf chest and the village the hut and windmill chests plus Terminal and Archive, each named for its landmark and spoken language", () => {
     const onInteract = vi.fn();
     const { rerender } = render(<MapViewport {...props({ onInteract })} />);
-    const peaks = ["Ski Lodge, HTML chest", "Ice Cave, CSS chest"];
+    const peaks = ["Ski Lodge", "Ice Cave, CSS chest"];
     for (const name of peaks) expect(screen.getByRole("button", { name })).toBeInTheDocument();
-    expect(within(screen.getByRole("button", { name: "Ski Lodge, HTML chest" })).getByText("Lodge")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Ski Lodge, HTML chest" })).toBeNull();
+    expect(within(screen.getByRole("button", { name: "Ski Lodge" })).getByText("Lodge")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Syntax Terminal" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Ski Lodge, HTML chest" }));
+    fireEvent.click(screen.getByRole("button", { name: "Ski Lodge" }));
+    rerender(<MapViewport {...props({ zone: "lodge", onInteract })} />);
+    expect(screen.getByRole("button", { name: "Shelf, HTML chest" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Fireplace" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Ice Cave, CSS chest" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Shelf, HTML chest" }));
     rerender(<MapViewport {...props({ zone: "village", onInteract })} />);
     for (const name of ["Hut, PHP chest", "Windmill, SQL chest", "Syntax Terminal", "Archive"]) expect(screen.getByRole("button", { name })).toBeInTheDocument();
     expect(within(screen.getByRole("button", { name: "Syntax Terminal" })).getByText("Terminal")).toBeInTheDocument();
@@ -264,7 +270,7 @@ describe("MapViewport chests, the Syntax Terminal and the Archive", () => {
     fireEvent.click(screen.getByRole("button", { name: "Syntax Terminal" }));
     fireEvent.click(screen.getByRole("button", { name: "Archive" }));
     fireEvent.click(screen.getByRole("button", { name: "Windmill, SQL chest" }));
-    expect(onInteract.mock.calls).toEqual([["chest-html"], ["terminal"], ["archive"], ["chest-sql"]]);
+    expect(onInteract.mock.calls).toEqual([["lodge-door"], ["chest-html"], ["terminal"], ["archive"], ["chest-sql"]]);
   });
 
   it("every other zone's landmark chests are buttons too: oak, pyramid, oasis, shipwreck, pier and ruins", () => {
@@ -293,20 +299,19 @@ describe("MapViewport chests, the Syntax Terminal and the Archive", () => {
   });
 
   it("a landmark chest's caption shows at 1× like any landmark's, and hides while it is in reach (the prompt takes over)", () => {
-    const { rerender } = render(<MapViewport {...props()} />);
+    const { rerender } = render(<MapViewport {...props({ zone: "lodge" })} />);
     expect(screen.getByTestId("world-layer").style.width).toBe("320px");
-    const button = screen.getByRole("button", { name: "Ski Lodge, HTML chest" });
-    expect(within(button).getByText("Lodge")).not.toHaveClass("opacity-0");
-    expect(within(screen.getByRole("button", { name: "[G] Gate" })).getByText("[G] Gate")).not.toHaveClass("opacity-0");
-    const html = { id: "chest-html" as const, label: "Ski Lodge", x: 19.4, y: 89.4 };
-    rerender(<MapViewport {...props({ player: { x: 19, y: 84 }, inRange: html, prompt: "[E] Search Ski Lodge" })} />);
-    expect(within(screen.getByRole("button", { name: "Ski Lodge, HTML chest" })).getByText("Lodge")).toHaveClass("opacity-0");
+    const button = screen.getByRole("button", { name: "Shelf, HTML chest" });
+    expect(within(button).getByText("Shelf")).not.toHaveClass("opacity-0");
+    const html = { id: "chest-html" as const, label: "Shelf", x: 66, y: 46 };
+    rerender(<MapViewport {...props({ zone: "lodge", player: { x: 66, y: 44 }, inRange: html, prompt: "[E] Search Shelf" })} />);
+    expect(within(screen.getByRole("button", { name: "Shelf, HTML chest" })).getByText("Shelf")).toHaveClass("opacity-0");
   });
 
   it("chest buttons are disabled while downed and keep their landmark name", () => {
-    render(<MapViewport {...props({ downed: true })} />);
-    expect(screen.getByRole("button", { name: "Ski Lodge, HTML chest" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Ski Lodge, HTML chest" })).toHaveAttribute("aria-label", "Ski Lodge, HTML chest");
+    render(<MapViewport {...props({ zone: "lodge", downed: true })} />);
+    expect(screen.getByRole("button", { name: "Shelf, HTML chest" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Shelf, HTML chest" })).toHaveAttribute("aria-label", "Shelf, HTML chest");
   });
 });
 

@@ -462,6 +462,7 @@ export function MapViewport({
             {towerPowered && (
               <LandmarkButton hit={hits["snow-cave"]} name={caption("snow-cave")} label="Snow Cave" color="var(--primary-border)" world={world} map={map} prefer="above" disabled={downed} hideCaption={smallMap && inRange?.id !== "snow-cave"} peek passive={smallMap} onClick={() => onInteract("snow-cave")} />
             )}
+            <LandmarkButton hit={hits["lodge-door"]} name={caption("lodge-door")} label="Ski Lodge" color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={smallMap && inRange?.id !== "lodge-door"} peek passive={smallMap} onClick={() => onInteract("lodge-door")} />
             <LandmarkButton hit={hits.dock} name={caption("dock")} color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "dock"} onClick={() => onInteract("dock")} />
 
             <LandmarkButton hit={hits.tower} name={caption("tower")} color="var(--primary-border)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "tower"} onClick={() => onInteract("tower")} />
@@ -517,6 +518,10 @@ export function MapViewport({
             <LandmarkButton hit={hits.lighthouse} name={caption("lighthouse")} color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "lighthouse"} onClick={() => onInteract("lighthouse")} />
             <LandmarkButton hit={hits.hermit} name={caption("hermit")} color="var(--accent-border)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "hermit"} onClick={() => onInteract("hermit")} />
             <LandmarkButton hit={hits["island-fire"]} name={caption("island-fire")} color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "island-fire"} onClick={() => onInteract("island-fire")} />
+          </>
+        ) : zone === "lodge" ? (
+          <>
+            <LandmarkButton hit={hits["lodge-fireplace"]} name={caption("lodge-fireplace")} label="Fireplace" color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={smallMap && inRange?.id !== "lodge-fireplace"} peek passive={smallMap} onClick={() => onInteract("lodge-fireplace")} />
           </>
         ) : (
           <>

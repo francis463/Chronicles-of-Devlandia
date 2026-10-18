@@ -124,6 +124,7 @@ function candidate(cx: number, cy: number, area: Area): Candidate | null {
     ice: [],
     sand: [],
     sea: [],
+    floor: [],
     beach: [["palm", 0.05], ["rock", 0.03]],
     dune: [["cactus", 0.12], ["bloom-cactus", 0.05], ["dry-bush", 0.14], ["rock", 0.07], ["skull", 0.03], ["arch", 0.02], ["palm", 0.03]],
   };
@@ -162,6 +163,8 @@ function decorationAt(cx: number, cy: number, area: Area): Decoration | null {
 
 /** Decorations of every 16 × 16 cell the range touches in an area; the same cell always gives the same result. */
 export function decorations(range: Rect, area: Area = PEAKS): Decoration[] {
+  // Indoors there is no scenery, no hedge and nothing beyond the walls (the room draws its own walls as props).
+  if (area.id === "lodge") return [];
   const out: Decoration[] = [];
   for (let cy = Math.floor(range.y / CELL); cy <= Math.floor((range.y + range.h - 1) / CELL); cy++)
     for (let cx = Math.floor(range.x / CELL); cx <= Math.floor((range.x + range.w - 1) / CELL); cx++) {

@@ -41,14 +41,14 @@ describe("Codex", () => {
   it("titled `< CODEX: 2/11 BADGES >` (team: `< YOUR CODEX: 2/11 BADGES >`), grouped by zone in world order with each chest's place", () => {
     const { unmount } = render(codex(["chest-sql", "chest-cs"]).ui);
     expect(screen.getByRole("dialog", { name: "< CODEX: 2/11 BADGES >" })).toBeInTheDocument();
-    const zones = ["C++ Peaks", "Dev Village", "Dense Forest", "Sunbaked Desert", "Sunny Beach", "Foggaten Island"];
+    const zones = ["Ski Lodge", "C++ Peaks", "Dev Village", "Dense Forest", "Sunbaked Desert", "Sunny Beach", "Foggaten Island"];
     expect(screen.getAllByRole("heading", { level: 3 }).filter((h) => zones.some((z) => h.textContent!.startsWith(z))).map((h) => h.textContent)).toEqual([
-      "C++ Peaks · 0/2", "Dev Village · 2/3", "Dense Forest · 0/1", "Sunbaked Desert · 0/2", "Sunny Beach · 0/2", "Foggaten Island · 0/1",
+      "Ski Lodge · 0/1", "C++ Peaks · 0/1", "Dev Village · 2/3", "Dense Forest · 0/1", "Sunbaked Desert · 0/2", "Sunny Beach · 0/2", "Foggaten Island · 0/1",
     ]);
     const items = screen.getAllByRole("listitem").filter((li) => /Badge · /.test(li.textContent ?? ""));
     expect(items).toHaveLength(11);
     // Entries whose badge has a separate spoken form also carry it as hidden text ("C++ 1").
-    expect(items[0]).toHaveTextContent(/HTML Badge · C\+\+ Peaks · Ski Lodge/);
+    expect(items[0]).toHaveTextContent(/HTML Badge · Ski Lodge · Shelf/);
     expect(within(screen.getByRole("region", { name: "Dev Village" })).getAllByRole("listitem")[0]).toHaveTextContent("PHP Badge · Dev Village · Hut");
     expect(screen.getByRole("region", { name: "Dev Village" })).toHaveTextContent(/C# Badge · Dev Village · in the Archive/);
     expect(screen.getByRole("region", { name: "Dense Forest" })).toHaveTextContent("JavaScript Badge · Dense Forest · Old Oak");

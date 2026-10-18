@@ -141,7 +141,7 @@ describe("the Sunny Beach's cards", () => {
 });
 
 describe("hosted chests' cards", () => {
-  const HOSTS = [["chest-html", "peaks", "Ski Lodge"], ["chest-css", "peaks", "Ice Cave"], ["chest-php", "village", "Hut"], ["chest-sql", "village", "Windmill"], ["chest-js", "forest", "Old Oak"], ["chest-java", "desert", "Pyramid"], ["chest-py-2", "desert", "Oasis"], ["chest-cpp-2", "beach", "Shipwreck"], ["chest-cpp-1", "beach", "Pier"], ["chest-py-1", "foggaten", "Ruins"]] as const;
+  const HOSTS = [["chest-html", "lodge", "Shelf"], ["chest-css", "peaks", "Ice Cave"], ["chest-php", "village", "Hut"], ["chest-sql", "village", "Windmill"], ["chest-js", "forest", "Old Oak"], ["chest-java", "desert", "Pyramid"], ["chest-py-2", "desert", "Oasis"], ["chest-cpp-2", "beach", "Shipwreck"], ["chest-cpp-1", "beach", "Pier"], ["chest-py-1", "foggaten", "Ruins"]] as const;
 
   it("a hosted chest's card is titled with its landmark and says the chest is sealed inside it", () => {
     for (const [id, zone, host] of HOSTS) {

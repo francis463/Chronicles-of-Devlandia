@@ -10,6 +10,7 @@ import { tideStrips } from "../game/tide";
 import { DESERT_POINTS, JAR_POINTS, camelPose, fennecPose, scorpionPose, snakePose } from "./areas/desert";
 import { FOREST_POINTS, MUSHROOM_POINTS, deerPose, rabbitPose, squirrelPose } from "./areas/forest";
 import { remedySpotsIn } from "./areas/remedies";
+import { LODGE_FLAT, LODGE_POINTS } from "./areas/lodge";
 import { secretSpotsIn } from "./areas/secrets";
 import { CAVE_POINT, WILDLIFE, foxPose, goatPose } from "./areas/peaks";
 import { VILLAGE_LIFE, wandererPose } from "./areas/village";
@@ -755,6 +756,23 @@ function buildBaseScene(input: SceneInput, poses: Poses, t: number, reduced: boo
       }
       if (digging && !reduced && t % 1500 < 250) light.push({ x: dig.x + 2, y: dig.y - 2, color: WHITE, alpha: 1 });
       return { zone: input.zone, glints: [], flat, upright, drone, tint: PHASE_TINT[phase], light, snow };
+    }
+    if (input.zone === "lodge") {
+      // Indoors it is lit at every hour: the fire flickers, and neither the hour's tint nor snow reach in.
+      const flame = reduced ? 0 : Math.floor(t / 400) % 2;
+      const fire = upright.find((d) => d.sprite === "fireplace");
+      if (fire) fire.frame = flame;
+      const hearth = { x: LODGE_POINTS.fireplace.x, y: LODGE_POINTS.fireplace.y - 7 };
+      return {
+        zone: input.zone,
+        glints: [],
+        flat: LODGE_FLAT.map((f) => placed(f.sprite, f.at)),
+        upright,
+        drone,
+        tint: "transparent",
+        light: glow(hearth, CAMPFIRE_GLOW, flame === 0 ? 1 : 0.8),
+        snow: [],
+      };
     }
     return { zone: input.zone, glints: [], flat: [], upright, drone, tint: PHASE_TINT[phase], light: [], snow };
   }

@@ -9,7 +9,7 @@ import type { Challenge, ChestId } from "./types";
 /** The Codex's pure side: how chests group by zone, what to do next, the story steps and the practice questions. */
 
 /** The zones that hold chests, in world order. */
-export const ZONE_ORDER: readonly ZoneId[] = ["peaks", "village", "forest", "desert", "beach", "foggaten", "lodge"];
+export const ZONE_ORDER: readonly ZoneId[] = ["lodge", "peaks", "village", "forest", "desert", "beach", "foggaten"];
 
 export type CodexGroup = { zone: ZoneId; name: string; chests: Chest[]; earned: number };
 export type CodexFilter = "all" | "earned" | "todo";
@@ -55,6 +55,7 @@ const ROUTE: Partial<Record<ZoneId, string>> = {
   desert: ", west of the Dense Forest",
   beach: ", east of the Dense Forest",
   foggaten: ": take the boat from the Peaks' east dock",
+  lodge: ": walk into the lodge door in the C++ Peaks",
 };
 const CHEST_ROUTE: Partial<Record<ChestId, string>> = {
   "chest-css": ", north of the wall: the gate must be open first",

@@ -153,11 +153,13 @@ describe("Overworld in team mode", () => {
     const random = vi.spyOn(Math, "random").mockReturnValue(0);
     try {
       const { user, ana, kai } = await startedPair();
-      await user.click(kai.getByRole("button", { name: "Ski Lodge, HTML chest" }));
+      for (const dir of ["down", "down", "down", "down", "left", "left"]) await user.click(kai.getByRole("button", { name: `Move ${dir}` })); // down to the lodge door and in
+      await user.click(kai.getByRole("button", { name: "Shelf, HTML chest" }));
       await user.type(kai.getByRole("textbox", { name: "answer" }), "href");
       await user.click(kai.getByRole("button", { name: "[ SUBMIT CODE ]" }));
       await user.click(kai.getByRole("button", { name: "[ CONTINUE ]" }));
-      for (let i = 0; i < 6; i++) await user.click(kai.getByRole("button", { name: "Move left" }));
+      // Out through the mat, up to the village road and west into Dev Village.
+      for (const dir of ["down", "down", "up", "up", "up", "left", "left", "left", "left", "left", "left"]) await user.click(kai.getByRole("button", { name: `Move ${dir}` }));
       await user.click(kai.getByRole("button", { name: "Hut, PHP chest" }));
       await user.type(kai.getByRole("textbox", { name: "answer" }), "echo");
       await user.click(kai.getByRole("button", { name: "[ SUBMIT CODE ]" }));
@@ -488,7 +490,8 @@ describe("Overworld team chat", () => {
     const random = vi.spyOn(Math, "random").mockReturnValue(0);
     try {
       const { user, ana, kai } = await startedPair();
-      await user.click(kai.getByRole("button", { name: "Ski Lodge, HTML chest" }));
+      for (const dir of ["down", "down", "down", "down", "left", "left"]) await user.click(kai.getByRole("button", { name: `Move ${dir}` })); // down to the lodge door and in
+      await user.click(kai.getByRole("button", { name: "Shelf, HTML chest" }));
       await user.type(kai.getByRole("textbox", { name: "answer" }), "href");
       await user.click(kai.getByRole("button", { name: "[ SUBMIT CODE ]" }));
       await flush();

@@ -9,6 +9,7 @@ import { VILLAGE_LIFE, wandererPose } from "./areas/village";
 import { PHASE_TINT, buildScene, stormStrength, type Poses, type SceneInput } from "./scene";
 import { LIGHTS, SPRITES, spriteBox, type SpriteId } from "./sprites";
 import { BRIDGE_RECT, decorations } from "./terrain";
+import { LODGE_POINTS } from "./areas/lodge";
 import { SECRET_SPOTS } from "./areas/secrets";
 import { REACHABLE_RECT, intersects, reachableRect, toArt } from "./world";
 import { TERMINAL } from "../game/constants";
@@ -1367,5 +1368,50 @@ describe("scene: the hidden spots", () => {
       for (const path of area.paths) expect(intersects(box, path), `${spot.id} vs a path`).toBe(false);
       for (const other of SECRET_SPOTS) if (other.id !== spot.id && other.zone === spot.zone) expect(intersects(box, spriteBox(other.sprite, other.at)), `${spot.id} vs ${other.id}`).toBe(false);
     }
+  });
+});
+
+describe("scene: the Ski Lodge", () => {
+  const lodge = (minutes: number, over: Partial<SceneInput> = {}, t = 0) => scene({ zone: "lodge", player: { x: 50, y: 78 }, drone: { x: 48, y: 80 }, minutes, ...over }, t);
+
+  it("is lit at every hour: no tint, no snow, a flickering fireplace with a warm glow", () => {
+    for (const minutes of [DAY, DUSK, NIGHT]) {
+      const s = lodge(minutes, { snow: true });
+      expect(s.tint, `${minutes}`).toBe("transparent");
+      expect(s.snow, `${minutes}`).toHaveLength(0);
+      expect(s.upright.filter((d) => d.sprite === "fireplace"), `${minutes}`).toHaveLength(1);
+      const fire = spriteBox("fireplace", AREAS.lodge.props.find((p) => p.sprite === "fireplace")!.at);
+      expect(s.light.filter((p) => p.color === "#fb923c" && Math.abs(p.x - (fire.x + fire.w / 2)) < 10 && p.y > fire.y && p.y < fire.y + fire.h).length, `${minutes}`).toBeGreaterThan(0);
+    }
+    const frames = [0, 400].map((t) => lodge(DAY, {}, t).upright.find((d) => d.sprite === "fireplace")!.frame);
+    expect(frames[0]).not.toBe(frames[1]);
+    expect(lodge(DAY, {}, 400).light[0].alpha).not.toBe(lodge(DAY, {}, 0).light[0].alpha);
+  });
+
+  it("the rug and the door mat lie flat under everyone, and the walls surround the room", () => {
+    const s = lodge(DAY);
+    expect(s.flat.map((d) => d.sprite).sort()).toEqual(["door-mat", "rug"]);
+    const walls = s.upright.filter((d) => d.sprite === "lodge-wall");
+    expect(walls.some((d) => d.y < 8)).toBe(true);
+    expect(walls.some((d) => d.x < 8)).toBe(true);
+    expect(walls.some((d) => d.x > 300)).toBe(true);
+    expect(walls.some((d) => d.y > 160)).toBe(true);
+  });
+
+  it("every prop is inside the world, clear of each other and of the mat, the rug and the keeper's spot, and protected", () => {
+    const area = AREAS.lodge;
+    const boxes = area.props.map((p) => spriteBox(p.sprite, p.at));
+    for (const [i, a] of boxes.entries()) {
+      expect(a.x >= 0 && a.y >= 0 && a.x + a.w <= area.world.width && a.y + a.h <= area.world.height, `prop ${i} in the world`).toBe(true);
+      for (const b of boxes.slice(i + 1)) expect(intersects(a, b), `props ${i} overlap`).toBe(false);
+      expect(area.protected).toContainEqual(a);
+      for (const flat of [spriteBox("door-mat", LODGE_POINTS.mat), spriteBox("rug", LODGE_POINTS.rug)]) expect(intersects(a, flat), `prop ${i} on a floor piece`).toBe(false);
+      expect(intersects(a, spriteBox("explorer-down", LODGE_POINTS.keeper)), `prop ${i} on the keeper`).toBe(false);
+    }
+    expect(area.terrainAt(100, 100)).toBe("floor");
+  });
+
+  it("has no scenery or hedge round it", () => {
+    expect(decorations({ x: -300, y: -300, w: 920, h: 660 }, AREAS.lodge)).toEqual([]);
   });
 });

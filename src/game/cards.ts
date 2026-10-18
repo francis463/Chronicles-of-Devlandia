@@ -5,6 +5,7 @@ import { BEACH_COPY, CASTLE_COPY, FISHER_LINE } from "./beach";
 import { DESERT_COPY, nomadSays } from "./desert";
 import { DESERT_LORE, JAR_CARD } from "./desertLore";
 import { REMEDIES } from "./remedies";
+import { LODGE_CARDS } from "./lodge";
 import { SECRETS, SECRET_CARD } from "./secrets";
 import { rangerSays } from "./forest";
 import { FOREST_LORE, MUSHROOM_CARD } from "./forestLore";
@@ -78,6 +79,10 @@ export function cardFor(s: GameState): Card | null {
       const secret = SECRETS.find((x) => x.id === place.id)!;
       return card(place.label, s.secrets.includes(place.id) ? `${secret.text} ${SECRET_CARD.found}` : secret.text);
     }
+    case "lodge-door":
+      return card(place.label, LODGE_CARDS.door);
+    case "lodge-fireplace":
+      return card(place.label, LODGE_CARDS.fireplace);
     case "sandcastle":
       return card(place.label, s.sandcastleBuilt ? CASTLE_COPY.built : CASTLE_COPY.unbuilt);
     case "fisher":

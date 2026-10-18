@@ -2,7 +2,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { ADA, ARCHIVE, BEACH_SIGNPOST, CAMPFIRE, DESERT_SIGNPOST, FISHER, FOREST_SIGNPOST, HERMIT, HIDDEN_ARTIFACT, ISLAND_DOCK, ISLAND_FIRE, LIGHTHOUSE, NOMAD, POIS, RANGER, SIGNPOST } from "../../game/constants";
 import { WALL_Y } from "../../game/wall";
 import type { Poi, Point } from "../../game/types";
-import type { ZoneId } from "../../game/zones";
+import { ZONES, type ZoneId } from "../../game/zones";
 import type { ActivePing } from "../../hooks/usePings";
 import type { Teammate } from "../../hooks/useTeamSession";
 import { CHESTS } from "../../learn/chests";
@@ -22,6 +22,7 @@ export const MINI_COLORS: Record<TerrainKind, string> = {
   dune: "#e2ac4c",
   beach: "#f1e0b0",
   sea: "#1e5aa8",
+  floor: "#b07a45",
 };
 
 const WALL_COLOR = "#1e293b";
@@ -70,6 +71,10 @@ const CELLS: Array<{ zone: ZoneId; left: number; places: Poi[] }> = [
   { zone: "beach", left: 4 * CELL_W, places: [FISHER, BEACH_SIGNPOST] },
   { zone: "foggaten", left: 5 * CELL_W, places: [ISLAND_DOCK, LIGHTHOUSE, HERMIT, ISLAND_FIRE] },
 ];
+
+/** The lodge is a room inside the Peaks: on the world map it is the Peaks cell, and whoever is in it stands at the lodge's door. */
+const cellOf = (z: ZoneId | null): ZoneId | null => (z === "lodge" ? "peaks" : z);
+const spotOf = (z: ZoneId | null, p: Point): Point => (z === "lodge" ? ZONES.peaks.doors[0].at : p);
 
 const at = (p: Point) => ({ left: `${p.x}%`, top: `${p.y}%` });
 
@@ -146,38 +151,38 @@ export function MiniMap({
         className="relative h-14 w-[194px] flex-shrink-0 overflow-hidden rounded border border-[var(--panel-border)] bg-[var(--bg)]"
       >
         {CELLS.map((cell) => (
-          <MiniCell key={cell.zone} zone={cell.zone} left={cell.left} current={cell.zone === zone}>
+          <MiniCell key={cell.zone} zone={cell.zone} left={cell.left} current={cell.zone === cellOf(zone)}>
             {cell.places.map((poi) => (
               <div key={poi.id} className="absolute h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 border border-[var(--accent)]" style={at(poi)} />
             ))}
             {CHESTS.map((chest) => {
               const point = chest.at ?? (archiveOpen ? ARCHIVE : null);
-              return chest.zone === cell.zone && point ? <ChestDiamond key={chest.id} id={chest.id} point={point} earned={badges.includes(chest.id)} /> : null;
+              return cellOf(chest.zone) === cell.zone && point ? <ChestDiamond key={chest.id} id={chest.id} point={spotOf(chest.zone, point)} earned={badges.includes(chest.id)} /> : null;
             })}
             {cell.zone === "foggaten" && artifactFound && (
               <div className="absolute h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-[var(--accent)]" style={at(HIDDEN_ARTIFACT)} />
             )}
             {teammates
-              .filter((t) => t.zone === cell.zone)
+              .filter((t) => cellOf(t.zone) === cell.zone)
               .map((t) => (
                 <div
                   key={t.id}
                   data-testid={`minimap-teammate-${t.name}`}
                   className="absolute h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-[250ms] ease-linear"
-                  style={{ ...at(t), background: t.color }}
+                  style={{ ...at(spotOf(t.zone, t)), background: t.color }}
                 />
               ))}
             {pings
-              .filter((p) => p.zone === cell.zone)
+              .filter((p) => cellOf(p.zone) === cell.zone)
               .map((p) => (
                 <div
                   key={p.id}
                   data-testid={`minimap-ping-${p.id}`}
                   className="absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border animate-[ping-ring_1s_ease-out_infinite] motion-reduce:animate-none"
-                  style={{ ...at(p), borderColor: p.color }}
+                  style={{ ...at(spotOf(p.zone, p)), borderColor: p.color }}
                 />
               ))}
-            {cell.zone === zone && view && (view.w < 1 || view.h < 1) && (
+            {cell.zone === zone && zone !== "lodge" && view && (view.w < 1 || view.h < 1) && (
               <div
                 aria-hidden="true"
                 data-testid="minimap-view"
@@ -185,11 +190,11 @@ export function MiniMap({
                 style={{ left: `${view.x * 100}%`, top: `${view.y * 100}%`, width: `${view.w * 100}%`, height: `${view.h * 100}%` }}
               />
             )}
-            {cell.zone === zone && (
+            {cell.zone === cellOf(zone) && (
               <div
                 data-testid="minimap-player"
                 className="absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--success)] transition-all duration-150"
-                style={{ ...at(player), ...(playerColor ? { background: playerColor } : {}) }}
+                style={{ ...at(spotOf(zone, player)), ...(playerColor ? { background: playerColor } : {}) }}
               />
             )}
           </MiniCell>

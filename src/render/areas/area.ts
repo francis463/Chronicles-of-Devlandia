@@ -2,7 +2,7 @@ import type { ZoneId } from "../../game/zones";
 import type { SpriteId } from "../sprites";
 import type { ArtPoint, Rect, WorldSize } from "../world";
 
-export type TerrainKind = "ice" | "mountains" | "snow" | "forest" | "meadow" | "sand" | "sea" | "dune" | "beach";
+export type TerrainKind = "ice" | "mountains" | "snow" | "forest" | "meadow" | "sand" | "sea" | "dune" | "beach" | "floor";
 
 /** A static upright the scene draws in an area; `variant` recolours it (an explorer's hood). */
 export type Prop = { sprite: SpriteId; at: ArtPoint; variant?: string };

@@ -485,7 +485,7 @@ describe("the Sunny Beach's area", () => {
 });
 
 describe("hosted chests' landmarks", () => {
-  const HOSTS = [["chest-html", "lodge"], ["chest-css", "cave-mouth"], ["chest-php", "hut"], ["chest-sql", "windmill"], ["chest-js", "old-oak"], ["chest-java", "pyramid"], ["chest-py-2", "oasis"], ["chest-cpp-2", "shipwreck"], ["chest-cpp-1", "pier"], ["chest-py-1", "ruins"]] as const;
+  const HOSTS = [["chest-html", "shelf"], ["chest-css", "cave-mouth"], ["chest-php", "hut"], ["chest-sql", "windmill"], ["chest-js", "old-oak"], ["chest-java", "pyramid"], ["chest-py-2", "oasis"], ["chest-cpp-2", "shipwreck"], ["chest-cpp-1", "pier"], ["chest-py-1", "ruins"]] as const;
 
   it("every chest stands at a landmark drawing of its zone, so the landmark is the chest", () => {
     for (const [id, sprite] of HOSTS) {

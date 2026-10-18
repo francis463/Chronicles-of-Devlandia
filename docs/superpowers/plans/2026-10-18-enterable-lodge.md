@@ -18,7 +18,7 @@
 - Doors: Peaks door at percent (19.4, 88) radius 2.5 → lodge, arriving at (50, 78); lodge mat at (50, 88) radius 2.5 → Peaks, arriving at (26, 88). Arrival points lie outside every door radius of the zone they arrive in.
 - New `PoiId`s: `lodge-door` (Peaks, label `Ski Lodge`, at (19.4, 89.4) — the lodge's feet), `lodge-keeper` (label `Keeper`), `lodge-fireplace` (label `Fireplace`). `GameState.soupTaken: boolean`, default `false`.
 - Soup: interacting beside the keeper (within `reachFor("lodge")`) while `hp < MAX_HP`, `!soupTaken` and not `hard` heals `REMEDY_HEAL` (2) and sets `soupTaken`; otherwise she only talks. Hard mode never offers it.
-- `chest-html` moves to zone `lodge`, host `Shelf`, at percent (66, 40); its Codex place text reads `Ski Lodge · Shelf`. Badges stay 11.
+- `chest-html` moves to zone `lodge`, host `Shelf`, at percent (66, 46); its Codex place text reads `Ski Lodge · Shelf`. Badges stay 11.
 - Sprites use the shared dark outline (`#0b1020`, palette key `o`).
 - Copy: the keeper's hint line names what the player has not done yet, in the style of `rangerLine`; log lines end with a full stop.
 
@@ -55,7 +55,7 @@
 
 **Interfaces:**
 - Consumes: Task 1's zone, doors and stub area.
-- Produces: `AREAS.lodge` with props (walls along the top and both sides, door mat at (50, 90)%, rug, table, two bunks, shelf at (66, 40)%, fireplace at (20, 30)%), `LODGE_POINTS = { fireplace, shelf, mat, keeper }` in art px (`keeper` at (38, 52)%), places `lodge-door` (Peaks) and `lodge-fireplace` (lodge) with cards (`The lodge's door. Walk into it to go inside.`, `A crackling fire. The keeper keeps the logs coming.`), verbs `Inspect`, the lodge scene (untinted at every hour).
+- Produces: `AREAS.lodge` with props (walls along the top and both sides, door mat at (50, 90)%, rug, table, two bunks, shelf at (66, 46)%, fireplace at (20, 30)%), `LODGE_POINTS = { fireplace, shelf, mat, keeper }` in art px (`keeper` at (38, 52)%), places `lodge-door` (Peaks) and `lodge-fireplace` (lodge) with cards (`The lodge's door. Walk into it to go inside.`, `A crackling fire. The keeper keeps the logs coming.`), verbs `Inspect`, the lodge scene (untinted at every hour).
 
 - [ ] **Step 1: Write the failing tests:** each new sprite has its declared size, anchor and only palette characters, and every edge is the shared outline (`fireplace` frames differ); the lodge scene at 12:00 and 23:00 has `tint === "transparent"` and no snow, with the fireplace sprite drawn once and warm light pixels near it at both hours; `terrainAt` is `floor` inside the world and `decorations(world-sized ring, AREAS.lodge)` is empty; all lodge props are inside the world, clear of each other, the mat and the keeper's spot, and protected; `lodge-door` has a caption/button on the Peaks that does not collide with other captions or hit areas (existing exhaustive tests, extended to `lodge`); in the lodge `MapViewport` shows the fireplace button and no Peaks buttons; the mini-map in the lodge outlines the Peaks cell with the player dot at the door's percent.
 - [ ] **Step 2: Run them; expect failures.**

@@ -1,6 +1,7 @@
 import { DESERT_JARS, DESERT_LORE } from "../../game/desertLore";
 import { REMEDIES, remediesIn } from "../../game/remedies";
 import { REMEDY_SPOTS } from "../../render/areas/remedies";
+import { LODGE_POINTS } from "../../render/areas/lodge";
 import { SECRET_SPOTS } from "../../render/areas/secrets";
 import { SECRETS, secretsIn } from "../../game/secrets";
 import { FOREST_LORE, FOREST_MUSHROOMS } from "../../game/forestLore";
@@ -122,7 +123,7 @@ export type LandmarkCaption = {
  */
 /** The landmark each chest is inside: its drawing, which side its caption prefers and a shorter caption name where the host name is long. */
 const HOSTS: Partial<Record<ChestId, { sprite: SpriteId; prefer: "above" | "below"; name?: string }>> = {
-  "chest-html": { sprite: "lodge", prefer: "below", name: "Lodge" },
+  "chest-html": { sprite: "shelf", prefer: "above", name: "Shelf" },
   "chest-css": { sprite: "cave-mouth", prefer: "below", name: "Cave" },
   "chest-php": { sprite: "hut", prefer: "above" },
   "chest-sql": { sprite: "windmill", prefer: "above", name: "Mill" },
@@ -157,6 +158,8 @@ export const LANDMARK_CAPTIONS: readonly LandmarkCaption[] = [
   ...JAR_POINTS.map((j): LandmarkCaption => ({ id: j.id, zone: "desert", sprite: "jar", point: j.at, texts: ["Jar"], prefer: "below", quiet: true })),
   ...REMEDY_SPOTS.map((r): LandmarkCaption => ({ id: r.id, zone: r.zone, sprite: r.sprite, point: r.at, texts: [REMEDIES.find((x) => x.id === r.id)!.short], prefer: "below", quiet: true })),
   ...SECRET_SPOTS.map((s): LandmarkCaption => ({ id: s.id, zone: s.zone, sprite: s.sprite, point: s.at, texts: [SECRETS.find((x) => x.id === s.id)!.label], prefer: "above", quiet: true })),
+  { id: "lodge-door", zone: "peaks", sprite: "lodge", point: { x: 62, y: 161 }, texts: ["Lodge"], prefer: "below", quiet: true },
+  { id: "lodge-fireplace", zone: "lodge", sprite: "fireplace", point: LODGE_POINTS.fireplace, texts: ["Fireplace"], prefer: "below", quiet: true },
   { id: "dock", zone: "peaks", sprite: "dock", point: DOCK_POINT, texts: ["[B] Dock"], prefer: "below" },
   { id: "peaks-signpost", zone: "peaks", sprite: "signpost", point: SIGNPOST_POINT, texts: ["[P] Signpost"], prefer: "above", quiet: true },
   { id: "weather-station", zone: "peaks", sprite: "station", point: STATION_POINT, texts: ["[W] Weather Station"], prefer: "above", quiet: true },
