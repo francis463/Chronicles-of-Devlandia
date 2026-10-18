@@ -98,6 +98,7 @@ export type SpriteId =
   | "obelisk"
   | "jar"
   | "herb"
+  | "carrot"
   | "cactus-fruit"
   | "cold-drink"
   | "skull"
@@ -862,6 +863,19 @@ function jarGrid(frame: 0 | 1): PixelGrid {
     rect(2, 0, 8, 1, "J"),
     rect(frame === 0 ? 4 : 6, 7, frame === 0 ? 4 : 6, 8, "b"),
     rect(7, 9, 7, 9, "J"),
+  ]);
+}
+
+/** A garden carrot: a fat orange root in the soil with a tuft of green leaves on top. */
+function carrotGrid(): PixelGrid {
+  return creature(10, 14, [
+    rect(4, 0, 4, 4, "G"),
+    rect(5, 0, 5, 3, "g"),
+    rect(6, 1, 6, 4, "G"),
+    ell(5, 8, 2.8, 4.2, "c"),
+    rect(4, 7, 5, 8, "C"),
+    rect(4, 11, 5, 13, "c"),
+    ell(5, 5.5, 4, 1.6, "d"),
   ]);
 }
 
@@ -2240,6 +2254,7 @@ export const SPRITES: Record<SpriteId, SpriteDef> = {
   riverbed: { w: 56, h: 22, anchor: "bottom", palette: { o: "#0b1020", b: "#c9a36a", c: "#9a7a48", S: "#9a8a6a", B: "#b8a888" }, frames: [riverbedGrid()] },
   obelisk: { w: 16, h: 40, anchor: "bottom", palette: { o: "#0b1020", S: "#b8a888", B: "#8c7f66", g: "#fbbf24" }, frames: [obeliskGrid()] },
   jar: { w: 11, h: 13, anchor: "bottom", palette: { o: "#0b1020", j: "#c2410c", J: "#9a3412", b: "#7dd3fc" }, frames: [jarGrid(0), jarGrid(1)] },
+  carrot: { w: 10, h: 14, anchor: "bottom", palette: { o: "#0b1020", g: "#22c55e", G: "#15803d", c: "#f97316", C: "#ea580c", d: "#6b4423" }, frames: [carrotGrid()] },
   herb: { w: 9, h: 10, anchor: "bottom", palette: { o: "#0b1020", g: "#22c55e", G: "#15803d", w: "#f8fafc", y: "#facc15" }, frames: [herbGrid()] },
   "cactus-fruit": { w: 10, h: 11, anchor: "bottom", palette: { o: "#0b1020", g: "#16a34a", G: "#14532d", r: "#ef4444" }, frames: [cactusFruitGrid()] },
   "cold-drink": { w: 8, h: 11, anchor: "bottom", palette: { o: "#0b1020", c: "#e0f2fe", b: "#38bdf8", r: "#ef4444", y: "#fde047" }, frames: [coldDrinkGrid()] },

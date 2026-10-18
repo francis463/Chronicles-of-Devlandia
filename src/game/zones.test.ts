@@ -33,9 +33,9 @@ describe("zones", () => {
     }
   });
 
-  it("village places in order: villager, signpost, terminal, archive, chest-php, chest-sql", () => {
+  it("village places in order: villager, signpost, terminal, archive, the garden carrot, chest-php, chest-sql", () => {
     expect(ZONES.village.places.map((p) => p.id)).toEqual([
-      "villager", "signpost", "terminal", "archive", "chest-php", "chest-sql",
+      "villager", "signpost", "terminal", "archive", "remedy-carrot", "chest-php", "chest-sql",
     ]);
     expect(ZONES.village.places.find((p) => p.id === "chest-sql")).toMatchObject({ label: "Windmill", x: 13.75, y: 42.2 });
   });

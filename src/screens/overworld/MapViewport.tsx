@@ -22,6 +22,7 @@ import {
   CHEST_CAPTION_SCALE,
   EXIT_SIGNS,
   BEACH_SCENERY,
+  VILLAGE_SCENERY,
   DESERT_SCENERY,
   FOREST_SCENERY,
   SECRET_SCENERY,
@@ -547,6 +548,9 @@ export function MapViewport({
               hideCaption={inRange?.id === "archive"}
               onClick={() => onInteract("archive")}
             />
+            {VILLAGE_SCENERY.filter((l) => !remedies.includes(l.id)).map((l) => (
+              <LandmarkButton key={l.id} hit={hits[l.id]} name={caption(l.id)} label={l.label} color="var(--accent)" world={world} map={map} prefer={l.prefer} disabled={downed} hideCaption={smallMap && inRange?.id !== l.id} peek passive={smallMap} onClick={() => onInteract(l.id)} />
+            ))}
           </>
         )}
         {chests.map((l) => {

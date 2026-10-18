@@ -65,7 +65,8 @@ export function cardFor(s: GameState): Card | null {
       return card(place.label, s.jars.includes(place.id) ? JAR_CARD.picked : JAR_CARD.far);
     case "remedy-herb":
     case "remedy-fruit":
-    case "remedy-drink": {
+    case "remedy-drink":
+    case "remedy-carrot": {
       const remedy = REMEDIES.find((r) => r.id === place.id)!;
       return card(place.label, s.remedies.includes(place.id) ? remedy.picked : remedy.far);
     }

@@ -1,7 +1,7 @@
 import type { Poi, PoiId, RemedyId } from "./types";
 import type { ZoneId } from "./zones";
 
-/** One healing find in each of the forest, the desert and the beach. */
+/** One food find in each of the forest, the desert, the beach and the village garden. */
 export const REMEDIES: Array<Poi & { id: RemedyId; zone: ZoneId; short: string; far: string; picked: string }> = [
   {
     id: "remedy-herb",
@@ -32,6 +32,16 @@ export const REMEDIES: Array<Poi & { id: RemedyId; zone: ZoneId; short: string; 
     y: 62,
     far: "A glass of cold lemonade left on the sand. Walk up to it and press [E] to take it.",
     picked: "You already drank the cold lemonade.",
+  },
+  {
+    id: "remedy-carrot",
+    zone: "village",
+    label: "Garden Carrot",
+    short: "Carrot",
+    x: 90,
+    y: 36,
+    far: "A fat carrot with its green top poking out of the garden soil. Walk up to it and press [E] to pull it.",
+    picked: "You already pulled the carrot.",
   },
 ];
 

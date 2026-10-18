@@ -189,6 +189,7 @@ export const FOREST_SCENERY = [...FOREST_LORE, ...FOREST_MUSHROOMS, ...remediesI
 export const DESERT_SCENERY = [...DESERT_LORE, ...DESERT_JARS, ...remediesIn("desert")].map((p) => ({ id: p.id, label: p.label, prefer: LANDMARK_CAPTIONS.find((l) => l.id === p.id)!.prefer }));
 
 /** The beach's quiet scenery buttons (the cold drink), with the side each caption prefers. */
+export const VILLAGE_SCENERY = remediesIn("village").map((p) => ({ id: p.id, label: p.label, prefer: LANDMARK_CAPTIONS.find((l) => l.id === p.id)!.prefer }));
 export const BEACH_SCENERY = remediesIn("beach").map((p) => ({ id: p.id, label: p.label, prefer: LANDMARK_CAPTIONS.find((l) => l.id === p.id)!.prefer }));
 
 /** What the map captions depend on. `reach` is the place in reach, whose chest caption shows at 1×. */

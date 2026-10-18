@@ -574,7 +574,7 @@ describe("gameReducer: places and talking", () => {
       "gate", "river", "tower", "dock", "peaks-signpost", "weather-station", "lodge-door", "secret-pointer", "secret-hut", "chest-css",
     ]);
     expect(visiblePois({ ...village, clueDecoded: true }).map((p) => p.id)).toEqual([
-      "villager", "signpost", "terminal", "archive", "chest-php", "chest-sql",
+      "villager", "signpost", "terminal", "archive", "remedy-carrot", "chest-php", "chest-sql",
     ]);
     expect(visiblePois({ ...s0, clueDecoded: true }).map((p) => p.id)).not.toContain("artifact");
     expect(visiblePois({ ...s0, zone: "foggaten", clueDecoded: true }).map((p) => p.id).at(-1)).toBe("artifact");
@@ -1329,6 +1329,17 @@ describe("gameReducer: healing finds", () => {
     expect(lastLog(full)).toMatch(/not hungry/);
     const none = { ...initialState, hp: 2, food: 0 };
     expect(gameReducer(none, { type: "eat" })).toBe(none);
+  });
+
+  it("the garden carrot in the village packs as food once, like the others", () => {
+    const spot = ZONES.village.places.find((p) => p.id === "remedy-carrot")!;
+    const near: GameState = { ...initialState, zone: "village", hp: 5, player: { x: spot.x, y: spot.y } };
+    expect(visiblePois(near).map((p) => p.id)).toContain("remedy-carrot");
+    const s = gameReducer(near, { type: "interact", poi: "remedy-carrot" });
+    expect([s.remedies, s.food, s.hp]).toEqual([["remedy-carrot"], 1, 5]);
+    expect(lastLog(s)).toMatch(/pack the garden carrot as food/);
+    expect(visiblePois(s).map((p) => p.id)).not.toContain("remedy-carrot");
+    expect(gameReducer(s, { type: "interact", poi: "remedy-carrot" }).food).toBe(1);
   });
 
   it("from across the map the button only shows its card", () => {

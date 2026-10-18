@@ -720,6 +720,8 @@ function buildBaseScene(input: SceneInput, poses: Poses, t: number, reduced: boo
       // The windmill's sails turn and the fountain's spray dances; copies, so cached drawables are never changed.
       const frames: Partial<Record<SpriteId, number>> = reduced ? {} : { windmill: Math.floor(t / 600) % 2, fountain: Math.floor(t / 300) % 2 };
       const animated = upright.map((d) => (frames[d.sprite] === undefined ? d : { ...d, frame: frames[d.sprite]! }));
+      animated.push(...remedyDrawables("village", input.remedies));
+      animated.sort(byFeet);
       return { zone: input.zone, glints: [], flat: [], upright: animated, drone, tint: PHASE_TINT[phase], light: villageLight(t, reduced, strength, input.master), snow };
     }
     if (input.zone === "desert") {
