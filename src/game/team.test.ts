@@ -348,3 +348,18 @@ describe("Foggaten Island in team messages", () => {
     expect(parseMessage({ type: "ping", id: "a", name: "Kai", zone: "marsh", x: 30, y: 40, place: null }, NOW)).toBeNull();
   });
 });
+
+describe("parseMessage: water", () => {
+  const water = (over: Record<string, unknown> = {}) => parseMessage({ type: "water", id: "a", name: "Kai", to: "b", ...over }, NOW);
+
+  it("accepts a bottle for one teammate and nothing else", () => {
+    expect(water()).toEqual({ type: "water", id: "a", name: "Kai", to: "b" });
+  });
+
+  it("drops a message with a missing or odd sender, target or name", () => {
+    expect(water({ to: undefined })).toBeNull();
+    expect(water({ to: 5 })).toBeNull();
+    expect(water({ id: "" })).toBeNull();
+    expect(water({ name: 7 })).toBeNull();
+  });
+});

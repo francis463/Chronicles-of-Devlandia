@@ -56,6 +56,10 @@ export type TeamSession = {
   /** Chats from roster teammates that pass the receive rate limit. Subscriptions outlive rooms. */
   onChat(cb: (from: ChatSender, text: string) => void): () => void;
   onPing(cb: (from: ChatSender, ping: PingNote) => void): () => void;
+  /** Shares water with a teammate (heals them a little); "offline" when not in a room or while reconnecting. */
+  shareWater(to: string): "sent" | "offline";
+  /** A roster teammate shared water with you (at most one per sender every few seconds). */
+  onWater(cb: (from: ChatSender) => void): () => void;
   onRoster(cb: (joined: string[], left: string[]) => void): () => void;
   /** A teammate's position updates moved them from one known zone to another (never their first sighting). */
   onZoneChange(cb: (name: string, zone: ZoneId) => void): () => void;
@@ -127,6 +131,8 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
   const badgeCbs = useRef(new Set<(name: string, chest: ChestId, id: string) => void>());
   const chatCbs = useRef(new Set<(from: ChatSender, text: string) => void>());
   const pingCbs = useRef(new Set<(from: ChatSender, ping: PingNote) => void>());
+  const waterCbs = useRef(new Set<(from: ChatSender) => void>());
+  const lastWater = useRef(new Map<string, number>());
   /** Per sender token bucket for chat (capacity 3, refill 1 a second), by wall time. */
   const chatBuckets = useRef(new Map<string, { tokens: number; at: number }>());
   const lastPing = useRef(new Map<string, number>());
@@ -155,6 +161,7 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
     seenBadges.current.clear();
     chatBuckets.current.clear();
     lastPing.current.clear();
+    lastWater.current.clear();
     seenOthers.current = false;
     return t;
   }, []);
@@ -231,6 +238,15 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
               seenBadges.current.add(key);
               badgeCbs.current.forEach((cb) => cb(msg.name, msg.chest, msg.id));
             }
+          } else if (msg.type === "water") {
+            // Only a roster teammate's water counts, only when it is meant for you, and a sender cannot pour faster than every 8 s.
+            const sender = msg.id === myId || msg.to !== myId ? undefined : rankPlayers(stateRef.current.metas).find((p) => p.id === msg.id);
+            if (!sender) return;
+            const at = Date.now();
+            const last = lastWater.current.get(sender.id);
+            if (last !== undefined && at - last < 8000) return;
+            lastWater.current.set(sender.id, at);
+            waterCbs.current.forEach((cb) => cb({ id: sender.id, name: sender.name, color: sender.color }));
           } else if (msg.type === "chat" || msg.type === "ping") {
             // Only people in the roster can speak; the roster's nickname wins over the message's.
             const sender = msg.id === myId ? undefined : rankPlayers(stateRef.current.metas).find((p) => p.id === msg.id);
@@ -407,6 +423,17 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
     return () => void chatCbs.current.delete(cb);
   }, []);
 
+  const shareWater = useCallback((to: string): "sent" | "offline" => {
+    if (!canSend()) return "offline";
+    transport.current!.send({ type: "water", id: me.current!.id, name: me.current!.name, to });
+    return "sent";
+  }, []);
+
+  const onWater = useCallback((cb: (from: ChatSender) => void) => {
+    waterCbs.current.add(cb);
+    return () => void waterCbs.current.delete(cb);
+  }, []);
+
   const onPing = useCallback((cb: (from: ChatSender, ping: PingNote) => void) => {
     pingCbs.current.add(cb);
     return () => void pingCbs.current.delete(cb);
@@ -464,6 +491,8 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
     sendPing,
     onChat,
     onPing,
+    shareWater,
+    onWater,
     onRoster,
     onZoneChange,
   };

@@ -482,6 +482,37 @@ describe("useTeamSession: chat and pings", () => {
     expect(got).toHaveBeenCalledWith({ id: anaId(p), name: "Ana", color: TEAM_COLORS[0] }, { zone: "peaks", x: 50, y: 50, place: "gate" });
   });
 
+  it("shareWater reaches only the teammate it is for, with the roster's name; a second pour within 8 seconds is dropped", async () => {
+    vi.useFakeTimers();
+    const p = await chatPair();
+    await inLobby(p);
+    const kaiGot = vi.fn();
+    const anaGot = vi.fn();
+    p.kai.result.current.onWater(kaiGot);
+    p.ana.result.current.onWater(anaGot);
+    const kaiId = p.kai.result.current.me!.id;
+    let result = "";
+    act(() => void (result = p.ana.result.current.shareWater(kaiId)));
+    expect(result).toBe("sent");
+    expect(kaiGot).toHaveBeenCalledWith({ id: anaId(p), name: "Ana", color: TEAM_COLORS[0] });
+    expect(anaGot).not.toHaveBeenCalled();
+    act(() => void p.ana.result.current.shareWater(kaiId));
+    expect(kaiGot).toHaveBeenCalledTimes(1);
+    act(() => vi.advanceTimersByTime(8100));
+    act(() => void p.ana.result.current.shareWater(kaiId));
+    expect(kaiGot).toHaveBeenCalledTimes(2);
+    // Water meant for someone else, or from an id outside the room, never reaches you.
+    act(() => p.hub.inject(p.ana.result.current.room!, { type: "water", id: anaId(p), name: "Ana", to: "someone-else" }));
+    act(() => p.hub.inject(p.ana.result.current.room!, { type: "water", id: "ghost", name: "Mia", to: kaiId }));
+    expect(kaiGot).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+  });
+
+  it("shareWater is offline outside a room", () => {
+    const p = world().player();
+    expect(p.result.current.shareWater("x")).toBe("offline");
+  });
+
   it("drops a chat from an id that isn't in the room, and shows the roster's name, not the message's", async () => {
     const p = await chatPair();
     await inLobby(p);

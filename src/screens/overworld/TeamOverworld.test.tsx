@@ -213,6 +213,8 @@ describe("Overworld badges with a stub session", () => {
     sendPing: vi.fn(() => "sent" as const),
     onChat: vi.fn(() => () => {}),
     onPing: vi.fn(() => () => {}),
+    shareWater: vi.fn(() => "sent" as const),
+    onWater: vi.fn(() => () => {}),
     onRoster: vi.fn(() => () => {}),
     onZoneChange: vi.fn(() => () => {}),
     ...over,
@@ -242,6 +244,46 @@ describe("Overworld badges with a stub session", () => {
     const first = await codeWith(0.1);
     expect(first).toMatch(/^ACCESS CODE: [A-Z2-9] [A-Z2-9] [A-Z2-9] [A-Z2-9]$/);
     expect(await codeWith(0.9)).toBe(first);
+  });
+
+  describe("sharing water", () => {
+    const mate = (x: number, y: number, zone: "peaks" | "forest" = "peaks") => ({ id: "t1", name: "Kai", color: "#22c55e", x, y, zone });
+    const button = () => screen.queryByRole("button", { name: "[ Share water with Kai ]" });
+
+    it("the button shows only beside a teammate in your zone, and sends water once per cooldown", async () => {
+      const user = setup();
+      const session = stub({ teammates: [mate(33, 72)] });
+      render(<Overworld onMenu={() => {}} team={session} />);
+      await user.click(button()!);
+      expect(session.shareWater).toHaveBeenCalledWith("t1");
+      expect(screen.getAllByText("You shared water with Kai.").length).toBeGreaterThan(0);
+      await user.click(button()!);
+      expect(session.shareWater).toHaveBeenCalledTimes(1);
+      expect(screen.getAllByText(/Your bottle is empty/).length).toBeGreaterThan(0);
+      act(() => void vi.advanceTimersByTime(10_100));
+      await user.click(button()!);
+      expect(session.shareWater).toHaveBeenCalledTimes(2);
+    });
+
+    it("no button for a teammate who is far away or in another zone, or when you are downed", () => {
+      const far = render(<Overworld onMenu={() => {}} team={stub({ teammates: [mate(90, 20)] })} />);
+      expect(button()).toBeNull();
+      far.unmount();
+      const elsewhere = render(<Overworld onMenu={() => {}} team={stub({ teammates: [mate(33, 72, "forest")] })} />);
+      expect(button()).toBeNull();
+      elsewhere.unmount();
+      render(<Overworld onMenu={() => {}} team={stub({ teammates: [mate(33, 72)] })} initial={{ hp: 0 }} />);
+      expect(button()).toBeNull();
+    });
+
+    it("a teammate's water heals you and says who gave it", () => {
+      let pour: (from: { id: string; name: string; color: string }) => void = () => {};
+      const session = stub({ onWater: vi.fn((cb) => ((pour = cb), () => {})) });
+      render(<Overworld onMenu={() => {}} team={session} initial={{ hp: 40 }} />);
+      act(() => pour({ id: "t1", name: "Kai", color: "#22c55e" }));
+      expect(screen.getByRole("meter", { name: "HP" })).toHaveAttribute("aria-valuenow", "50");
+      expect(screen.getAllByText("Kai shared water: +10 HP.").length).toBeGreaterThan(0);
+    });
   });
 
   it("each badge in state is published once", () => {

@@ -7,6 +7,7 @@ import {
   LOG_LIMIT,
   LOW_HP,
   MAX_HP,
+  WATER_HEAL,
   PLAYER_START,
   RIVER_DAMAGE,
   START_MINUTES,
@@ -480,6 +481,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     }
     case "note":
       return pushLog(state, action.text);
+    case "shareWater": {
+      if (isDowned(state)) return state;
+      if (state.hp >= MAX_HP) return pushLog(state, LOG.waterNotNeeded(action.from));
+      return pushLog({ ...state, hp: Math.min(MAX_HP, state.hp + WATER_HEAL) }, LOG.waterReceived(action.from));
+    }
     case "respawn":
       return pushLog(
         { ...state, hp: MAX_HP, zone: "peaks", player: PLAYER_START, drone: DRONE_START, inspected: null },

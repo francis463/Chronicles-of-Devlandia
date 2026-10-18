@@ -4,17 +4,18 @@ import type { CommandContext, CommandEffect } from "../../chat/commands";
 import { chatRoster } from "../../chat/context";
 import { maskRude } from "../../chat/filter";
 import { displayNames } from "../../chat/names";
+import { Button } from "../../ui/Button";
 import { cardFor } from "../../game/cards";
 import { challengeOf, challengeView } from "../../game/challenges";
 import { rollGame } from "../../game/roll";
 import { loadRecent, saveRecent, withPicks } from "../../learn/recent";
-import { interactLabel, placeInReach, promptText } from "../../game/geometry";
+import { distance, interactLabel, placeInReach, promptText } from "../../game/geometry";
 import { gameReducer, initialState, isDowned, isModalOpen, reachPlaces } from "../../game/reducer";
 import type { GameState } from "../../game/types";
 import { countUnread, lastSeq, useChat, type ChatFeed } from "../../hooks/useChat";
 import { usePings } from "../../hooks/usePings";
 import type { TeamSession } from "../../hooks/useTeamSession";
-import { LOG, LOW_HP, TICK_MS } from "../../game/constants";
+import { INTERACT_RADIUS, LOG, LOW_HP, TICK_MS, WATER_COOLDOWN_MS } from "../../game/constants";
 import { tideName } from "../../game/tide";
 import { flagsOf, teamMinutes } from "../../game/team";
 import { ZONES } from "../../game/zones";
@@ -219,6 +220,24 @@ export function Overworld({
       ),
     [onPing, addPing],
   );
+  // Water: a teammate's bottle heals you a little; yours heals the teammate beside you (one pour every WATER_COOLDOWN_MS).
+  const onWater = team?.onWater;
+  const shareWater = team?.shareWater;
+  useEffect(
+    () => onWater?.((from) => dispatch({ type: "shareWater", from: displayNames(playersRef.current ?? []).get(from.id) ?? maskRude(from.name) })),
+    [onWater],
+  );
+  const neighbour = team && !downed ? team.teammates.find((t) => t.zone === state.zone && distance(state.player, t) <= INTERACT_RADIUS) : undefined;
+  const lastPour = useRef(0);
+  const pourWater = () => {
+    if (!neighbour || !shareWater) return;
+    const name = displayNames(playersRef.current ?? []).get(neighbour.id) ?? maskRude(neighbour.name);
+    const at = Date.now();
+    if (at - lastPour.current < WATER_COOLDOWN_MS) return dispatch({ type: "note", text: LOG.waterEmpty });
+    if (shareWater(neighbour.id) !== "sent") return dispatch({ type: "note", text: LOG.waterOffline });
+    lastPour.current = at;
+    dispatch({ type: "note", text: LOG.waterGiven(name) });
+  };
   const now = useNow(TICK_MS, team?.startedAt != null);
   const minutes = team?.startedAt != null ? teamMinutes(team.startedAt, now) : state.minutes;
   const teamLabel = team?.room ? `ROOM ${team.room} · ${team.players.length} online` : undefined;
@@ -305,6 +324,11 @@ export function Overworld({
           prompt={inRange ? promptText(state, inRange) : ""}
           card={cardFor(state)}
         />
+        {neighbour && (
+          <Button variant="ghost" className="mx-auto my-1 px-3 py-1 text-xs pointer-coarse:min-h-11" disabled={leaving || helpOpen || isModalOpen(state)} onClick={pourWater}>
+            {`[ Share water with ${displayNames(players ?? []).get(neighbour.id) ?? maskRude(neighbour.name)} ]`}
+          </Button>
+        )}
         <TouchControls
           disabled={downed || leaving || helpOpen || isModalOpen(state)}
           inRange={inRange}

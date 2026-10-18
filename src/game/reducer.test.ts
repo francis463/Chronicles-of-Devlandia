@@ -1234,3 +1234,20 @@ describe("gameReducer: the camp signpost, the weather station and the snow cave"
     expect(visiblePois(synced).map((p) => p.id)).toContain("snow-cave");
   });
 });
+
+describe("gameReducer: shareWater", () => {
+  it("restores 10 HP and logs who shared it, never past the maximum", () => {
+    const s = gameReducer({ ...s0, hp: 50 }, { type: "shareWater", from: "Kai" });
+    expect(s.hp).toBe(60);
+    expect(lastLog(s)).toBe("Kai shared water: +10 HP.");
+    expect(gameReducer({ ...s0, hp: 95 }, { type: "shareWater", from: "Kai" }).hp).toBe(100);
+  });
+
+  it("says so when you are not hurt, and does nothing for someone who is downed", () => {
+    const full = gameReducer(s0, { type: "shareWater", from: "Kai" });
+    expect(full.hp).toBe(100);
+    expect(lastLog(full)).toBe("Kai offered water, but you are not hurt.");
+    const downed = { ...s0, hp: 0 };
+    expect(gameReducer(downed, { type: "shareWater", from: "Kai" })).toBe(downed);
+  });
+});
