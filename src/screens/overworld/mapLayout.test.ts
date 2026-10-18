@@ -37,7 +37,6 @@ const P = LANDMARK_POINTS;
 const LANDMARKS: Array<{ box: Rect; texts: string[] }> = [
   { box: spriteBox("gate", P.gate), texts: ["[G] Gate"] },
   { box: spriteBox("tower", P.tower), texts: ["[T] Tower", "[T] Tower ✓"] },
-  { box: spriteBox("chest-closed", P.chest), texts: ["[X] Supply Cache", "[X] Empty Cache"] },
 ];
 const MAP_TEXTS: Record<(typeof MAP_CAPTIONS)[number]["id"], string[]> = {
   peaks: ["(Snowy Peaks Biome)"],
@@ -58,9 +57,9 @@ const MAP_TEXTS: Record<(typeof MAP_CAPTIONS)[number]["id"], string[]> = {
   "forest-east-exit": ["Beach →"],
 };
 const GROUPS = {
-  peaks: ["tower", "chest", "gate", "dock", "peaks", "river", "forest", "west-exit", "south-exit"],
+  peaks: ["tower", "gate", "dock", "peaks", "river", "forest", "west-exit", "south-exit"],
   village: ["villager", "signpost", "terminal", "archive", "village", "east-exit"],
-  forest: ["dense-forest", "north-exit", "forest-west-exit", "forest-east-exit", "ranger", "campfire", "forest-signpost"],
+  forest: ["dense-forest", "north-exit", "forest-west-exit", "forest-east-exit", "ranger", "campfire", "forest-signpost", "chest"],
   foggaten: ["foggaten", "island-dock", "lighthouse", "hermit", "island-fire"],
   desert: ["desert", "desert-east-exit", "nomad", "desert-signpost"],
   beach: ["beach", "beach-west-exit", "fisher", "beach-signpost", "sandcastle"],
@@ -203,7 +202,7 @@ describe("captions", () => {
 
   it("tower and cache captions go above their landmark when there is room, and stay off the ice", () => {
     const ice = spriteCss(ICE_RECT, phone);
-    for (const id of ["tower", "chest"] as const) {
+    for (const id of ["tower"] as const) {
       const l = LANDMARK_CAPTIONS.find((c) => c.id === id)!;
       const area = hitArea(spriteBox(l.sprite, P[id]), phone);
       const rect = captionRect(l.texts[0], area, mapOf(phone), l.prefer);
@@ -235,7 +234,7 @@ describe("captions", () => {
   it("the cache caption stays ≥ 2 px inside a 324-px map", () => {
     const narrow = fitWorld({ width: 324, height: 360, dpr: 3 });
     // The cache stands at the map's right edge here (the Peaks are bigger than a phone's map, which scrolls to it).
-    const rect = captionRect("[X] Supply Cache", hitArea(spriteBox("chest-closed", { x: 300, y: P.chest.y }), narrow), { width: 324, height: 360 }, "above");
+    const rect = captionRect("[X] Supply Cache", hitArea(spriteBox("chest-closed", { x: 300, y: 32 }), narrow), { width: 324, height: 360 }, "above");
     expect(rect.left).toBeGreaterThanOrEqual(2);
     expect(rect.left + rect.width).toBeLessThanOrEqual(322);
   });
@@ -250,7 +249,7 @@ describe("the [E] prompt", () => {
   it("never covers your sprite", () => {
     const texts = ["[E] Inspect Gate", "[E] Inspect Signal Tower", "[E] Inspect Supply Cache", "[E] Dig here"];
     for (const world of [phone, desktop]) {
-      for (const at of [P.gate, P.tower, P.chest, FOGGATEN_POINTS.dig, P.start]) {
+      for (const at of [P.gate, P.tower, FOGGATEN_POINTS.dig, P.start]) {
         for (const text of texts) {
           const rect = promptRect(text, at, world, mapOf(world));
           expect(hit(rect, spriteCss(spriteBox("explorer-down", at), world)), `${text} at ${JSON.stringify(at)}`).toBe(false);

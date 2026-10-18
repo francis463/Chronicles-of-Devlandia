@@ -8,7 +8,7 @@ type Progress = Pick<GameState, "hasLoot" | "clueDecoded" | "artifactFound" | "l
  * reached once the gate is open, so he never talks about it.
  */
 const STAGES: Array<[keyof Progress, string]> = [
-  ["hasLoot", "You sailed through the fog, good. Back on the Peaks, up in the snow beyond the wall, a Supply Cache waits. Empty it."],
+  ["hasLoot", "You sailed through the fog, good. Back on the mainland, a Supply Cache hides in the Hollow Tree in the Dense Forest. Empty it."],
   ["clueDecoded", "That cache holds a scrambled scroll. Open it from your inventory: every letter is shifted 13 places."],
   ["artifactFound", "The scroll points here, to my island. Look for the X in its south-east corner, past the trees, and dig."],
   ["lighthouseLit", "The lighthouse lamp wants a letter, spelled in eight switches of binary. Look for the terminal by its door."],

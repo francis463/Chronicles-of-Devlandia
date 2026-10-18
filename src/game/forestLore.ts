@@ -30,14 +30,16 @@ export const FOREST_LORE: Array<Poi & { text: string }> = [
     y: 78,
     text: "Eight toadstools in a circle. It reads like a loop: for (let i = 0; i < 8; i++) walks the ring once and stops when the condition fails. Forget to stop it and you dance forever.",
   },
-  {
-    id: "hollow-tree",
-    label: "Hollow Tree",
-    x: 84,
-    y: 29,
-    text: "A hollow tree stuffed with acorns. It is a variable: let acorns = 3; names a hollow and stores a value in it. The squirrel changes the value; the tree keeps the name.",
-  },
 ];
+
+/** The Supply Cache is hidden in the forest's hollow tree: the tree's button is the cache (its card keeps the variable lesson). */
+export const HOLLOW_CACHE: Poi & { id: "chest"; text: string } = {
+  id: "chest",
+  label: "Hollow Tree",
+  x: 84,
+  y: 29,
+  text: "A hollow tree stuffed with acorns. It is a variable: let acorns = 3; names a hollow and stores a value in it. The squirrel changes the value; the tree keeps the name.",
+};
 
 /** The ranger's lost glow mushrooms: three to find and bring back for her stew. */
 export const FOREST_MUSHROOMS: Array<Poi & { id: MushroomId }> = [

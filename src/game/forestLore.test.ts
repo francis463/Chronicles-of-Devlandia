@@ -16,8 +16,8 @@ const beside = (id: MushroomId): GameState => {
 const pickAll = (s: GameState) => FOREST_MUSHROOMS.reduce((acc, m) => gameReducer({ ...acc, player: { x: m.x + 2, y: m.y } }, { type: "interact", poi: m.id }), s);
 
 describe("the forest's lore landmarks", () => {
-  it("are five places in the forest, each inspected with a card that names a coding idea", () => {
-    expect(FOREST_LORE.map((l) => l.id)).toEqual(["hunter-cabin", "forest-well", "forest-brook", "fairy-ring", "hollow-tree"]);
+  it("are four places in the forest (the fifth, the hollow tree, hides the Supply Cache), each inspected with a card that names a coding idea", () => {
+    expect(FOREST_LORE.map((l) => l.id)).toEqual(["hunter-cabin", "forest-well", "forest-brook", "fairy-ring"]);
     for (const l of FOREST_LORE) {
       expect(ZONES.forest.places.map((p) => p.id), l.id).toContain(l.id);
       const s = gameReducer(forest, { type: "interact", poi: l.id });

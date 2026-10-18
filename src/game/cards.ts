@@ -48,7 +48,6 @@ export function cardFor(s: GameState): Card | null {
     case "forest-well":
     case "forest-brook":
     case "fairy-ring":
-    case "hollow-tree":
       return card(place.label, FOREST_LORE.find((l) => l.id === place.id)!.text);
     case "mushroom-1":
     case "mushroom-2":

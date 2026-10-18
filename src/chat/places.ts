@@ -1,4 +1,5 @@
 import { ADA, ARCHIVE, CAMPFIRE, DOCK, FISHER, HERMIT, ISLAND_DOCK, LIGHTHOUSE, NOMAD, POIS, RANGER, SIGNPOST, TERMINAL } from "../game/constants";
+import { HOLLOW_CACHE } from "../game/forestLore";
 import { KEEPER } from "../game/lodge";
 import type { Poi } from "../game/types";
 import { ZONES, type ZoneId } from "../game/zones";
@@ -29,7 +30,7 @@ function chest(id: ChestId): Spot {
 const SPOTS: Record<PingPlace, Spot> = {
   gate: the(poi("gate"), "peaks"),
   tower: the(poi("tower"), "peaks"),
-  cache: the(poi("chest"), "peaks"),
+  cache: the(HOLLOW_CACHE, "forest"),
   river: the(poi("river"), "peaks"),
   ada: { zone: "village", x: ADA.x, y: ADA.y, copy: ADA.label },
   signpost: the(SIGNPOST, "village"),

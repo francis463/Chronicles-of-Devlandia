@@ -137,7 +137,6 @@ const HOSTS: Partial<Record<ChestId, { sprite: SpriteId; prefer: "above" | "belo
 
 export const LANDMARK_CAPTIONS: readonly LandmarkCaption[] = [
   { id: "tower", zone: "peaks", sprite: "tower", point: LANDMARK_POINTS.tower, texts: ["[T] Tower", "[T] Tower ✓"], prefer: "above" },
-  { id: "chest", zone: "peaks", sprite: "chest-closed", point: LANDMARK_POINTS.chest, texts: ["[X] Supply Cache", "[X] Empty Cache"], prefer: "above" },
   { id: "gate", zone: "peaks", sprite: "gate", point: LANDMARK_POINTS.gate, texts: ["[G] Gate"], prefer: "below" },
   { id: "villager", zone: "village", sprite: "explorer-down", point: VILLAGE_POINTS.villager, texts: ["[V] Ada"], prefer: "above" },
   { id: "signpost", zone: "village", sprite: "signpost", point: VILLAGE_POINTS.signpost, texts: ["[P] Signpost"], prefer: "above" },
@@ -148,7 +147,7 @@ export const LANDMARK_CAPTIONS: readonly LandmarkCaption[] = [
   { id: "forest-well", zone: "forest", sprite: "well", point: FOREST_POINTS.well, texts: ["Well"], prefer: "above", quiet: true },
   { id: "forest-brook", zone: "forest", sprite: "brook", point: FOREST_POINTS.brook, texts: ["Bridge"], prefer: "below", quiet: true },
   { id: "fairy-ring", zone: "forest", sprite: "fairy-ring", point: FOREST_POINTS.ring, texts: ["Fairy Ring"], prefer: "above", quiet: true },
-  { id: "hollow-tree", zone: "forest", sprite: "hollow-tree", point: FOREST_POINTS.hollow, texts: ["Hollow Tree"], prefer: "below", quiet: true },
+  { id: "chest", zone: "forest", sprite: "hollow-tree", point: FOREST_POINTS.hollow, texts: ["[X] Hollow Tree", "[X] Empty Hollow"], prefer: "below" },
   ...MUSHROOM_POINTS.map((m): LandmarkCaption => ({ id: m.id, zone: "forest", sprite: "glow-mushroom", point: m.at, texts: ["Mushroom"], prefer: "below", quiet: true })),
   { id: "caravan-camp", zone: "desert", sprite: "tent", point: DESERT_POINTS.camp, texts: ["Camp"], prefer: "above", quiet: true },
   { id: "desert-well", zone: "desert", sprite: "well", point: DESERT_POINTS.well, texts: ["Well"], prefer: "above", quiet: true },
@@ -209,7 +208,7 @@ export function captionText(l: LandmarkCaption, state: MapState): string {
   return l.texts[0];
 }
 
-const spriteOf = (l: LandmarkCaption, state: MapState): SpriteId => (l.id === "chest" && state.hasLoot ? "chest-open" : l.sprite);
+const spriteOf = (l: LandmarkCaption, _state: MapState): SpriteId => l.sprite;
 
 /** A zone's button hit areas, by place id, after the midline cuts. */
 export const zoneHitAreas = (world: WorldRect, zone: ZoneId): Record<string, CssRect> =>

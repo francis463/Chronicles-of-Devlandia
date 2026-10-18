@@ -1,4 +1,4 @@
-import { FOREST_LORE, FOREST_MUSHROOMS } from "../../game/forestLore";
+import { FOREST_LORE, FOREST_MUSHROOMS, HOLLOW_CACHE } from "../../game/forestLore";
 import { remedySpotsIn } from "./remedies";
 import { secretSpotsIn } from "./secrets";
 import { spriteBox } from "../sprites";
@@ -23,7 +23,7 @@ export const FOREST_POINTS = {
   well: zoneToArt(FOREST_LORE.find((l) => l.id === "forest-well")!, "forest"),
   brook: zoneToArt(FOREST_LORE.find((l) => l.id === "forest-brook")!, "forest"),
   ring: zoneToArt(FOREST_LORE.find((l) => l.id === "fairy-ring")!, "forest"),
-  hollow: zoneToArt(FOREST_LORE.find((l) => l.id === "hollow-tree")!, "forest"),
+  hollow: zoneToArt(HOLLOW_CACHE, "forest"),
 } as const;
 
 /** Where the ranger's three glow mushrooms grow, in art px. Drawn by the scene until picked, never as props. */

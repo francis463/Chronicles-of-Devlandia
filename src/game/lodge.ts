@@ -22,8 +22,8 @@ type Progress = Pick<GameState, "gateUnlocked" | "hasLoot" | "clueDecoded" | "ar
 
 /** The keeper's hints, in quest order: she speaks to the first stage you haven't done. */
 const STAGES: Array<[keyof Omit<Progress, "badges">, string]> = [
-  ["gateUnlocked", "Welcome to the Ski Lodge! Outside, the Supply Cache waits behind the north wall. Its gate opens with one CSS fix."],
-  ["hasLoot", "The gate's open! Empty the Supply Cache in the north-east snow: they say it holds an old scroll."],
+  ["gateUnlocked", "Welcome to the Ski Lodge! Outside, the Peaks' north wall stands locked. Its gate opens with one CSS fix."],
+  ["hasLoot", "The gate's open! Empty the Supply Cache, hidden in the Hollow Tree in the Dense Forest south of the Peaks: they say it holds an old scroll."],
   ["clueDecoded", "That scroll is scrambled. Decode it from your inventory: every letter is shifted 13 places."],
   ["artifactFound", "The scroll points across the sea, to Foggaten Island. Take the boat from the Peaks' east dock and dig where the X is."],
 ];

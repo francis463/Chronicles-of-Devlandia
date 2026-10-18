@@ -31,7 +31,7 @@ describe("cardFor", () => {
       "A sealed code chest. Answer its C# question to earn the C# Badge.",
     );
     expect(cardFor({ ...village, inspected: "villager" })).toMatchObject({ title: "Ada", text: adaLine(village) });
-    expect(cardFor({ ...initialState, inspected: "chest", hasLoot: true })?.text).toBe(
+    expect(cardFor({ ...initialState, zone: "forest", inspected: "chest", hasLoot: true })?.text).toBe(
       "Cache recovered. Repair Patch added to inventory.",
     );
     expect(cardFor(village)).toBeNull();

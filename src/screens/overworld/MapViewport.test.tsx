@@ -55,7 +55,7 @@ afterEach(() => {
 describe("MapViewport per zone", () => {
   it("each zone shows its own buttons and captions", () => {
     const { rerender } = render(<MapViewport {...props()} />);
-    for (const name of ["[G] Gate", "[T] Tower", "[X] Supply Cache"]) expect(screen.getByRole("button", { name })).toBeInTheDocument();
+    for (const name of ["[G] Gate", "[T] Tower"]) expect(screen.getByRole("button", { name })).toBeInTheDocument();
     expect(screen.getByText("← Dev Village")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "[V] Ada" })).toBeNull();
     rerender(<MapViewport {...props({ zone: "village" })} />);
@@ -126,7 +126,7 @@ describe("MapViewport on the canvas", () => {
 
   it("landmark buttons keep their names, are ≥ 44 px, and contain their caption", () => {
     render(<MapViewport {...props()} />);
-    for (const name of ["[G] Gate", "[T] Tower", "[X] Supply Cache"]) {
+    for (const name of ["[G] Gate", "[T] Tower"]) {
       const button = screen.getByRole("button", { name });
       expect(parseFloat(button.style.width)).toBeGreaterThanOrEqual(44);
       expect(parseFloat(button.style.height)).toBeGreaterThanOrEqual(44);
@@ -140,7 +140,7 @@ describe("MapViewport on the canvas", () => {
     // outline-none / outline-hidden sets --tw-outline-style:none on the element, and
     // focus-visible:outline-2 reads that variable, so the dark outline would never draw.
     render(<MapViewport {...props()} />);
-    for (const name of ["[G] Gate", "[T] Tower", "[X] Supply Cache"]) {
+    for (const name of ["[G] Gate", "[T] Tower"]) {
       const classes = screen.getByRole("button", { name }).className.split(/\s+/);
       expect(classes).not.toContain("outline-none");
       expect(classes).not.toContain("outline-hidden");
@@ -151,7 +151,6 @@ describe("MapViewport on the canvas", () => {
   it("the caption of the landmark you can use steps aside for the prompt and your explorer, and stays the button's name", () => {
     const cases = [
       { id: "gate", name: "[G] Gate" },
-      { id: "chest", name: "[X] Supply Cache" },
       { id: "tower", name: "[T] Tower" },
     ] as const;
     for (const { id } of cases) {

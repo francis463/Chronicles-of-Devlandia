@@ -10,7 +10,7 @@ const STAGES: Array<[keyof Progress, string]> = [
   ["gateUnlocked", "Heading north? The gate's terminal wants one CSS fix. Get the display right and the wall lets you through."],
   ["towerPowered", "The gate's open! The signal tower in the snowy north-west is dark. Power it and the bridge over the river comes back."],
   ["questComplete", "The tower's beam is back and the bridge holds. Walk out onto the frozen river and survey it."],
-  ["hasLoot", "Explorers stash supplies in the cache in the north-east snow. Have a look inside."],
+  ["hasLoot", "Explorers stash supplies in a hollow tree in the Dense Forest, south of the Peaks. Have a look inside."],
   ["clueDecoded", "That scroll from the cache is scrambled. Decode it from your inventory: every letter is shifted."],
   ["artifactFound", "Foggaten Island, you say? Take the boat from the Peaks' east dock and look for the X in the island's south-east corner."],
 ];

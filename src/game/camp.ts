@@ -6,7 +6,7 @@ export function signpostText(s: Pick<GameState, "gateUnlocked" | "towerPowered">
   return [
     "Base camp. The Gate stands north: solve its terminal to open the way.",
     "The Tower is north-west, beyond the river; powering it brings the bridge back.",
-    "The Supply Cache is north-east, past the wall.",
+    "The Supply Cache is hidden in the Hollow Tree, in the Dense Forest to the south.",
     "Chests: HTML in the ski lodge, south-west; CSS in the ice cave, north of the wall.",
     "The Dock on the east shore sails to Foggaten Island once the gate is open.",
     "Dev Village lies west and the Forest south.",

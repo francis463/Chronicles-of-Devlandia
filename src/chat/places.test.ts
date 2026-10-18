@@ -5,7 +5,7 @@ import { PING_PLACE_NAMES, isPingPlace, pingLine, placeCopy, placeSpot } from ".
 const TABLE = [
   ["gate", "peaks", 50, 50, "the Terminal Gate"],
   ["tower", "peaks", 14, 18, "the Signal Tower"],
-  ["cache", "peaks", 82, 18, "the Supply Cache"],
+  ["cache", "forest", 84, 29, "the Hollow Tree"],
   ["river", "peaks", 54, 33, "the Frozen River"],
   ["ada", "village", 34, 70, "Ada"],
   ["signpost", "village", 86, 62, "the Signpost"],

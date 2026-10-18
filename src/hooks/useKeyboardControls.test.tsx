@@ -71,7 +71,7 @@ describe("useKeyboardControls: interact", () => {
 
   it("[E] interacts with the nearest point of interest in range", async () => {
     const user = userEvent.setup();
-    render(<Overworld onMenu={noop} initial={{ player: { x: 80, y: 22 } }} />);
+    render(<Overworld onMenu={noop} initial={{ zone: "forest", player: { x: 84, y: 29 } }} />);
     await user.keyboard("E");
     expect(screen.getByText("Supply cache opened: +1 Repair Patch.")).toBeInTheDocument();
   });

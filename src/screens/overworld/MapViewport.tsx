@@ -466,7 +466,6 @@ export function MapViewport({
             <LandmarkButton hit={hits.dock} name={caption("dock")} color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "dock"} onClick={() => onInteract("dock")} />
 
             <LandmarkButton hit={hits.tower} name={caption("tower")} color="var(--primary-border)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "tower"} onClick={() => onInteract("tower")} />
-            <LandmarkButton hit={hits.chest} name={caption("chest")} color="var(--accent)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "chest"} onClick={() => onInteract("chest")} />
             <LandmarkButton hit={hits.gate} name={caption("gate")} color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "gate"} onClick={() => onInteract("gate")} />
             {SECRET_SCENERY.peaks.map((l) => (
               <LandmarkButton key={l.id} hit={hits[l.id]} name={caption(l.id)} label={l.label} color="var(--accent)" world={world} map={map} prefer={l.prefer} disabled={downed} hideCaption={inRange?.id !== l.id} secret onClick={() => onInteract(l.id)} />
@@ -478,6 +477,7 @@ export function MapViewport({
 
             <LandmarkButton hit={hits.ranger} name={caption("ranger")} color="var(--accent-border)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "ranger"} onClick={() => onInteract("ranger")} />
             <LandmarkButton hit={hits.campfire} name={caption("campfire")} color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "campfire"} onClick={() => onInteract("campfire")} />
+            <LandmarkButton hit={hits.chest} name={caption("chest")} color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "chest"} onClick={() => onInteract("chest")} />
             <LandmarkButton hit={hits["forest-signpost"]} name={caption("forest-signpost")} color="var(--text)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "forest-signpost"} onClick={() => onInteract("forest-signpost")} />
             {FOREST_SCENERY.filter((l) => !mushrooms.includes(l.id) && !remedies.includes(l.id)).map((l) => (
               <LandmarkButton key={l.id} hit={hits[l.id]} name={caption(l.id)} label={l.label} color="var(--accent)" world={world} map={map} prefer={l.prefer} disabled={downed} hideCaption={smallMap && inRange?.id !== l.id} peek passive={smallMap} onClick={() => onInteract(l.id)} />

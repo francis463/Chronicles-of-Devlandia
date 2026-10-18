@@ -156,20 +156,23 @@ describe("Overworld layout", () => {
   });
 });
 
+/** In the forest beside the hollow tree, where the Supply Cache is hidden (no gate needed). */
+const atHollowTree = { zone: "forest" as const, player: { x: 84, y: 29 } };
+
 describe("Overworld map", () => {
   it("looting the supply cache logs, fills the inventory and empties the cache", async () => {
     const user = setup();
-    render(<Overworld onMenu={() => {}} initial={{ gateUnlocked: true }} />);
-    await user.click(screen.getByRole("button", { name: "[X] Supply Cache" }));
+    render(<Overworld onMenu={() => {}} initial={atHollowTree} />);
+    await user.click(screen.getByRole("button", { name: "[X] Hollow Tree" }));
     expect(screen.getByText("Supply cache opened: +1 Repair Patch.")).toBeInTheDocument();
     expect(screen.getByText("Patch")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "[X] Empty Cache" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "[X] Empty Hollow" })).toBeInTheDocument();
   });
 
   it("shows an inspection card that can be closed", async () => {
     const user = setup();
-    render(<Overworld onMenu={() => {}} initial={{ gateUnlocked: true }} />);
-    await user.click(screen.getByRole("button", { name: "[X] Supply Cache" }));
+    render(<Overworld onMenu={() => {}} initial={atHollowTree} />);
+    await user.click(screen.getByRole("button", { name: "[X] Hollow Tree" }));
     const card = screen.getByRole("region", { name: "POI Inspection" });
     expect(within(card).getByText("Cache recovered. Repair Patch added to inventory.")).toBeInTheDocument();
     await user.click(within(card).getByRole("button", { name: "[X] Close" }));
@@ -262,7 +265,6 @@ describe("Overworld timers", () => {
     act(() => vi.advanceTimersByTime(RIVER_DAMAGE_MS));
     expect(screen.getByRole("button", { name: "[ Respawn ]" })).toHaveFocus();
     expect(screen.getByRole("button", { name: "[G] Gate" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "[X] Supply Cache" })).toBeDisabled();
     expect(screen.getByText("You are downed. Press Respawn.")).toBeInTheDocument();
   });
 
@@ -351,8 +353,8 @@ describe("Overworld hidden artifact", () => {
 
   it("looting the cache adds the encrypted scroll and a Decode Scroll button", async () => {
     const user = setup();
-    render(<Overworld onMenu={() => {}} initial={{ gateUnlocked: true }} />);
-    await user.click(screen.getByRole("button", { name: "[X] Supply Cache" }));
+    render(<Overworld onMenu={() => {}} initial={atHollowTree} />);
+    await user.click(screen.getByRole("button", { name: "[X] Hollow Tree" }));
     expect(screen.getByText("Found an encrypted scroll: QRAFR SBERFG")).toBeInTheDocument();
     expect(screen.getByText("Scroll")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "[ Decode Scroll ]" })).toBeInTheDocument();
@@ -495,7 +497,7 @@ describe("Overworld inspection card placement", () => {
     const { unmount } = render(<Overworld onMenu={() => {}} initial={{ hasLoot: true, clueDecoded: true, artifactFound: true, inspected: "artifact" }} />);
     expect(screen.getByRole("region", { name: "POI Inspection" }).className).toContain("top-3");
     unmount();
-    render(<Overworld onMenu={() => {}} initial={{ hasLoot: true, inspected: "chest" }} />);
+    render(<Overworld onMenu={() => {}} initial={{ zone: "forest", hasLoot: true, inspected: "chest" }} />);
     expect(screen.getByRole("region", { name: "POI Inspection" }).className).toContain("bottom-3");
   });
 });

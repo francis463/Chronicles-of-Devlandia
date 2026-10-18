@@ -1,3 +1,4 @@
+import { HOLLOW_CACHE } from "./forestLore";
 import type { Poi, Point } from "./types";
 
 export const PLAYER_START: Point = { x: 28, y: 72 };
@@ -8,7 +9,6 @@ export const BOUNDS = { minX: 6, maxX: 94, minY: 10, maxY: 90 };
 
 export const POIS: Poi[] = [
   { id: "gate", label: "Terminal Gate", x: 50, y: 50 },
-  { id: "chest", label: "Supply Cache", x: 82, y: 18 },
   { id: "river", label: "Frozen River", x: 54, y: 33 },
   { id: "tower", label: "Signal Tower", x: 14, y: 18 },
 ];
@@ -142,7 +142,7 @@ export const INSPECT_COPY: Record<"gate" | "chest" | "river" | "tower" | "signpo
     opened: "The compiler gate stands open. The way north is clear.",
   },
   chest: {
-    default: "A sealed field cache. Move closer and press [E] to open.",
+    default: `${HOLLOW_CACHE.text} A sealed supply cache is wedged inside. Move closer and press [E] to open it.`,
     looted: "Cache recovered. Repair Patch added to inventory.",
   },
   river: {

@@ -40,7 +40,6 @@ const SOUTH_BRANCH: Rect = { x: 157 * K, y: 97 * K, w: 53 * K, h: 6 };
 /** Art points of the landmarks and the start. */
 export const LANDMARK_POINTS = {
   tower: up({ x: 45, y: 32 }),
-  chest: up({ x: 262, y: 32 }),
   gate: up({ x: 160, y: 90 }),
   start: up({ x: 90, y: 130 }),
 } as const;
@@ -144,7 +143,7 @@ const keepClear: Rect[] = [
   SOUTH_PATH,
   MOUTH,
   SOUTH_MOUTH,
-  ...[spriteBox("tower", p.tower), spriteBox("chest-closed", p.chest), spriteBox("gate", p.gate), spriteBox("explorer-down", p.start), spriteBox("dock", DOCK_POINT)],
+  ...[spriteBox("tower", p.tower), spriteBox("gate", p.gate), spriteBox("explorer-down", p.start), spriteBox("dock", DOCK_POINT)],
   ...CAMP_PROPS.map((prop) => spriteBox(prop.sprite, prop.at)),
   spriteBox("signpost", SIGNPOST_POINT),
   spriteBox("station", STATION_POINT),
@@ -200,9 +199,8 @@ export const PEAKS: Area = {
     BRIDGE_RECT,
     ...PATH_RECTS,
     spriteBox("tower", p.tower),
-    spriteBox("chest-closed", p.chest),
     spriteBox("gate", p.gate),
-    ...[p.start, p.tower, p.chest, p.gate].map((at) => spriteBox("explorer-down", at)),
+    ...[p.start, p.tower, p.gate].map((at) => spriteBox("explorer-down", at)),
     MOUTH,
     WEST_PATH,
     SOUTH_MOUTH,

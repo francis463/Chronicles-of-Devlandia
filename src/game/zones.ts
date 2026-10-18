@@ -1,7 +1,7 @@
 import { CHESTS } from "../learn/chests";
 import { ADA, ARCHIVE, BEACH_SIGNPOST, BOUNDS, CAMPFIRE, DESERT_SIGNPOST, DOCK, FISHER, FOREST_SIGNPOST, HERMIT, ISLAND_DOCK, ISLAND_FIRE, LIGHTHOUSE, LOG, NOMAD, PEAKS_SIGNPOST, POIS, RANGER, SANDCASTLE_POI, SIGNPOST, TERMINAL, WEATHER_STATION } from "./constants";
 import { DESERT_JARS, DESERT_LORE } from "./desertLore";
-import { FOREST_LORE, FOREST_MUSHROOMS } from "./forestLore";
+import { FOREST_LORE, FOREST_MUSHROOMS, HOLLOW_CACHE } from "./forestLore";
 import { remediesIn } from "./remedies";
 import { KEEPER, LODGE_BOOK, LODGE_DOOR, LODGE_FIREPLACE } from "./lodge";
 import { secretsIn } from "./secrets";
@@ -67,7 +67,7 @@ export const ZONES: Record<ZoneId, Zone> = {
     ],
     wall: false,
     gate: false,
-    places: [RANGER, CAMPFIRE, FOREST_SIGNPOST, ...FOREST_LORE, ...FOREST_MUSHROOMS, ...remediesIn("forest"), ...secretsIn("forest"), ...chestPlaces("forest")],
+    places: [RANGER, CAMPFIRE, FOREST_SIGNPOST, ...FOREST_LORE, HOLLOW_CACHE, ...FOREST_MUSHROOMS, ...remediesIn("forest"), ...secretsIn("forest"), ...chestPlaces("forest")],
     river: false,
     doors: [],
   },

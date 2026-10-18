@@ -332,7 +332,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       // Only places in your zone answer (a crafted action, or a stale button after crossing, does nothing).
       if (!visiblePois(state).some((p) => p.id === action.poi)) return state;
       // The map's buttons work from anywhere, but the north landmarks wait for the gate.
-      const north = action.poi === "tower" || action.poi === "chest" || action.poi === "river";
+      const north = action.poi === "tower" || action.poi === "river";
       if ((north || isNorthChest(action.poi)) && !state.gateUnlocked && !isNorthOfWall(state.player)) {
         return pushLogOnce({ ...state, inspected: action.poi }, LOG.wallLocked);
       }

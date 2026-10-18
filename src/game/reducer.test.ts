@@ -15,6 +15,8 @@ const s0 = initialState;
 /** A freshly opened terminal for a target, as the reducer opens it. */
 const openOn = (target: ChallengeTarget): ChallengeState => ({ target, error: null, wrongTries: 0, solved: false, lastWrong: null });
 const opened: GameState = { ...s0, gateUnlocked: true };
+/** Standing at the forest's hollow tree, where the Supply Cache is hidden (no gate needed). */
+const atCache: GameState = { ...s0, zone: "forest", player: { x: 84, y: 29 } };
 const lastLog = (s: GameState) => s.logs.at(-1);
 
 describe("gameReducer: initial state", () => {
@@ -143,12 +145,22 @@ describe("gameReducer: interact", () => {
   });
 
   it("chest: loots once, then reports empty", () => {
-    const c1 = gameReducer(opened, { type: "interact", poi: "chest" });
+    const c1 = gameReducer(atCache, { type: "interact", poi: "chest" });
     expect(c1.hasLoot).toBe(true);
     expect(c1.logs).toContain("Supply cache opened: +1 Repair Patch.");
     expect(lastLog(gameReducer(c1, { type: "interact", poi: "chest" }))).toBe(
       "Supply cache already collected.",
     );
+  });
+
+  it("the Supply Cache is hidden in the forest's hollow tree: not in the Peaks, and no gate needed to open it", () => {
+    expect(ZONES.peaks.places.map((p) => p.id)).not.toContain("chest");
+    expect(ZONES.forest.places.find((p) => p.id === "chest")).toMatchObject({ label: "Hollow Tree", x: 84, y: 29 });
+    expect(atCache.gateUnlocked).toBe(false);
+    const looted = gameReducer(atCache, { type: "interact", poi: "chest" });
+    expect(looted.hasLoot).toBe(true);
+    expect(cardFor({ ...looted, inspected: "chest" })?.title).toBe("Hollow Tree");
+    expect(cardFor({ ...atCache, inspected: "chest" })?.text).toContain("let acorns = 3;");
   });
 
   it("river: the scan reports a safe crossing once the bridge is restored", () => {
@@ -215,7 +227,7 @@ describe("gameReducer: respawn", () => {
 });
 
 describe("gameReducer: hidden artifact side quest", () => {
-  const looted = gameReducer(opened, { type: "interact", poi: "chest" });
+  const looted = gameReducer(atCache, { type: "interact", poi: "chest" });
 
   it("the Supply Cache also yields the encrypted scroll", () => {
     expect(looted.logs.slice(-2)).toEqual([
@@ -434,13 +446,10 @@ describe("gameReducer: the north wall", () => {
   it("remote use of north landmarks waits for the gate", () => {
     const tower = gameReducer(s0, { type: "interact", poi: "tower" });
     expect([tower.logicOpen, tower.inspected, lastLog(tower)]).toEqual([false, "tower", LOG.wallLocked]);
-    const chest = gameReducer(s0, { type: "interact", poi: "chest" });
-    expect([chest.hasLoot, chest.inspected, lastLog(chest)]).toEqual([false, "chest", LOG.wallLocked]);
     const river = gameReducer(s0, { type: "interact", poi: "river" });
     expect([river.inspected, lastLog(river)]).toEqual(["river", LOG.wallLocked]);
     // Guards: with the gate open, or from the north side, they work as before.
     expect(gameReducer(opened, { type: "interact", poi: "tower" }).logicOpen).toBe(true);
-    expect(gameReducer(opened, { type: "interact", poi: "chest" }).hasLoot).toBe(true);
     expect(gameReducer({ ...s0, player: { x: 14, y: 26 } }, { type: "interact", poi: "tower" }).logicOpen).toBe(true);
   });
 
@@ -471,14 +480,14 @@ describe("gameReducer: the north wall", () => {
       points.some((p) => Math.hypot(p.x - target.x, p.y - target.y) <= INTERACT_RADIUS);
 
     const locked = reachable(false);
-    expect([poi("tower"), poi("chest"), poi("river")].map((t) => inReach(locked.peaks, t))).toEqual([false, false, false]);
+    expect([poi("tower"), poi("river")].map((t) => inReach(locked.peaks, t))).toEqual([false, false]);
     expect([poi("gate")].map((t) => inReach(locked.peaks, t))).toEqual([true]);
     expect(HIDDEN_ARTIFACT).toMatchObject({ x: 86, y: 80 });
     expect(locked.spots.some((s) => ZONES[s.zone].wall && s.player.y < 49)).toBe(false);
     expect(locked.spots.some((s) => s.zone === "village")).toBe(true);
 
     const open = reachable(true);
-    expect([poi("tower"), poi("chest"), poi("river"), poi("gate")].every((t) => inReach(open.peaks, t))).toBe(true);
+    expect([poi("tower"), poi("river"), poi("gate")].every((t) => inReach(open.peaks, t))).toBe(true);
     expect(open.crossings.length).toBeGreaterThan(0);
     expect(open.crossings.every((c) => c.zone === "peaks")).toBe(true);
     expect(new Set(open.crossings.map((c) => c.player.x))).toEqual(new Set([48, 50, 52]));
@@ -562,7 +571,7 @@ describe("gameReducer: places and talking", () => {
 
   it("visiblePois: your zone's places, plus the dig spot on the island once revealed", () => {
     expect(visiblePois(s0).map((p) => p.id)).toEqual([
-      "gate", "chest", "river", "tower", "dock", "peaks-signpost", "weather-station", "lodge-door", "secret-pointer", "secret-hut", "chest-css",
+      "gate", "river", "tower", "dock", "peaks-signpost", "weather-station", "lodge-door", "secret-pointer", "secret-hut", "chest-css",
     ]);
     expect(visiblePois({ ...village, clueDecoded: true }).map((p) => p.id)).toEqual([
       "villager", "signpost", "terminal", "archive", "chest-php", "chest-sql",
@@ -911,15 +920,15 @@ describe("gameReducer: the Dense Forest (Review Focus 1 and 5)", () => {
 describe("gameReducer: the Dense Forest's places", () => {
   const forest: GameState = { ...s0, zone: "forest" };
 
-  it("the forest's places are the ranger, campfire, signpost and the old oak's JavaScript chest", () => {
-    expect(reachPlaces(forest).map((p) => p.id)).toEqual(["ranger", "campfire", "forest-signpost", "hunter-cabin", "forest-well", "forest-brook", "fairy-ring", "hollow-tree", "mushroom-1", "mushroom-2", "mushroom-3", "remedy-herb", "secret-moss", "secret-den", "chest-js"]);
+  it("the forest's places are the ranger, campfire, signpost, the Supply Cache's hollow tree and the old oak's JavaScript chest", () => {
+    expect(reachPlaces(forest).map((p) => p.id)).toEqual(["ranger", "campfire", "forest-signpost", "hunter-cabin", "forest-well", "forest-brook", "fairy-ring", "chest", "mushroom-1", "mushroom-2", "mushroom-3", "remedy-herb", "secret-moss", "secret-den", "chest-js"]);
   });
 
   it("talking to the ranger opens her card and logs her line once", () => {
     const once = gameReducer(forest, { type: "interact", poi: "ranger" });
     expect(once.inspected).toBe("ranger");
     expect(lastLog(once)).toBe(
-      'Ranger: "Welcome to the Dense Forest! Back north, the Supply Cache waits behind the wall. Its gate opens with one CSS fix. Oh, and if you pass any glow mushrooms, bring me three for my stew (0 of 3)."',
+      'Ranger: "Welcome to the Dense Forest! Back north, the Peaks\' wall stands locked. Its gate opens with one CSS fix. Oh, and if you pass any glow mushrooms, bring me three for my stew (0 of 3)."',
     );
     const twice = gameReducer(once, { type: "interact", poi: "ranger" });
     expect(twice.logCount).toBe(once.logCount);

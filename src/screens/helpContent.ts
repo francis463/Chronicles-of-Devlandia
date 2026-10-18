@@ -33,7 +33,7 @@ export const PLAY: ReadonlyArray<{ title: string; text: string }> = [
   },
   {
     title: "The story",
-    text: "Open the north gate by fixing its terminal. Power the signal tower, survey the frozen river, and empty the Supply Cache in the north-east. Decode the scroll in your inventory, then follow its clue to the island and dig where the X is. In the village, the Syntax Terminal prints the code that unseals the Archive, and the lighthouse on the island has a lamp that needs the letter H in binary.",
+    text: "Open the north gate by fixing its terminal. Power the signal tower, survey the frozen river, and empty the Supply Cache, hidden in the Hollow Tree in the Dense Forest. Decode the scroll in your inventory, then follow its clue to the island and dig where the X is. In the village, the Syntax Terminal prints the code that unseals the Archive, and the lighthouse on the island has a lamp that needs the letter H in binary.",
   },
   {
     title: "Staying safe",

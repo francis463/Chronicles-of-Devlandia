@@ -304,7 +304,6 @@ describe("the Snowy Peaks' lodge, wildlife and trail", () => {
   const boxes = peaks.props.map((p) => ({ id: `${p.sprite}@${p.at.x},${p.at.y}`, sprite: p.sprite, box: spriteBox(p.sprite, p.at) }));
   const landmarks: Array<[string, Rect]> = [
     ["tower", spriteBox("tower", PEAKS_POINTS.tower)],
-    ["cache", spriteBox("chest-closed", PEAKS_POINTS.chest)],
     ["gate", spriteBox("gate", PEAKS_POINTS.gate)],
     ["start", spriteBox("explorer-down", PEAKS_POINTS.start)],
     ["dock", spriteBox("dock", DOCK_POINT)],

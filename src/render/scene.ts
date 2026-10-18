@@ -820,7 +820,6 @@ function buildBaseScene(input: SceneInput, poses: Poses, t: number, reduced: boo
     ...interiorDecorations(input.zone),
     ...wallTilesInWorld(input.zone),
     placed("tower", P.tower),
-    placed(input.hasLoot ? "chest-open" : "chest-closed", P.chest),
     placed("gate", P.gate, { frame: input.gateUnlocked ? 0 : 1 }),
     placed("dock", DOCK_POINT),
     ...props(input.zone),

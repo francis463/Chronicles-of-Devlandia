@@ -63,10 +63,12 @@ const CURSOR = { x: GATE.x + LIGHT_OFFSETS.gateTerminal.x, y: GATE.y + LIGHT_OFF
 const aroundTower = (p: { x: number; y: number }) => { const d = Math.hypot(p.x - TOWER.x, p.y - TOWER.y); return d > 3.5 && d <= 29; };
 
 describe("scene: what is drawn", () => {
-  it("chest open only when looted", () => {
-    expect(sprites(scene(), "upright")).toContain("chest-closed");
-    expect(sprites(scene({ hasLoot: true }), "upright")).toContain("chest-open");
-    expect(sprites(scene({ hasLoot: true }), "upright")).not.toContain("chest-closed");
+  it("the Peaks no longer draw a Supply Cache: it is hidden in the forest's hollow tree", () => {
+    for (const hasLoot of [false, true]) {
+      expect(sprites(scene({ hasLoot }), "upright")).not.toContain("chest-closed");
+      expect(sprites(scene({ hasLoot }), "upright")).not.toContain("chest-open");
+    }
+    expect(sprites(scene({ zone: "forest", player: { x: 68, y: 20 }, drone: { x: 60, y: 20 } }), "upright")).toContain("hollow-tree");
   });
 
   it("bridge planks only when the tower is powered, covering BRIDGE_RECT", () => {

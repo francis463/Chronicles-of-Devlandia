@@ -37,7 +37,6 @@ export type PoiId =
   | "forest-well"
   | "forest-brook"
   | "fairy-ring"
-  | "hollow-tree"
   | "sandcastle"
   | MushroomId
   | "caravan-camp"

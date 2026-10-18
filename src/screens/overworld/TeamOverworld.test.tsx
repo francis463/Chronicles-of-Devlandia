@@ -143,15 +143,14 @@ describe("Overworld in team mode", () => {
 
   it("keeps playing through a dropped connection and merges progress on reconnect (Review Focus 4)", async () => {
     const { user, hub, transports, ana, kai } = await startedPair();
-    await user.click(kai.getByRole("button", { name: "[G] Gate" }));
-    await user.keyboard("block{Enter}");
     act(() => hub.drop(transports[1]));
     expect(kai.getByText("Reconnecting…")).toBeInTheDocument();
-    await user.click(kai.getByRole("button", { name: "[X] Supply Cache" }));
-    expect(logText(ana)).not.toContain("Kai opened the Supply Cache.");
+    await user.click(kai.getByRole("button", { name: "[G] Gate" }));
+    await user.keyboard("block{Enter}");
+    expect(logText(ana)).not.toContain("Kai opened the gate.");
     act(() => hub.restore(transports[1]));
     expect(kai.queryByText("Reconnecting…")).toBeNull();
-    expect(logText(ana)).toContain("Kai opened the Supply Cache.");
+    expect(logText(ana)).toContain("Kai opened the gate.");
   });
 
   it("Kai earns two badges through the UI; Ana's log shows each line once and the personal-badges note once", async () => {

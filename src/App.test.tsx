@@ -120,11 +120,8 @@ describe("App navigation from the overworld", () => {
     await user.click(screen.getByRole("button", { name: /solo quest/i }));
     await user.click(screen.getByRole("button", { name: "[ Start ]" }));
     await user.keyboard("{ArrowDown}{ArrowDown}"); // out of the lodge, into the Peaks
-    // The cache is north of the wall: open the gate first.
     await user.click(screen.getByRole("button", { name: "[G] Gate" }));
     await user.keyboard("block{Enter}");
-    await user.click(screen.getByRole("button", { name: "[X] Supply Cache" }));
-    expect(screen.getByRole("button", { name: "[X] Empty Cache" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "[=] Menu" }));
     // The opened gate is an unlock, so the game asks before leaving.
     expect(screen.getByRole("dialog", { name: "< LEAVE GAME? >" })).toBeInTheDocument();
@@ -133,7 +130,7 @@ describe("App navigation from the overworld", () => {
     await user.click(screen.getByRole("button", { name: /solo quest/i }));
     await user.click(screen.getByRole("button", { name: "[ Start ]" }));
     await user.keyboard("{ArrowDown}{ArrowDown}"); // out of the lodge, into the Peaks
-    expect(screen.getByRole("button", { name: "[X] Supply Cache" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "[G] Gate" })).toBeInTheDocument();
   });
 });
 
