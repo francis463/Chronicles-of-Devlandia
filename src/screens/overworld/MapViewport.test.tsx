@@ -635,3 +635,32 @@ describe("MapViewport reports the part of the zone it shows", () => {
     }
   });
 });
+
+describe("MapViewport: pings off the screen", () => {
+  const ping = { id: "k", name: "Kai", color: "#a78bfa", zone: "forest" as const, x: 90, y: 90 };
+  const stub = () => {
+    vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 1100 });
+    Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => 540 });
+  };
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    Reflect.deleteProperty(HTMLElement.prototype, "clientWidth");
+    Reflect.deleteProperty(HTMLElement.prototype, "clientHeight");
+  });
+
+  it("shows an arrow for a ping outside the window and none while it is inside", () => {
+    stub();
+    const { rerender } = render(<MapViewport {...props({ zone: "forest", world: { width: 640, height: 360 }, zoom: 0, player: { x: 10, y: 10 }, pings: [ping] })} />);
+    const arrow = screen.getByRole("img", { name: "Ping: Kai, off screen" });
+    expect(arrow).toBeInTheDocument();
+    rerender(<MapViewport {...props({ zone: "forest", world: { width: 640, height: 360 }, zoom: 0, player: { x: 90, y: 90 }, pings: [ping] })} />);
+    expect(screen.queryByRole("img", { name: /off screen/ })).toBeNull();
+  });
+
+  it("shows no arrow for a ping in another zone, or when the whole zone fits", () => {
+    stub();
+    render(<MapViewport {...props({ zone: "forest", world: { width: 640, height: 360 }, zoom: -9, pings: [ping, { ...ping, id: "m", name: "Mia", zone: "beach" as const }] })} />);
+    expect(screen.queryByRole("img", { name: /off screen/ })).toBeNull();
+  });
+});

@@ -12,6 +12,7 @@ import type { ActivePing } from "../../hooks/usePings";
 import type { Teammate } from "../../hooks/useTeamSession";
 import type { SceneInput } from "../../render/scene";
 import { AREAS } from "../../render/areas";
+import { pingArrow } from "./pingArrow";
 import { autoZoom, fitWorld, toArt, zoomLabel, zoomRange, type ViewSize, type WorldRect, type WorldSize } from "../../render/world";
 import { Button } from "../../ui/Button";
 import { Panel } from "../../ui/Panel";
@@ -603,6 +604,24 @@ export function MapViewport({
           {promptText}
         </div>
       )}
+
+      {pings.filter((p) => p.zone === zone).flatMap((p) => {
+        const arrow = pingArrow({ x: world.left + (p.x / 100) * world.width, y: world.top + (p.y / 100) * world.height }, map);
+        return arrow
+          ? [
+              <span
+                key={`arrow:${p.id}`}
+                role="img"
+                aria-label={`Ping: ${p.name}, off screen`}
+                data-testid={`ping-arrow-${p.id}`}
+                className="pointer-events-none absolute z-30 -translate-x-1/2 -translate-y-1/2 text-sm leading-none"
+                style={{ left: arrow.left, top: arrow.top, color: p.color, transform: `translate(-50%, -50%) rotate(${arrow.angle + 90}deg)`, textShadow: "0 0 2px #0f172a, 0 0 2px #0f172a" }}
+              >
+                ▲
+              </span>,
+            ]
+          : [];
+      })}
 
       {card && (
         <section
