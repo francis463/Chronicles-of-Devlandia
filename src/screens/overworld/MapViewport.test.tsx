@@ -563,3 +563,53 @@ describe("MapViewport zoom", () => {
     expect(parseFloat(gate.style.width)).toBeGreaterThanOrEqual(44);
   });
 });
+
+describe("MapViewport in a zone bigger than one screen", () => {
+  const BIG = { width: 640, height: 360 };
+  const mapSize = (width: number, height: number) => {
+    vi.stubGlobal("ResizeObserver", class { observe() {} unobserve() {} disconnect() {} });
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => width });
+    Object.defineProperty(HTMLElement.prototype, "clientHeight", { configurable: true, get: () => height });
+  };
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    Reflect.deleteProperty(HTMLElement.prototype, "clientWidth");
+    Reflect.deleteProperty(HTMLElement.prototype, "clientHeight");
+  });
+  const layer = () => {
+    const l = screen.getByTestId("world-layer");
+    return { left: parseFloat(l.style.left), top: parseFloat(l.style.top), width: parseFloat(l.style.width), height: parseFloat(l.style.height) };
+  };
+  const forest = (over: Partial<Props> = {}) => props({ zone: "forest", player: { x: 50, y: 50 }, world: BIG, ...over });
+
+  it("zoom 0 is a scrolling window at today's scale, centred on the player", () => {
+    mapSize(1100, 540);
+    render(<MapViewport {...forest({ zoom: 0 })} />);
+    expect(layer()).toEqual({ left: Math.round(550 - 320.5 * 3), top: Math.round(270 - 180.5 * 3), width: 640 * 3, height: 360 * 3 });
+  });
+
+  it("the window stops at the world's edge", () => {
+    mapSize(1100, 540);
+    render(<MapViewport {...forest({ zoom: 0, player: { x: 6, y: 10 } })} />);
+    expect(layer().left).toBe(0);
+    expect(layer().top).toBe(0);
+  });
+
+  it("the lowest zoom shows the whole zone and says so; the zoom-out button stops there", () => {
+    mapSize(1100, 540);
+    const onZoom = vi.fn();
+    render(<MapViewport {...forest({ zoom: -9, onZoom })} />);
+    expect(layer()).toEqual({ left: 230, top: 90, width: 640, height: 360 });
+    expect(screen.getByText("Whole map")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Zoom out" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Zoom in" }));
+    expect(onZoom).toHaveBeenCalledWith(-1);
+  });
+
+  it("a one-screen zone cannot zoom out below its fit", () => {
+    mapSize(1100, 540);
+    render(<MapViewport {...props({ zoom: -3, onZoom: vi.fn() })} />);
+    expect(screen.getByRole("button", { name: "Zoom out" })).toBeDisabled();
+    expect(layer().width).toBe(320 * 3);
+  });
+});

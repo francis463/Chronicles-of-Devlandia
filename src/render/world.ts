@@ -97,11 +97,20 @@ export function backdropWorld({ width, height, dpr }: ViewSize, focus: ArtPoint)
   };
 }
 
-/** The largest whole number of device pixels per art pixel at which the whole world fits the view (at least 1). */
-export const fitStep = ({ width, height, dpr }: ViewSize): number => Math.max(1, Math.floor(Math.min(width / WORLD.width, height / WORLD.height) * dpr));
+/** The largest whole number of device pixels per art pixel at which `world` (one screen unless told otherwise) fits the view; at least 1. */
+export const fitStep = ({ width, height, dpr }: ViewSize, world: WorldSize = SCREEN): number =>
+  Math.max(1, Math.floor(Math.min(width / world.width, height / world.height) * dpr));
 
-/** How many zoom steps (one more device pixel per art pixel each) the controls offer past "fit". */
+/** How many zoom steps (one more device pixel per art pixel each) the controls offer past the screen's fit. */
 export const MAX_ZOOM = 3;
+
+/**
+ * The zoom steps a world allows, relative to the scale a one-screen world gets: never below 0 for one screen, and
+ * for a bigger world down to the scale at which the whole of it fits ("Whole map").
+ */
+export function zoomRange(size: ViewSize, world: WorldSize): { min: number; max: number } {
+  return { min: Math.min(0, fitStep(size, world) - fitStep(size)), max: MAX_ZOOM };
+}
 
 /**
  * The zoom a map starts at. Whole-pixel scaling can leave wide empty bands round the world (a 900×600 view fits it at
@@ -109,26 +118,33 @@ export const MAX_ZOOM = 3;
  */
 export function autoZoom(size: ViewSize): number {
   const s = fitStep(size);
-  const room = Math.min(size.width / (WORLD.width * (s / size.dpr)), size.height / (WORLD.height * (s / size.dpr)));
+  const room = Math.min(size.width / (SCREEN.width * (s / size.dpr)), size.height / (SCREEN.height * (s / size.dpr)));
   return room >= 1.25 ? 1 : 0;
 }
 
-/** The zoom as a multiple of "fit", for its label: 1×, 1.5×, 2×… */
-export const zoomLabel = (size: ViewSize, zoom: number): string => `${Math.round(((fitStep(size) + zoom) / fitStep(size)) * 10) / 10}×`;
+/** The zoom as a multiple of the screen's fit, for its label: 1×, 1.5×, 2×…; "Whole map" at a big world's lowest zoom. */
+export function zoomLabel(size: ViewSize, zoom: number, world: WorldSize = SCREEN): string {
+  const { min } = zoomRange(size, world);
+  if (min < 0 && zoom <= min) return "Whole map";
+  return `${Math.round(((fitStep(size) + zoom) / fitStep(size)) * 10) / 10}×`;
+}
 
 /**
- * The world centred in the map area at `zoom` steps past fit. Once the world is larger than the area (zoomed in), it
- * scrolls so `focus` (the player, in art pixels) stays in the middle, never showing beyond the world's edges.
+ * `world` placed in the map area at `zoom` steps past a one-screen world's fit (clamped to `zoomRange`). Where the world is
+ * larger than the area in a direction it scrolls so `focus` (the player, in art pixels) stays in the middle, never showing
+ * beyond the world's edges; where it is smaller it is centred.
  */
-export function fitWorld({ width, height, dpr }: ViewSize, zoom = 0, focus: ArtPoint = { x: WORLD.width / 2, y: WORLD.height / 2 }): WorldRect {
-  const s = fitStep({ width, height, dpr }) + Math.max(0, Math.round(zoom));
+export function fitWorld(size: ViewSize, zoom = 0, focus: ArtPoint = { x: SCREEN.width / 2, y: SCREEN.height / 2 }, world: WorldSize = SCREEN): WorldRect {
+  const { width, height, dpr } = size;
+  const { min } = zoomRange(size, world);
+  const s = Math.max(1, fitStep(size) + Math.max(min, Math.round(zoom)));
   const scale = s / dpr;
   const backingWidth = Math.round(width * dpr);
   const backingHeight = Math.round(height * dpr);
-  const place = (backing: number, size: number, at: number, css: number) =>
-    size * s <= backing ? Math.round(((css - size * scale) / 2) * dpr) : Math.min(0, Math.max(backing - size * s, Math.round(backing / 2 - (at + 0.5) * s)));
-  const ox = place(backingWidth, WORLD.width, focus.x, width);
-  const oy = place(backingHeight, WORLD.height, focus.y, height);
+  const place = (backing: number, extent: number, at: number, css: number) =>
+    extent * s <= backing ? Math.round(((css - extent * scale) / 2) * dpr) : Math.min(0, Math.max(backing - extent * s, Math.round(backing / 2 - (at + 0.5) * s)));
+  const ox = place(backingWidth, world.width, focus.x, width);
+  const oy = place(backingHeight, world.height, focus.y, height);
   return {
     s,
     scale,
@@ -136,8 +152,8 @@ export function fitWorld({ width, height, dpr }: ViewSize, zoom = 0, focus: ArtP
     oy,
     left: ox / dpr,
     top: oy / dpr,
-    width: WORLD.width * scale,
-    height: WORLD.height * scale,
+    width: world.width * scale,
+    height: world.height * scale,
     backingWidth,
     backingHeight,
   };

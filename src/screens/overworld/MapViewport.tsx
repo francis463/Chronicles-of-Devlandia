@@ -11,7 +11,8 @@ import { useReducedMotion } from "../../hooks/useReducedMotion";
 import type { ActivePing } from "../../hooks/usePings";
 import type { Teammate } from "../../hooks/useTeamSession";
 import type { SceneInput } from "../../render/scene";
-import { MAX_ZOOM, autoZoom, fitWorld, toArt, zoomLabel, type ViewSize, type WorldRect } from "../../render/world";
+import { AREAS } from "../../render/areas";
+import { autoZoom, fitWorld, toArt, zoomLabel, zoomRange, type ViewSize, type WorldRect, type WorldSize } from "../../render/world";
 import { Button } from "../../ui/Button";
 import { Panel } from "../../ui/Panel";
 import { EXPLORER_BOX, SEMICOLON_BOX, labelBoxes, labelLayout, teammateLabelSide, LABEL_GAP, type LabelPlacement } from "./labelLayout";
@@ -238,6 +239,7 @@ export function MapViewport({
   playerClass,
   zoom = 0,
   onZoom,
+  world: zoneWorld,
   fullscreen,
   onFullscreen,
   fill = false,
@@ -288,6 +290,8 @@ export function MapViewport({
   onFullscreen?: () => void;
   /** Take the height the parent gives instead of at least 360 px (the full-screen map). */
   fill?: boolean;
+  /** The zone's world in art pixels; the zone's own unless a test hands another. */
+  world?: WorldSize;
   inRange: Poi | null;
   downed: boolean;
   onInteract: (poi: PoiId) => void;
@@ -301,8 +305,10 @@ export function MapViewport({
   const [mapRef, size] = useMapSize();
   const reduced = useReducedMotion();
   const { fading } = useCrossingFade(zone, reduced);
-  const extraZoom = zoom === "auto" ? autoZoom(size) : Math.min(MAX_ZOOM, Math.max(0, zoom));
-  const world = fitWorld(size, extraZoom, toArt(player));
+  const zoneSize = zoneWorld ?? AREAS[zone].world;
+  const range = zoomRange(size, zoneSize);
+  const extraZoom = Math.min(range.max, Math.max(range.min, zoom === "auto" ? autoZoom(size) : zoom));
+  const world = fitWorld(size, extraZoom, toArt(player, zoneSize), zoneSize);
   const map = { width: size.width, height: size.height };
   const worldSize = { width: world.width, height: world.height };
   const inPeaks = zone === "peaks";
@@ -362,11 +368,11 @@ export function MapViewport({
         <div role="group" aria-label="Map view" className="absolute top-2 right-2 z-30 flex items-center gap-1 rounded border border-[var(--panel-border)] bg-[rgba(15,23,42,0.8)] px-1 py-0.5 text-[10px] font-bold">
           {onZoom && (
             <>
-              <button type="button" aria-label="Zoom out" disabled={extraZoom <= 0} onClick={() => onZoom(extraZoom - 1)} className={VIEW_BUTTON}>
+              <button type="button" aria-label="Zoom out" disabled={extraZoom <= range.min} onClick={() => onZoom(extraZoom - 1)} className={VIEW_BUTTON}>
                 −
               </button>
-              <span aria-live="polite" className="min-w-8 text-center text-[var(--text)]">{zoomLabel(size, extraZoom)}</span>
-              <button type="button" aria-label="Zoom in" disabled={extraZoom >= MAX_ZOOM} onClick={() => onZoom(extraZoom + 1)} className={VIEW_BUTTON}>
+              <span aria-live="polite" className="min-w-8 text-center text-[var(--text)]">{zoomLabel(size, extraZoom, zoneSize)}</span>
+              <button type="button" aria-label="Zoom in" disabled={extraZoom >= range.max} onClick={() => onZoom(extraZoom + 1)} className={VIEW_BUTTON}>
                 +
               </button>
             </>

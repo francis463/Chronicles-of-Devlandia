@@ -51,7 +51,7 @@ const ZOOM_KEY = "devlandia.mapZoom";
 function loadZoom(): number | "auto" {
   try {
     const n = Number(localStorage.getItem(ZOOM_KEY));
-    return localStorage.getItem(ZOOM_KEY) !== null && Number.isInteger(n) && n >= 0 && n <= MAX_ZOOM ? n : "auto";
+    return localStorage.getItem(ZOOM_KEY) !== null && Number.isInteger(n) && n >= -8 && n <= MAX_ZOOM ? n : "auto";
   } catch {
     return "auto";
   }

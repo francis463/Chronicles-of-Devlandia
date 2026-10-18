@@ -982,5 +982,13 @@ describe("Overworld: a bigger map", () => {
     render(<Overworld onMenu={() => {}} />);
     expect(screen.getByRole("button", { name: "Zoom out" })).not.toBeDisabled();
     localStorage.setItem("devlandia.mapZoom", "nonsense");
+    cleanup();
+    render(<Overworld onMenu={() => {}} />);
+    expect(screen.getByRole("group", { name: "Map view" })).toBeInTheDocument();
+    localStorage.setItem("devlandia.mapZoom", "-2");
+    cleanup();
+    render(<Overworld onMenu={() => {}} />);
+    // A saved zoom below a one-screen zone's range is clamped when shown (the Peaks cannot zoom out past fit).
+    expect(screen.getByRole("button", { name: "Zoom out" })).toBeDisabled();
   });
 });
