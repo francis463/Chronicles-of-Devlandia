@@ -1,10 +1,11 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { DEFAULT_CLASS } from "../game/classes";
-import { PLAYER_START } from "../game/constants";
 import type { SceneInput } from "../render/scene";
-import { backdropWorld, toArt, type WorldRect } from "../render/world";
+import { backdropWorld, zoneToArt, type WorldRect } from "../render/world";
 import { MenuBackdrop } from "./MenuBackdrop";
+
+const FOREST_CAMP = { x: 50, y: 55 };
 
 const drawn: Array<{ input: SceneInput; world: WorldRect }> = [];
 vi.mock("./overworld/MapCanvas", () => ({
@@ -15,11 +16,12 @@ vi.mock("./overworld/MapCanvas", () => ({
 }));
 
 describe("MenuBackdrop", () => {
-  it("draws the world covering the window, framed on the explorer at camp", () => {
+  it("draws the forest covering the window, framed on the explorer", () => {
     render(<MenuBackdrop />);
     const { input, world } = drawn.at(-1)!;
-    expect(input.player).toEqual(PLAYER_START);
+    expect(input.zone).toBe("forest");
+    expect(input.player).toEqual({ x: FOREST_CAMP.x + 4, y: FOREST_CAMP.y + 6 });
     expect(input.playerClass).toBe(DEFAULT_CLASS);
-    expect(world).toEqual(backdropWorld({ width: window.innerWidth, height: window.innerHeight, dpr: 1 }, toArt(PLAYER_START)));
+    expect(world).toEqual(backdropWorld({ width: window.innerWidth, height: window.innerHeight, dpr: 1 }, zoneToArt(FOREST_CAMP, "forest")));
   });
 });

@@ -1,15 +1,18 @@
 import { DEFAULT_CLASS } from "../game/classes";
-import { DRONE_START, PLAYER_START, START_MINUTES } from "../game/constants";
+import { START_MINUTES } from "../game/constants";
 import { useViewportSize } from "../hooks/useViewportSize";
 import type { SceneInput } from "../render/scene";
-import { backdropWorld, toArt } from "../render/world";
+import { backdropWorld, zoneToArt } from "../render/world";
 import { MapCanvas } from "./overworld/MapCanvas";
 
-/** The world at the moment a quest begins: dusk, nothing solved, the explorer and drone at camp. */
+/** Where the explorer and drone stand in the forest, which the camera centres on. */
+const CAMP = { x: 50, y: 55 };
+
+/** The forest at the moment a quest begins: dusk, nothing solved, the explorer and drone among the trees. */
 const MENU_SCENE: SceneInput = {
-  zone: "peaks",
-  player: PLAYER_START,
-  drone: DRONE_START,
+  zone: "forest",
+  player: { x: CAMP.x + 4, y: CAMP.y + 6 },
+  drone: { x: CAMP.x + 2, y: CAMP.y + 8 },
   teammates: [],
   playerColor: "#22c55e",
   playerClass: DEFAULT_CLASS,
@@ -26,11 +29,9 @@ const MENU_SCENE: SceneInput = {
   minutes: START_MINUTES,
 };
 
-const CAMP = toArt(PLAYER_START);
-
-/** The pixel-art world behind the landing page, under a dark wash so the menu stays readable. */
+/** The pixel-art forest behind the landing page, under a dark wash so the menu stays readable. */
 export function MenuBackdrop() {
-  const world = backdropWorld(useViewportSize(), CAMP);
+  const world = backdropWorld(useViewportSize(), zoneToArt(CAMP, "forest"));
   return (
     <div aria-hidden="true" data-testid="menu-backdrop" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
       <MapCanvas input={MENU_SCENE} world={world} />
