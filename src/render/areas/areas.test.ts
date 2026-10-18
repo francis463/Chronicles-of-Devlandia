@@ -86,8 +86,8 @@ describe("areas", () => {
     const boxes = AREAS.forest.props.map((p) => spriteBox(p.sprite, p.at));
     const K = AREAS.forest.world.width / 320;
     const base = ["brook", "cabin", "campfire", "explorer-down", "fairy-ring", "hollow-tree", "old-oak", "signpost", "well"];
-    // A bigger forest has stumps, logs and ferns along its trails.
-    const extras = K === 1 ? [] : ["stump", "stump", "log", "log", "fern", "fern"];
+    // A bigger forest has stumps, logs, ferns, flower patches and mushroom clumps through the wood.
+    const extras = K === 1 ? [] : ["fern", "fern", "fern", "fern", "fern", "fern", "fern", "fern", "flowers", "flowers", "flowers", "flowers", "flowers", "flowers", "flowers", "flowers", "flowers", "flowers", "log", "log", "log", "log", "log", "mushroom", "mushroom", "stump", "stump", "stump", "stump", "stump", "stump"];
     expect(AREAS.forest.props.map((p) => p.sprite).sort()).toEqual([...base, ...extras].sort());
     for (const [i, a] of boxes.entries()) {
       expect(a.x >= 0 && a.y >= 0 && a.x + a.w <= AREAS.forest.world.width && a.y + a.h <= AREAS.forest.world.height, `prop ${i} in the world`).toBe(true);
@@ -464,8 +464,8 @@ describe("the Sunny Beach's area", () => {
 
   it("its props are inside the world, clear of each other and the mouth, and protected", () => {
     const base = ["boat", "explorer-down", "palm", "palm", "pier", "sandcastle", "shipwreck", "signpost", "umbrella", "umbrella"];
-    // A bigger beach has extra palms, umbrellas and a boat along its paths.
-    const extras = K === 1 ? [] : ["boat", "palm", "palm", "palm", "umbrella", "umbrella"];
+    // A bigger beach has palm groves, rocks, umbrellas and a boat down the shore.
+    const extras = K === 1 ? [] : ["boat", "palm", "palm", "palm", "palm", "palm", "palm", "palm", "palm", "palm", "rock", "rock", "rock", "rock", "rock", "rock", "rock", "umbrella", "umbrella", "umbrella", "umbrella", "umbrella"];
     expect(B.props.map((p) => p.sprite).sort()).toEqual([...base, ...extras].sort());
     const boxes = B.props.map((p) => spriteBox(p.sprite, p.at));
     for (const [i, a] of boxes.entries()) {

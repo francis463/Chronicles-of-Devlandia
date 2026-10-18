@@ -41,6 +41,23 @@ const EXTRAS: Prop[] = K === 1 ? [] : [
   { sprite: "umbrella", at: zoneToArt({ x: 62, y: 76 }, "beach") },
   { sprite: "umbrella", at: zoneToArt({ x: 67, y: 78 }, "beach") },
   { sprite: "boat", at: zoneToArt({ x: 44, y: 90 }, "beach") },
+  // Palm groves, rocks and umbrellas down the whole shore.
+  { sprite: "palm", at: zoneToArt({ x: 14, y: 22 }, "beach") },
+  { sprite: "rock", at: zoneToArt({ x: 10, y: 34 }, "beach") },
+  { sprite: "rock", at: zoneToArt({ x: 26, y: 38 }, "beach") },
+  { sprite: "umbrella", at: zoneToArt({ x: 30, y: 44 }, "beach") },
+  { sprite: "palm", at: zoneToArt({ x: 80, y: 28 }, "beach") },
+  { sprite: "palm", at: zoneToArt({ x: 70, y: 30 }, "beach") },
+  { sprite: "rock", at: zoneToArt({ x: 86, y: 40 }, "beach") },
+  { sprite: "rock", at: zoneToArt({ x: 30, y: 62 }, "beach") },
+  { sprite: "rock", at: zoneToArt({ x: 84, y: 86 }, "beach") },
+  { sprite: "palm", at: zoneToArt({ x: 76, y: 86 }, "beach") },
+  { sprite: "umbrella", at: zoneToArt({ x: 52, y: 66 }, "beach") },
+  { sprite: "palm", at: zoneToArt({ x: 88, y: 52 }, "beach") },
+  { sprite: "palm", at: zoneToArt({ x: 84, y: 56 }, "beach") },
+  { sprite: "rock", at: zoneToArt({ x: 50, y: 30 }, "beach") },
+  { sprite: "umbrella", at: zoneToArt({ x: 40, y: 52 }, "beach") },
+  { sprite: "rock", at: zoneToArt({ x: 26, y: 50 }, "beach") },
 ];
 
 const PROPS: Prop[] = [

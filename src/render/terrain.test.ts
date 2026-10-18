@@ -275,6 +275,21 @@ describe("the desert's scenery fades away from the world", () => {
   });
 });
 
+describe("the forest's and beach's outer scenery fades away from the world too", () => {
+  for (const id of ["forest", "beach"] as const) {
+    it(`${id}: dense behind the hedge, thin far out`, () => {
+      const area = AREAS[id];
+      const count = (from: number, to: number) => {
+        // The band along the world's left edge, over the rows that are land (not sea) in this zone.
+        const band = { x: -to, y: area.world.height / 2, w: to - from, h: area.world.height / 2 };
+        return (decorations(band, area).length / (band.w * band.h)) * 1000;
+      };
+      expect(count(0, 48)).toBeGreaterThan(1.2);
+      expect(count(400, 448)).toBeLessThan(count(0, 48) * 0.6);
+    });
+  }
+});
+
 describe("beach decorations", () => {
   const sand: Area = { id: "beach", world: { width: 320, height: 180 }, wall: false, terrainAt: () => "beach", paths: [], mouths: [], corridors: [], gateBox: null, ice: null, props: [], protected: [] };
   const found = decorations(VIEW, sand);

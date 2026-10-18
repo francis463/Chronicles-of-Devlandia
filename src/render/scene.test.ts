@@ -1207,6 +1207,18 @@ describe("scene: the bigger Sunny Beach", () => {
     expect(Math.max(...ys)).toBeGreaterThan(180);
   });
 
+  it("the sand has little scenes and a palm grove in every quarter, not only the umbrellas and boats", () => {
+    const landmarks = ["shipwreck", "pier", "signpost", "explorer-down", "sandcastle"];
+    const walk = reachableRect(AREAS.beach.world);
+    const scenery = AREAS.beach.props.filter((p) => !landmarks.includes(p.sprite));
+    for (const [qx, qy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
+      const n = scenery.filter((p) => p.at.x >= walk.x + (walk.w / 2) * qx && p.at.x < walk.x + (walk.w / 2) * (qx + 1) && p.at.y >= walk.y + (walk.h / 2) * qy && p.at.y < walk.y + (walk.h / 2) * (qy + 1)).length;
+      expect(n, `quarter ${qx},${qy}`).toBeGreaterThanOrEqual(4);
+    }
+    const palms = scenery.filter((p) => p.sprite === "palm");
+    expect(palms.filter((c) => palms.some((o) => o !== c && Math.hypot(o.at.x - c.at.x, o.at.y - c.at.y) < 50)).length).toBeGreaterThanOrEqual(6);
+  });
+
   it("the pier's lanterns stand on its planks and the rowboat rides the sea beside it", () => {
     const s = beach(0, { minutes: NIGHT });
     const pier = spriteBox("pier", AREAS.beach.props.find((p) => p.sprite === "pier")!.at);
@@ -1284,6 +1296,18 @@ describe("scene: the bigger Dense Forest", () => {
       { x: 0, y: 224, w: 32, h: 64 },
       { x: 608, y: 224, w: 32, h: 64 },
     ]);
+  });
+
+  it("the forest floor has little scenes and groves in every quarter, not only along the trails", () => {
+    const landmarks = ["old-oak", "campfire", "signpost", "cabin", "well", "brook", "fairy-ring", "hollow-tree", "explorer-down"];
+    const walk = reachableRect(AREAS.forest.world);
+    const scenery = AREAS.forest.props.filter((p) => !landmarks.includes(p.sprite));
+    for (const [qx, qy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
+      const n = scenery.filter((p) => p.at.x >= walk.x + (walk.w / 2) * qx && p.at.x < walk.x + (walk.w / 2) * (qx + 1) && p.at.y >= walk.y + (walk.h / 2) * qy && p.at.y < walk.y + (walk.h / 2) * (qy + 1)).length;
+      expect(n, `quarter ${qx},${qy}`).toBeGreaterThanOrEqual(5);
+    }
+    const clustered = scenery.filter((c) => scenery.some((o) => o !== c && Math.hypot(o.at.x - c.at.x, o.at.y - c.at.y) < 34));
+    expect(clustered.length).toBeGreaterThanOrEqual(10);
   });
 
   it("the animals live in the wider forest, each in its own zone", () => {
