@@ -2495,9 +2495,13 @@ export function spriteBox(id: SpriteId, at: ArtPoint): Rect {
   return { x, y: cy - Math.floor(h / 2), w, h };
 }
 
-/** Light sources, in absolute art pixels: the tower's lamp, the gate's terminal cursor and the forest campfire's flame. */
-export const LIGHTS: { towerLamp: ArtPoint; gateTerminal: ArtPoint; campfire: ArtPoint } = {
-  towerLamp: { x: 45, y: 3 },
-  gateTerminal: { x: 172, y: 81 },
+/** The forest campfire's flame, in absolute art pixels. */
+export const LIGHTS: { campfire: ArtPoint } = {
   campfire: { x: 147, y: 112 },
+};
+
+/** The Peaks' lights hang off their landmarks: the tower's lamp and the gate's terminal cursor, from each drawing's feet. */
+export const LIGHT_OFFSETS: { towerLamp: ArtPoint; gateTerminal: ArtPoint } = {
+  towerLamp: { x: 0, y: -29 },
+  gateTerminal: { x: 12, y: -9 },
 };

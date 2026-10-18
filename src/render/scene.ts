@@ -12,13 +12,14 @@ import { FOREST_POINTS, MUSHROOM_POINTS, deerPose, rabbitPose, squirrelPose } fr
 import { remedySpotsIn } from "./areas/remedies";
 import { LODGE_FLAT, LODGE_POINTS } from "./areas/lodge";
 import { secretSpotsIn } from "./areas/secrets";
-import { CAVE_POINT, WILDLIFE, foxPose, goatPose } from "./areas/peaks";
+import { CAVE_POINT, START_ARROW_AT, WILDLIFE, foxPose, goatPose } from "./areas/peaks";
 import { VILLAGE_LIFE, wandererPose } from "./areas/village";
 import { DOCK_POINT } from "./areas/peaks";
 import type { Pose } from "./motion";
 import { circlePixels, diamondPixels } from "./pixels";
-import { LIGHTS, SPRITES, spriteBox, type SpriteId } from "./sprites";
-import { BRIDGE_RECT, LANDMARK_POINTS, WALL_RECT, decorations, wallTiles } from "./terrain";
+import { ZONE_SCALE } from "../game/zoneSize";
+import { LIGHT_OFFSETS, SPRITES, spriteBox, type SpriteId } from "./sprites";
+import { BRIDGE_RECT, LANDMARK_POINTS, decorations, wallRect, wallTiles } from "./terrain";
 import { SCREEN, intersects, reachableRect, screenOffsets, worldScale, type ArtPoint, type Rect, type WorldSize } from "./world";
 import type { ChestId } from "../learn/types";
 import { ARCHIVE_POINT, TERMINAL_POINT } from "./learnPoints";
@@ -101,11 +102,15 @@ const RED = "#ef4444";
 const GOLD = "#fbbf24";
 const WHITE = "#ffffff";
 const CAMPFIRE_GLOW = "#fb923c";
+/** Where the river's ice glints: six spots along the frozen river (authored on one screen, spread over the Peaks). */
 const ICE_GLINTS: ArtPoint[] = [
   { x: 100, y: 56 },
   { x: 160, y: 62 },
   { x: 220, y: 58 },
-];
+  { x: 130, y: 60 },
+  { x: 190, y: 54 },
+  { x: 250, y: 64 },
+].map((g) => ({ x: g.x * ZONE_SCALE.peaks, y: g.y * ZONE_SCALE.peaks }));
 const GLOW_STRENGTH: Record<Phase, number> = { Day: 0, Dusk: 0.5, Night: 1 };
 const SEMICOLON_STEPS = [0.25, 0.5, 0.75, 1, 0.75, 0.5];
 const PLANK_ROWS = BRIDGE_RECT.h / SPRITES.plank.h;
@@ -402,8 +407,15 @@ function footprints(prints: Array<{ x: number; y: number; t: number }>, t: numbe
 }
 
 /** The aurora: two wavy ribbons (green, then purple) across the top strip, full at night and half at dusk; still when motion is reduced. */
-function aurora(t: number, reduced: boolean, strength: number): Pixel[] {
+function aurora(t: number, reduced: boolean, strength: number, world: WorldSize): Pixel[] {
   if (strength <= 0) return [];
+  // Authored for one screen's width; a wider world repeats it along the top strip only.
+  const across = screenOffsets(world).filter((o) => o.y === 0);
+  const one = auroraRibbons(t, reduced, strength);
+  return across.length === 1 ? one : across.flatMap((o) => one.map((px) => ({ ...px, x: px.x + o.x })));
+}
+
+function auroraRibbons(t: number, reduced: boolean, strength: number): Pixel[] {
   const w = reduced ? 0 : t / 1500;
   const ribbon = (color: string, base: number, wave: (x: number) => number, rows: number): Pixel[] =>
     Array.from({ length: SCREEN.width / 2 }, (_, k) => k * 2).flatMap((x) =>
@@ -416,7 +428,7 @@ function aurora(t: number, reduced: boolean, strength: number): Pixel[] {
 }
 
 /** Your breath puffs for 0.7 s every 2.6 s, and a gust of snow streaks across the whole map for 1.5 s every 12 s. None when motion is reduced. */
-function coldFeel(t: number, reduced: boolean, player: Pose): Pixel[] {
+function coldFeel(t: number, reduced: boolean, player: Pose, world: WorldSize): Pixel[] {
   if (reduced) return [];
   const out: Pixel[] = [];
   const breathAge = (t % 2600) / 700;
@@ -426,11 +438,17 @@ function coldFeel(t: number, reduced: boolean, player: Pose): Pixel[] {
   }
   const gustAge = (t % 12_000) / 1500;
   if (gustAge < 1) {
-    for (let i = 0; i < 30; i++) {
-      const y = (i * 37 + 11) % SCREEN.height;
-      const x = Math.round(((i * 53) % SCREEN.width) - 60 + gustAge * 420);
-      for (let k = 0; k < 3; k++) if (x + k >= 0 && x + k < SCREEN.width) out.push({ x: x + k, y, color: GUST, alpha: 0.8 });
-    }
+    out.push(
+      ...tiled(world, () => {
+        const gust: Pixel[] = [];
+        for (let i = 0; i < 30; i++) {
+          const y = (i * 37 + 11) % SCREEN.height;
+          const x = Math.round(((i * 53) % SCREEN.width) - 60 + gustAge * 420);
+          for (let k = 0; k < 3; k++) if (x + k >= 0 && x + k < SCREEN.width) gust.push({ x: x + k, y, color: GUST, alpha: 0.8 });
+        }
+        return gust;
+      }),
+    );
   }
   return out;
 }
@@ -582,7 +600,7 @@ const interiorDecorations = perZone((zone) =>
 );
 
 /** Every wall tile inside the world is y-sorted with the explorers, the edge ones included. */
-const wallTilesInWorld = perZone((zone) => wallTiles(WALL_RECT, AREAS[zone]).map((at) => placed("wall", at)));
+const wallTilesInWorld = perZone((zone) => wallTiles(wallRect(AREAS[zone]), AREAS[zone]).map((at) => placed("wall", at)));
 
 /** An area's static uprights (the village's huts, well, fences, signpost and Ada). */
 const props = perZone((zone) => AREAS[zone].props.map((p) => placed(p.sprite, p.at, { variant: p.variant ?? "base" })));
@@ -785,7 +803,7 @@ function buildBaseScene(input: SceneInput, poses: Poses, t: number, reduced: boo
     : ICE_GLINTS.flatMap((g, i) =>
         (t + i * 1000) % 3000 < 250 ? [-1, 0, 1].map((dx) => ({ x: g.x + dx, y: g.y, color: WHITE, alpha: 1 })) : [],
       );
-  const glints: Pixel[] = [...iceGlints, ...snowSparkles(t, reduced), ...footprints(poses.prints ?? [], t, reduced)];
+  const glints: Pixel[] = [...iceGlints, ...tiled(world, () => snowSparkles(t, reduced)), ...footprints(poses.prints ?? [], t, reduced)];
 
   const flat: Drawable[] = [];
   if (input.towerPowered)
@@ -796,7 +814,7 @@ function buildBaseScene(input: SceneInput, poses: Poses, t: number, reduced: boo
   const fox = foxPose(t, reduced, you);
   const goat = goatPose(t, reduced, you);
   const wildlife = [placed("fox", fox, { frame: fox.frame, flip: fox.flip }), placed("goat", goat, { flip: goat.flip }), ...birds(t, reduced, world)];
-  const startArrow = placed("arrow", { x: 62, y: 132 - (!reduced && Math.floor(t / 400) % 2 === 1 ? 1 : 0) });
+  const startArrow = placed("arrow", { x: START_ARROW_AT.x, y: START_ARROW_AT.y - (!reduced && Math.floor(t / 400) % 2 === 1 ? 1 : 0) });
 
   const upright = [
     ...interiorDecorations(input.zone),
@@ -816,11 +834,13 @@ function buildBaseScene(input: SceneInput, poses: Poses, t: number, reduced: boo
   ].sort(byFeet);
 
   const light: Pixel[] = [];
+  const towerLamp = { x: P.tower.x + LIGHT_OFFSETS.towerLamp.x, y: P.tower.y + LIGHT_OFFSETS.towerLamp.y };
+  const gateTerminal = { x: P.gate.x + LIGHT_OFFSETS.gateTerminal.x, y: P.gate.y + LIGHT_OFFSETS.gateTerminal.y };
   const lampOn = input.towerPowered || reduced || Math.floor(t / 500) % 2 === 0;
   const lampColor = input.towerPowered ? GREEN : RED;
-  if (lampOn) light.push(...glow(LIGHTS.towerLamp, lampColor, strength), { ...LIGHTS.towerLamp, color: lampColor, alpha: 1 });
-  light.push(...glow(LIGHTS.gateTerminal, GREEN, strength));
-  if (reduced || Math.floor(t / 530) % 2 === 0) light.push({ ...LIGHTS.gateTerminal, color: GREEN, alpha: 1 });
+  if (lampOn) light.push(...glow(towerLamp, lampColor, strength), { ...towerLamp, color: lampColor, alpha: 1 });
+  light.push(...glow(gateTerminal, GREEN, strength));
+  if (reduced || Math.floor(t / 530) % 2 === 0) light.push({ ...gateTerminal, color: GREEN, alpha: 1 });
   if (input.towerPowered && !reduced) {
     const p = (t % 2000) / 1000;
     if (p < 1) {
@@ -829,7 +849,7 @@ function buildBaseScene(input: SceneInput, poses: Poses, t: number, reduced: boo
     }
   }
 
-  light.push(...campLight(t, reduced, strength), ...aurora(t, reduced, strength), ...coldFeel(t, reduced, poses.player));
+  light.push(...campLight(t, reduced, strength), ...aurora(t, reduced, strength, world), ...coldFeel(t, reduced, poses.player, world));
 
   // The campfire's flame flickers (copies, so the cached drawables are never changed).
   const flame = reduced ? 0 : Math.floor(t / 400) % 2;

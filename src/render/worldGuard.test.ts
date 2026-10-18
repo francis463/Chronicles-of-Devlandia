@@ -2,6 +2,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { AREAS } from "./areas";
+import { wallRect } from "./terrain";
 import type { ZoneId } from "../game/zones";
 
 const files = (dir: string): string[] =>
@@ -16,7 +17,14 @@ describe("one screen versus a zone's world", () => {
     expect(users.sort()).toEqual(["src/render/world.ts"]);
   });
 
-  it("the zones with a north wall are one screen wide (the wall is authored for 320)", () => {
-    for (const zone of Object.keys(AREAS) as ZoneId[]) if (AREAS[zone].wall) expect(AREAS[zone].world, zone).toEqual({ width: 320, height: 180 });
+  it("in every zone with a north wall, the wall's rows contain its game line (49 %)", () => {
+    for (const zone of Object.keys(AREAS) as ZoneId[]) {
+      if (!AREAS[zone].wall) continue;
+      const { world } = AREAS[zone];
+      const rows = wallRect(AREAS[zone]);
+      expect(rows.y / world.height, zone).toBeLessThan(0.49);
+      expect((rows.y + rows.h) / world.height, zone).toBeGreaterThan(0.49);
+      expect(rows.w, zone).toBe(world.width);
+    }
   });
 });

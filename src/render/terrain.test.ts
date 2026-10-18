@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { AREAS } from "./areas";
 import type { Area } from "./areas/area";
 import { spriteBox } from "./sprites";
-import { LANDMARK_POINTS, WALL_RECT, decorations, onPath, protectedBoxes, terrainAt, wallTiles } from "./terrain";
+import { ICE_RECT, LANDMARK_POINTS, decorations, onPath, protectedBoxes, terrainAt, wallRect, wallTiles } from "./terrain";
 import { REACHABLE_RECT, WORLD, grow, intersects, reachableRect, toArt, type Rect } from "./world";
 
 const WORLD_RECT: Rect = { x: 0, y: 0, w: WORLD.width, h: WORLD.height };
@@ -15,34 +15,37 @@ const { peaks: PEAKS, village: VILLAGE, forest: FOREST } = AREAS;
 
 describe("terrain", () => {
   it("regions by art pixel, inside and outside the world", () => {
-    expect(terrainAt(77, 50)).toBe("ice");
-    expect(terrainAt(243, 70)).toBe("ice");
-    expect(terrainAt(76, 50)).not.toBe("ice");
-    expect(terrainAt(244, 70)).not.toBe("ice");
-    expect(terrainAt(100, 71)).not.toBe("ice");
-    expect(terrainAt(10, 15)).toBe("mountains");
-    expect(terrainAt(10, 16)).toBe("snow");
+    const { x, y, w, h } = ICE_RECT;
+    // The ice is exactly the river's cold zone (24–76 % across, 28–39 % down of the 640 × 360 Peaks).
+    expect([x, y, w, h]).toEqual([154, 100, 334, 42]);
+    expect(terrainAt(x, y)).toBe("ice");
+    expect(terrainAt(x + w - 1, y + h - 1)).toBe("ice");
+    expect(terrainAt(x - 1, y)).not.toBe("ice");
+    expect(terrainAt(x + w, y + h - 1)).not.toBe("ice");
+    expect(terrainAt(200, y + h)).not.toBe("ice");
+    expect(terrainAt(10, 31)).toBe("mountains");
+    expect(terrainAt(10, 32)).toBe("snow");
     expect(terrainAt(10, 82)).toBe("snow");
     // South of the wall is snow too: the whole Peaks is the snowy top.
-    for (const [x, y] of [[10, 83], [186, 112], [185, 112], [186, 111], [400, 300], [-20, 150], [160, 140]]) expect(terrainAt(x, y), `${x},${y}`).toBe("snow");
+    for (const [px, py] of [[10, 183], [186, 200], [185, 200], [186, 199], [400, 300], [-20, 150], [160, 300]]) expect(terrainAt(px, py), `${px},${py}`).toBe("snow");
     expect(terrainAt(-20, -40)).toBe("mountains");
   });
 
   it("path: 6 px wide from the start up to just under the gate", () => {
-    expect(onPath(90, 115)).toBe(true);
-    expect(onPath(125, 100)).toBe(true);
-    expect(onPath(160, 93)).toBe(true);
-    expect(onPath(87, 115)).toBe(true);
-    expect(onPath(92, 115)).toBe(true);
-    expect(onPath(93, 115)).toBe(false);
-    expect(onPath(120, 115)).toBe(false);
+    expect(onPath(180, 230)).toBe(true);
+    expect(onPath(250, 200)).toBe(true);
+    expect(onPath(320, 186)).toBe(true);
+    expect(onPath(177, 230)).toBe(true);
+    expect(onPath(182, 230)).toBe(true);
+    expect(onPath(183, 230)).toBe(false);
+    expect(onPath(240, 230)).toBe(false);
   });
 
   it("the Peaks' path runs west out of the map", () => {
-    expect(onPath(-1003, 127)).toBe(true);
-    expect(onPath(92, 132)).toBe(true);
-    expect(onPath(0, 133)).toBe(false);
-    expect(onPath(0, 126)).toBe(false);
+    expect(onPath(-1003, 254)).toBe(true);
+    expect(onPath(185, 258)).toBe(true);
+    expect(onPath(0, 266)).toBe(false);
+    expect(onPath(0, 253)).toBe(false);
   });
 
   it("the village: all meadow from top to bottom, its dirt square and its path", () => {
@@ -93,12 +96,12 @@ describe("decorations", () => {
     const view: Rect = { x: -40, y: -96, w: width + 80, h: height + 192 };
     const touching = decorations(view, area).filter((d) => intersects(boxOf(d), { x: 0, y: 0, w: width, h: height }) && !intersects(boxOf(d), reachableRect(area.world)));
     // The forest has no hedge on top: trees from the scenery above reach into its top rows.
-    for (const d of touching) expect(["bush", "rock", "snow-rock", ...(id === "forest" || id === "village" ? ["tree", "birch", "stump", "log", "mushroom", "fern", "flowers"] : []), ...(id === "desert" ? ["dry-bush", "cactus", "bloom-cactus", "skull", "arch"] : []), ...(id === "beach" ? ["palm"] : [])], key(d)).toContain(d.sprite);
+    for (const d of touching) expect(["bush", "rock", "snow-rock", ...(id === "forest" || id === "village" ? ["tree", "birch", "stump", "log", "mushroom", "fern", "flowers"] : []), ...(id === "peaks" ? ["pine"] : []), ...(id === "desert" ? ["dry-bush", "cactus", "bloom-cactus", "skull", "arch"] : []), ...(id === "beach" ? ["palm"] : [])], key(d)).toContain(d.sprite);
     const covers = (x: number, y: number) => touching.some((d) => intersects(boxOf(d), { x, y, w: 1, h: 1 }));
     // The Peaks' bottom hedge is open at its south exit (art x 192–255); everywhere clear of it the hedge is closed.
     for (let x = 0; x < width; x += 4) {
-      const gap = id === "peaks" && x >= 192 && x < 256;
-      const nearGap = id === "peaks" && x >= 176 && x < 272;
+      const gap = id === "peaks" && x >= 192 * K && x < 256 * K;
+      const nearGap = id === "peaks" && x >= 176 * K && x < 272 * K;
       if (gap) expect(covers(x, height - 8), `south mouth at ${x}`).toBe(false);
       else if (!nearGap) expect(covers(x, height - 8), `bottom at ${x}`).toBe(true);
     }
@@ -161,13 +164,13 @@ describe("decorations", () => {
   });
 
   it("the Peaks' south mouth and corridor guard the path out, and the forest has no wall tiles", () => {
-    expect(PEAKS.mouths).toContainEqual({ x: 192, y: 148, w: 64, h: 32 });
-    expect(PEAKS.corridors).toContainEqual({ x: 192, y: 180, w: 64, h: 1000 });
-    expect(onPath(206, 170, PEAKS)).toBe(true);
-    expect(onPath(206, 700, PEAKS)).toBe(true);
-    expect(protectedBoxes(PEAKS)).toContainEqual({ x: 192, y: 148, w: 64, h: 32 });
-    expect(wallTiles(WALL_RECT, FOREST)).toEqual([]);
-    expect(wallTiles(WALL_RECT, PEAKS).length).toBeGreaterThan(0);
+    expect(PEAKS.mouths).toContainEqual({ x: 384, y: 328, w: 128, h: 32 });
+    expect(PEAKS.corridors).toContainEqual({ x: 384, y: 360, w: 128, h: 1000 });
+    expect(onPath(408, 340, PEAKS)).toBe(true);
+    expect(onPath(408, 1000, PEAKS)).toBe(true);
+    expect(protectedBoxes(PEAKS)).toContainEqual({ x: 384, y: 328, w: 128, h: 32 });
+    expect(wallTiles(wallRect(FOREST), FOREST)).toEqual([]);
+    expect(wallTiles(wallRect(PEAKS), PEAKS).length).toBeGreaterThan(0);
   });
 
   it("the village guards the Archive and the Syntax Terminal", () => {
@@ -193,29 +196,39 @@ describe("decorations", () => {
 });
 
 describe("the north wall", () => {
-  it("wall tiles: 18 inside the world at feet row 89, none over the gate", () => {
-    const tiles = wallTiles(WALL_RECT);
-    const xs = [...Array.from({ length: 9 }, (_, k) => 8 + 16 * k), ...Array.from({ length: 9 }, (_, i) => 8 + 16 * (11 + i))];
-    expect(tiles.map((t) => t.x)).toEqual(xs);
-    expect(tiles.every((t) => t.y === 89)).toBe(true);
+  const WALL = wallRect(PEAKS);
+
+  it("the wall is ten rows ending just above its game line: rows 168–177 of the Peaks (80–89 of a one-screen world)", () => {
+    expect(WALL).toEqual({ x: 0, y: 168, w: 640, h: 10 });
+    expect(wallRect({ ...PEAKS, world: { width: 320, height: 180 } })).toEqual({ x: 0, y: 80, w: 320, h: 10 });
+  });
+
+  it("wall tiles: one every 16 px across the world at feet row 177, none over the gate", () => {
+    const tiles = wallTiles(WALL);
     const gate = spriteBox("gate", LANDMARK_POINTS.gate);
+    const all = Array.from({ length: 40 }, (_, k) => 8 + 16 * k);
+    expect(tiles.map((t) => t.x)).toEqual(all.filter((x) => !intersects(spriteBox("wall", { x, y: 177 }), gate)));
+    expect(all.length - tiles.length).toBe(2);
+    expect(tiles.every((t) => t.y === 177)).toBe(true);
     expect(tiles.some((t) => intersects(spriteBox("wall", t), gate))).toBe(false);
   });
 
   it("the village has no wall tiles", () => {
-    expect(wallTiles(WALL_RECT, VILLAGE)).toEqual([]);
+    expect(wallTiles(wallRect(VILLAGE), VILLAGE)).toEqual([]);
   });
 
   it("wall tiles continue beyond the world, by box", () => {
-    const xs = wallTiles({ x: -7, y: 0, w: 334, h: 180 }).map((t) => t.x);
+    const xs = wallTiles({ x: -7, y: 0, w: 654, h: 360 }).map((t) => t.x);
     expect(xs).toContain(-8);
-    expect(xs).toContain(328);
-    expect(wallTiles({ x: 0, y: 0, w: 320, h: 70 })).toEqual([]);
+    expect(xs).toContain(648);
+    expect(wallTiles({ x: 0, y: 0, w: 640, h: 140 })).toEqual([]);
   });
 
   it("no interior decoration comes near the wall", () => {
-    const band: Rect = { x: -1000, y: 80, w: 3000, h: 10 };
-    const interior = decorations(REACHABLE_RECT).filter((d) => intersects(boxOf(d), REACHABLE_RECT));
+    const band: Rect = { x: -1000, y: 168, w: 3000, h: 10 };
+    const reach = reachableRect(PEAKS.world);
+    const interior = decorations(reach, PEAKS).filter((d) => intersects(boxOf(d), reach));
+    expect(interior.length).toBeGreaterThan(0);
     for (const d of interior) expect(intersects(grow(boxOf(d), 4), band), key(d)).toBe(false);
   });
 });
@@ -224,7 +237,7 @@ describe("decorations at sea", () => {
   it("no tree or bush stands in the water, on the island or the Peaks' east shore; only reef rocks do", () => {
     for (const zone of ["foggaten", "peaks"] as const) {
       const area = AREAS[zone];
-      const all = decorations({ x: -64, y: -64, w: WORLD.width + 128, h: WORLD.height + 128 }, area);
+      const all = decorations({ x: -64, y: -64, w: area.world.width + 128, h: area.world.height + 128 }, area);
       const wet = all.filter((d) => area.terrainAt(d.at.x, d.at.y) === "sea");
       expect(wet.length, zone).toBeGreaterThan(0);
       for (const d of wet) expect(d.sprite, `${zone} ${d.sprite}@${d.at.x},${d.at.y}`).toBe("rock");

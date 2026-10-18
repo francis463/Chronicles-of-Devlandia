@@ -173,22 +173,24 @@ describe("Foggaten Island's area", () => {
 
 describe("the Peaks' east shore", () => {
   it("is sea beyond the walkable edge, only in a strip by the dock", () => {
-    const r = REACHABLE_RECT;
+    const r = reachableRect(PEAKS.world);
     const east = r.x + r.w;
-    for (const y of [118, 133, 147]) expect(PEAKS.terrainAt(east + 1, y), `y ${y}`).toBe("sea");
-    expect(PEAKS.terrainAt(east - 4, 133)).toBe("sand");
-    for (const [x, y] of [[east + 1, 60], [east + 1, 117], [east + 1, 148], [east - 1, 100], [100, 133], [10, 10]]) expect(PEAKS.terrainAt(x, y), `${x},${y}`).not.toBe("sea");
+    // The strip is rows 118–147 of a one-screen Peaks, doubled here.
+    for (const y of [236, 266, 294]) expect(PEAKS.terrainAt(east + 1, y), `y ${y}`).toBe("sea");
+    expect(PEAKS.terrainAt(east - 4, 266)).toBe("sand");
+    for (const [x, y] of [[east + 1, 120], [east + 1, 234], [east + 1, 296], [east - 13, 266], [east - 1, 200], [200, 266], [10, 10]]) expect(PEAKS.terrainAt(x, y), `${x},${y}`).not.toBe("sea");
   });
 
   it("every cell of the walkable area is as before: nothing in it became sea", () => {
-    const r = REACHABLE_RECT;
+    const r = reachableRect(PEAKS.world);
     for (let y = r.y; y < r.y + r.h; y++) for (let x = r.x; x < r.x + r.w; x++) expect(PEAKS.terrainAt(x, y), `${x},${y}`).not.toBe("sea");
   });
 
   it("has a dock whose pier reaches the water and stays clear of the path, tower, gate and chests", () => {
-    expect(DOCK_POINT).toEqual(toArt(DOCK));
+    expect(DOCK_POINT).toEqual({ x: zoneToArt(DOCK, "peaks").x + 8, y: zoneToArt(DOCK, "peaks").y });
     const box = spriteBox("dock", DOCK_POINT);
-    expect(box.x + box.w).toBeGreaterThan(REACHABLE_RECT.x + REACHABLE_RECT.w);
+    const reach = reachableRect(PEAKS.world);
+    expect(box.x + box.w).toBeGreaterThan(reach.x + reach.w);
     expect(PEAKS.protected).toContainEqual(box);
     for (const other of PEAKS.protected.filter((p) => p !== box && !(p.x === box.x && p.y === box.y))) expect(intersects(box, other), JSON.stringify(other)).toBe(false);
   });
@@ -327,9 +329,9 @@ describe("the Snowy Peaks' lodge, wildlife and trail", () => {
 
   it("puts every prop inside the world, and everything but the waterfall and caves inside the walkable area", () => {
     for (const b of boxes) {
-      expect(b.box.x >= 0 && b.box.y >= 0 && b.box.x + b.box.w <= 320 && b.box.y + b.box.h <= 180, b.id).toBe(true);
+      expect(b.box.x >= 0 && b.box.y >= 0 && b.box.x + b.box.w <= peaks.world.width && b.box.y + b.box.h <= peaks.world.height, b.id).toBe(true);
       if (!["waterfall", "cave-mouth"].includes(b.sprite)) {
-        const r = REACHABLE_RECT;
+        const r = reachableRect(peaks.world);
         expect(b.box.x >= r.x && b.box.y >= r.y && b.box.x + b.box.w <= r.x + r.w && b.box.y + b.box.h <= r.y + r.h, b.id).toBe(true);
       }
     }

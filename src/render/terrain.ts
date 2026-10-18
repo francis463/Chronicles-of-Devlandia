@@ -1,7 +1,8 @@
+import { WALL_Y } from "../game/wall";
 import { inRect, type Area, type TerrainKind } from "./areas/area";
 import { PEAKS } from "./areas/peaks";
 import { spriteBox, type SpriteId } from "./sprites";
-import { SCREEN, grow, intersects, reachableRect, type ArtPoint, type Rect } from "./world";
+import { grow, intersects, reachableRect, type ArtPoint, type Rect } from "./world";
 
 export type { TerrainKind } from "./areas/area";
 export { BRIDGE_RECT, ICE_RECT, LANDMARK_POINTS, PATH, PATH_WIDTH } from "./areas/peaks";
@@ -14,20 +15,21 @@ export const onPath = (x: number, y: number, area: Area = PEAKS): boolean => are
 
 // ── The north wall ─────────────────────────────────────────────────────────
 
-/** The north wall inside the world: art rows 80–89 (its game line is y 49 %, between rows players stand on). */
-export const WALL_RECT: Rect = { x: 0, y: 80, w: SCREEN.width, h: 10 };
+/** The north wall inside an area's world: ten art rows ending just under its game line (y 49 %), between rows players stand on (rows 80–89 of a one-screen world). */
+export const wallRect = (area: Area = PEAKS): Rect => ({ x: 0, y: Math.floor((area.world.height * WALL_Y) / 100) - 8, w: area.world.width, h: 10 });
+export const WALL_RECT: Rect = wallRect(PEAKS);
 const WALL_TILE = 16;
-const WALL_FEET = WALL_RECT.y + WALL_RECT.h - 1;
+const wallFeet = (area: Area) => wallRect(area).y + 9;
 
 /** Whether a box reaches into the wall's rows, at any x (the wall runs on past the world's edges). */
-const touchesWall = (r: Rect) => r.y <= WALL_FEET && r.y + r.h - 1 >= WALL_RECT.y;
+const touchesWall = (r: Rect, area: Area) => r.y <= wallFeet(area) && r.y + r.h - 1 >= wallRect(area).y;
 
 /** Art points of the wall tiles whose 16 × 10 boxes intersect `range`: one every 16 px, none over the area's gate. */
 export function wallTiles(range: Rect, area: Area = PEAKS): ArtPoint[] {
-  if (!area.wall || !touchesWall(range)) return [];
+  if (!area.wall || !touchesWall(range, area)) return [];
   const tiles: ArtPoint[] = [];
   for (let k = Math.floor(range.x / WALL_TILE); k * WALL_TILE <= range.x + range.w - 1; k++) {
-    const at = { x: k * WALL_TILE + WALL_TILE / 2, y: WALL_FEET };
+    const at = { x: k * WALL_TILE + WALL_TILE / 2, y: wallFeet(area) };
     if (!area.gateBox || !intersects(spriteBox("wall", at), area.gateBox)) tiles.push(at);
   }
   return tiles;
@@ -133,7 +135,7 @@ function candidate(cx: number, cy: number, area: Area): Candidate | null {
   const box = spriteBox(sprite, at);
   const r0 = reach;
   const insideWalls = box.x >= r0.x && box.x + box.w <= r0.x + r0.w && at.y < r0.y + r0.h;
-  if (!insideWalls || (area.wall && touchesWall(grow(box, 4))) || area.protected.some((p) => intersects(grow(box, 4), p))) return null;
+  if (!insideWalls || (area.wall && touchesWall(grow(box, 4), area)) || area.protected.some((p) => intersects(grow(box, 4), p))) return null;
   return { sprite, at, priority: r[4], interior: true };
 }
 

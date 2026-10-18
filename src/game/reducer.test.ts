@@ -33,15 +33,17 @@ describe("gameReducer: initial state", () => {
 });
 
 describe("gameReducer: move", () => {
-  it("moves four units", () => {
+  it("moves one step: two units in the two-screen Peaks, whose steps are as long as four units on one screen", () => {
     const s = gameReducer(s0, { type: "move", dir: "up" });
-    expect(s.player).toEqual({ x: 28, y: 68 });
+    expect(s.player).toEqual({ x: 28, y: 72 - stepFor("peaks") });
+    expect(stepFor("peaks")).toBe(2);
   });
 
   it("moves in all four directions", () => {
-    expect(gameReducer(s0, { type: "move", dir: "down" }).player).toEqual({ x: 28, y: 76 });
-    expect(gameReducer(s0, { type: "move", dir: "left" }).player).toEqual({ x: 24, y: 72 });
-    expect(gameReducer(s0, { type: "move", dir: "right" }).player).toEqual({ x: 32, y: 72 });
+    const step = stepFor("peaks");
+    expect(gameReducer(s0, { type: "move", dir: "down" }).player).toEqual({ x: 28, y: 72 + step });
+    expect(gameReducer(s0, { type: "move", dir: "left" }).player).toEqual({ x: 28 - step, y: 72 });
+    expect(gameReducer(s0, { type: "move", dir: "right" }).player).toEqual({ x: 28 + step, y: 72 });
   });
 
   it("stays clamped at a map edge", () => {
@@ -51,7 +53,7 @@ describe("gameReducer: move", () => {
   });
 
   it("completes the quest once on first entering the river", () => {
-    const r1 = gameReducer({ ...s0, player: { x: 50, y: 43 } }, { type: "move", dir: "up" });
+    const r1 = gameReducer({ ...s0, player: { x: 50, y: 41 } }, { type: "move", dir: "up" });
     expect(r1.questComplete).toBe(true);
     expect(lastLog(r1)).toBe("Quest complete: Frozen River surveyed.");
     const r2 = gameReducer(r1, { type: "move", dir: "right" });
@@ -391,15 +393,15 @@ describe("gameReducer: the north wall", () => {
   const poi = (id: string) => POIS.find((p) => p.id === id)!;
 
   it("a step into the locked wall stays put, logs the locked line", () => {
-    const start = { ...s0, player: { x: 30, y: 52 } };
+    const start = { ...s0, player: { x: 30, y: 50 } };
     const s = gameReducer(start, { type: "move", dir: "up" });
-    expect(s.player).toEqual({ x: 30, y: 52 });
+    expect(s.player).toEqual({ x: 30, y: 50 });
     expect(lastLog(s)).toBe(LOG.wallLocked);
     expect(s.logCount).toBe(start.logCount + 1);
   });
 
   it("a held key against the wall logs once", () => {
-    const start = { ...s0, player: { x: 30, y: 52 } };
+    const start = { ...s0, player: { x: 30, y: 50 } };
     const once = gameReducer(start, { type: "move", dir: "up" });
     expect(gameReducer(once, { type: "move", dir: "up" })).toBe(once);
     let s = once;
@@ -409,21 +411,21 @@ describe("gameReducer: the north wall", () => {
   });
 
   it("through the open gate's opening a step moves (guard)", () => {
-    const s = gameReducer({ ...opened, player: { x: 48, y: 52 } }, { type: "move", dir: "up" });
+    const s = gameReducer({ ...opened, player: { x: 48, y: 50 } }, { type: "move", dir: "up" });
     expect(s.player).toEqual({ x: 48, y: 48 });
   });
 
   it("with the gate open the wall is solid elsewhere, posts included", () => {
     for (const x of [30, 54]) {
-      const s = gameReducer({ ...opened, player: { x, y: 52 } }, { type: "move", dir: "up" });
-      expect(s.player).toEqual({ x, y: 52 });
+      const s = gameReducer({ ...opened, player: { x, y: 50 } }, { type: "move", dir: "up" });
+      expect(s.player).toEqual({ x, y: 50 });
       expect(lastLog(s)).toBe(LOG.wallSolid);
     }
   });
 
   it("a teammate's gate opens your way through", () => {
-    let s = gameReducer({ ...s0, player: { x: 48, y: 52 } }, { type: "move", dir: "up" });
-    expect(s.player).toEqual({ x: 48, y: 52 });
+    let s = gameReducer({ ...s0, player: { x: 48, y: 50 } }, { type: "move", dir: "up" });
+    expect(s.player).toEqual({ x: 48, y: 50 });
     s = gameReducer(s, { type: "teamSync", flags: { ...NO_FLAGS, gateUnlocked: true }, by: "Ana" });
     s = gameReducer(s, { type: "move", dir: "up" });
     expect(s.player).toEqual({ x: 48, y: 48 });
@@ -507,8 +509,8 @@ describe("gameReducer: zones", () => {
     expect(lastLog(s)).toBe("Entered C++ Peaks.");
   });
 
-  it("the exit spans y 62–78: (6, 62) and (8, 68) leave; (6, 60), (8, 80) and (6, 50) stay clamped", () => {
-    for (const player of [{ x: 6, y: 62 }, { x: 8, y: 68 }]) {
+  it("the exit spans y 62–78: (6, 62) and (6, 68) leave; (6, 60), (8, 80) and (6, 50) stay clamped", () => {
+    for (const player of [{ x: 6, y: 62 }, { x: 6, y: 68 }]) {
       expect(gameReducer({ ...s0, player }, left).zone, JSON.stringify(player)).toBe("village");
     }
     for (const player of [{ x: 6, y: 60 }, { x: 8, y: 80 }, { x: 6, y: 50 }]) {
@@ -525,7 +527,7 @@ describe("gameReducer: zones", () => {
 
   it("a held left from camp walks out through the exit and on into the village", () => {
     let s = s0;
-    for (let i = 0; i < 7; i++) s = gameReducer(s, left);
+    for (let i = 0; i < 13; i++) s = gameReducer(s, left);
     expect(s.zone).toBe("village");
     expect(s.player).toEqual({ x: 90, y: 72 });
   });

@@ -6,12 +6,13 @@ import { SEA_X, TIDE_SHELLS } from "./areas/beach";
 import { DESERT_WILDLIFE, camelPose, fennecPose, scorpionPose, snakePose } from "./areas/desert";
 import { FOREST_POINTS, FOREST_WILDLIFE, deerPose, rabbitPose, squirrelPose } from "./areas/forest";
 import { VILLAGE_LIFE, wandererPose } from "./areas/village";
+import { START_ARROW_AT } from "./areas/peaks";
 import { PHASE_TINT, buildScene, stormStrength, type Poses, type SceneInput } from "./scene";
-import { LIGHTS, SPRITES, spriteBox, type SpriteId } from "./sprites";
-import { BRIDGE_RECT, decorations } from "./terrain";
+import { LIGHT_OFFSETS, SPRITES, spriteBox, type SpriteId } from "./sprites";
+import { BRIDGE_RECT, LANDMARK_POINTS, decorations } from "./terrain";
 import { LODGE_POINTS } from "./areas/lodge";
 import { SECRET_SPOTS } from "./areas/secrets";
-import { REACHABLE_RECT, intersects, reachableRect, toArt } from "./world";
+import { REACHABLE_RECT, intersects, reachableRect, toArt, zoneToArt } from "./world";
 import { TERMINAL } from "../game/constants";
 
 /** How many 320 × 180 screens a zone is made of. */
@@ -41,9 +42,9 @@ const base: SceneInput = {
 };
 
 const posesFor = (input: SceneInput): Poses => ({
-  player: { ...toArt(input.player), facing: "down", frame: 0 },
-  drone: { ...toArt(input.drone), facing: "down", frame: 0 },
-  teammates: Object.fromEntries(input.teammates.map((t) => [t.id, { ...toArt(t), facing: "down" as const, frame: 0 as const }])),
+  player: { ...zoneToArt(input.player, input.zone), facing: "down", frame: 0 },
+  drone: { ...zoneToArt(input.drone, input.zone), facing: "down", frame: 0 },
+  teammates: Object.fromEntries(input.teammates.map((t) => [t.id, { ...zoneToArt(t, input.zone), facing: "down" as const, frame: 0 as const }])),
 });
 
 const scene = (over: Partial<SceneInput> = {}, t = 0, reduced = false) => {
@@ -53,8 +54,13 @@ const scene = (over: Partial<SceneInput> = {}, t = 0, reduced = false) => {
 const sprites = (s: ReturnType<typeof scene>, layer: "flat" | "upright") => s[layer].map((d) => d.sprite);
 const near = (p: { x: number; y: number }, c: { x: number; y: number }, r: number) => Math.abs(p.x - c.x) + Math.abs(p.y - c.y) <= r;
 const SEMI_CENTRE = { x: 275, y: 138 };
-// Ring pixels: around the tower's base (45, 32), farther than its 3 px core and within its 28 px reach.
-const aroundTower = (p: { x: number; y: number }) => { const d = Math.hypot(p.x - 45, p.y - 32); return d > 3.5 && d <= 29; };
+// The tower's lamp and the gate's terminal cursor hang off their drawings (the tower's base is at its landmark point).
+const TOWER = LANDMARK_POINTS.tower;
+const GATE = LANDMARK_POINTS.gate;
+const LAMP = { x: TOWER.x + LIGHT_OFFSETS.towerLamp.x, y: TOWER.y + LIGHT_OFFSETS.towerLamp.y };
+const CURSOR = { x: GATE.x + LIGHT_OFFSETS.gateTerminal.x, y: GATE.y + LIGHT_OFFSETS.gateTerminal.y };
+// Ring pixels: around the tower's base, farther than its 3 px core and within its 28 px reach.
+const aroundTower = (p: { x: number; y: number }) => { const d = Math.hypot(p.x - TOWER.x, p.y - TOWER.y); return d > 3.5 && d <= 29; };
 
 describe("scene: what is drawn", () => {
   it("chest open only when looted", () => {
@@ -67,9 +73,9 @@ describe("scene: what is drawn", () => {
     expect(sprites(scene(), "flat")).not.toContain("plank");
     expect(sprites(scene({ gateUnlocked: true }), "flat")).not.toContain("plank");
     const planks = scene({ towerPowered: true }).flat.filter((d) => d.sprite === "plank");
-    expect(planks).toHaveLength(9);
+    expect(planks).toHaveLength(BRIDGE_RECT.h / 3);
     expect(planks.every((p) => p.x === BRIDGE_RECT.x)).toBe(true);
-    expect(planks.map((p) => p.y)).toEqual([47, 50, 53, 56, 59, 62, 65, 68, 71]);
+    expect(planks.map((p) => p.y)).toEqual(Array.from({ length: BRIDGE_RECT.h / 3 }, (_, i) => BRIDGE_RECT.y + 3 * i));
   });
 
   it("X only while decoded and not found; semicolon only when found", () => {
@@ -101,7 +107,7 @@ describe("scene: what is drawn", () => {
     const s = scene({ towerPowered: true, player: { x: 50, y: 28 } });
     expect(sprites(s, "flat")).toContain("plank");
     const me = s.upright.find((d) => d.sprite.startsWith("explorer"))!;
-    expect(me.y + 15).toBe(50);
+    expect(me.y + 15).toBe(zoneToArt({ x: 50, y: 28 }, "peaks").y);
     expect(sprites(s, "upright")).not.toContain("plank");
   });
 
@@ -117,7 +123,7 @@ describe("scene: what is drawn", () => {
   it("the drone is separate and hovers 12 px up", () => {
     const s = scene();
     expect(sprites(s, "upright")).not.toContain("drone");
-    expect(s.drone).toMatchObject({ sprite: "drone", ...{ x: spriteBox("drone", toArt(base.drone)).x, y: spriteBox("drone", toArt(base.drone)).y } });
+    expect(s.drone).toMatchObject({ sprite: "drone", ...{ x: spriteBox("drone", zoneToArt(base.drone, "peaks")).x, y: spriteBox("drone", zoneToArt(base.drone, "peaks")).y } });
   });
 
   it("explorers face the way their pose says, left as the mirrored right", () => {
@@ -217,7 +223,7 @@ describe("scene: zones", () => {
 });
 
 describe("scene: light", () => {
-  const lamp = (s: ReturnType<typeof scene>) => s.light.find((p) => p.x === LIGHTS.towerLamp.x && p.y === LIGHTS.towerLamp.y && p.alpha === 1);
+  const lamp = (s: ReturnType<typeof scene>) => s.light.find((p) => p.x === LAMP.x && p.y === LAMP.y && p.alpha === 1);
 
   it("tower lamp blinks red every 500 ms when unpowered, steady green when powered", () => {
     expect(lamp(scene({}, 0))?.color).toBe("#ef4444");
@@ -229,18 +235,18 @@ describe("scene: light", () => {
 
   it("ring radius and alpha", () => {
     const ring = (t: number) =>
-      scene({ towerPowered: true, minutes: DAY }, t).light.filter((p) => p.color === "#4ade80" && !near(p, LIGHTS.towerLamp, 0) && aroundTower(p));
+      scene({ towerPowered: true, minutes: DAY }, t).light.filter((p) => p.color === "#4ade80" && !near(p, LAMP, 0) && aroundTower(p));
     const r0 = ring(0);
     expect(r0.length).toBeGreaterThan(0);
-    expect(r0.every((p) => Math.abs(Math.hypot(p.x - 45, p.y - 32) - 4) < 1 && p.alpha === 1)).toBe(true);
+    expect(r0.every((p) => Math.abs(Math.hypot(p.x - TOWER.x, p.y - TOWER.y) - 4) < 1 && p.alpha === 1)).toBe(true);
     const r500 = ring(500);
-    expect(r500.every((p) => Math.abs(Math.hypot(p.x - 45, p.y - 32) - 16) < 1 && p.alpha === 0.5)).toBe(true);
+    expect(r500.every((p) => Math.abs(Math.hypot(p.x - TOWER.x, p.y - TOWER.y) - 16) < 1 && p.alpha === 0.5)).toBe(true);
     expect(ring(1500)).toHaveLength(0);
   });
 
   it("glow strength by phase", () => {
     const glowAlphas = (minutes: number) =>
-      [...new Set(scene({ minutes }, 0).light.filter((p) => near(p, LIGHTS.gateTerminal, 6) && p.alpha < 1).map((p) => p.alpha))].sort();
+      [...new Set(scene({ minutes }, 0).light.filter((p) => near(p, CURSOR, 6) && p.alpha < 1).map((p) => p.alpha))].sort();
     expect(glowAlphas(DAY)).toEqual([]);
     const dusk = glowAlphas(DUSK);
     expect(dusk).toHaveLength(3);
@@ -272,9 +278,9 @@ describe("scene: light", () => {
     const forestAt = (t: number) => scene({ zone: "foggaten", clueDecoded: true, artifactFound: true }, t, true);
     expect(lamp(at(500))?.color).toBe("#ef4444");
     const powered = scene({ towerPowered: true, minutes: DAY }, 0, true);
-    expect(powered.light.filter((p) => !near(p, LIGHTS.towerLamp, 0) && aroundTower(p))).toHaveLength(0);
+    expect(powered.light.filter((p) => !near(p, LAMP, 0) && aroundTower(p))).toHaveLength(0);
     expect(at(0).glints.filter((p) => p.color === "#ffffff")).toHaveLength(0);
-    for (const t of [0, 530, 1060]) expect(at(t).light.some((p) => p.x === LIGHTS.gateTerminal.x && p.y === LIGHTS.gateTerminal.y && p.alpha === 1)).toBe(true);
+    for (const t of [0, 530, 1060]) expect(at(t).light.some((p) => p.x === CURSOR.x && p.y === CURSOR.y && p.alpha === 1)).toBe(true);
     const semi = forestAt(0).light.filter((p) => p.color === "#fbbf24" && near(p, SEMI_CENTRE, 2));
     expect(Math.max(...semi.map((p) => p.alpha))).toBeCloseTo(0.5);
     expect([at(0).drone.y, at(0).drone.frame]).toEqual([at(400).drone.y, at(400).drone.frame]);
@@ -293,7 +299,7 @@ describe("scene: the north wall", () => {
   const gateAt = (s: ReturnType<typeof scene>) => s.upright.findIndex((d) => d.sprite === "gate");
 
   it("the wall stands across the world; north of it is behind, south in front, including at the edges", () => {
-    expect(walls(scene())).toHaveLength(18);
+    expect(walls(scene())).toHaveLength(38);
     for (const x of [30, 6, 94]) {
       const north = scene({ player: { x, y: 48 } });
       expect(me(north), `x ${x}`).toBeLessThan(Math.min(...walls(north)));
@@ -367,17 +373,18 @@ describe("scene: your view (weather and light)", () => {
   it("snow is 60 white flakes inside the world, in both zones", () => {
     for (const zone of ["peaks", "village"] as const) {
       const flakes = scene({ zone, snow: true }, 1234).snow;
-      expect(flakes).toHaveLength(60);
+      const { width, height } = AREAS[zone].world;
+      expect(flakes).toHaveLength(60 * screensOf(zone));
       for (const f of flakes) {
         expect(f.color).toBe("#ffffff");
-        expect(f.x >= 0 && f.x < 320 && f.y >= 0 && f.y < 180).toBe(true);
+        expect(f.x >= 0 && f.x < width && f.y >= 0 && f.y < height).toBe(true);
         expect(Number.isInteger(f.x) && Number.isInteger(f.y)).toBe(true);
       }
     }
   });
 
   it("the Peaks snow by default; the other zones only when asked; /weather clear turns it off everywhere", () => {
-    expect(scene().snow).toHaveLength(60);
+    expect(scene().snow).toHaveLength(60 * screensOf("peaks"));
     expect(scene({ snow: false }, 3000).snow).toEqual([]);
     for (const zone of ["village", "forest", "foggaten"] as const) {
       expect(scene({ zone }, 3000).snow, zone).toEqual([]);
@@ -400,8 +407,9 @@ describe("scene: your view (weather and light)", () => {
   });
 
   it("each flake falls 12 art px and drifts 2 right in a second, wrapping", () => {
-    const a = scene({ snow: true }, 0).snow;
-    const b = scene({ snow: true }, 1000).snow;
+    // The first 60 flakes are the one-screen fall at the top left; a bigger world repeats it screen by screen.
+    const a = scene({ snow: true }, 0).snow.slice(0, 60);
+    const b = scene({ snow: true }, 1000).snow.slice(0, 60);
     a.forEach((f, i) => {
       expect(b[i].y).toBe((f.y + 12) % 180);
       expect(b[i].x).toBe((f.x + 2) % 320);
@@ -674,7 +682,7 @@ describe("scene: the Peaks' footprints, aurora and cold", () => {
     const night = scene({ minutes: NIGHT }, 0);
     expect(ribbons(night).some((p) => p.color === GREEN)).toBe(true);
     expect(ribbons(night).some((p) => p.color === PURPLE)).toBe(true);
-    for (const p of ribbons(night)) expect(p.y >= 0 && p.y < 16 && p.x >= 0 && p.x < 320).toBe(true);
+    for (const p of ribbons(night)) expect(p.y >= 0 && p.y < 16 && p.x >= 0 && p.x < 640).toBe(true);
     expect(JSON.stringify(ribbons(scene({ minutes: NIGHT }, 0)))).not.toBe(JSON.stringify(ribbons(scene({ minutes: NIGHT }, 3000))));
     expect(Math.max(...ribbons(scene({ minutes: DUSK }, 0)).map((p) => p.alpha))).toBeLessThan(Math.max(...ribbons(night).map((p) => p.alpha)));
     expect(ribbons(scene({ minutes: DAY }, 0))).toEqual([]);
@@ -693,7 +701,7 @@ describe("scene: the Peaks' footprints, aurora and cold", () => {
     expect(gust(6000)).toEqual([]);
     expect(gust(12_500).length).toBeGreaterThan(0);
     expect(gust(500, true)).toEqual([]);
-    for (const p of gust(900)) expect(p.x >= 0 && p.x < 320 && p.y >= 0 && p.y < 180).toBe(true);
+    for (const p of gust(900)) expect(p.x >= 0 && p.x < 640 && p.y >= 0 && p.y < 360).toBe(true);
   });
 });
 
@@ -729,7 +737,7 @@ describe("scene: the Peaks' camp, wildlife and start arrow", () => {
 
   it("a fox, a goat and three birds live in the sky and snow; the fox backs away from you; all rest when motion is reduced", () => {
     const s = peaks({ player: { x: 90, y: 70 }, minutes: DUSK });
-    expect([sprites(s, "fox").length, sprites(s, "goat").length, sprites(s, "bird").length]).toEqual([1, 1, 3]);
+    expect([sprites(s, "fox").length, sprites(s, "goat").length, sprites(s, "bird").length]).toEqual([1, 1, 6]);
     const foxX = (player: { x: number; y: number }) => sprites(peaks({ player, minutes: DUSK }), "fox")[0].x;
     expect(foxX({ x: 84, y: 52 })).toBeGreaterThan(foxX({ x: 10, y: 10 }) - 20);
     const still = (t: number) => key(["fox", "goat", "bird"].flatMap((id) => sprites(peaks({ minutes: DUSK }, t, true), id)));
@@ -744,7 +752,7 @@ describe("scene: the Peaks' camp, wildlife and start arrow", () => {
     expect(new Set([0, 400].map((t) => sprites(peaks({}, t), "arrow")[0].y)).size).toBe(2);
     expect(sprites(peaks({}, 400, true), "arrow")[0].y).toBe(sprites(peaks({}, 0, true), "arrow")[0].y);
     const arrow = sprites(peaks(), "arrow")[0];
-    expect(Math.abs(arrow.x + 4 - 62)).toBeLessThanOrEqual(1);
+    expect(Math.abs(arrow.x + 4 - START_ARROW_AT.x)).toBeLessThanOrEqual(1);
   });
 });
 

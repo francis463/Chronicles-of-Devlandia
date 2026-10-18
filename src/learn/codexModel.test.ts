@@ -109,8 +109,8 @@ describe("nextHint in a bigger zone", () => {
 
 describe("the Ski Lodge in the Codex", () => {
   it("at the start in the Peaks the next chest is the shelf inside the lodge, measured to its door", () => {
-    // From (28, 72) to the lodge door at (19.4, 88): 18.2 percent, 4 percent a step.
-    expect(nextHint({ badges: [], zone: "peaks", player: { x: 28, y: 72 } })).toBe("Next closest: Shelf, 5 steps away.");
+    // From (28, 72) to the lodge door at (19.4, 88): 18.2 percent, 2 percent a step in the two-screen Peaks.
+    expect(nextHint({ badges: [], zone: "peaks", player: { x: 28, y: 72 } })).toBe("Next closest: Shelf, 10 steps away.");
     expect(nextHint({ badges: ["chest-html"], zone: "peaks", player: { x: 28, y: 72 } })).toMatch(/^Next closest: Ice Cave,/);
   });
 

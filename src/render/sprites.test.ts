@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CLASSES, CLASS_IDS } from "../game/classes";
 import { shade } from "./pixels";
-import { CLASS_ITEMS, LIGHTS, OUTLINE, SPRITES, TEXTURES, explorerPalette, spriteBox, type ItemFacing, type SpriteId } from "./sprites";
+import { CLASS_ITEMS, LIGHTS, LIGHT_OFFSETS, OUTLINE, SPRITES, TEXTURES, explorerPalette, spriteBox, type ItemFacing, type SpriteId } from "./sprites";
 
 const EXPLORERS: SpriteId[] = ["explorer-down", "explorer-up", "explorer-right"];
 
@@ -94,9 +94,12 @@ describe("sprites", () => {
   it("light sources sit inside their landmarks' drawings", () => {
     const inBox = (p: { x: number; y: number }, b: { x: number; y: number; w: number; h: number }) =>
       p.x >= b.x && p.x < b.x + b.w && p.y >= b.y && p.y < b.y + b.h;
-    expect(inBox(LIGHTS.towerLamp, spriteBox("tower", { x: 45, y: 32 }))).toBe(true);
-    expect(LIGHTS.towerLamp.y).toBeLessThanOrEqual(4);
-    expect(inBox(LIGHTS.gateTerminal, spriteBox("gate", { x: 160, y: 90 }))).toBe(true);
+    const tower = { x: 45, y: 32 };
+    const gate = { x: 160, y: 90 };
+    const lamp = { x: tower.x + LIGHT_OFFSETS.towerLamp.x, y: tower.y + LIGHT_OFFSETS.towerLamp.y };
+    expect(inBox(lamp, spriteBox("tower", tower))).toBe(true);
+    expect(lamp.y).toBeLessThanOrEqual(4);
+    expect(inBox({ x: gate.x + LIGHT_OFFSETS.gateTerminal.x, y: gate.y + LIGHT_OFFSETS.gateTerminal.y }, spriteBox("gate", gate))).toBe(true);
   });
 });
 

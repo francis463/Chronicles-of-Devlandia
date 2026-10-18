@@ -169,11 +169,11 @@ describe("caches", () => {
   it("the ground cache is reused for the same key and rebuilt on a new one", () => {
     const { ground, made } = setup();
     const a = fitWorld({ width: 668, height: 360, dpr: 1 });
-    const first = ground.get(a, "peaks");
+    const first = ground.get(a, "village");
     const count = made.length;
-    expect(ground.get(a, "peaks")).toBe(first);
+    expect(ground.get(a, "village")).toBe(first);
     expect(made.length).toBe(count);
-    const second = ground.get(fitWorld({ width: 354, height: 360, dpr: 3 }), "peaks");
+    const second = ground.get(fitWorld({ width: 354, height: 360, dpr: 3 }), "village");
     expect(second).not.toBe(first);
     expect(made.length).toBeGreaterThan(count);
     // It covers the visible art range: on the phone, 90 art px of scenery above and below.
@@ -200,13 +200,15 @@ describe("caches", () => {
 
   it("the ground cache bakes only the wall tiles beyond the world, in feet-row order with the scenery", () => {
     const { ground, sprites, contexts } = setup();
-    // 668 × 360 at DPR 1: s 2, the visible art runs from x −7 to 326, past both sides of the world.
-    const g = ground.get(fitWorld({ width: 668, height: 360, dpr: 1 }), "peaks")!;
+    // The Peaks are 640 × 360: a ground baked with its margin reaches past both sides of the world.
+    const g = ground.get(fitWorld({ width: 668, height: 360, dpr: 1 }, 0, { x: 320, y: 180 }, { width: 640, height: 360 }), "peaks")!;
     const wallImage = sprites.get("wall", 0, "base", false, false);
     const draws = contexts.get(g.image as unknown as FakeImage)!.log.filter((c) => c[0] === "drawImage");
     const walls = draws.filter((c) => c[1] === wallImage);
-    expect(walls.map((c) => (c[2] as number) + g.x)).toEqual([-16, 320]);
-    expect(walls.every((c) => (c[3] as number) + g.y === 80)).toBe(true);
+    const xs = walls.map((c) => (c[2] as number) + g.x);
+    expect(xs.some((x) => x < 0) && xs.some((x) => x >= 640)).toBe(true);
+    expect(xs.every((x) => x < 0 || x >= 640)).toBe(true);
+    expect(walls.every((c) => (c[3] as number) + g.y === 168)).toBe(true);
     const feet = draws.map((c) => (c[3] as number) + g.y + (c[1] as FakeImage).h - 1);
     expect([...feet].sort((a, b) => a - b)).toEqual(feet);
     for (let i = 1; i < draws.length; i++)
