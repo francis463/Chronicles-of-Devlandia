@@ -43,6 +43,17 @@ describe("Overworld HUD", () => {
     expect(screen.getByText("REGION: DENSE FOREST")).toBeInTheDocument();
   });
 
+  it("pressing E beside the lodge's review book opens it, Esc shuts it, and it shows only what you earned", async () => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} initial={{ zone: "lodge", player: { x: 62, y: 66 }, badges: ["chest-html"], answered: { "chest-html": "href" } }} />);
+    await user.keyboard("e");
+    expect(screen.getByRole("dialog", { name: "< REVIEW BOOK >" })).toBeInTheDocument();
+    expect(screen.getByText("Your answer: href")).toBeInTheDocument();
+    expect(screen.getByText("Earn the CSS badge to read this.")).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog", { name: "< REVIEW BOOK >" })).toBeNull();
+  });
+
   it("shows region, phase/time, full bars, quest and the initial log", () => {
     render(<Overworld onMenu={() => {}} />);
     expect(screen.getByText("REGION: C++ PEAKS")).toBeInTheDocument();

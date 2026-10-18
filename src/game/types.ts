@@ -51,6 +51,7 @@ export type PoiId =
   | "lodge-door"
   | "lodge-fireplace"
   | "lodge-keeper"
+  | "lodge-book"
   | Exclude<ChestId, "chest-cs">;
 
 /** The ranger's three lost glow mushrooms. */
@@ -136,6 +137,8 @@ export type GameState = {
   /** The Sunny Beach's sandcastle puzzle, solved: the castle stands finished, with its flag. */
   sandcastleBuilt: boolean;
   codexOpen: boolean;
+  /** The lodge's review book is open (a window, like the Codex). */
+  bookOpen: boolean;
   /** The Master of Devlandia finale: open now, and whether it has been shown this game. */
   finaleOpen: boolean;
   finaleSeen: boolean;
@@ -161,6 +164,7 @@ export type GameAction =
   | { type: "closeChallenge" }
   | { type: "resetLogic" }
   | { type: "toggleCodex" }
+  | { type: "toggleBook" }
   | { type: "openFinale" }
   | { type: "closeFinale" }
   /** The Codex's "Go there": close it and log where the chest is. */

@@ -79,6 +79,8 @@ export function cardFor(s: GameState): Card | null {
       const secret = SECRETS.find((x) => x.id === place.id)!;
       return card(place.label, s.secrets.includes(place.id) ? `${secret.text} ${SECRET_CARD.found}` : secret.text);
     }
+    case "lodge-book":
+      return card(place.label, LODGE_CARDS.book);
     case "lodge-keeper":
       return card(place.label, keeperSays(s));
     case "lodge-door":

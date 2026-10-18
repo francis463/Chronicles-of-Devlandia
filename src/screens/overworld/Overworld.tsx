@@ -32,6 +32,7 @@ import { useKeyboardControls } from "../../hooks/useKeyboardControls";
 import { Panel } from "../../ui/Panel";
 import { ChallengeTerminal } from "../ChallengeTerminal";
 import { ChatPanel } from "../chat/ChatPanel";
+import { ReviewBook } from "../ReviewBook";
 import { Codex } from "../Codex";
 import { Certificate } from "../Certificate";
 import { Finale, playedFor } from "../Finale";
@@ -457,6 +458,7 @@ export function Overworld({
           onClose={() => dispatch({ type: "toggleCodex" })}
         />
       )}
+      {state.bookOpen && <ReviewBook badges={state.badges} answered={state.answered} picks={state.picks} onClose={() => dispatch({ type: "toggleBook" })} />}
       {state.finaleOpen && certificateOpen && (
         <Certificate name={playerName} badges={state.badges} played={playedFor(minutes)} hard={state.hard} onBack={() => setCertificateOpen(false)} />
       )}

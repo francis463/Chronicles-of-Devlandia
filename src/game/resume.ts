@@ -17,6 +17,7 @@ const settled = (s: GameState): GameState => ({
   logicOpen: false,
   lampOpen: false,
   codexOpen: false,
+  bookOpen: false,
   finaleOpen: false,
   archiveOpen: false,
 });

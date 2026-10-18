@@ -6,7 +6,7 @@ import { ZONE_ORDER } from "../learn/codexModel";
 import { CHESTS, chestById } from "../learn/chests";
 import { cardFor } from "./cards";
 import { promptText } from "./geometry";
-import { KEEPER, SOUP, keeperLine } from "./lodge";
+import { KEEPER, LODGE_BOOK, SOUP, keeperLine } from "./lodge";
 import { MAX_HP } from "./constants";
 import { REMEDY_HEAL } from "./remedies";
 import { loadGame } from "./resume";
@@ -90,7 +90,7 @@ describe("the lodge's places and the HTML chest", () => {
   it("the Peaks have the lodge door as a place and the lodge the fireplace and the shelf chest", () => {
     expect(ZONES.peaks.places.find((p) => p.id === "lodge-door")).toMatchObject({ label: "Ski Lodge", x: 19.4, y: 89.4 });
     expect(ZONES.peaks.places.some((p) => p.id === "chest-html")).toBe(false);
-    expect(ZONES.lodge.places.map((p) => p.id)).toEqual(["lodge-keeper", "lodge-fireplace", "chest-html"]);
+    expect(ZONES.lodge.places.map((p) => p.id)).toEqual(["lodge-keeper", "lodge-fireplace", "lodge-book", "chest-html"]);
   });
 
   it("the HTML chest is on the lodge's shelf, and the chest count is still 11", () => {
@@ -119,7 +119,7 @@ describe("the lodge keeper and her soup", () => {
 
   it("is a place in the lodge at (38, 52) that you talk to", () => {
     expect(KEEPER).toMatchObject({ id: "lodge-keeper", label: "Keeper", x: 38, y: 52 });
-    expect(ZONES.lodge.places.map((p) => p.id)).toEqual(["lodge-keeper", "lodge-fireplace", "chest-html"]);
+    expect(ZONES.lodge.places.map((p) => p.id)).toEqual(["lodge-keeper", "lodge-fireplace", "lodge-book", "chest-html"]);
     expect(promptText(initialState, KEEPER)).toBe("[E] Talk to Keeper");
   });
 
@@ -183,6 +183,45 @@ describe("where a new game begins", () => {
     const respawned = gameReducer({ ...initialState, hp: 0 }, { type: "respawn" });
     expect({ zone: respawned.zone, player: respawned.player, drone: respawned.drone }).toEqual(LODGE_START);
     expect(doorAt(LODGE_START.zone, LODGE_START.player)).toBeNull();
+  });
+});
+
+describe("the review book on the lodge table", () => {
+  const nearBook = (over: Partial<typeof initialState> = {}) => ({ ...initialState, zone: "lodge" as const, player: { x: LODGE_BOOK.x, y: LODGE_BOOK.y + 4 }, ...over });
+  const press = (s: typeof initialState) => gameReducer(s, { type: "interact", poi: "lodge-book" });
+
+  it("is a place in the lodge, inspected with a card", () => {
+    expect(LODGE_BOOK).toMatchObject({ id: "lodge-book", label: "Review Book" });
+    expect(ZONES.lodge.places.map((p) => p.id)).toContain("lodge-book");
+    expect(promptText(initialState, LODGE_BOOK)).toBe("[E] Inspect Review Book");
+    expect(cardFor({ ...initialState, zone: "lodge", inspected: "lodge-book" })?.text).toMatch(/every language/i);
+  });
+
+  it("pressing E beside it opens the book; from far away it only shows the card", () => {
+    const near = press(nearBook());
+    expect([near.bookOpen, near.inspected]).toEqual([true, "lodge-book"]);
+    const far = press(nearBook({ player: { x: 90, y: 20 } }));
+    expect([far.bookOpen, far.inspected]).toEqual([false, "lodge-book"]);
+  });
+
+  it("an open book is a window: you cannot walk, and toggling closes it", () => {
+    const open = press(nearBook());
+    expect(gameReducer(open, { type: "move", dir: "left" })).toBe(open);
+    expect(gameReducer(open, { type: "toggleBook" }).bookOpen).toBe(false);
+    expect(gameReducer(initialState, { type: "toggleBook" }).bookOpen).toBe(false);
+  });
+
+  it("the Codex and the book never open together, and no other window lets the book open", () => {
+    expect(gameReducer({ ...initialState, codexOpen: true }, { type: "toggleBook" }).bookOpen).toBe(false);
+    const book = press(nearBook());
+    expect(gameReducer(book, { type: "toggleCodex" }).codexOpen).toBe(false);
+    expect(press(nearBook({ challenge: { target: "chest-html", error: null, wrongTries: 0, solved: false, lastWrong: null } })).bookOpen).toBe(false);
+  });
+
+  it("is in a fresh game closed and a resumed game never comes back inside it", () => {
+    expect(initialState.bookOpen).toBe(false);
+    localStorage.setItem("devlandia.savedGame", JSON.stringify({ v: 2, owner: "guest", game: { playerClass: "warrior", hard: false, state: { ...initialState, bookOpen: true } } }));
+    expect(loadGame(null)?.state.bookOpen).toBe(false);
   });
 });
 

@@ -1411,6 +1411,20 @@ describe("scene: the Ski Lodge", () => {
     expect(area.terrainAt(100, 100)).toBe("floor");
   });
 
+  it("the review book lies on the table, once, in front of it, at every hour", () => {
+    for (const minutes of [DAY, NIGHT]) {
+      const s = lodge(minutes);
+      const books = s.upright.filter((d) => d.sprite === "book");
+      expect(books, `${minutes}`).toHaveLength(1);
+      const table = spriteBox("table", LODGE_POINTS.table);
+      const box = spriteBox("book", LODGE_POINTS.book);
+      expect([books[0].x, books[0].y]).toEqual([box.x, box.y]);
+      expect(box.x >= table.x && box.x + box.w <= table.x + table.w, "on the table's top").toBe(true);
+      expect(s.upright.findIndex((d) => d.sprite === "book")).toBeGreaterThan(s.upright.findIndex((d) => d.sprite === "table"));
+    }
+    for (const zone of ["peaks", "forest"] as const) expect(scene({ zone }).upright.some((d) => d.sprite === "book")).toBe(false);
+  });
+
   it("the keeper stands at her spot in the room, once, in her own colour", () => {
     const keepers = lodge(DAY).upright.filter((d) => d.variant === "#b45309");
     expect(keepers).toHaveLength(1);

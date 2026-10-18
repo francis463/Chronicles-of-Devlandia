@@ -160,6 +160,7 @@ export const LANDMARK_CAPTIONS: readonly LandmarkCaption[] = [
   ...SECRET_SPOTS.map((s): LandmarkCaption => ({ id: s.id, zone: s.zone, sprite: s.sprite, point: s.at, texts: [SECRETS.find((x) => x.id === s.id)!.label], prefer: "above", quiet: true })),
   { id: "lodge-door", zone: "peaks", sprite: "lodge", point: { x: 62, y: 161 }, texts: ["Lodge"], prefer: "below", quiet: true },
   { id: "lodge-keeper", zone: "lodge", sprite: "explorer-down", point: LODGE_POINTS.keeper, texts: ["[K] Keeper"], prefer: "below" },
+  { id: "lodge-book", zone: "lodge", sprite: "book", point: LODGE_POINTS.book, texts: ["Book"], prefer: "above", quiet: true },
   { id: "lodge-fireplace", zone: "lodge", sprite: "fireplace", point: LODGE_POINTS.fireplace, texts: ["Fireplace"], prefer: "below", quiet: true },
   { id: "dock", zone: "peaks", sprite: "dock", point: DOCK_POINT, texts: ["[B] Dock"], prefer: "below" },
   { id: "peaks-signpost", zone: "peaks", sprite: "signpost", point: SIGNPOST_POINT, texts: ["[P] Signpost"], prefer: "above", quiet: true },

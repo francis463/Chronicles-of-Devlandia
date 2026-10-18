@@ -15,7 +15,7 @@ const FILTERS: ReadonlyArray<[CodexFilter, string]> = [
   ["todo", "To find"],
 ];
 
-function LangTag({ language }: { language: string }) {
+export function LangTag({ language }: { language: string }) {
   const t = LANG_TAGS[language];
   return (
     <span aria-hidden="true" className="inline-block min-w-9 rounded px-1 text-center text-[10px] font-bold" style={{ background: t.bg, color: t.fg }}>

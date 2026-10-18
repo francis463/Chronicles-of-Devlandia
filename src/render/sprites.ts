@@ -115,7 +115,8 @@ export type SpriteId =
   | "rug"
   | "shelf"
   | "door-mat"
-  | "lodge-wall";
+  | "lodge-wall"
+  | "book";
 /** bottom: bottom-centre on the art point; centre: centred on it; hover: centred 12 px above it. */
 export type SpriteDef = { w: number; h: number; frames: PixelGrid[]; palette: Palette; anchor: "bottom" | "centre" | "hover" };
 export type TextureId = "ice" | "mountains" | "snow" | "forest" | "meadow" | "path" | "bank" | "sand" | "sea" | "dune" | "beach" | "floor";
@@ -1033,6 +1034,11 @@ function shelfGrid(): PixelGrid {
 /** The door mat: a coarse mat with two stripes. */
 function doorMatGrid(): PixelGrid {
   return creature(20, 6, [rect(0, 0, 19, 5, "m"), rect(2, 2, 17, 2, "M"), rect(2, 3, 17, 3, "m")]);
+}
+
+/** An open book: two pale pages on a red cover, with lines of writing. */
+function bookGrid(): PixelGrid {
+  return creature(12, 7, [rect(0, 1, 11, 6, "c"), rect(1, 0, 5, 4, "p"), rect(6, 0, 10, 4, "p"), rect(5, 0, 6, 5, "s"), rect(2, 1, 4, 1, "t"), rect(2, 3, 4, 3, "t"), rect(7, 1, 9, 1, "t"), rect(7, 3, 9, 3, "t")]);
 }
 
 /** A log wall tile: stacked logs with a darker line between them. */
@@ -2222,6 +2228,7 @@ export const SPRITES: Record<SpriteId, SpriteDef> = {
   rug: { w: 32, h: 10, anchor: "bottom", palette: { o: "#0b1020", r: "#7f1d1d", R: "#b91c1c", y: "#fbbf24" }, frames: [rugGrid()] },
   shelf: { w: 28, h: 24, anchor: "bottom", palette: { o: "#0b1020", w: "#b07a45", d: "#5b3a1e", r: "#dc2626", g: "#16a34a", b: "#2563eb", y: "#facc15" }, frames: [shelfGrid()] },
   "door-mat": { w: 20, h: 6, anchor: "bottom", palette: { o: "#0b1020", m: "#a16207", M: "#713f12" }, frames: [doorMatGrid()] },
+  book: { w: 12, h: 7, anchor: "bottom", palette: { o: "#0b1020", c: "#991b1b", p: "#f8f1d8", s: "#7f1d1d", t: "#64748b" }, frames: [bookGrid()] },
   "lodge-wall": { w: 16, h: 16, anchor: "bottom", palette: { o: "#0b1020", l: "#b07a45", L: "#8f5f33", d: "#7a4f28" }, frames: [lodgeWallGrid()] },
   skull: { w: 14, h: 10, anchor: "bottom", palette: { o: "#0b1020", w: "#f1ead6", k: "#2b2417" }, frames: [skullGrid()] },
   "bloom-cactus": { w: 18, h: 28, anchor: "bottom", palette: { o: "#0b1020", c: "#4d9e4d", G: "#2f7d3a", p: "#f472b6" }, frames: [bloomCactusGrid()] },

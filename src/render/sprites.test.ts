@@ -600,7 +600,7 @@ describe("the hidden spots' art", () => {
 });
 
 describe("the Ski Lodge's furniture", () => {
-  const SIZES = [["fireplace", 24, 22, 2], ["bunk", 28, 18, 1], ["table", 24, 14, 1], ["rug", 32, 10, 1], ["shelf", 28, 24, 1], ["door-mat", 20, 6, 1], ["lodge-wall", 16, 16, 1]] as const;
+  const SIZES = [["fireplace", 24, 22, 2], ["bunk", 28, 18, 1], ["table", 24, 14, 1], ["rug", 32, 10, 1], ["shelf", 28, 24, 1], ["door-mat", 20, 6, 1], ["lodge-wall", 16, 16, 1], ["book", 12, 7, 1]] as const;
 
   it("have their declared sizes, anchors and frame counts, with only palette characters", () => {
     for (const [id, w, h, frames] of SIZES) {

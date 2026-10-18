@@ -3,7 +3,7 @@ import { ADA, ARCHIVE, BEACH_SIGNPOST, BOUNDS, CAMPFIRE, DESERT_SIGNPOST, DOCK, 
 import { DESERT_JARS, DESERT_LORE } from "./desertLore";
 import { FOREST_LORE, FOREST_MUSHROOMS } from "./forestLore";
 import { remediesIn } from "./remedies";
-import { KEEPER, LODGE_DOOR, LODGE_FIREPLACE } from "./lodge";
+import { KEEPER, LODGE_BOOK, LODGE_DOOR, LODGE_FIREPLACE } from "./lodge";
 import { secretsIn } from "./secrets";
 import type { Poi, PoiId, Point } from "./types";
 
@@ -112,7 +112,7 @@ export const ZONES: Record<ZoneId, Zone> = {
     exits: [],
     wall: false,
     gate: false,
-    places: [KEEPER, LODGE_FIREPLACE, ...chestPlaces("lodge")],
+    places: [KEEPER, LODGE_FIREPLACE, LODGE_BOOK, ...chestPlaces("lodge")],
     river: false,
     doors: [{ at: { x: 50, y: 88 }, radius: 3, to: "peaks", arrive: { x: 26, y: 88 } }],
   },

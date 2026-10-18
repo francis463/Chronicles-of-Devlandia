@@ -762,6 +762,9 @@ function buildBaseScene(input: SceneInput, poses: Poses, t: number, reduced: boo
       const flame = reduced ? 0 : Math.floor(t / 400) % 2;
       const fire = upright.find((d) => d.sprite === "fireplace");
       if (fire) fire.frame = flame;
+      // The review book lies on the table: drawn after it (same feet row, later in the list).
+      upright.push(placed("book", LODGE_POINTS.book));
+      upright.sort(byFeet);
       const hearth = { x: LODGE_POINTS.fireplace.x, y: LODGE_POINTS.fireplace.y - 7 };
       return {
         zone: input.zone,

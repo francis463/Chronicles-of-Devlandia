@@ -15,6 +15,8 @@ export const LODGE_POINTS = {
   keeper: zoneToArt({ x: 38, y: 52 }, "lodge"),
   rug: zoneToArt({ x: 46, y: 74 }, "lodge"),
   mat: zoneToArt({ x: 50, y: 88 }, "lodge"),
+  /** The review book lies on the table's top, its feet on the table's own row so it is drawn over it. */
+  book: { x: zoneToArt({ x: 62, y: 62 }, "lodge").x, y: zoneToArt({ x: 62, y: 62 }, "lodge").y },
 } as const;
 
 /** Log walls round the room: a row along the top and the bottom and a column down each side, one 16 px tile each. */

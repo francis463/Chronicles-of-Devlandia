@@ -6,7 +6,11 @@ export const LODGE_DOOR: Poi = { id: "lodge-door", label: "Ski Lodge", x: 19.4, 
 /** The lodge's fireplace: a landmark with a card. */
 export const LODGE_FIREPLACE: Poi = { id: "lodge-fireplace", label: "Fireplace", x: 20, y: 31 };
 
+/** The review book on the table: press E beside it to read every language's questions you have earned. */
+export const LODGE_BOOK: Poi = { id: "lodge-book", label: "Review Book", x: 61.9, y: 62 };
+
 export const LODGE_CARDS = {
+  book: "An open book of every language's questions. Walk up to it and press E to read the ones you have earned.",
   door: "The Ski Lodge. Walk into its door to go inside.",
   fireplace: "A crackling fire. The logs burn in order, one after another, like the lines of a program.",
 } as const;

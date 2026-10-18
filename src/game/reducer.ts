@@ -37,7 +37,7 @@ import { FISHER_LINE } from "./beach";
 import { nomadSays } from "./desert";
 import { reachFor, stepFor } from "./zoneSize";
 import { REMEDIES, REMEDY_HEAL, isRemedy, remedyFine } from "./remedies";
-import { KEEPER, SOUP, keeperSays } from "./lodge";
+import { KEEPER, LODGE_BOOK, SOUP, keeperSays } from "./lodge";
 import { SECRETS, firstSentence, isSecret } from "./secrets";
 import { DESERT_JARS, DESERT_LOG, DESERT_LORE, JAR_TIPS, isJar } from "./desertLore";
 import { goToNote } from "../learn/codexModel";
@@ -86,6 +86,7 @@ export const initialState: GameState = {
   nomadServed: false,
   sandcastleBuilt: false,
   codexOpen: false,
+  bookOpen: false,
   finaleOpen: false,
   finaleSeen: false,
   hard: false,
@@ -96,7 +97,7 @@ export const initialState: GameState = {
 export const isDowned = (s: GameState) => s.hp <= 0;
 
 /** True while a challenge terminal, the tower's logic lock or the Codex is open: movement, time and hazards pause. */
-export const isModalOpen = (s: GameState) => s.challenge !== null || s.logicOpen || s.lampOpen || s.codexOpen || s.finaleOpen;
+export const isModalOpen = (s: GameState) => s.challenge !== null || s.logicOpen || s.lampOpen || s.codexOpen || s.bookOpen || s.finaleOpen;
 
 /** Hidden points of interest that are currently diggable: the artifact, after decoding, until found. */
 /** What you can use in your zone: its places, plus the dig spot on Foggaten Island once revealed. */
@@ -350,6 +351,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         if (distance(state.player, LIGHTHOUSE) > reachFor(state.zone)) return { ...state, inspected: "lighthouse" };
         return pushLog({ ...state, inspected: "lighthouse", lampOpen: true, lampError: null, lampTries: 0, lampHintRevealed: false }, LOG.lampOpened);
       }
+      if (action.poi === "lodge-book") {
+        // The map's button works from anywhere; reading needs you beside the book.
+        return distance(state.player, LODGE_BOOK) > reachFor(state.zone) ? { ...state, inspected: "lodge-book" } : { ...state, inspected: "lodge-book", bookOpen: true };
+      }
       if (action.poi === "lodge-keeper") {
         const talked = pushLogOnce({ ...state, inspected: "lodge-keeper" }, `Keeper: "${keeperSays(state)}"`);
         // The map's button works from anywhere; the soup needs you beside her. Hard mode never offers it.
@@ -480,7 +485,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, logicError: null };
     case "toggleCodex":
       if (state.codexOpen) return { ...state, codexOpen: false };
-      return state.challenge === null && !state.logicOpen && !state.lampOpen ? { ...state, codexOpen: true } : state;
+      return state.challenge === null && !state.logicOpen && !state.lampOpen && !state.bookOpen ? { ...state, codexOpen: true } : state;
+    case "toggleBook":
+      return state.bookOpen ? { ...state, bookOpen: false } : state;
     case "goTo": {
       if (state.challenge !== null || state.logicOpen || state.lampOpen) return state;
       return pushLogOnce({ ...state, codexOpen: false }, goToNote(action.chest));
