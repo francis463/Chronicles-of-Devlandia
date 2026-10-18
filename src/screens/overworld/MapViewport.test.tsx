@@ -520,3 +520,46 @@ describe("MapViewport on the Sunny Beach", () => {
     expect(screen.getByText("← Forest")).toBeInTheDocument();
   });
 });
+
+describe("MapViewport zoom", () => {
+  const layer = () => {
+    const l = screen.getByTestId("world-layer");
+    return [l.style.left, l.style.top, l.style.width, l.style.height];
+  };
+
+  it("zoom 0 is the fit, and a step up scrolls with the player", () => {
+    const { rerender } = render(<MapViewport {...props({ zoom: 0 })} />);
+    expect(layer()).toEqual(["140px", "90px", "320px", "180px"]);
+    rerender(<MapViewport {...props({ zoom: 1 })} />);
+    expect(layer()).toEqual(["0px", "0px", "640px", "360px"]);
+    rerender(<MapViewport {...props({ zoom: 2, player: { x: 90, y: 50 } })} />);
+    expect(parseFloat(screen.getByTestId("world-layer").style.left)).toBe(600 - 960);
+  });
+
+  it("auto zoom picks the step for the view", () => {
+    render(<MapViewport {...props({ zoom: "auto" })} />);
+    expect(layer()).toEqual(["0px", "0px", "640px", "360px"]);
+  });
+
+  it("the zoom buttons show only when asked, name the step and stop at the ends", () => {
+    const onZoom = vi.fn();
+    const { rerender } = render(<MapViewport {...props({ zoom: 0 })} />);
+    expect(screen.queryByRole("group", { name: "Map zoom" })).toBeNull();
+    rerender(<MapViewport {...props({ zoom: 0, onZoom })} />);
+    expect(screen.getByRole("button", { name: "Zoom out" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Zoom in" }));
+    expect(onZoom).toHaveBeenCalledWith(1);
+    rerender(<MapViewport {...props({ zoom: 3, onZoom })} />);
+    expect(screen.getByRole("button", { name: "Zoom in" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Zoom out" }));
+    expect(onZoom).toHaveBeenLastCalledWith(2);
+    expect(screen.getByText("4×")).toBeInTheDocument();
+  });
+
+  it("a zoomed map keeps every landmark button over its drawing", () => {
+    render(<MapViewport {...props({ zoom: 2, player: { x: 28, y: 72 } })} />);
+    const gate = screen.getByRole("button", { name: "[G] Gate" });
+    expect(Number.isFinite(parseFloat(gate.style.left))).toBe(true);
+    expect(parseFloat(gate.style.width)).toBeGreaterThanOrEqual(44);
+  });
+});

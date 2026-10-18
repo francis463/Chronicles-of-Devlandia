@@ -5,6 +5,7 @@ import { chatRoster } from "../../chat/context";
 import { maskRude } from "../../chat/filter";
 import { displayNames } from "../../chat/names";
 import { Button } from "../../ui/Button";
+import { MAX_ZOOM } from "../../render/world";
 import { cardFor } from "../../game/cards";
 import { challengeOf, challengeView } from "../../game/challenges";
 import { rollGame } from "../../game/roll";
@@ -43,6 +44,23 @@ import { MiniMap } from "./MiniMap";
 import { QuestList } from "./QuestList";
 import { TopHud } from "./TopHud";
 import { TouchControls } from "./TouchControls";
+
+const ZOOM_KEY = "devlandia.mapZoom";
+function loadZoom(): number | "auto" {
+  try {
+    const n = Number(localStorage.getItem(ZOOM_KEY));
+    return localStorage.getItem(ZOOM_KEY) !== null && Number.isInteger(n) && n >= 0 && n <= MAX_ZOOM ? n : "auto";
+  } catch {
+    return "auto";
+  }
+}
+function saveZoom(zoom: number): void {
+  try {
+    localStorage.setItem(ZOOM_KEY, String(zoom));
+  } catch {
+    // Blocked storage just forgets the choice.
+  }
+}
 
 export function Overworld({
   onMenu,
@@ -113,6 +131,12 @@ export function Overworld({
   const hasProgress = state.badges.length > 0 || state.matcherSolved || Object.values(flagsOf(state)).some(Boolean);
   useGameTimers(state, dispatch, leaving || helpOpen);
   const downed = isDowned(state);
+  // Map zoom: "auto" fills the window when whole-pixel scaling would leave wide empty bands; the buttons make it a saved choice.
+  const [zoom, setZoom] = useState<number | "auto">(loadZoom);
+  const changeZoom = (next: number) => {
+    setZoom(next);
+    saveZoom(next);
+  };
   // A flash over the map when your health falls (red) or rises (green); it is state, not a timer, so the CSS animation plays once.
   const lastHp = useRef(state.hp);
   const [pulse, setPulse] = useState<{ kind: "hurt" | "heal"; n: number } | null>(null);
@@ -317,6 +341,8 @@ export function Overworld({
           snow={view.snow}
           playerColor={team?.me?.color}
           playerClass={playerClass}
+          zoom={zoom}
+          onZoom={changeZoom}
           inRange={inRange}
           downed={downed}
           onInteract={(poi) => dispatch({ type: "interact", poi })}

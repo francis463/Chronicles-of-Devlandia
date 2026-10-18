@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { DRONE_START, PLAYER_START } from "../game/constants";
 import { visibleArt } from "./paint";
 import { spriteBox } from "./sprites";
-import { REACHABLE_RECT, backdropWorld, fitWorld, grow, intersects, toArt, type ArtPoint, type Rect, type ViewSize } from "./world";
+import { MAX_ZOOM, REACHABLE_RECT, autoZoom, backdropWorld, fitStep, fitWorld, zoomLabel, grow, intersects, toArt, type ArtPoint, type Rect, type ViewSize } from "./world";
 
 const r1 = (n: number) => Math.round(n * 10) / 10;
 const inside = (p: ArtPoint, r: Rect) => p.x >= r.x && p.x < r.x + r.w && p.y >= r.y && p.y < r.y + r.h;
@@ -128,5 +128,52 @@ describe("backdropWorld", () => {
       const offCentre = Math.abs((me.left + me.right) / 2 - v.width / 2);
       expect(atAnEdge || offCentre <= w.scale, `${name(v)} off centre by ${offCentre}`).toBe(true);
     }
+  });
+});
+
+describe("fitWorld zoom", () => {
+  const view = (width: number, height: number, dpr = 1): ViewSize => ({ width, height, dpr });
+
+  it("zoom 0 is the old fit, whatever the focus", () => {
+    const v = view(900, 600);
+    expect(fitWorld(v, 0, { x: 300, y: 10 })).toEqual(fitWorld(v));
+    expect(fitStep(v)).toBe(2);
+  });
+
+  it("one step up is one more device pixel per art pixel: the tight side scrolls, the other stays centred while it fits", () => {
+    const w = fitWorld(view(900, 600), 1);
+    expect(w.s).toBe(fitStep(view(900, 600)) + 1);
+    expect(w.top).toBe((600 - 180 * 3) / 2);
+    expect(w.left).toBe(Math.round(900 / 2 - 160.5 * 3));
+  });
+
+  it("past the view's size the world scrolls to keep the focus centred, and never past its edges", () => {
+    const v = view(600, 360);
+    const zoomed = fitWorld(v, 2, { x: 160, y: 90 });
+    expect(zoomed.s).toBe(3);
+    expect(zoomed.left).toBe(Math.round(600 / 2 - 160.5 * 3));
+    const west = fitWorld(v, 2, { x: 0, y: 90 });
+    expect(west.left).toBe(0);
+    const east = fitWorld(v, 2, { x: 319, y: 90 });
+    expect(east.left).toBe(600 - 320 * 3);
+    const north = fitWorld(v, 2, { x: 160, y: 0 });
+    expect(north.top).toBe(0);
+    const south = fitWorld(v, 2, { x: 160, y: 179 });
+    expect(south.top).toBe(360 - 180 * 3);
+  });
+
+  it("auto zoom steps up only when whole-pixel fitting leaves wide empty bands", () => {
+    expect(autoZoom(view(900, 600))).toBe(1);
+    expect(autoZoom(view(640, 360))).toBe(0);
+    expect(autoZoom(view(700, 400))).toBe(0);
+    expect(autoZoom(view(600, 360))).toBe(1);
+    expect(MAX_ZOOM).toBe(3);
+  });
+
+  it("the label is the zoom as a multiple of fit", () => {
+    expect(zoomLabel(view(900, 600), 0)).toBe("1×");
+    expect(zoomLabel(view(900, 600), 1)).toBe("1.5×");
+    expect(zoomLabel(view(900, 600), 2)).toBe("2×");
+    expect(zoomLabel(view(320, 180), 3)).toBe("4×");
   });
 });

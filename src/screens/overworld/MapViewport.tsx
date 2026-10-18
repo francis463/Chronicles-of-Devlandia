@@ -11,7 +11,7 @@ import { useReducedMotion } from "../../hooks/useReducedMotion";
 import type { ActivePing } from "../../hooks/usePings";
 import type { Teammate } from "../../hooks/useTeamSession";
 import type { SceneInput } from "../../render/scene";
-import { fitWorld, toArt, type ViewSize, type WorldRect } from "../../render/world";
+import { MAX_ZOOM, autoZoom, fitWorld, toArt, zoomLabel, type ViewSize, type WorldRect } from "../../render/world";
 import { Button } from "../../ui/Button";
 import { Panel } from "../../ui/Panel";
 import { EXPLORER_BOX, SEMICOLON_BOX, labelBoxes, labelLayout, teammateLabelSide, LABEL_GAP, type LabelPlacement } from "./labelLayout";
@@ -233,6 +233,8 @@ export function MapViewport({
   snow,
   playerColor,
   playerClass,
+  zoom = 0,
+  onZoom,
   inRange,
   downed,
   onInteract,
@@ -271,6 +273,10 @@ export function MapViewport({
   snow?: boolean;
   playerColor?: string;
   playerClass?: ClassId;
+  /** Steps past "fit" (one more device pixel per art pixel each), or "auto". Past fit the map scrolls with the player. */
+  zoom?: number | "auto";
+  /** Shows the zoom buttons; called with the new step. */
+  onZoom?: (zoom: number) => void;
   inRange: Poi | null;
   downed: boolean;
   onInteract: (poi: PoiId) => void;
@@ -284,7 +290,8 @@ export function MapViewport({
   const [mapRef, size] = useMapSize();
   const reduced = useReducedMotion();
   const { fading } = useCrossingFade(zone, reduced);
-  const world = fitWorld(size);
+  const extraZoom = zoom === "auto" ? autoZoom(size) : Math.min(MAX_ZOOM, Math.max(0, zoom));
+  const world = fitWorld(size, extraZoom, toArt(player));
   const map = { width: size.width, height: size.height };
   const worldSize = { width: world.width, height: world.height };
   const inPeaks = zone === "peaks";
@@ -339,6 +346,18 @@ export function MapViewport({
   return (
     <div ref={mapRef} className="relative min-h-[360px] flex-1 overflow-hidden bg-[var(--panel)]">
       <MapCanvas input={scene} world={world} />
+
+      {onZoom && (
+        <div role="group" aria-label="Map zoom" className="absolute top-2 right-2 z-30 flex items-center gap-1 rounded border border-[var(--panel-border)] bg-[rgba(15,23,42,0.8)] px-1 py-0.5 text-[10px] font-bold">
+          <button type="button" aria-label="Zoom out" disabled={extraZoom <= 0} onClick={() => onZoom(extraZoom - 1)} className="min-h-6 min-w-6 cursor-pointer rounded text-[var(--primary-border)] focus-visible:outline-2 focus-visible:outline-[var(--primary-border)] disabled:cursor-not-allowed disabled:opacity-40 pointer-coarse:min-h-11 pointer-coarse:min-w-11">
+            −
+          </button>
+          <span aria-live="polite" className="min-w-8 text-center text-[var(--text)]">{zoomLabel(size, extraZoom)}</span>
+          <button type="button" aria-label="Zoom in" disabled={extraZoom >= MAX_ZOOM} onClick={() => onZoom(extraZoom + 1)} className="min-h-6 min-w-6 cursor-pointer rounded text-[var(--primary-border)] focus-visible:outline-2 focus-visible:outline-[var(--primary-border)] disabled:cursor-not-allowed disabled:opacity-40 pointer-coarse:min-h-11 pointer-coarse:min-w-11">
+            +
+          </button>
+        </div>
+      )}
 
       {/* Crossing into another zone: the new map fades in from the panel colour, under the fog. */}
       <div
