@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ARCHIVE } from "../game/constants";
 import { ZONE_SCALE } from "../game/zoneSize";
 import { CHESTS } from "./chests";
@@ -92,9 +92,9 @@ describe("practiceQuestion", () => {
 });
 
 describe("nextHint in a bigger zone", () => {
-  afterEach(() => {
-    ZONE_SCALE.forest = 1;
-  });
+  const real = { ...ZONE_SCALE };
+  afterEach(() => void Object.assign(ZONE_SCALE, real));
+  beforeEach(() => void (ZONE_SCALE.forest = 1));
 
   it("counts steps in the zone's own step size", () => {
     const spot = CHESTS.find((c) => c.zone === "forest")!.at!;

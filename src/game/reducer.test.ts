@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { gameReducer, initialState, isDowned, isModalOpen, reachPlaces, revealedPois, visiblePois } from "./reducer";
 import { placeInReach } from "./geometry";
 import type { ChallengeState, ChallengeTarget, GameState, Point } from "./types";
@@ -9,7 +9,7 @@ import { cardFor } from "./cards";
 import { hermitLine } from "./island";
 import { isNorthOfWall } from "./wall";
 import { ZONES, type ZoneId } from "./zones";
-import { ZONE_SCALE, reachFor } from "./zoneSize";
+import { ZONE_SCALE, reachFor, stepFor } from "./zoneSize";
 
 const s0 = initialState;
 /** A freshly opened terminal for a target, as the reducer opens it. */
@@ -878,9 +878,9 @@ describe("gameReducer: the Dense Forest (Review Focus 1 and 5)", () => {
     expect(gameReducer({ ...s0, zone: "forest", player: { x: 58, y: 10 } }, up).zone).toBe("forest");
   });
 
-  it("the forest has no wall: y 48 and y 52 are one free step apart, with no wall log", () => {
+  it("the forest has no wall: one step north and back is free, with no wall log", () => {
     const north = gameReducer({ ...s0, zone: "forest", player: { x: 70, y: 52 } }, up);
-    expect(north.player).toEqual({ x: 70, y: 48 });
+    expect(north.player).toEqual({ x: 70, y: 52 - stepFor("forest") });
     const south = gameReducer(north, down);
     expect(south.player).toEqual({ x: 70, y: 52 });
     expect(south.logs).toEqual(s0.logs);
@@ -1306,9 +1306,9 @@ describe("gameReducer: healing finds", () => {
 });
 
 describe("gameReducer: a bigger zone's step and reach are in art pixels", () => {
-  afterEach(() => {
-    ZONE_SCALE.forest = 1;
-  });
+  const real = { ...ZONE_SCALE };
+  afterEach(() => void Object.assign(ZONE_SCALE, real));
+  beforeEach(() => void (ZONE_SCALE.forest = 1));
   const inForest = (over: Partial<GameState> = {}): GameState => ({ ...initialState, zone: "forest", player: { x: 50, y: 50 }, ...over });
 
   it("a step is 4 percent in a one-screen zone and 2 in a 2 × 2 zone", () => {

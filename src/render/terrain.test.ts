@@ -277,7 +277,7 @@ describe("decorations in a world bigger than one screen", () => {
 
   it("put the hedge along the big world's whole bottom edge and down its sides", () => {
     for (let cx = 4; cx <= Math.floor(639 / 16); cx++) expect(found.some((d) => d.at.x === cx * 16 + 8 && d.at.y === 359), `bottom ${cx}`).toBe(true);
-    for (const cy of [3, 10, 15, 20]) {
+    for (const cy of [3, 10, 19, 21]) {
       expect(found.some((d) => d.at.x === 10 && d.at.y === cy * 16 + 15), `west ${cy}`).toBe(true);
       expect(found.some((d) => d.at.x === 631 && d.at.y === cy * 16 + 15), `east ${cy}`).toBe(true);
     }

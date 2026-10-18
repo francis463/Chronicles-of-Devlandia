@@ -665,7 +665,7 @@ function buildBaseScene(input: SceneInput, poses: Poses, t: number, reduced: boo
         const owl = placed("owl", { x: FOREST_POINTS.oak.x + 8, y: FOREST_POINTS.oak.y - 30 }, { frame: !reduced && Math.floor(t / 1000) % 5 === 0 ? 1 : 0 });
         if (oak >= 0) upright.splice(oak + 1, 0, owl);
       }
-      const light = [...glow(LIGHTS.campfire, CAMPFIRE_GLOW, strength * (flame === 0 ? 1 : 0.8)), ...tiled(world, () => forestLeaves(t, reduced, strength)), ...tiled(world, () => forestAir(t, reduced, strength))];
+      const light = [...glow({ x: FOREST_POINTS.campfire.x, y: FOREST_POINTS.campfire.y - 7 }, CAMPFIRE_GLOW, strength * (flame === 0 ? 1 : 0.8)), ...tiled(world, () => forestLeaves(t, reduced, strength)), ...tiled(world, () => forestAir(t, reduced, strength))];
       return { zone: input.zone, glints: [], flat: [], upright, drone, tint: forestTint(PHASE_TINT[phase]), light, snow };
     }
     if (input.zone === "village") {

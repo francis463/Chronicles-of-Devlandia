@@ -4,13 +4,16 @@ import { AREAS } from "./areas";
 import { FOGGATEN_POINTS, LAMP_POINT } from "./areas/foggaten";
 import { SEA_X, TIDE_SHELLS } from "./areas/beach";
 import { DESERT_WILDLIFE, camelPose, fennecPose, scorpionPose, snakePose } from "./areas/desert";
-import { FOREST_WILDLIFE, deerPose, rabbitPose, squirrelPose } from "./areas/forest";
+import { FOREST_POINTS, FOREST_WILDLIFE, deerPose, rabbitPose, squirrelPose } from "./areas/forest";
 import { VILLAGE_LIFE, wandererPose } from "./areas/village";
 import { PHASE_TINT, buildScene, stormStrength, type Poses, type SceneInput } from "./scene";
 import { LIGHTS, SPRITES, spriteBox, type SpriteId } from "./sprites";
 import { BRIDGE_RECT, decorations } from "./terrain";
 import { REACHABLE_RECT, intersects, toArt } from "./world";
 import { TERMINAL } from "../game/constants";
+
+/** How many 320 × 180 screens a zone is made of. */
+const screensOf = (zone: ZoneId): number => (AREAS[zone].world.width / 320) * (AREAS[zone].world.height / 180);
 
 const DAY = 12 * 60;
 const DUSK = 19 * 60;
@@ -376,7 +379,7 @@ describe("scene: your view (weather and light)", () => {
     expect(scene({ snow: false }, 3000).snow).toEqual([]);
     for (const zone of ["village", "forest", "foggaten"] as const) {
       expect(scene({ zone }, 3000).snow, zone).toEqual([]);
-      expect(scene({ zone, snow: true }, 3000).snow, zone).toHaveLength(60);
+      expect(scene({ zone, snow: true }, 3000).snow, zone).toHaveLength(60 * screensOf(zone));
     }
   });
 
@@ -467,10 +470,11 @@ describe("scene: the forest's leaves and dappled light", () => {
   const dapples = (s: ReturnType<typeof scene>) => s.light.filter((p) => p.color === DAPPLE);
   const key = (ps: Array<{ x: number; y: number }>) => ps.map((p) => `${p.x},${p.y}`).join(" ");
 
-  it("24 leaves fall inside the world, and sunlight patches lie on the floor by day", () => {
+  it("24 leaves fall on every screen of the forest, and sunlight patches lie on the floor by day", () => {
     const s = forest(1234);
-    expect(leaves(s)).toHaveLength(24);
-    for (const p of leaves(s)) expect(p.x >= 0 && p.x < 320 && p.y >= 0 && p.y < 180 && Number.isInteger(p.x) && Number.isInteger(p.y)).toBe(true);
+    const { width, height } = AREAS.forest.world;
+    expect(leaves(s)).toHaveLength(24 * screensOf("forest"));
+    for (const p of leaves(s)) expect(p.x >= 0 && p.x < width && p.y >= 0 && p.y < height && Number.isInteger(p.x) && Number.isInteger(p.y)).toBe(true);
     expect(dapples(s).length).toBeGreaterThan(0);
   });
 
@@ -483,7 +487,7 @@ describe("scene: the forest's leaves and dappled light", () => {
   it("the sunlight patches fade out at night, but the leaves still fall", () => {
     const night = forest(1234, false, { minutes: NIGHT });
     expect(dapples(night)).toEqual([]);
-    expect(leaves(night)).toHaveLength(24);
+    expect(leaves(night)).toHaveLength(24 * screensOf("forest"));
   });
 
   it("no other zone has leaves or patches", () => {
@@ -905,7 +909,7 @@ describe("scene: the Dense Forest's wildlife and night life", () => {
     expect(glow(forest(0)).length).toBe(0);
     expect(mist(forest(0)).length).toBeGreaterThan(0);
     for (const minutes of [DUSK, NIGHT]) {
-      expect(glow(forest(0, false, { minutes })).length, `minutes ${minutes}`).toBe(14);
+      expect(glow(forest(0, false, { minutes })).length, `minutes ${minutes}`).toBe(14 * screensOf("forest"));
       expect(mist(forest(0, false, { minutes })).length).toBe(0);
     }
   });
@@ -1160,9 +1164,11 @@ describe("scene: effects in a world bigger than one screen", () => {
   });
 
   it("a one-screen zone's effects are exactly what they were", () => {
-    AREAS.forest.world = original;
-    const pixels = forest(NIGHT);
-    expect(pixels.every((p) => p.x < 320 && p.y < 180)).toBe(true);
+    AREAS.forest.world = { width: 320, height: 180 };
+    // The fireflies (the campfire's glow stands where the forest's props do, which is a different matter).
+    const fireflies = forest(NIGHT).filter((p) => p.color === "#fde047");
+    expect(fireflies).toHaveLength(14);
+    expect(fireflies.every((p) => p.x < 320 && p.y < 180)).toBe(true);
   });
 });
 
@@ -1242,5 +1248,37 @@ describe("scene: the bigger Sunbaked Desert", () => {
     expect(Math.max(...zones.map((z) => z.y + z.h))).toBeGreaterThan(180);
     const s = desert();
     expect(["scorpion", "camel", "snake"].every((id) => s.upright.some((d) => d.sprite === id))).toBe(true);
+  });
+});
+
+describe("scene: the bigger Dense Forest", () => {
+  const forest = (t = 0, over: Partial<SceneInput> = {}) => scene({ zone: "forest", player: { x: 10, y: 70 }, drone: { x: 14, y: 68 }, minutes: DAY, ...over }, t);
+  const { width, height } = AREAS.forest.world;
+
+  it("is 2 × 2 screens with three mouths: north, west and east", () => {
+    expect([width, height]).toEqual([640, 360]);
+    expect(AREAS.forest.mouths).toEqual([
+      { x: 384, y: 0, w: 128, h: 32 },
+      { x: 0, y: 224, w: 32, h: 64 },
+      { x: 608, y: 224, w: 32, h: 64 },
+    ]);
+  });
+
+  it("the animals live in the wider forest, each in its own zone", () => {
+    const zones = Object.values(FOREST_WILDLIFE).map((a) => a.zone);
+    expect(Math.max(...zones.map((z) => z.x + z.w))).toBeGreaterThan(320);
+    expect(Math.max(...zones.map((z) => z.y + z.h))).toBeGreaterThan(180);
+    expect(["deer", "rabbit", "squirrel"].every((id) => forest().upright.some((d) => d.sprite === id))).toBe(true);
+  });
+
+  it("the campfire's glow stands on the campfire, wherever it is", () => {
+    const fire = FOREST_POINTS.campfire;
+    const glow = forest(0, { minutes: NIGHT }).light.filter((p) => p.color !== "#fde047" && near(p, fire, 40));
+    expect(glow.length).toBeGreaterThan(0);
+  });
+
+  it("the oak, the campfire and the lore landmarks all stand inside the world", () => {
+    for (const p of Object.values(FOREST_POINTS)) expect(p.x >= 0 && p.x < width && p.y >= 0 && p.y < height).toBe(true);
+    expect(Math.max(...Object.values(FOREST_POINTS).map((p) => p.x))).toBeGreaterThan(320);
   });
 });

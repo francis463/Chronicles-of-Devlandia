@@ -26,18 +26,20 @@ describe("areas", () => {
 
   it("the forest is an area, with a mouth in its top edge and a clear corridor above it", () => {
     expect(AREAS.forest.id).toBe("forest");
-    expect(AREAS.forest.mouths).toEqual([{ x: 192, y: 0, w: 64, h: 32 }, { x: 0, y: 112, w: 32, h: 32 }, { x: 288, y: 112, w: 32, h: 32 }]);
-    expect(AREAS.forest.corridors).toEqual([{ x: 192, y: -1000, w: 64, h: 1000 }, { x: -1000, y: 112, w: 1000, h: 32 }, { x: 320, y: 112, w: 1000, h: 32 }]);
+    const K = AREAS.forest.world.width / 320;
+    expect(AREAS.forest.mouths).toEqual([{ x: 192 * K, y: 0, w: 64 * K, h: 32 }, { x: 0, y: 112 * K, w: 32, h: 32 * K }, { x: 320 * K - 32, y: 112 * K, w: 32, h: 32 * K }]);
+    expect(AREAS.forest.corridors).toEqual([{ x: 192 * K, y: -1000, w: 64 * K, h: 1000 }, { x: -1000, y: 112 * K, w: 1000, h: 32 * K }, { x: 320 * K, y: 112 * K, w: 1000, h: 32 * K }]);
     expect(AREAS.forest.gateBox).toBeNull();
     expect(AREAS.forest.ice).toBeNull();
   });
 
   it("the forest is forest-floor everywhere but a meadow clearing, with no snow and no ice", () => {
     const { terrainAt } = AREAS.forest;
+    const K = AREAS.forest.world.width / 320;
     expect(terrainAt(10, 10)).toBe("forest");
-    expect(terrainAt(300, 170)).toBe("forest");
-    expect(terrainAt(170, 120)).toBe("meadow");
-    for (const [x, y] of [[0, 0], [160, 90], [319, 179], [-50, -50], [400, 300]]) expect(["forest", "meadow"]).toContain(terrainAt(x, y));
+    expect(terrainAt(300 * K, 170 * K)).toBe("forest");
+    expect(terrainAt(170 * K, 120 * K)).toBe("meadow");
+    for (const [x, y] of [[0, 0], [160 * K, 90 * K], [319 * K, 179 * K], [-50, -50], [400 * K, 300 * K]]) expect(["forest", "meadow"]).toContain(terrainAt(x, y));
   });
 
   it("the wall flag: only the Peaks have a wall: the village and the forest do not", () => {
@@ -53,20 +55,24 @@ describe("areas", () => {
       paths.forEach((p, j) => void (!seen.has(j) && touch(paths[i], p) && (seen.add(j), queue.push(j))));
     }
     expect(seen.size, "every path piece joins the trail from the mouth").toBe(paths.length);
-    const reaches = (x: number, y: number) => paths.some((r) => Math.abs(x - (r.x + r.w / 2)) <= r.w / 2 + 14 && y >= r.y - 14 && y < r.y + r.h + 14);
+    const K = AREAS.forest.world.width / 320;
+    const slack = 14 * K;
+    const reaches = (x: number, y: number) => paths.some((r) => Math.abs(x - (r.x + r.w / 2)) <= r.w / 2 + slack && y >= r.y - slack && y < r.y + r.h + slack);
     expect(reaches(FOREST_POINTS.campfire.x, FOREST_POINTS.campfire.y), "campfire").toBe(true);
     expect(paths.some((r) => r.x < 0 || r.y <= -999)).toBe(true);
     // Winding: between the mouth and the fork the trail's left edge changes column at least three times.
     const left = (y: number) => Math.min(...paths.filter((r) => y >= r.y && y < r.y + r.h).map((r) => r.x));
     const columns = new Set<number>();
-    for (let y = 36; y <= 96; y++) columns.add(left(y));
+    for (let y = 36 * K; y <= 96 * K; y++) columns.add(left(y));
     expect(columns.size).toBeGreaterThanOrEqual(3);
     expect(left(0)).toBeLessThan(Infinity);
   });
 
   it("every mouth touches the edge of the world it opens onto, and has its corridor beyond it", () => {
-    const touches = (r: { x: number; y: number; w: number; h: number }) => r.x <= 0 || r.y <= 0 || r.x + r.w >= 320 || r.y + r.h >= 180;
-    for (const area of Object.values(AREAS)) for (const m of area.mouths) expect(touches(m), `${area.id} ${JSON.stringify(m)}`).toBe(true);
+    for (const area of Object.values(AREAS)) {
+      const touches = (r: { x: number; y: number; w: number; h: number }) => r.x <= 0 || r.y <= 0 || r.x + r.w >= area.world.width || r.y + r.h >= area.world.height;
+      for (const m of area.mouths) expect(touches(m), `${area.id} ${JSON.stringify(m)}`).toBe(true);
+    }
   });
 
   it("every area lists its exit mouths and corridors, each with the same count", () => {
@@ -78,15 +84,19 @@ describe("areas", () => {
 
   it("the forest's props are inside the world, clear of each other and of the north mouth, and their places are 12 game-% apart", () => {
     const boxes = AREAS.forest.props.map((p) => spriteBox(p.sprite, p.at));
-    expect(AREAS.forest.props.map((p) => p.sprite).sort()).toEqual(["brook", "cabin", "campfire", "explorer-down", "fairy-ring", "hollow-tree", "old-oak", "signpost", "well"]);
+    const K = AREAS.forest.world.width / 320;
+    const base = ["brook", "cabin", "campfire", "explorer-down", "fairy-ring", "hollow-tree", "old-oak", "signpost", "well"];
+    // A bigger forest has stumps, logs and ferns along its trails.
+    const extras = K === 1 ? [] : ["stump", "stump", "log", "log", "fern", "fern"];
+    expect(AREAS.forest.props.map((p) => p.sprite).sort()).toEqual([...base, ...extras].sort());
     for (const [i, a] of boxes.entries()) {
-      expect(a.x >= 0 && a.y >= 0 && a.x + a.w <= 320 && a.y + a.h <= 180, `prop ${i} in the world`).toBe(true);
+      expect(a.x >= 0 && a.y >= 0 && a.x + a.w <= AREAS.forest.world.width && a.y + a.h <= AREAS.forest.world.height, `prop ${i} in the world`).toBe(true);
       expect(AREAS.forest.mouths.some((m) => intersects(a, m)), `prop ${i} on a mouth`).toBe(false);
       for (const b of boxes.slice(i + 1)) expect(intersects(a, b), `props ${i} overlap`).toBe(false);
     }
     const pts = Object.values(FOREST_POINTS);
     for (const [i, a] of pts.entries())
-      for (const b of pts.slice(i + 1)) expect(Math.hypot((a.x - b.x) / 3.2, (a.y - b.y) / 1.8)).toBeGreaterThanOrEqual(12);
+      for (const b of pts.slice(i + 1)) expect(Math.hypot((a.x - b.x) / (3.2 * K), (a.y - b.y) / (1.8 * K))).toBeGreaterThanOrEqual(12);
     for (const prop of AREAS.forest.props) expect(AREAS.forest.protected).toContainEqual(spriteBox(prop.sprite, prop.at));
   });
 
@@ -367,7 +377,8 @@ describe("the Sunbaked Desert's area", () => {
   });
 
   it("the forest's west mouth has a road that runs out through it and joins the trail", () => {
-    const west = AREAS.forest.paths.filter((r) => r.x < 0 && r.y >= 112 && r.y + r.h <= 144);
+    const K = AREAS.forest.world.width / 320;
+    const west = AREAS.forest.paths.filter((r) => r.x < 0 && r.y >= 112 * K && r.y + r.h <= 144 * K);
     expect(west.length).toBeGreaterThan(0);
     expect(AREAS.forest.paths.some((r) => touch(r, west[0]) && r !== west[0])).toBe(true);
   });
@@ -428,7 +439,8 @@ describe("the Sunny Beach's area", () => {
   });
 
   it("the forest's east mouth has a road that runs out through it and joins the trail", () => {
-    const east = AREAS.forest.paths.filter((r) => r.x + r.w > 320 && r.y >= 112 && r.y + r.h <= 144);
+    const K = AREAS.forest.world.width / 320;
+    const east = AREAS.forest.paths.filter((r) => r.x + r.w > 320 * K && r.y >= 112 * K && r.y + r.h <= 144 * K);
     expect(east.length).toBeGreaterThan(0);
     expect(AREAS.forest.paths.some((r) => touch(r, east[0]) && r !== east[0])).toBe(true);
   });
