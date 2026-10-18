@@ -4,6 +4,7 @@ import type { GameState } from "./types";
 import { BEACH_COPY, CASTLE_COPY, FISHER_LINE } from "./beach";
 import { DESERT_COPY, nomadSays } from "./desert";
 import { DESERT_LORE, JAR_CARD } from "./desertLore";
+import { REMEDIES } from "./remedies";
 import { rangerSays } from "./forest";
 import { FOREST_LORE, MUSHROOM_CARD } from "./forestLore";
 import { adaLine } from "./village";
@@ -61,6 +62,12 @@ export function cardFor(s: GameState): Card | null {
     case "jar-2":
     case "jar-3":
       return card(place.label, s.jars.includes(place.id) ? JAR_CARD.picked : JAR_CARD.far);
+    case "remedy-herb":
+    case "remedy-fruit":
+    case "remedy-drink": {
+      const remedy = REMEDIES.find((r) => r.id === place.id)!;
+      return card(place.label, s.remedies.includes(place.id) ? remedy.picked : remedy.far);
+    }
     case "sandcastle":
       return card(place.label, s.sandcastleBuilt ? CASTLE_COPY.built : CASTLE_COPY.unbuilt);
     case "fisher":

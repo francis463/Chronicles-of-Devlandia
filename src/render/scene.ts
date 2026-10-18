@@ -9,6 +9,7 @@ import { BEACH_POINTS, BEACH_SHELLS, TIDE_SHELLS } from "./areas/beach";
 import { tideStrips } from "../game/tide";
 import { DESERT_POINTS, JAR_POINTS, camelPose, fennecPose, scorpionPose, snakePose } from "./areas/desert";
 import { FOREST_POINTS, MUSHROOM_POINTS, deerPose, rabbitPose, squirrelPose } from "./areas/forest";
+import { remedySpotsIn } from "./areas/remedies";
 import { CAVE_POINT, WILDLIFE, foxPose, goatPose } from "./areas/peaks";
 import { VILLAGE_LIFE, wandererPose } from "./areas/village";
 import { DOCK_POINT } from "./areas/peaks";
@@ -63,6 +64,8 @@ export type SceneInput = {
   mushrooms?: readonly string[];
   /** The nomad's water jars you have picked up: they leave the dunes. */
   jars?: readonly string[];
+  /** The healing finds you have used: they leave the map. */
+  remedies?: readonly string[];
   /** Every badge earned: your explorer wears a crown and the village lights fireworks. */
   master?: boolean;
   /** The Sunny Beach's sandcastle puzzle is solved: the castle stands finished. */
@@ -514,6 +517,9 @@ function villageLife(t: number, reduced: boolean): Drawable[] {
   return [...VILLAGE_LIFE.wanderers.map((w) => explorer(wandererPose(t, reduced, w), w.variant)), hen];
 }
 
+/** A zone's healing finds that have not been used yet. */
+const remedyDrawables = (zone: ZoneId, used: readonly string[] = []): Drawable[] => remedySpotsIn(zone).filter((r) => !used.includes(r.id)).map((r) => placed(r.sprite, r.at));
+
 const placed = (sprite: SpriteId, at: ArtPoint, extra: Partial<Drawable> = {}): Drawable => {
   const box = spriteBox(sprite, at);
   return { sprite, frame: 0, x: box.x, y: box.y, flip: false, rotate: false, variant: "base", ...extra };
@@ -632,6 +638,7 @@ function buildBaseScene(input: SceneInput, poses: Poses, t: number, reduced: boo
         placed("deer", deer, { frame: deer.frame, flip: deer.flip }),
         placed("rabbit", rabbit, { frame: rabbit.frame, flip: rabbit.flip }),
         placed("squirrel", squirrel, { frame: squirrel.frame, flip: squirrel.flip }),
+        ...remedyDrawables("forest", input.remedies),
       );
       upright.sort(byFeet);
       const flame = reduced ? 0 : Math.floor(t / 400) % 2;
@@ -661,6 +668,7 @@ function buildBaseScene(input: SceneInput, poses: Poses, t: number, reduced: boo
       const snake = snakePose(t, reduced, you);
       const fennec = fennecPose(t, reduced, you);
       const wild = [
+        ...remedyDrawables("desert", input.remedies),
         ...JAR_POINTS.filter((j) => !input.jars?.includes(j.id)).map((j) => placed("jar", j.at, { frame: reduced ? 0 : Math.floor(t / 600) % 2 })),
         placed("scorpion", scorpion, { frame: scorpion.frame, flip: scorpion.flip }),
         placed("camel", camel, { frame: camel.frame, flip: camel.flip }),
@@ -681,7 +689,7 @@ function buildBaseScene(input: SceneInput, poses: Poses, t: number, reduced: boo
       const castle = input.sandcastleBuilt ? 1 : 0;
       const props = upright.map((d) => (d.sprite === "sandcastle" ? { ...d, frame: castle } : d));
       const bare = strips === 0 ? TIDE_SHELLS.map((at) => placed("shell", at)) : [];
-      const withLife = [...props, ...BEACH_SHELLS.map((at) => placed("shell", at)), ...bare, ...birds(t, reduced), crab(t, reduced), pier.rowboat].sort(byFeet);
+      const withLife = [...props, ...BEACH_SHELLS.map((at) => placed("shell", at)), ...bare, ...birds(t, reduced), crab(t, reduced), pier.rowboat, ...remedyDrawables("beach", input.remedies)].sort(byFeet);
       // The lanterns stand on the planks: drawn right after the pier, so the planks do not hide them.
       withLife.splice(withLife.findIndex((d) => d.sprite === "pier") + 1, 0, ...pier.lanterns);
       return { zone: input.zone, glints: [], flat: tideTiles(strips), upright: withLife, drone, tint: PHASE_TINT[phase], light: [...beachWater(t, reduced, strips), ...pier.light], snow };

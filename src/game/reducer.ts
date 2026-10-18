@@ -36,6 +36,7 @@ import { crossesWall, isNorthOfWall, wallBlock } from "./wall";
 import { ZONES, arrival, exitFor, type ZoneId } from "./zones";
 import { FISHER_LINE } from "./beach";
 import { nomadSays } from "./desert";
+import { REMEDIES, REMEDY_HEAL, isRemedy, remedyFine } from "./remedies";
 import { DESERT_JARS, DESERT_LOG, DESERT_LORE, JAR_TIPS, isJar } from "./desertLore";
 import { goToNote } from "../learn/codexModel";
 import { rangerSays } from "./forest";
@@ -77,6 +78,7 @@ export const initialState: GameState = {
   mushrooms: [],
   rangerFed: false,
   jars: [],
+  remedies: [],
   nomadServed: false,
   sandcastleBuilt: false,
   codexOpen: false,
@@ -96,7 +98,7 @@ export const isModalOpen = (s: GameState) => s.challenge !== null || s.logicOpen
 /** What you can use in your zone: its places, plus the dig spot on Foggaten Island once revealed. */
 export const visiblePois = (s: GameState): Poi[] => [
   // A glow mushroom is gone from the map once you have picked it.
-  ...ZONES[s.zone].places.filter((p) => (!isMushroom(p.id) || !s.mushrooms.includes(p.id)) && (!isJar(p.id) || !s.jars.includes(p.id))),
+  ...ZONES[s.zone].places.filter((p) => (!isMushroom(p.id) || !s.mushrooms.includes(p.id)) && (!isJar(p.id) || !s.jars.includes(p.id)) && (!isRemedy(p.id) || !s.remedies.includes(p.id))),
   ...(s.zone === "foggaten" ? revealedPois(s) : []),
   // The snow cave is hidden until the signal tower is powered (shared with the team).
   ...(s.zone === "peaks" && s.towerPowered ? [SNOW_CAVE] : []),
@@ -336,6 +338,13 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         const talked = pushLogOnce({ ...state, inspected: "nomad" }, `Nomad: "${nomadSays(state)}"`);
         // Three jars in hand: she shares the water, and it restores you in full.
         return state.jars.length >= DESERT_JARS.length && !state.nomadServed ? pushLog({ ...talked, nomadServed: true, hp: MAX_HP }, DESERT_LOG.water) : talked;
+      }
+      if (isRemedy(action.poi)) {
+        const remedy = REMEDIES.find((r) => r.id === action.poi)!;
+        // The map's button works from anywhere; taking it needs you beside it. A full-health player saves it for later.
+        if (state.remedies.includes(remedy.id) || distance(state.player, remedy) > INTERACT_RADIUS) return { ...state, inspected: remedy.id };
+        if (state.hp >= MAX_HP) return pushLog({ ...state, inspected: remedy.id }, remedyFine(remedy.label));
+        return pushLog({ ...state, inspected: remedy.id, remedies: [...state.remedies, remedy.id], hp: Math.min(MAX_HP, state.hp + REMEDY_HEAL) }, remedy.healed);
       }
       if (isJar(action.poi)) {
         const id = action.poi;

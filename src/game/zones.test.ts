@@ -169,8 +169,8 @@ describe("the Sunbaked Desert zone", () => {
   });
 
   it("its places are the nomad, the signpost and the pyramid and oasis chests", () => {
-    expect(ZONES.desert.places.map((p) => p.id)).toEqual(["nomad", "desert-signpost", "caravan-camp", "desert-well", "temple-door", "dry-riverbed", "obelisk", "jar-1", "jar-2", "jar-3", "chest-java", "chest-py-2"]);
-    expect(ZONES.desert.places.map((p) => p.label)).toEqual(["Nomad", "Signpost", "Caravan Camp", "Old Well", "Buried Door", "Dry Riverbed", "Obelisk", "Water Jar", "Water Jar", "Water Jar", "Pyramid", "Oasis"]);
+    expect(ZONES.desert.places.map((p) => p.id)).toEqual(["nomad", "desert-signpost", "caravan-camp", "desert-well", "temple-door", "dry-riverbed", "obelisk", "jar-1", "jar-2", "jar-3", "remedy-fruit", "chest-java", "chest-py-2"]);
+    expect(ZONES.desert.places.map((p) => p.label)).toEqual(["Nomad", "Signpost", "Caravan Camp", "Old Well", "Buried Door", "Dry Riverbed", "Obelisk", "Water Jar", "Water Jar", "Water Jar", "Cactus Fruit", "Pyramid", "Oasis"]);
   });
 });
 
@@ -186,7 +186,7 @@ describe("the Sunny Beach zone", () => {
     expect(exitFor("beach", { x: 6, y: 86 }, { x: 2, y: 86 })).toBeNull();
   });
   it("its places are the fisher, the signpost and the pier and shipwreck chests", () => {
-    expect(ZONES.beach.places.map((p) => p.id)).toEqual(["fisher", "beach-signpost", "sandcastle", "chest-cpp-1", "chest-cpp-2"]);
-    expect(ZONES.beach.places.map((p) => p.label)).toEqual(["Fisher", "Signpost", "Sandcastle", "Pier", "Shipwreck"]);
+    expect(ZONES.beach.places.map((p) => p.id)).toEqual(["fisher", "beach-signpost", "sandcastle", "remedy-drink", "chest-cpp-1", "chest-cpp-2"]);
+    expect(ZONES.beach.places.map((p) => p.label)).toEqual(["Fisher", "Signpost", "Sandcastle", "Cold Drink", "Pier", "Shipwreck"]);
   });
 });

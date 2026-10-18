@@ -1,4 +1,5 @@
 import { FOREST_LORE, FOREST_MUSHROOMS } from "../../game/forestLore";
+import { remedySpotsIn } from "./remedies";
 import { spriteBox } from "../sprites";
 import { toArt, type Rect } from "../world";
 import { inRect, type Area, type Prop, type TerrainKind } from "./area";
@@ -102,6 +103,7 @@ export const FOREST: Area = {
     EAST_MOUTH,
     ...PROPS.map((prop) => spriteBox(prop.sprite, prop.at)),
     ...MUSHROOM_POINTS.map((m) => spriteBox("glow-mushroom", m.at)),
+    ...remedySpotsIn("forest").map((r) => spriteBox(r.sprite, r.at)),
     // Room for each animal's whole range, so no tree stands where it walks.
     ...Object.values(FOREST_WILDLIFE).map((a) => ({ x: a.zone.x - 16, y: a.zone.y - 20, w: a.zone.w + 32, h: a.zone.h + 22 })),
   ],

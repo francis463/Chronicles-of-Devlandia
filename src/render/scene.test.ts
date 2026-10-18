@@ -1121,3 +1121,14 @@ describe("scene: day and night", () => {
     }
   });
 });
+
+describe("scene: healing finds", () => {
+  it("each stands in its own zone until it is used", () => {
+    const rows: Array<[ZoneId, SpriteId]> = [["forest", "herb"], ["desert", "cactus-fruit"], ["beach", "cold-drink"]];
+    for (const [zone, sprite] of rows) {
+      expect(scene({ zone }).upright.filter((d) => d.sprite === sprite), `${zone} ${sprite}`).toHaveLength(1);
+      expect(scene({ zone, remedies: ["remedy-herb", "remedy-fruit", "remedy-drink"] }).upright.filter((d) => d.sprite === sprite)).toHaveLength(0);
+      for (const other of ["peaks", "village"] as const) expect(scene({ zone: other }).upright.some((d) => d.sprite === sprite)).toBe(false);
+    }
+  });
+});

@@ -2,6 +2,7 @@ import { CHESTS } from "../learn/chests";
 import { ADA, ARCHIVE, BEACH_SIGNPOST, BOUNDS, CAMPFIRE, DESERT_SIGNPOST, DOCK, FISHER, FOREST_SIGNPOST, HERMIT, ISLAND_DOCK, ISLAND_FIRE, LIGHTHOUSE, LOG, NOMAD, PEAKS_SIGNPOST, POIS, RANGER, SANDCASTLE_POI, SIGNPOST, TERMINAL, WEATHER_STATION } from "./constants";
 import { DESERT_JARS, DESERT_LORE } from "./desertLore";
 import { FOREST_LORE, FOREST_MUSHROOMS } from "./forestLore";
+import { remediesIn } from "./remedies";
 import type { Poi, PoiId, Point } from "./types";
 
 export type ZoneId = "peaks" | "village" | "forest" | "foggaten" | "desert" | "beach";
@@ -58,7 +59,7 @@ export const ZONES: Record<ZoneId, Zone> = {
     ],
     wall: false,
     gate: false,
-    places: [RANGER, CAMPFIRE, FOREST_SIGNPOST, ...FOREST_LORE, ...FOREST_MUSHROOMS, ...chestPlaces("forest")],
+    places: [RANGER, CAMPFIRE, FOREST_SIGNPOST, ...FOREST_LORE, ...FOREST_MUSHROOMS, ...remediesIn("forest"), ...chestPlaces("forest")],
     river: false,
   },
   desert: {
@@ -68,7 +69,7 @@ export const ZONES: Record<ZoneId, Zone> = {
     exits: [{ edge: "east", min: 62, max: 78, to: "forest" }],
     wall: false,
     gate: false,
-    places: [NOMAD, DESERT_SIGNPOST, ...DESERT_LORE, ...DESERT_JARS, ...chestPlaces("desert")],
+    places: [NOMAD, DESERT_SIGNPOST, ...DESERT_LORE, ...DESERT_JARS, ...remediesIn("desert"), ...chestPlaces("desert")],
     river: false,
   },
   beach: {
@@ -78,7 +79,7 @@ export const ZONES: Record<ZoneId, Zone> = {
     exits: [{ edge: "west", min: 62, max: 78, to: "forest" }],
     wall: false,
     gate: false,
-    places: [FISHER, BEACH_SIGNPOST, SANDCASTLE_POI, ...chestPlaces("beach")],
+    places: [FISHER, BEACH_SIGNPOST, SANDCASTLE_POI, ...remediesIn("beach"), ...chestPlaces("beach")],
     river: false,
   },
   // No edge leads here: the island is entered and left by boat, from a dock (the `sail` action).

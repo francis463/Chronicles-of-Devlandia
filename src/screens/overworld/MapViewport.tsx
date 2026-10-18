@@ -19,6 +19,7 @@ import { MapCanvas } from "./MapCanvas";
 import {
   CHEST_CAPTION_SCALE,
   EXIT_SIGNS,
+  BEACH_SCENERY,
   DESERT_SCENERY,
   FOREST_SCENERY,
   LANDMARK_CAPTIONS,
@@ -221,6 +222,7 @@ export function MapViewport({
   badges,
   mushrooms = [],
   jars = [],
+  remedies = [],
   sandcastleBuilt = false,
   matcherSolved,
   archiveOpen,
@@ -254,6 +256,8 @@ export function MapViewport({
   mushrooms?: readonly PoiId[];
   /** The nomad's water jars you have picked up: they leave the map. */
   jars?: readonly PoiId[];
+  /** The healing finds you have used: they leave the map. */
+  remedies?: readonly PoiId[];
   /** The sandcastle puzzle is solved: the castle draws finished, and its caption gets a tick. */
   sandcastleBuilt?: boolean;
   matcherSolved: boolean;
@@ -316,6 +320,7 @@ export function MapViewport({
     earned: badges,
     mushrooms,
     jars,
+    remedies,
     sandcastleBuilt,
     master: badges.length >= CHEST_COUNT,
     minutes,
@@ -405,7 +410,7 @@ export function MapViewport({
             <LandmarkButton hit={hits.ranger} name={caption("ranger")} color="var(--accent-border)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "ranger"} onClick={() => onInteract("ranger")} />
             <LandmarkButton hit={hits.campfire} name={caption("campfire")} color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "campfire"} onClick={() => onInteract("campfire")} />
             <LandmarkButton hit={hits["forest-signpost"]} name={caption("forest-signpost")} color="var(--text)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "forest-signpost"} onClick={() => onInteract("forest-signpost")} />
-            {FOREST_SCENERY.filter((l) => !mushrooms.includes(l.id)).map((l) => (
+            {FOREST_SCENERY.filter((l) => !mushrooms.includes(l.id) && !remedies.includes(l.id)).map((l) => (
               <LandmarkButton key={l.id} hit={hits[l.id]} name={caption(l.id)} label={l.label} color="var(--accent)" world={world} map={map} prefer={l.prefer} disabled={downed} hideCaption={smallMap && inRange?.id !== l.id} peek passive={smallMap} onClick={() => onInteract(l.id)} />
             ))}
           </>
@@ -415,6 +420,9 @@ export function MapViewport({
 
             <LandmarkButton hit={hits.fisher} name={caption("fisher")} color="var(--accent-border)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "fisher"} onClick={() => onInteract("fisher")} />
             <LandmarkButton hit={hits.sandcastle} name={caption("sandcastle")} label={sandcastleBuilt ? "Sandcastle, finished" : "Sandcastle"} color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "sandcastle"} onClick={() => onInteract("sandcastle")} />
+            {BEACH_SCENERY.filter((l) => !remedies.includes(l.id)).map((l) => (
+              <LandmarkButton key={l.id} hit={hits[l.id]} name={caption(l.id)} label={l.label} color="var(--accent)" world={world} map={map} prefer={l.prefer} disabled={downed} hideCaption={smallMap && inRange?.id !== l.id} peek passive={smallMap} onClick={() => onInteract(l.id)} />
+            ))}
             <LandmarkButton hit={hits["beach-signpost"]} name={caption("beach-signpost")} label="Signpost" color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "beach-signpost"} onClick={() => onInteract("beach-signpost")} />
           </>
         ) : zone === "desert" ? (
@@ -423,7 +431,7 @@ export function MapViewport({
 
             <LandmarkButton hit={hits.nomad} name={caption("nomad")} color="var(--accent-border)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "nomad"} onClick={() => onInteract("nomad")} />
             <LandmarkButton hit={hits["desert-signpost"]} name={caption("desert-signpost")} label="Signpost" color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "desert-signpost"} onClick={() => onInteract("desert-signpost")} />
-            {DESERT_SCENERY.filter((l) => !jars.includes(l.id)).map((l) => (
+            {DESERT_SCENERY.filter((l) => !jars.includes(l.id) && !remedies.includes(l.id)).map((l) => (
               <LandmarkButton key={l.id} hit={hits[l.id]} name={caption(l.id)} label={l.label} color="var(--accent)" world={world} map={map} prefer={l.prefer} disabled={downed} hideCaption={smallMap && inRange?.id !== l.id} peek passive={smallMap} onClick={() => onInteract(l.id)} />
             ))}
           </>

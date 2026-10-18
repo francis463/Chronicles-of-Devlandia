@@ -1,4 +1,6 @@
 import { DESERT_JARS, DESERT_LORE } from "../../game/desertLore";
+import { REMEDIES, remediesIn } from "../../game/remedies";
+import { REMEDY_SPOTS } from "../../render/areas/remedies";
 import { FOREST_LORE, FOREST_MUSHROOMS } from "../../game/forestLore";
 import type { PoiId, Point } from "../../game/types";
 import type { ZoneId } from "../../game/zones";
@@ -148,6 +150,7 @@ export const LANDMARK_CAPTIONS: readonly LandmarkCaption[] = [
   { id: "dry-riverbed", zone: "desert", sprite: "riverbed", point: DESERT_POINTS.riverbed, texts: ["Riverbed"], prefer: "below", quiet: true },
   { id: "obelisk", zone: "desert", sprite: "obelisk", point: DESERT_POINTS.obelisk, texts: ["Obelisk"], prefer: "above", quiet: true },
   ...JAR_POINTS.map((j): LandmarkCaption => ({ id: j.id, zone: "desert", sprite: "jar", point: j.at, texts: ["Jar"], prefer: "below", quiet: true })),
+  ...REMEDY_SPOTS.map((r): LandmarkCaption => ({ id: r.id, zone: r.zone, sprite: r.sprite, point: r.at, texts: [REMEDIES.find((x) => x.id === r.id)!.short], prefer: "below", quiet: true })),
   { id: "dock", zone: "peaks", sprite: "dock", point: DOCK_POINT, texts: ["[B] Dock"], prefer: "below" },
   { id: "peaks-signpost", zone: "peaks", sprite: "signpost", point: SIGNPOST_POINT, texts: ["[P] Signpost"], prefer: "above", quiet: true },
   { id: "weather-station", zone: "peaks", sprite: "station", point: STATION_POINT, texts: ["[W] Weather Station"], prefer: "above", quiet: true },
@@ -170,10 +173,13 @@ export const LANDMARK_CAPTIONS: readonly LandmarkCaption[] = [
 ];
 
 /** The forest's quiet scenery buttons (its lore landmarks and the ranger's glow mushrooms), with the side each caption prefers. */
-export const FOREST_SCENERY = [...FOREST_LORE, ...FOREST_MUSHROOMS].map((p) => ({ id: p.id, label: p.label, prefer: LANDMARK_CAPTIONS.find((l) => l.id === p.id)!.prefer }));
+export const FOREST_SCENERY = [...FOREST_LORE, ...FOREST_MUSHROOMS, ...remediesIn("forest")].map((p) => ({ id: p.id, label: p.label, prefer: LANDMARK_CAPTIONS.find((l) => l.id === p.id)!.prefer }));
 
 /** The desert's quiet scenery buttons (its lore landmarks and the nomad's water jars), with the side each caption prefers. */
-export const DESERT_SCENERY = [...DESERT_LORE, ...DESERT_JARS].map((p) => ({ id: p.id, label: p.label, prefer: LANDMARK_CAPTIONS.find((l) => l.id === p.id)!.prefer }));
+export const DESERT_SCENERY = [...DESERT_LORE, ...DESERT_JARS, ...remediesIn("desert")].map((p) => ({ id: p.id, label: p.label, prefer: LANDMARK_CAPTIONS.find((l) => l.id === p.id)!.prefer }));
+
+/** The beach's quiet scenery buttons (the cold drink), with the side each caption prefers. */
+export const BEACH_SCENERY = remediesIn("beach").map((p) => ({ id: p.id, label: p.label, prefer: LANDMARK_CAPTIONS.find((l) => l.id === p.id)!.prefer }));
 
 /** What the map captions depend on. `reach` is the place in reach, whose chest caption shows at 1×. */
 export type MapState = { sandcastleBuilt?: boolean; hasLoot: boolean; towerPowered: boolean; badges?: readonly ChestId[]; archiveOpen?: boolean; reach?: PoiId | null };

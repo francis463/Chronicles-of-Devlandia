@@ -42,6 +42,9 @@ const VERBS: Partial<Record<Poi["id"], string>> = {
   "jar-1": "Pick up Water Jar",
   "jar-2": "Pick up Water Jar",
   "jar-3": "Pick up Water Jar",
+  "remedy-herb": "Pick Healing Herb",
+  "remedy-fruit": "Pick Cactus Fruit",
+  "remedy-drink": "Take Cold Drink",
 };
 
 const chestVerb = (s: GameState, id: string, host: string, open = "Search") => `${s.badges.some((b) => b === id) ? "Review" : open} ${host}`;

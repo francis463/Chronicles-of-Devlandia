@@ -46,10 +46,14 @@ export type PoiId =
   | "dry-riverbed"
   | "obelisk"
   | JarId
+  | RemedyId
   | Exclude<ChestId, "chest-cs">;
 
 /** The ranger's three lost glow mushrooms. */
 export type MushroomId = "mushroom-1" | "mushroom-2" | "mushroom-3";
+
+/** The healing finds: a herb in the forest, a cactus fruit in the desert and a cold drink on the beach. */
+export type RemedyId = "remedy-herb" | "remedy-fruit" | "remedy-drink";
 
 /** The nomad's three lost water jars. */
 export type JarId = "jar-1" | "jar-2" | "jar-3";
@@ -115,6 +119,8 @@ export type GameState = {
   rangerFed: boolean;
   /** Which of the nomad's water jars you have picked up, and whether she has had her water. */
   jars: JarId[];
+  /** Which healing finds you have used up (each heals once). */
+  remedies: RemedyId[];
   nomadServed: boolean;
   /** The Sunny Beach's sandcastle puzzle, solved: the castle stands finished, with its flag. */
   sandcastleBuilt: boolean;

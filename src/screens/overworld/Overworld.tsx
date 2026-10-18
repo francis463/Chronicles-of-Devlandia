@@ -306,6 +306,7 @@ export function Overworld({
           badges={state.badges}
           mushrooms={state.mushrooms}
           jars={state.jars}
+          remedies={state.remedies}
           sandcastleBuilt={state.sandcastleBuilt}
           matcherSolved={state.matcherSolved}
           archiveOpen={state.archiveOpen}

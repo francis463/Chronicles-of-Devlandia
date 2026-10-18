@@ -897,7 +897,7 @@ describe("gameReducer: the Dense Forest's places", () => {
   const forest: GameState = { ...s0, zone: "forest" };
 
   it("the forest's places are the ranger, campfire, signpost and the old oak's JavaScript chest", () => {
-    expect(reachPlaces(forest).map((p) => p.id)).toEqual(["ranger", "campfire", "forest-signpost", "hunter-cabin", "forest-well", "forest-brook", "fairy-ring", "hollow-tree", "mushroom-1", "mushroom-2", "mushroom-3", "chest-js"]);
+    expect(reachPlaces(forest).map((p) => p.id)).toEqual(["ranger", "campfire", "forest-signpost", "hunter-cabin", "forest-well", "forest-brook", "fairy-ring", "hollow-tree", "mushroom-1", "mushroom-2", "mushroom-3", "remedy-herb", "chest-js"]);
   });
 
   it("talking to the ranger opens her card and logs her line once", () => {
@@ -929,7 +929,7 @@ describe("gameReducer: the Sunbaked Desert's places", () => {
   const desert: GameState = { ...s0, zone: "desert" };
 
   it("the desert's places are the nomad, signpost and the pyramid and oasis chests", () => {
-    expect(reachPlaces(desert).map((p) => p.id)).toEqual(["nomad", "desert-signpost", "caravan-camp", "desert-well", "temple-door", "dry-riverbed", "obelisk", "jar-1", "jar-2", "jar-3", "chest-java", "chest-py-2"]);
+    expect(reachPlaces(desert).map((p) => p.id)).toEqual(["nomad", "desert-signpost", "caravan-camp", "desert-well", "temple-door", "dry-riverbed", "obelisk", "jar-1", "jar-2", "jar-3", "remedy-fruit", "chest-java", "chest-py-2"]);
   });
 
   it("the nomad speaks once; the signpost inspects and logs nothing", () => {
@@ -960,7 +960,7 @@ describe("gameReducer: the Sunbaked Desert's places", () => {
 describe("gameReducer: the Sunny Beach's places", () => {
   const beach: GameState = { ...s0, zone: "beach" };
   it("the beach's places are the fisher, signpost and the pier and shipwreck chests", () => {
-    expect(reachPlaces(beach).map((p) => p.id)).toEqual(["fisher", "beach-signpost", "sandcastle", "chest-cpp-1", "chest-cpp-2"]);
+    expect(reachPlaces(beach).map((p) => p.id)).toEqual(["fisher", "beach-signpost", "sandcastle", "remedy-drink", "chest-cpp-1", "chest-cpp-2"]);
   });
   it("the fisher speaks once; the signpost inspects and logs nothing", () => {
     const once = gameReducer(beach, { type: "interact", poi: "fisher" });
@@ -1249,5 +1249,57 @@ describe("gameReducer: shareWater", () => {
     expect(lastLog(full)).toBe("Kai offered water, but you are not hurt.");
     const downed = { ...s0, hp: 0 };
     expect(gameReducer(downed, { type: "shareWater", from: "Kai" })).toBe(downed);
+  });
+});
+
+describe("gameReducer: healing finds", () => {
+  const FINDS = [
+    { id: "remedy-herb", zone: "forest", sprite: "herb" },
+    { id: "remedy-fruit", zone: "desert", sprite: "cactus-fruit" },
+    { id: "remedy-drink", zone: "beach", sprite: "cold-drink" },
+  ] as const;
+  const beside = (id: (typeof FINDS)[number]["id"], zone: ZoneId, hp: number): GameState => {
+    const spot = ZONES[zone].places.find((p) => p.id === id)!;
+    return { ...initialState, zone, hp, player: { x: spot.x, y: spot.y } };
+  };
+
+  it("each is in its own zone, shown on the map until used", () => {
+    for (const f of FINDS) {
+      expect(visiblePois({ ...initialState, zone: f.zone }).map((p) => p.id)).toContain(f.id);
+      expect(visiblePois({ ...initialState, zone: f.zone, remedies: [f.id] }).map((p) => p.id)).not.toContain(f.id);
+      for (const other of ["peaks", "village"] as const) expect(ZONES[other].places.map((p) => p.id)).not.toContain(f.id);
+    }
+  });
+
+  it("picking one beside it heals 30 HP once, logs it, and it leaves the map", () => {
+    for (const f of FINDS) {
+      const s = gameReducer(beside(f.id, f.zone, 50), { type: "interact", poi: f.id });
+      expect(s.hp, f.id).toBe(80);
+      expect(s.remedies).toEqual([f.id]);
+      expect(lastLog(s)).toMatch(/\+30 HP\.$/);
+      expect(gameReducer(s, { type: "interact", poi: f.id }).hp).toBe(80);
+    }
+  });
+
+  it("never heals past the maximum", () => {
+    expect(gameReducer(beside("remedy-herb", "forest", 90), { type: "interact", poi: "remedy-herb" }).hp).toBe(100);
+  });
+
+  it("at full health you save it for later: nothing is used up", () => {
+    const s = gameReducer(beside("remedy-fruit", "desert", 100), { type: "interact", poi: "remedy-fruit" });
+    expect(s.remedies).toEqual([]);
+    expect(lastLog(s)).toBe("You feel fine. Come back to the cactus fruit when you are hurt.");
+  });
+
+  it("from across the map the button only shows its card", () => {
+    const s = gameReducer({ ...initialState, zone: "beach", hp: 40, player: { x: 5, y: 5 } }, { type: "interact", poi: "remedy-drink" });
+    expect(s.hp).toBe(40);
+    expect(s.remedies).toEqual([]);
+    expect(s.inspected).toBe("remedy-drink");
+  });
+
+  it("the card says how to pick it, then that it is used", () => {
+    expect(cardFor({ ...initialState, zone: "forest", inspected: "remedy-herb" })?.text).toMatch(/press \[E\]/);
+    expect(cardFor({ ...initialState, zone: "forest", inspected: "remedy-herb", remedies: ["remedy-herb"] })?.text).toBe("You already picked the healing herb.");
   });
 });

@@ -2,6 +2,7 @@ import { spriteBox } from "../sprites";
 import { DESERT_PYRAMID, DESERT_SIGNPOST, NOMAD, OASIS } from "../../game/constants";
 import { DESERT_JARS, DESERT_LORE } from "../../game/desertLore";
 import { toArt, type Rect } from "../world";
+import { remedySpotsIn } from "./remedies";
 import type { Area, Prop, TerrainKind } from "./area";
 import { animalPose, type AnimalPose, type Wild } from "./peaks";
 import type { ArtPoint } from "../world";
@@ -86,6 +87,7 @@ export const DESERT: Area = {
     MOUTH,
     ...PROPS.map((prop) => spriteBox(prop.sprite, prop.at)),
     ...JAR_POINTS.map((j) => spriteBox("jar", j.at)),
+    ...remedySpotsIn("desert").map((r) => spriteBox(r.sprite, r.at)),
     // Room for each animal's whole range, so nothing stands where it walks.
     ...Object.values(DESERT_WILDLIFE).map((a) => ({ x: a.zone.x - 16, y: a.zone.y - 20, w: a.zone.w + 32, h: a.zone.h + 22 })),
   ],

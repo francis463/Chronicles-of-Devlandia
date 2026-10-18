@@ -1,6 +1,7 @@
 import { spriteBox } from "../sprites";
 import { BEACH_PIER, BEACH_SIGNPOST, FISHER, SANDCASTLE_POI, SHIPWRECK } from "../../game/constants";
 import { toArt, type Rect } from "../world";
+import { remedySpotsIn } from "./remedies";
 import type { Area, Prop, TerrainKind } from "./area";
 
 /** The beach's places in art px (the game's FISHER, BEACH_PIER, SHIPWRECK and BEACH_SIGNPOST), and the crab's lane along the sand. */
@@ -58,5 +59,5 @@ export const BEACH: Area = {
   gateBox: null,
   ice: null,
   props: PROPS,
-  protected: [...PATHS, MOUTH, ...PROPS.map((prop) => spriteBox(prop.sprite, prop.at))],
+  protected: [...PATHS, MOUTH, ...PROPS.map((prop) => spriteBox(prop.sprite, prop.at)), ...remedySpotsIn("beach").map((r) => spriteBox(r.sprite, r.at))],
 };
