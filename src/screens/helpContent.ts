@@ -37,7 +37,7 @@ export const PLAY: ReadonlyArray<{ title: string; text: string }> = [
   },
   {
     title: "Staying safe",
-    text: "Only the frozen river hurts you: its cold drains HP until the signal tower's beam brings the bridge back. If your HP runs out you wake up inside the Ski Lodge.",
+    text: "The frozen river drains HP until the signal tower's beam brings the bridge back, and every wrong answer costs a heart. Only food heals, one heart per piece: click the Food slot in your inventory to eat. Food comes from NPC tasks and finds. If your HP runs out you wake up inside the Ski Lodge with one heart.",
   },
 ];
 

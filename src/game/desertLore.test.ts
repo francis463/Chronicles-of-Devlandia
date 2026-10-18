@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { cardFor } from "./cards";
 import { nomadSays } from "./desert";
 import { DESERT_JARS, DESERT_LORE, JAR_TIPS, waterLine } from "./desertLore";
-import { INTERACT_RADIUS, MAX_HP } from "./constants";
+import { INTERACT_RADIUS } from "./constants";
 import { promptText } from "./geometry";
 import { gameReducer, initialState, reachPlaces } from "./reducer";
 import type { GameState, JarId } from "./types";
@@ -69,15 +69,15 @@ describe("the nomad's water", () => {
     expect(nomadSays(gameReducer(beside("jar-1"), { type: "interact", poi: "jar-1" }))).toMatch(/\(1 of 3\)\.$/);
   });
 
-  it("with all three jars, she shares the water once: HP is restored in full", () => {
+  it("with all three jars, she shares the water once: you get a piece of food", () => {
     const hurt = { ...pickAll(desert), hp: 20 };
     expect(hurt.jars).toHaveLength(3);
     const served = gameReducer({ ...hurt, player: { x: 60, y: 70 } }, { type: "interact", poi: "nomad" });
-    expect(served.hp).toBe(MAX_HP);
+    expect([served.hp, served.food]).toEqual([20, 1]);
     expect(served.nomadServed).toBe(true);
-    expect(served.logs[served.logs.length - 1]).toBe("The nomad shares the water. It restores your strength.");
+    expect(served.logs[served.logs.length - 1]).toBe("The nomad fills a waterskin for you. Drink it from your inventory when you are hurt.");
     expect(cardFor(served)?.text).toMatch(/Thank you again/);
-    expect(gameReducer({ ...served, hp: 30 }, { type: "interact", poi: "nomad" }).hp).toBe(30);
+    expect(gameReducer({ ...served, hp: 30 }, { type: "interact", poi: "nomad" }).food).toBe(1);
   });
 
   it("does not serve you with fewer than three jars", () => {

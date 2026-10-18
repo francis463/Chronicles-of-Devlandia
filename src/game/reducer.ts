@@ -7,12 +7,12 @@ import {
   LOG_LIMIT,
   LOW_HP,
   MAX_HP,
-  WATER_HEAL,
+  FOOD_HEAL,
   PLAYER_START,
   RIVER_DAMAGE,
   START_MINUTES,
   HIDDEN_ARTIFACT,
-  HARD_WRONG_DAMAGE,
+  WRONG_DAMAGE,
   DOCK,
   LIGHTHOUSE,
   SNOW_CAVE,
@@ -36,7 +36,7 @@ import { ZONES, arrival, doorAt, exitFor, type ZoneId } from "./zones";
 import { FISHER_LINE } from "./beach";
 import { nomadSays } from "./desert";
 import { reachFor, stepFor } from "./zoneSize";
-import { REMEDIES, REMEDY_HEAL, isRemedy, remedyPacked } from "./remedies";
+import { REMEDIES, isRemedy, remedyPacked } from "./remedies";
 import { KEEPER, LODGE_BOOK, SOUP, keeperSays } from "./lodge";
 import { SECRETS, firstSentence, isSecret } from "./secrets";
 import { DESERT_JARS, DESERT_LOG, DESERT_LORE, JAR_TIPS, isJar } from "./desertLore";
@@ -170,7 +170,7 @@ const DRONE_NOTE = " The drone has a tip below.";
 function missed(state: GameState, open: ChallengeState, c: Challenge, error: string, value: SubmitValue): GameState {
   const wrongTries = open.wrongTries + 1;
   const reveal = wrongTries >= 2 && !state.hintsRevealed.includes(c.id);
-  return {
+  return wrongCost({
     ...state,
     hintsRevealed: reveal ? [...state.hintsRevealed, c.id] : state.hintsRevealed,
     challenge: {
@@ -179,7 +179,14 @@ function missed(state: GameState, open: ChallengeState, c: Challenge, error: str
       lastWrong: JSON.stringify(value),
       error: wrongTries >= 2 ? error + DRONE_NOTE : error,
     },
-  };
+  });
+}
+
+/** Every wrong answer costs a heart; at 0 the terminal and the lamp close so you can respawn. */
+function wrongCost(state: GameState): GameState {
+  const hp = Math.max(0, state.hp - WRONG_DAMAGE);
+  const out = hp === 0 ? { ...state, hp, challenge: null, lampOpen: false } : { ...state, hp };
+  return warnLow(state, pushLog(out, LOG.wrongAnswer));
 }
 
 const isChest = (id: string): id is ChestId => (CHEST_IDS as readonly string[]).includes(id);
@@ -205,7 +212,7 @@ function submitChest(state: GameState, open: ChallengeState, chest: ChestId, c: 
   if (state.badges.includes(chest)) return state;
   const verdict = judge(c, value);
   if (!verdict) return state;
-  if (!verdict.right) return state.hard ? hardPenalty(missed(state, open, c, verdict.error, value)) : missed(state, open, c, verdict.error, value);
+  if (!verdict.right) return missed(state, open, c, verdict.error, value);
   const badges = [...state.badges, chest];
   const earned = pushLog(
     {
@@ -218,12 +225,6 @@ function submitChest(state: GameState, open: ChallengeState, chest: ChestId, c: 
   );
   // The last badge: the finale opens once, when the chest's own success view is closed (see closeChallenge).
   return badges.length === CHEST_IDS.length && !state.finaleSeen ? pushLog(earned, LOG.finale) : earned;
-}
-
-/** New Game+: a wrong chest answer costs HP, and at 0 the terminal closes so you can respawn. */
-function hardPenalty(state: GameState): GameState {
-  const hp = Math.max(0, state.hp - HARD_WRONG_DAMAGE);
-  return warnLow(state, pushLog({ ...state, hp, challenge: hp === 0 ? null : state.challenge }, LOG.hardMiss));
 }
 
 /** The Syntax Matcher: a right pairing prints the access code and shows the success view. */
@@ -368,8 +369,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (action.poi === "sandcastle") return state.sandcastleBuilt ? { ...state, inspected: "sandcastle" } : { ...state, inspected: "sandcastle", challenge: opened("sandcastle") };
       if (action.poi === "nomad") {
         const talked = pushLogOnce({ ...state, inspected: "nomad" }, `Nomad: "${nomadSays(state)}"`);
-        // Three jars in hand: she shares the water, and it restores you in full.
-        return state.jars.length >= DESERT_JARS.length && !state.nomadServed ? pushLog({ ...talked, nomadServed: true, hp: MAX_HP }, DESERT_LOG.water) : talked;
+        // Three jars in hand: she shares the water, and she gives you food.
+        return state.jars.length >= DESERT_JARS.length && !state.nomadServed ? pushLog({ ...talked, nomadServed: true, food: state.food + 1 }, DESERT_LOG.water) : talked;
       }
       if (isRemedy(action.poi)) {
         const remedy = REMEDIES.find((r) => r.id === action.poi)!;
@@ -381,8 +382,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
         const secret = SECRETS.find((x) => x.id === action.poi)!;
         // The map's button works from anywhere; a find needs you beside the spot, and counts once.
         if (state.secrets.includes(secret.id) || distance(state.player, secret) > reachFor(state.zone)) return { ...state, inspected: secret.id };
-        const hp = secret.heal ? Math.min(MAX_HP, state.hp + REMEDY_HEAL) : state.hp;
-        return pushLog({ ...state, inspected: secret.id, secrets: [...state.secrets, secret.id], hp }, `Found ${secret.label}. ${firstSentence(secret.text)}`);
+        return pushLog({ ...state, inspected: secret.id, secrets: [...state.secrets, secret.id] }, `Found ${secret.label}. ${firstSentence(secret.text)}`);
       }
       if (isJar(action.poi)) {
         const id = action.poi;
@@ -397,8 +397,8 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       if (action.poi === "island-fire") return { ...state, inspected: action.poi };
       if (action.poi === "ranger") {
         const talked = pushLogOnce({ ...state, inspected: "ranger" }, `Ranger: "${rangerSays(state)}"`);
-        // Three glow mushrooms in hand: she cooks them, and the stew restores you in full.
-        return state.mushrooms.length >= FOREST_MUSHROOMS.length && !state.rangerFed ? pushLog({ ...talked, rangerFed: true, hp: MAX_HP }, FOREST_LOG.stew) : talked;
+        // Three glow mushrooms in hand: she cooks them, and the stew goes into your bag as food.
+        return state.mushrooms.length >= FOREST_MUSHROOMS.length && !state.rangerFed ? pushLog({ ...talked, rangerFed: true, food: state.food + 1 }, FOREST_LOG.stew) : talked;
       }
       if (isMushroom(action.poi)) {
         const id = action.poi;
@@ -505,7 +505,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       const error = lampError(action.bits);
       if (!error) return pushLog({ ...state, lighthouseLit: true, lampOpen: false, lampError: null }, LOG.lampLit);
       const lampTries = state.lampTries + 1;
-      return { ...state, lampTries, lampError: lampTries >= 2 ? error + DRONE_NOTE : error, lampHintRevealed: state.lampHintRevealed || lampTries >= 2 };
+      return wrongCost({ ...state, lampTries, lampError: lampTries >= 2 ? error + DRONE_NOTE : error, lampHintRevealed: state.lampHintRevealed || lampTries >= 2 });
     }
     case "closeLamp":
       return { ...state, lampOpen: false, lampError: null };
@@ -533,16 +533,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case "eat": {
       if (isDowned(state) || state.food <= 0) return state;
       if (state.hp >= MAX_HP) return pushLogOnce(state, LOG.notHungry);
-      return pushLog({ ...state, food: state.food - 1, hp: Math.min(MAX_HP, state.hp + REMEDY_HEAL) }, LOG.ate);
+      return pushLog({ ...state, food: state.food - 1, hp: Math.min(MAX_HP, state.hp + FOOD_HEAL) }, LOG.ate);
     }
-    case "shareWater": {
-      if (isDowned(state)) return state;
-      if (state.hp >= MAX_HP) return pushLog(state, LOG.waterNotNeeded(action.from));
-      return pushLog({ ...state, hp: Math.min(MAX_HP, state.hp + WATER_HEAL) }, LOG.waterReceived(action.from));
-    }
+    case "receiveFood":
+      return pushLog({ ...state, food: state.food + 1 }, LOG.foodReceived(action.from));
+    case "giveFood":
+      return state.food > 0 ? { ...state, food: state.food - 1 } : state;
     case "respawn":
       return pushLog(
-        { ...state, ...LODGE_START, hp: MAX_HP, inspected: null },
+        { ...state, ...LODGE_START, hp: 1, inspected: null },
         LOG.revived,
       );
   }

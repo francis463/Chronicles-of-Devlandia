@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { cardFor } from "./cards";
-import { INTERACT_RADIUS, MAX_HP } from "./constants";
+import { INTERACT_RADIUS } from "./constants";
 import { rangerSays } from "./forest";
 import { FOREST_LORE, FOREST_MUSHROOMS, MUSHROOM_TIPS, stewLine } from "./forestLore";
 import { promptText } from "./geometry";
@@ -81,16 +81,16 @@ describe("the ranger's stew", () => {
     expect(rangerSays(gameReducer(beside("mushroom-1"), { type: "interact", poi: "mushroom-1" }))).toMatch(/\(1 of 3\)\.$/);
   });
 
-  it("with all three in hand, she cooks them once: HP is restored in full and she thanks you", () => {
+  it("with all three in hand, she cooks them once: you get a piece of food and she thanks you", () => {
     const hurt = { ...pickAll({ ...forest, hp: 20 }), hp: 20 };
     expect(hurt.mushrooms).toHaveLength(3);
     const fed = gameReducer({ ...hurt, player: { x: 58, y: 62 } }, { type: "interact", poi: "ranger" });
-    expect(fed.hp).toBe(MAX_HP);
+    expect([fed.hp, fed.food]).toEqual([20, 1]);
     expect(fed.rangerFed).toBe(true);
-    expect(fed.logs[fed.logs.length - 1]).toBe("The ranger's stew restores your strength.");
+    expect(fed.logs[fed.logs.length - 1]).toBe("The ranger packs you a bowl of stew. Eat it from your inventory when you are hurt.");
     expect(cardFor(fed)?.text).toMatch(/Thanks again for the mushrooms/);
     const hurtAgain = gameReducer({ ...fed, hp: 30 }, { type: "interact", poi: "ranger" });
-    expect(hurtAgain.hp).toBe(30);
+    expect([hurtAgain.hp, hurtAgain.food]).toEqual([30, 1]);
   });
 
   it("does not feed you with fewer than three mushrooms", () => {

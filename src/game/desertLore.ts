@@ -68,5 +68,5 @@ export function waterLine(s: Pick<GameState, "jars" | "nomadServed">): string {
 }
 
 export const DESERT_LOG = {
-  water: "The nomad shares the water. It restores your strength.",
+  water: "The nomad fills a waterskin for you. Drink it from your inventory when you are hurt.",
 } as const;

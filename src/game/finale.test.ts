@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { cardFor } from "./cards";
-import { HARD_WRONG_DAMAGE, LOG, MAX_HP } from "./constants";
+import { WRONG_DAMAGE, LOG, MAX_HP } from "./constants";
 import { gameReducer, initialState, isModalOpen } from "./reducer";
 import { rollGame } from "./roll";
 import { adaLine, ADA_MASTER } from "./village";
@@ -66,12 +66,12 @@ describe("New Game+", () => {
   const hardTry = (hard: boolean, hp = MAX_HP) =>
     gameReducer(nearlyDone({ hard, hp }), { type: "submitChallenge", value: wrong });
 
-  it("a wrong chest answer costs HP in a hard run only, and says so", () => {
+  it("a wrong chest answer costs a heart in every run, and says so", () => {
     const miss = hardTry(true);
-    expect(miss.hp).toBe(MAX_HP - HARD_WRONG_DAMAGE);
-    expect(miss.logs[miss.logs.length - 1]).toBe(LOG.hardMiss);
+    expect(miss.hp).toBe(MAX_HP - WRONG_DAMAGE);
+    expect(miss.logs[miss.logs.length - 1]).toBe(LOG.wrongAnswer);
     expect(miss.challenge?.wrongTries).toBe(1);
-    expect(hardTry(false).hp).toBe(MAX_HP);
+    expect(hardTry(false).hp).toBe(MAX_HP - WRONG_DAMAGE);
   });
 
   it("at 0 HP the terminal closes, and HP never goes below 0", () => {

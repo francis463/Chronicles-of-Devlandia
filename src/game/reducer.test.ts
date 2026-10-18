@@ -89,7 +89,7 @@ describe("gameReducer: riverDamage", () => {
   it("warns once as health falls to 2 hearts, not again while it stays low", () => {
     const falling = gameReducer({ ...inRiver, hp: 3 }, { type: "riverDamage" });
     expect(falling.hp).toBe(2);
-    expect(falling.logs.slice(-2)).toEqual(["Cold exposure: -1 HP.", "Low health! Eat or rest, or ask a teammate to share water."]);
+    expect(falling.logs.slice(-2)).toEqual(["Cold exposure: -1 HP.", "Low health! Eat or rest, or ask a teammate to share food."]);
     const again = gameReducer(falling, { type: "riverDamage" });
     expect(again.logs.filter((l) => l.startsWith("Low health")).length).toBe(falling.logs.filter((l) => l.startsWith("Low health")).length);
     expect(gameReducer({ ...inRiver, hp: 5 }, { type: "riverDamage" }).logs.some((l) => l.startsWith("Low health"))).toBe(false);
@@ -202,9 +202,9 @@ describe("gameReducer: terminal", () => {
 });
 
 describe("gameReducer: respawn", () => {
-  it("restores HP, brings player and drone inside the Ski Lodge by the fire, and logs", () => {
+  it("brings player and drone inside the Ski Lodge by the fire, and logs", () => {
     const s = gameReducer({ ...s0, hp: 0, player: { x: 50, y: 33 }, drone: { x: 52, y: 34 } }, { type: "respawn" });
-    expect(s.hp).toBe(5);
+    expect(s.hp).toBe(1);
     expect(s.zone).toBe("lodge");
     expect(s.player).toEqual({ x: 50, y: 78 });
     expect(s.drone).toEqual({ x: 48, y: 80 });
@@ -1161,6 +1161,15 @@ describe("gameReducer: the lighthouse lamp", () => {
     }
   });
 
+  it("a wrong setting costs a heart and says so; at the last heart it closes the lamp", () => {
+    const miss = gameReducer(lamp({ hp: 3 }), { type: "submitLamp", bits: bitsOf(75) });
+    expect(miss.hp).toBe(2);
+    expect(miss.logs).toContain(LOG.wrongAnswer);
+    const down = gameReducer(lamp({ hp: 1 }), { type: "submitLamp", bits: bitsOf(75) });
+    expect([down.hp, down.lampOpen]).toEqual([0, false]);
+    expect(gameReducer(lamp({ hp: 3 }), { type: "submitLamp", bits: bitsOf(72) }).hp).toBe(3);
+  });
+
   it("the drone's tip comes on the second wrong run", () => {
     const first = gameReducer(lamp(), { type: "submitLamp", bits: bitsOf(75) });
     expect(first).toMatchObject({ lampTries: 1, lampHintRevealed: false, lampError: 'The lamp sent "K". It should send "H".' });
@@ -1238,20 +1247,16 @@ describe("gameReducer: the camp signpost, the weather station and the snow cave"
   });
 });
 
-describe("gameReducer: shareWater", () => {
-  it("restores 1 HP and logs who shared it, never past the maximum", () => {
-    const s = gameReducer({ ...s0, hp: 2 }, { type: "shareWater", from: "Kai" });
-    expect(s.hp).toBe(3);
-    expect(lastLog(s)).toBe("Kai shared water: +1 HP.");
-    expect(gameReducer({ ...s0, hp: 4 }, { type: "shareWater", from: "Kai" }).hp).toBe(5);
+describe("gameReducer: team food", () => {
+  it("receiving adds a piece of food to your bag and logs who gave it, without touching your health", () => {
+    const s = gameReducer({ ...s0, hp: 1 }, { type: "receiveFood", from: "Kai" });
+    expect([s.food, s.hp]).toEqual([1, 1]);
+    expect(lastLog(s)).toBe("Kai gave you food. Eat it from your inventory.");
   });
 
-  it("says so when you are not hurt, and does nothing for someone who is downed", () => {
-    const full = gameReducer(s0, { type: "shareWater", from: "Kai" });
-    expect(full.hp).toBe(5);
-    expect(lastLog(full)).toBe("Kai offered water, but you are not hurt.");
-    const downed = { ...s0, hp: 0 };
-    expect(gameReducer(downed, { type: "shareWater", from: "Kai" })).toBe(downed);
+  it("giving spends one of yours, and never goes below none", () => {
+    expect(gameReducer({ ...s0, food: 2 }, { type: "giveFood" }).food).toBe(1);
+    expect(gameReducer(s0, { type: "giveFood" })).toBe(s0);
   });
 });
 
@@ -1290,10 +1295,10 @@ describe("gameReducer: healing finds", () => {
     expect([s.remedies, s.food, s.hp]).toEqual([["remedy-fruit"], 1, 5]);
   });
 
-  it("eating heals 2 HP and uses one up, never past the maximum", () => {
+  it("eating heals 1 HP and uses one up, never past the maximum", () => {
     const hurt = gameReducer({ ...initialState, hp: 2, food: 2 }, { type: "eat" });
-    expect([hurt.hp, hurt.food]).toEqual([4, 1]);
-    expect(lastLog(hurt)).toBe("You eat some food: +2 HP.");
+    expect([hurt.hp, hurt.food]).toEqual([3, 1]);
+    expect(lastLog(hurt)).toBe("You eat some food: +1 HP.");
     expect(gameReducer({ ...initialState, hp: 4, food: 1 }, { type: "eat" }).hp).toBe(5);
   });
 
@@ -1347,5 +1352,11 @@ describe("gameReducer: a bigger zone's step and reach are in art pixels", () => 
     ZONE_SCALE.forest = 2;
     expect(placeInReach(near.player, [ranger], reachFor("forest"))).toBeNull();
     expect(reachPlaces(near).length).toBeGreaterThan(0);
+  });
+});
+
+describe("gameReducer: only food heals", () => {
+  it("a respawn leaves you on one heart, whatever you had", () => {
+    for (const hp of [0, 3]) expect(gameReducer({ ...s0, hp }, { type: "respawn" }).hp).toBe(1);
   });
 });

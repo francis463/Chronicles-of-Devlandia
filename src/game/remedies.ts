@@ -1,9 +1,6 @@
 import type { Poi, PoiId, RemedyId } from "./types";
 import type { ZoneId } from "./zones";
 
-/** HP a piece of food restores when you eat it from your inventory. */
-export const REMEDY_HEAL = 2;
-
 /** One healing find in each of the forest, the desert and the beach. */
 export const REMEDIES: Array<Poi & { id: RemedyId; zone: ZoneId; short: string; far: string; picked: string }> = [
   {

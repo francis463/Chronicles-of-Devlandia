@@ -45,8 +45,8 @@ export type TeamMessage =
   /** Chat text arrives cleaned and masked, at most CHAT_MAX characters. */
   | { type: "chat"; id: string; name: string; text: string }
   /** A named ping carries the place's own zone and point. */
-  /** A teammate shares water with `to`: it heals them a little (they decide; a sender can never change your HP directly). */
-  | { type: "water"; id: string; name: string; to: string }
+  /** A teammate gives food to `to` (they decide; a sender can never change your HP directly). */
+  | { type: "food"; id: string; name: string; to: string }
   | { type: "ping"; id: string; name: string; zone: ZoneId; x: number; y: number; place: PingPlace | null };
 
 export type RankedPlayer = PresenceMeta & { rank: number; color: string; isHost: boolean };
@@ -193,9 +193,9 @@ export function parseMessage(raw: unknown, now: number): TeamMessage | null {
     const chest = CHEST_IDS.find((id) => id === raw.chest);
     return isId(raw.id) && name && chest ? { type: "badge", id: raw.id, name, chest } : null;
   }
-  if (raw.type === "water") {
+  if (raw.type === "food") {
     const name = typeof raw.name === "string" ? normalizeNickname(raw.name) : null;
-    return isId(raw.id) && isId(raw.to) && name ? { type: "water", id: raw.id, name, to: raw.to } : null;
+    return isId(raw.id) && isId(raw.to) && name ? { type: "food", id: raw.id, name, to: raw.to } : null;
   }
   if (raw.type === "chat") {
     const name = typeof raw.name === "string" ? normalizeNickname(raw.name) : null;

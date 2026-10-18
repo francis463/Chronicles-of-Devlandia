@@ -181,6 +181,7 @@ export type GameAction =
   | { type: "revealLampHint" }
   | { type: "teamSync"; flags: TeamFlags; by: string }
   | { type: "note"; text: string }
-  /** A teammate shared water with you: it heals you a little (not when downed, and never past the maximum). */
-  | { type: "shareWater"; from: string }
+  /** A teammate gave you a piece of food; `giveFood` is you passing one on (the sender spends it). */
+  | { type: "receiveFood"; from: string }
+  | { type: "giveFood" }
   | { type: "respawn" };

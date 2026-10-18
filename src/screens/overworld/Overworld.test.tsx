@@ -252,7 +252,7 @@ describe("Overworld timers", () => {
     expect(screen.getByText("DOWNED")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "[ Respawn ]" }));
     expect(screen.queryByText("DOWNED")).toBeNull();
-    expect(screen.getAllByRole("meter")[0]).toHaveAttribute("aria-valuenow", "5");
+    expect(screen.getAllByRole("meter")[0]).toHaveAttribute("aria-valuenow", "1");
     expect(screen.getByText("Drone revived you in the Ski Lodge.")).toBeInTheDocument();
   });
 

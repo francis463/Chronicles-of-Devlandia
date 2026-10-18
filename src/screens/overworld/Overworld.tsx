@@ -18,7 +18,7 @@ import type { GameState } from "../../game/types";
 import { countUnread, lastSeq, useChat, type ChatFeed } from "../../hooks/useChat";
 import { usePings } from "../../hooks/usePings";
 import type { TeamSession } from "../../hooks/useTeamSession";
-import { LOG, LOW_HP, TICK_MS, WATER_COOLDOWN_MS } from "../../game/constants";
+import { LOG, LOW_HP, TICK_MS, FOOD_COOLDOWN_MS } from "../../game/constants";
 import { tideName } from "../../game/tide";
 import { flagsOf, teamMinutes } from "../../game/team";
 import { ZONES } from "../../game/zones";
@@ -274,23 +274,25 @@ export function Overworld({
       ),
     [onPing, addPing],
   );
-  // Water: a teammate's bottle heals you a little; yours heals the teammate beside you (one pour every WATER_COOLDOWN_MS).
-  const onWater = team?.onWater;
-  const shareWater = team?.shareWater;
+  // Food: a teammate can pass you a piece of theirs (you eat it yourself); you can pass one of yours to the teammate beside you, one every FOOD_COOLDOWN_MS.
+  const onFood = team?.onFood;
+  const shareFood = team?.shareFood;
   useEffect(
-    () => onWater?.((from) => dispatch({ type: "shareWater", from: displayNames(playersRef.current ?? []).get(from.id) ?? maskRude(from.name) })),
-    [onWater],
+    () => onFood?.((from) => dispatch({ type: "receiveFood", from: displayNames(playersRef.current ?? []).get(from.id) ?? maskRude(from.name) })),
+    [onFood],
   );
   const neighbour = team && !downed ? team.teammates.find((t) => t.zone === state.zone && distance(state.player, t) <= reachFor(state.zone)) : undefined;
   const lastPour = useRef(0);
-  const pourWater = () => {
-    if (!neighbour || !shareWater) return;
+  const pourFood = () => {
+    if (!neighbour || !shareFood) return;
+    if (state.food <= 0) return dispatch({ type: "note", text: LOG.foodNone });
     const name = displayNames(playersRef.current ?? []).get(neighbour.id) ?? maskRude(neighbour.name);
     const at = Date.now();
-    if (at - lastPour.current < WATER_COOLDOWN_MS) return dispatch({ type: "note", text: LOG.waterEmpty });
-    if (shareWater(neighbour.id) !== "sent") return dispatch({ type: "note", text: LOG.waterOffline });
+    if (at - lastPour.current < FOOD_COOLDOWN_MS) return dispatch({ type: "note", text: LOG.foodEmpty });
+    if (shareFood(neighbour.id) !== "sent") return dispatch({ type: "note", text: LOG.foodOffline });
     lastPour.current = at;
-    dispatch({ type: "note", text: LOG.waterGiven(name) });
+    dispatch({ type: "giveFood" });
+    dispatch({ type: "note", text: LOG.foodGiven(name) });
   };
   const now = useNow(TICK_MS, team?.startedAt != null);
   const minutes = team?.startedAt != null ? teamMinutes(team.startedAt, now) : state.minutes;
@@ -395,8 +397,8 @@ export function Overworld({
           card={cardFor(state)}
         />
         {neighbour && (
-          <Button variant="ghost" className="mx-auto my-1 px-3 py-1 text-xs pointer-coarse:min-h-11" disabled={leaving || helpOpen || isModalOpen(state)} onClick={pourWater}>
-            {`[ Share water with ${displayNames(players ?? []).get(neighbour.id) ?? maskRude(neighbour.name)} ]`}
+          <Button variant="ghost" className="mx-auto my-1 px-3 py-1 text-xs pointer-coarse:min-h-11" disabled={leaving || helpOpen || isModalOpen(state)} onClick={pourFood}>
+            {`[ Give food to ${displayNames(players ?? []).get(neighbour.id) ?? maskRude(neighbour.name)} ]`}
           </Button>
         )}
         {mapOnly && (

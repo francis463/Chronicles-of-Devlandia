@@ -56,9 +56,9 @@ export const RIVER_ZONE = { minX: 24, maxX: 76, minY: 28, maxY: 39 };
 
 /** Five hearts, one HP each. */
 export const MAX_HP = 5;
-/** HP a teammate's shared water restores, and how long (ms) before a bottle is full again. */
-export const WATER_HEAL = 1;
-export const WATER_COOLDOWN_MS = 10_000;
+/** HP one piece of food restores (food is the only way to heal), and how long (ms) before you can pass another to a teammate. */
+export const FOOD_HEAL = 1;
+export const FOOD_COOLDOWN_MS = 10_000;
 /** At or under this many HP the hearts pulse, the screen edges glow red and the log warns you once. */
 export const LOW_HP = 2;
 export const START_MINUTES = 19 * 60 + 29;
@@ -66,8 +66,8 @@ export const MINUTES_PER_DAY = 1440;
 export const TICK_MS = 2000;
 export const TICK_MINUTES = 5;
 export const RIVER_DAMAGE = 1;
-/** New Game+: HP lost for each wrong chest answer. */
-export const HARD_WRONG_DAMAGE = 1;
+/** HP lost for each wrong answer at a terminal or the lighthouse lamp. */
+export const WRONG_DAMAGE = 1;
 export const RIVER_DAMAGE_MS = 4500;
 export const DRONE_DELAY_MS = 320;
 export const DRONE_FOLLOW = 0.58;
@@ -115,15 +115,15 @@ export const LOG = {
   dockLocked: "The boatman waits for the gate to open",
   castleBuilt: "The sandcastle stands finished, a flag on its tallest tower.",
   finale: "All 11 badges earned: you are a Master of Devlandia!",
-  waterReceived: (name: string) => `${name} shared water: +${WATER_HEAL} HP.`,
-  waterNotNeeded: (name: string) => `${name} offered water, but you are not hurt.`,
-  waterGiven: (name: string) => `You shared water with ${name}.`,
-  waterOffline: "The team connection is down: your water did not go out.",
-  waterEmpty: "Your bottle is empty. Give it a few seconds to fill.",
-  ate: "You eat some food: +2 HP.",
+  foodReceived: (name: string) => `${name} gave you food. Eat it from your inventory.`,
+  foodGiven: (name: string) => `You gave ${name} a piece of food.`,
+  foodOffline: "The team connection is down: your food did not go out.",
+  foodEmpty: "Wait a few seconds before you give more food.",
+  foodNone: "You have no food to give.",
+  ate: `You eat some food: +${FOOD_HEAL} HP.`,
   notHungry: "You are not hungry. Eat when you are hurt.",
-  lowHp: "Low health! Eat or rest, or ask a teammate to share water.",
-  hardMiss: `Hard mode: -${HARD_WRONG_DAMAGE} HP.`,
+  lowHp: "Low health! Eat or rest, or ask a teammate to share food.",
+  wrongAnswer: `Wrong answer: -${WRONG_DAMAGE} HP.`,
   badge: (badge: string) => `Earned the ${badge} Badge.`,
   matcher: (code: string) => `Syntax Terminal: access code ${code}.`,
   archiveUnsealed: "Archive unsealed.",

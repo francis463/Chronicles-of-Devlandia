@@ -75,7 +75,7 @@ describe("the Ski Lodge zone", () => {
   it("respawning, from the Peaks or from inside the lodge, puts you inside the lodge by the fire, away from the mat", () => {
     for (const from of [at("lodge", 50, 50), at("peaks", 60, 40), at("forest", 30, 30)]) {
       const s = gameReducer({ ...from, hp: 0 }, { type: "respawn" });
-      expect([s.zone, s.player, s.drone, s.hp]).toEqual(["lodge", { x: 50, y: 78 }, { x: 48, y: 80 }, 5]);
+      expect([s.zone, s.player, s.drone, s.hp]).toEqual(["lodge", { x: 50, y: 78 }, { x: 48, y: 80 }, 1]);
       expect(doorAt("lodge", s.player), "not on the mat").toBeNull();
     }
   });

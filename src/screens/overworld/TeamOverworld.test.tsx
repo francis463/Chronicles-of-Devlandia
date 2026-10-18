@@ -220,8 +220,8 @@ describe("Overworld badges with a stub session", () => {
     sendPing: vi.fn(() => "sent" as const),
     onChat: vi.fn(() => () => {}),
     onPing: vi.fn(() => () => {}),
-    shareWater: vi.fn(() => "sent" as const),
-    onWater: vi.fn(() => () => {}),
+    shareFood: vi.fn(() => "sent" as const),
+    onFood: vi.fn(() => () => {}),
     onRoster: vi.fn(() => () => {}),
     onZoneChange: vi.fn(() => () => {}),
     ...over,
@@ -253,23 +253,25 @@ describe("Overworld badges with a stub session", () => {
     expect(await codeWith(0.9)).toBe(first);
   });
 
-  describe("sharing water", () => {
+  describe("sharing food", () => {
     const mate = (x: number, y: number, zone: "peaks" | "forest" = "peaks") => ({ id: "t1", name: "Kai", color: "#22c55e", x, y, zone });
-    const button = () => screen.queryByRole("button", { name: "[ Share water with Kai ]" });
+    const button = () => screen.queryByRole("button", { name: "[ Give food to Kai ]" });
 
-    it("the button shows only beside a teammate in your zone, and sends water once per cooldown", async () => {
+    it("the button shows only beside a teammate in your zone, and gives one of your food once per cooldown", async () => {
       const user = setup();
       const session = stub({ teammates: [mate(33, 72)] });
-      render(<Overworld onMenu={() => {}} team={session} />);
+      render(<Overworld onMenu={() => {}} team={session} initial={{ food: 2 }} />);
       await user.click(button()!);
-      expect(session.shareWater).toHaveBeenCalledWith("t1");
-      expect(screen.getAllByText("You shared water with Kai.").length).toBeGreaterThan(0);
+      expect(session.shareFood).toHaveBeenCalledWith("t1");
+      expect(screen.getAllByText("You gave Kai a piece of food.").length).toBeGreaterThan(0);
       await user.click(button()!);
-      expect(session.shareWater).toHaveBeenCalledTimes(1);
-      expect(screen.getAllByText(/Your bottle is empty/).length).toBeGreaterThan(0);
+      expect(session.shareFood).toHaveBeenCalledTimes(1);
+      expect(screen.getAllByText(/Wait a few seconds/).length).toBeGreaterThan(0);
       act(() => void vi.advanceTimersByTime(10_100));
       await user.click(button()!);
-      expect(session.shareWater).toHaveBeenCalledTimes(2);
+      expect(session.shareFood).toHaveBeenCalledTimes(2);
+      await user.click(button()!);
+      expect(screen.getAllByText("You have no food to give.").length).toBeGreaterThan(0);
     });
 
     it("no button for a teammate who is far away or in another zone, or when you are downed", () => {
@@ -283,13 +285,14 @@ describe("Overworld badges with a stub session", () => {
       expect(button()).toBeNull();
     });
 
-    it("a teammate's water heals you and says who gave it", () => {
+    it("a teammate's food goes into your bag and says who gave it", () => {
       let pour: (from: { id: string; name: string; color: string }) => void = () => {};
-      const session = stub({ onWater: vi.fn((cb) => ((pour = cb), () => {})) });
+      const session = stub({ onFood: vi.fn((cb) => ((pour = cb), () => {})) });
       render(<Overworld onMenu={() => {}} team={session} initial={{ hp: 3 }} />);
       act(() => pour({ id: "t1", name: "Kai", color: "#22c55e" }));
-      expect(screen.getByRole("meter", { name: "HP" })).toHaveAttribute("aria-valuenow", "4");
-      expect(screen.getAllByText("Kai shared water: +1 HP.").length).toBeGreaterThan(0);
+      expect(screen.getByRole("meter", { name: "HP" })).toHaveAttribute("aria-valuenow", "3");
+      expect(screen.getByText("Food ×1")).toBeInTheDocument();
+      expect(screen.getAllByText("Kai gave you food. Eat it from your inventory.").length).toBeGreaterThan(0);
     });
   });
 
@@ -298,11 +301,11 @@ describe("Overworld badges with a stub session", () => {
 
     it("a teammate in the lodge is with you when you are in it, and on the Peaks cell's door when you are outside", () => {
       const inside = render(<Overworld onMenu={() => {}} team={stub({ teammates: [kai("lodge", 52, 54)] })} initial={{ zone: "lodge", player: { x: 50, y: 54 } }} />);
-      expect(screen.getByRole("button", { name: "[ Share water with Kai ]" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "[ Give food to Kai ]" })).toBeInTheDocument();
       expect(screen.getByTestId("minimap-current")).toBeInTheDocument();
       inside.unmount();
       render(<Overworld onMenu={() => {}} team={stub({ teammates: [kai("lodge", 52, 54)] })} initial={{ zone: "peaks", player: { x: 28, y: 72 } }} />);
-      expect(screen.queryByRole("button", { name: "[ Share water with Kai ]" })).toBeNull();
+      expect(screen.queryByRole("button", { name: "[ Give food to Kai ]" })).toBeNull();
       const dot = screen.getByTestId("minimap-teammate-Kai");
       expect([dot.style.left, dot.style.top]).toEqual(["19.4%", "88%"]);
       expect(within(screen.getByTestId("minimap-cell-peaks")).getByTestId("minimap-teammate-Kai")).toBe(dot);

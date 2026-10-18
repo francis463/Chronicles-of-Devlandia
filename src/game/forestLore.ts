@@ -64,10 +64,10 @@ export const MUSHROOM_CARD = {
 export function stewLine(s: Pick<GameState, "mushrooms" | "rangerFed">): string {
   if (s.rangerFed) return "Thanks again for the mushrooms! Remember: const pot = ['cap', 'cap', 'cap']; pot[2] is the last one.";
   if (s.mushrooms.length >= FOREST_MUSHROOMS.length)
-    return "You found all three glow mushrooms! The stew is on, and it will put your strength right back. Tip: const pot = ['cap', 'cap', 'cap']; pot[2] is the last one.";
+    return "You found all three glow mushrooms! The stew is on, and you can take a bowl for the road. Tip: const pot = ['cap', 'cap', 'cap']; pot[2] is the last one.";
   return `Oh, and if you pass any glow mushrooms, bring me three for my stew (${s.mushrooms.length} of ${FOREST_MUSHROOMS.length}).`;
 }
 
 export const FOREST_LOG = {
-  stew: "The ranger's stew restores your strength.",
+  stew: "The ranger packs you a bowl of stew. Eat it from your inventory when you are hurt.",
 } as const;

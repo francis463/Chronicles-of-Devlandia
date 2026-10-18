@@ -3,7 +3,6 @@ import { gameReducer, initialState, visiblePois } from "./reducer";
 import { cardFor } from "./cards";
 import { promptText } from "./geometry";
 import { loadGame } from "./resume";
-import { REMEDY_HEAL } from "./remedies";
 import { SECRETS, isSecret, secretsIn } from "./secrets";
 import { ZONES, type ZoneId } from "./zones";
 
@@ -14,14 +13,14 @@ const beside = (id: string, hp = 5, zone?: ZoneId) => {
 const interact = (s: ReturnType<typeof beside>, poi: string) => gameReducer(s, { type: "interact", poi: poi as never });
 
 describe("the hidden spots", () => {
-  it("are six, two in each of the forest, desert and beach, in that order, the first of each healing", () => {
-    expect(SECRETS.map((s) => [s.id, s.zone, s.heal])).toEqual([
-      ["secret-moss", "forest", true],
-      ["secret-den", "forest", false],
-      ["secret-cave", "desert", true],
-      ["secret-ridge", "desert", false],
-      ["secret-pool", "beach", true],
-      ["secret-bottle", "beach", false],
+  it("are six, two in each of the forest, desert and beach, in that order", () => {
+    expect(SECRETS.map((s) => [s.id, s.zone])).toEqual([
+      ["secret-moss", "forest"],
+      ["secret-den", "forest"],
+      ["secret-cave", "desert"],
+      ["secret-ridge", "desert"],
+      ["secret-pool", "beach"],
+      ["secret-bottle", "beach"],
     ]);
     expect(SECRETS.map((s) => [s.x, s.y])).toEqual([[14, 14], [88, 88], [10, 86], [84, 18], [14, 88], [86, 16]]);
     expect(isSecret("secret-moss")).toBe(true);
@@ -37,11 +36,11 @@ describe("the hidden spots", () => {
     }
   });
 
-  it("finding one records it once, logs it with the card's first sentence and heals a hurt player", () => {
+  it("finding one records it once, logs it with the card's first sentence and never heals", () => {
     const moss = SECRETS[0];
     const s = interact(beside("secret-moss", 3), "secret-moss");
     expect(s.secrets).toEqual(["secret-moss"]);
-    expect(s.hp).toBe(3 + REMEDY_HEAL);
+    expect(s.hp).toBe(3);
     expect(s.logs.at(-1)).toBe(`Found ${moss.label}. ${moss.text.split(/(?<=\.)\s/)[0]}`);
     const again = interact({ ...s, hp: 2 }, "secret-moss");
     expect(again.secrets).toEqual(["secret-moss"]);
@@ -49,14 +48,14 @@ describe("the hidden spots", () => {
     expect(again.logs).toEqual(s.logs);
   });
 
-  it("a find at full health records it without a heal, and does not heal later", () => {
+  it("a find at full health records it and never heals, then or later", () => {
     const s = interact(beside("secret-moss", 5), "secret-moss");
     expect(s.secrets).toEqual(["secret-moss"]);
     expect(s.hp).toBe(5);
     expect(interact({ ...s, hp: 1 }, "secret-moss").hp).toBe(1);
   });
 
-  it("the second spot of an area gives the card and no heal", () => {
+  it("the second spot of an area gives the card too", () => {
     const s = interact(beside("secret-den", 2), "secret-den");
     expect(s.secrets).toEqual(["secret-den"]);
     expect(s.hp).toBe(2);
