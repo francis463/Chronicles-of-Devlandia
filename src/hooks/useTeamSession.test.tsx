@@ -1,5 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { LODGE_START } from "../game/reducer";
 import { JOIN_TIMEOUT_MS, NO_FLAGS, NO_ROOM_TIMEOUT_MS, POS_INTERVAL_MS, TEAM_COLORS } from "../game/team";
 import { createBroadcastTransport } from "../net/broadcastTransport";
 import { createMemoryHub } from "../net/memoryTransport";
@@ -55,6 +56,15 @@ describe("useTeamSession: lobby", () => {
     expect(ana.result.current.phase).toBe("lobby");
     expect(ana.result.current.room).toMatch(/^[A-HJ-NP-Z]{4}$/);
     expect(ana.result.current.me?.isHost).toBe(true);
+  });
+
+  it("in the lobby you are already in the Ski Lodge, where the game begins, and teammates see it", async () => {
+    const { player } = world();
+    const ana = player();
+    act(() => ana.result.current.create("Ana", "local"));
+    await settle();
+    expect(ana.result.current.players[0].zone).toBe("lodge");
+    expect([ana.result.current.players[0].x, ana.result.current.players[0].y]).toEqual([LODGE_START.player.x, LODGE_START.player.y]);
   });
 
   it("join puts both players in the room with host and colors by join order", async () => {

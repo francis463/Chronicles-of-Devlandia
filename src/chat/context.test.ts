@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PLAYER_START } from "../game/constants";
+import { LODGE_START } from "../game/reducer";
 import { NO_FLAGS, rankPlayers, type PresenceMeta } from "../game/team";
 import { chatRoster, lobbyContext } from "./context";
 
@@ -32,7 +32,7 @@ describe("lobbyContext", () => {
       where: "lobby",
       minutes: 0,
       badges: [],
-      me: { id: "a", name: "Ana", zone: "peaks", x: PLAYER_START.x, y: PLAYER_START.y },
+      me: { id: "a", name: "Ana", zone: "lodge", x: LODGE_START.player.x, y: LODGE_START.player.y },
       roster: chatRoster(session),
       known: {},
       muted: ["kai"],

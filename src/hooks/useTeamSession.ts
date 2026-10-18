@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { type PingPlace } from "../chat/places";
 import { DEFAULT_CLASS, classOrDefault, type ClassId } from "../game/classes";
-import { PLAYER_START } from "../game/constants";
+import { LODGE_START } from "../game/reducer";
 import {
   makeRoomCode,
   mergeFlags,
@@ -204,7 +204,7 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
       transport.current = t;
       request.current = req;
       const myId = crypto.randomUUID();
-      me.current = { id: myId, name: req.name, joinedAt: now(), startedAt: null, flags: NO_FLAGS, x: PLAYER_START.x, y: PLAYER_START.y, zone: "peaks", cls: req.cls };
+      me.current = { id: myId, name: req.name, joinedAt: now(), startedAt: null, flags: NO_FLAGS, x: LODGE_START.player.x, y: LODGE_START.player.y, zone: LODGE_START.zone, cls: req.cls };
       dispatch({ type: "connect", room: req.room, myId });
 
       let lastStatus: TeamStatus | null = null;
