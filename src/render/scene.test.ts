@@ -1201,6 +1201,12 @@ describe("scene: the bigger Sunny Beach", () => {
     expect(Math.max(...xs)).toBeGreaterThan(320);
   });
 
+  it("the gulls fly over both rows of screens, not only the top", () => {
+    const ys = Array.from({ length: 20 }, (_, i) => beach(i * 1000).upright.filter((d) => d.sprite === "bird").map((d) => d.y)).flat();
+    expect(Math.min(...ys)).toBeLessThan(60);
+    expect(Math.max(...ys)).toBeGreaterThan(180);
+  });
+
   it("the pier's lanterns stand on its planks and the rowboat rides the sea beside it", () => {
     const s = beach(0, { minutes: NIGHT });
     const pier = spriteBox("pier", AREAS.beach.props.find((p) => p.sprite === "pier")!.at);

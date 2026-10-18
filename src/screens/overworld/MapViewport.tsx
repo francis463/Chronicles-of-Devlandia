@@ -156,6 +156,7 @@ function LandmarkButton({
   hideCaption,
   peek = false,
   passive = false,
+  secret = false,
   onClick,
 }: {
   /** The button's hit area, in map-area CSS px. */
@@ -175,6 +176,8 @@ function LandmarkButton({
   peek?: boolean;
   /** The caption is information only and never takes taps (a chest's on a 1× map, where it was never laid out against its neighbours). */
   passive?: boolean;
+  /** A hidden spot: hovering shows no ring (only keyboard focus does), so it is found by looking. */
+  secret?: boolean;
   onClick: () => void;
 }) {
   const caption = captionRect(name, hit, map, prefer);
@@ -187,7 +190,7 @@ function LandmarkButton({
       disabled={disabled}
       onClick={onClick}
       aria-label={label}
-      className="group absolute cursor-pointer rounded-sm bg-transparent hover:shadow-[0_0_0_4px_#f8fafc] hover:outline-2 hover:outline-[#0f172a] focus-visible:shadow-[0_0_0_4px_#f8fafc] focus-visible:outline-2 focus-visible:outline-[#0f172a] disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:outline-none"
+      className={`group absolute cursor-pointer rounded-sm bg-transparent ${secret ? "" : "hover:shadow-[0_0_0_4px_#f8fafc] hover:outline-2 hover:outline-[#0f172a] disabled:hover:shadow-none disabled:hover:outline-none "}focus-visible:shadow-[0_0_0_4px_#f8fafc] focus-visible:outline-2 focus-visible:outline-[#0f172a] disabled:cursor-not-allowed`}
       style={{ left: hit.left - world.left, top: hit.top - world.top, width: hit.width, height: hit.height }}
     >
       <span
@@ -378,7 +381,7 @@ export function MapViewport({
   const csEarned = badges.includes("chest-cs");
 
   return (
-    <div ref={mapRef} className={`relative ${fill ? "min-h-0" : "min-h-[360px]"} flex-1 overflow-hidden bg-[var(--panel)]`}>
+    <div ref={mapRef} className={`relative ${fill ? "min-h-0" : "min-h-[360px]"} flex-1 overflow-clip bg-[var(--panel)]`}>
       <MapCanvas input={scene} world={world} />
 
       {(onZoom || onFullscreen) && (
@@ -476,7 +479,7 @@ export function MapViewport({
               <LandmarkButton key={l.id} hit={hits[l.id]} name={caption(l.id)} label={l.label} color="var(--accent)" world={world} map={map} prefer={l.prefer} disabled={downed} hideCaption={smallMap && inRange?.id !== l.id} peek passive={smallMap} onClick={() => onInteract(l.id)} />
             ))}
             {SECRET_SCENERY.forest.map((l) => (
-              <LandmarkButton key={l.id} hit={hits[l.id]} name={caption(l.id)} label={l.label} color="var(--accent)" world={world} map={map} prefer={l.prefer} disabled={downed} hideCaption={inRange?.id !== l.id} onClick={() => onInteract(l.id)} />
+              <LandmarkButton key={l.id} hit={hits[l.id]} name={caption(l.id)} label={l.label} color="var(--accent)" world={world} map={map} prefer={l.prefer} disabled={downed} hideCaption={inRange?.id !== l.id} secret onClick={() => onInteract(l.id)} />
             ))}
           </>
         ) : zone === "beach" ? (
@@ -490,7 +493,7 @@ export function MapViewport({
             ))}
             <LandmarkButton hit={hits["beach-signpost"]} name={caption("beach-signpost")} label="Signpost" color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={inRange?.id === "beach-signpost"} onClick={() => onInteract("beach-signpost")} />
             {SECRET_SCENERY.beach.map((l) => (
-              <LandmarkButton key={l.id} hit={hits[l.id]} name={caption(l.id)} label={l.label} color="var(--accent)" world={world} map={map} prefer={l.prefer} disabled={downed} hideCaption={inRange?.id !== l.id} onClick={() => onInteract(l.id)} />
+              <LandmarkButton key={l.id} hit={hits[l.id]} name={caption(l.id)} label={l.label} color="var(--accent)" world={world} map={map} prefer={l.prefer} disabled={downed} hideCaption={inRange?.id !== l.id} secret onClick={() => onInteract(l.id)} />
             ))}
           </>
         ) : zone === "desert" ? (
@@ -503,7 +506,7 @@ export function MapViewport({
               <LandmarkButton key={l.id} hit={hits[l.id]} name={caption(l.id)} label={l.label} color="var(--accent)" world={world} map={map} prefer={l.prefer} disabled={downed} hideCaption={smallMap && inRange?.id !== l.id} peek passive={smallMap} onClick={() => onInteract(l.id)} />
             ))}
             {SECRET_SCENERY.desert.map((l) => (
-              <LandmarkButton key={l.id} hit={hits[l.id]} name={caption(l.id)} label={l.label} color="var(--accent)" world={world} map={map} prefer={l.prefer} disabled={downed} hideCaption={inRange?.id !== l.id} onClick={() => onInteract(l.id)} />
+              <LandmarkButton key={l.id} hit={hits[l.id]} name={caption(l.id)} label={l.label} color="var(--accent)" world={world} map={map} prefer={l.prefer} disabled={downed} hideCaption={inRange?.id !== l.id} secret onClick={() => onInteract(l.id)} />
             ))}
           </>
         ) : zone === "foggaten" ? (

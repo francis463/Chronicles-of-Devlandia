@@ -706,6 +706,20 @@ describe("MapViewport: the hidden spots", () => {
     }
   });
 
+  it("hovering one shows no ring (so sweeping the mouse finds nothing), but keyboard focus does", () => {
+    render(<MapViewport {...props({ zone: "beach" })} />);
+    const secret = screen.getByRole("button", { name: "Tide Pool" });
+    expect(secret.className).not.toContain("hover:");
+    expect(secret.className).toContain("focus-visible:outline-2");
+    expect(screen.getByRole("button", { name: "[F] Fisher" }).className).toContain("hover:outline-2");
+  });
+
+  it("the map box clips instead of scrolling, so focusing an off-screen button cannot slide the map", () => {
+    const { container } = render(<MapViewport {...props({ zone: "beach" })} />);
+    expect(container.querySelector(".overflow-clip")).not.toBeNull();
+    expect(container.querySelector(".overflow-hidden")).toBeNull();
+  });
+
   it("pressing one asks the game to interact with it from anywhere", () => {
     const onInteract = vi.fn();
     render(<MapViewport {...props({ zone: "desert", onInteract })} />);

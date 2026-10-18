@@ -523,8 +523,8 @@ function birds(t: number, reduced: boolean, world: WorldSize): Drawable[] {
   const k = worldScale(world);
   return Array.from({ length: WILDLIFE.birds * k }, (_, i) =>
     reduced
-      ? placed("bird", { x: 70 + i * 100, y: 12 + (i % WILDLIFE.birds) * 3 })
-      : placed("bird", { x: Math.floor(((t / 1000) * 14 + i * 110) % (360 * k)) - 20, y: 14 + (i % WILDLIFE.birds) * 4 + Math.round(2 * Math.sin(t / 500 + i)) }, { frame: Math.floor(t / 180) % 2 }),
+      ? placed("bird", { x: 70 + i * 100, y: 12 + (i % WILDLIFE.birds) * 3 + Math.floor(i / WILDLIFE.birds) * SCREEN.height })
+      : placed("bird", { x: Math.floor(((t / 1000) * 14 + i * 110) % (360 * k)) - 20, y: 14 + (i % WILDLIFE.birds) * 4 + Math.floor(i / WILDLIFE.birds) * SCREEN.height + Math.round(2 * Math.sin(t / 500 + i)) }, { frame: Math.floor(t / 180) % 2 }),
   );
 }
 

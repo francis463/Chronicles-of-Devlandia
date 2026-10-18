@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CLASSES } from "../game/classes";
-import { createGroundCache, createSpriteCache, paintScene, type Ctx2D, type MakeCanvas } from "./paint";
+import { createGroundCache, createSpriteCache, paintScene, visibleArt, type Ctx2D, type MakeCanvas } from "./paint";
 import { buildScene, type Scene, type SceneInput } from "./scene";
 import { CLASS_ITEMS } from "./sprites";
 import { fitWorld, toArt } from "./world";
@@ -179,6 +179,23 @@ describe("caches", () => {
     // It covers the visible art range: on the phone, 90 art px of scenery above and below.
     expect(second).toMatchObject({ x: -17, y: -90 });
     expect((second!.image as unknown as FakeImage).h).toBe(360);
+  });
+
+  it("in a zone bigger than a screen the ground is baked with a margin, so walking across it reuses it and a new scale rebuilds it", () => {
+    const { ground, made } = setup();
+    const at = (x: number) => fitWorld({ width: 668, height: 360, dpr: 1 }, 0, { x, y: 180 }, { width: 640, height: 360 });
+    const first = ground.get(at(300), "forest");
+    const count = made.length;
+    for (const x of [305, 312, 330, 350, 450, 600]) expect(ground.get(at(x), "forest"), `x ${x}`).toBe(first);
+    expect(made.length).toBe(count);
+    expect(ground.get(fitWorld({ width: 354, height: 360, dpr: 3 }, 0, { x: 300, y: 180 }, { width: 640, height: 360 }), "forest")).not.toBe(first);
+    // The baked region always covers what the view shows.
+    for (const x of [300, 340, 420, 600]) {
+      const g = ground.get(at(x), "forest")!;
+      const view = visibleArt(at(x));
+      expect(g.x <= view.x && g.y <= view.y, `x ${x} origin`).toBe(true);
+      expect(g.x + (g.image as unknown as FakeImage).w >= view.x + view.w, `x ${x} right`).toBe(true);
+    }
   });
 
   it("the ground cache bakes only the wall tiles beyond the world, in feet-row order with the scenery", () => {

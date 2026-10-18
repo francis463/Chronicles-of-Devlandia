@@ -6,7 +6,7 @@ import { greyscale, gridRuns, mirror, rotate90, type Palette, type PixelGrid } f
 import type { Scene } from "./scene";
 import { CLASS_ITEMS, SPRITES, TEXTURES, explorerPalette, spriteBox, type ItemFacing, type SpriteId, type TextureId } from "./sprites";
 import { decorations, onPath, terrainAt, wallTiles } from "./terrain";
-import { intersects, reachableRect, type ArtPoint, type Rect, type WorldRect } from "./world";
+import { SCREEN, intersects, reachableRect, type ArtPoint, type Rect, type WorldRect } from "./world";
 
 /** The slice of CanvasRenderingContext2D the map uses (no paths, arcs or gradients: pixels only). */
 export type Ctx2D = {
@@ -93,18 +93,26 @@ function groundTexture(x: number, y: number, area: Area, bank: Rect | null): Tex
   return kind;
 }
 
+/** Extra art px of ground baked around the view in a zone bigger than a screen. */
+const GROUND_MARGIN = 200;
+
 /** Static terrain, the path and the decorations outside the walkable area, at art resolution. */
 export function createGroundCache(make: MakeCanvas, sprites: SpriteCache): GroundCache {
   let key = "";
+  let baked: Rect | null = null;
   let cached: ReturnType<GroundCache["get"]> = null;
   return {
     get(world, zone) {
-      const next = `${world.backingWidth},${world.backingHeight},${world.s},${world.ox},${world.oy},${zone}`;
-      if (next === key) return cached;
-      key = next;
       const land = AREAS[zone];
+      const next = `${world.backingWidth},${world.backingHeight},${world.s},${zone}`;
+      const view = visibleArt(world);
+      // A camera that follows the player moves on nearly every step: the ground is baked with a margin and reused until the view leaves it.
+      if (next === key && baked && view.x >= baked.x && view.y >= baked.y && view.x + view.w <= baked.x + baked.w && view.y + view.h <= baked.y + baked.h) return cached;
+      key = next;
+      const margin = land.world.width > SCREEN.width || land.world.height > SCREEN.height ? GROUND_MARGIN : 0;
+      const area = { x: view.x - margin, y: view.y - margin, w: view.w + 2 * margin, h: view.h + 2 * margin };
+      baked = area;
       const bank = land.ice && bankOf(land.ice);
-      const area = visibleArt(world);
       const reach = reachableRect(land.world);
       const canvas = make(area.w, area.h);
       cached = null;
@@ -136,7 +144,7 @@ export function createGroundCache(make: MakeCanvas, sprites: SpriteCache): Groun
         const box = spriteBox("wall", at);
         return box.x < 0 || box.x >= land.world.width;
       };
-      const baked: Array<{ sprite: SpriteId; at: ArtPoint; wall: boolean }> = [
+      const scenery: Array<{ sprite: SpriteId; at: ArtPoint; wall: boolean }> = [
         ...decorations(area, land)
           .filter((d) => !intersects(spriteBox(d.sprite, d.at), reach))
           .map((d) => ({ sprite: d.sprite as SpriteId, at: d.at, wall: false })),
@@ -144,7 +152,7 @@ export function createGroundCache(make: MakeCanvas, sprites: SpriteCache): Groun
           .filter(beyondTheWorld)
           .map((at) => ({ sprite: "wall" as SpriteId, at, wall: true })),
       ].sort((a, b) => a.at.y - b.at.y || Number(b.wall) - Number(a.wall));
-      for (const d of baked) {
+      for (const d of scenery) {
         const image = sprites.get(d.sprite, 0, "base", false, false);
         const box = spriteBox(d.sprite, d.at);
         if (image) ctx.drawImage(image, box.x - area.x, box.y - area.y);

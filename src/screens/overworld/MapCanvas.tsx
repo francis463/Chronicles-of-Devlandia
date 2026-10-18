@@ -68,7 +68,7 @@ export function MapCanvas({ input, world, onScene }: { input: SceneInput; world:
       const poses: Poses = {
         player: track("player", "player", now.player, t, still, jump),
         drone: track("drone", "drone", now.drone, t, still, jump),
-        teammates: Object.fromEntries(now.teammates.map((m) => [m.id, track(`mate:${m.id}`, "teammate", m, t, still, false)])),
+        teammates: Object.fromEntries(now.teammates.map((m) => [m.id, track(`mate:${m.id}`, "teammate", m, t, still, jump)])),
       };
       // Footprints: one every few art px of walking in the Peaks, gone after the scene stops drawing them (6 s).
       if (jump || now.zone !== "peaks" || still) {
