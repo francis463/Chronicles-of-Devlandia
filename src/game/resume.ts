@@ -4,7 +4,7 @@ import type { GameState } from "./types";
 import { ZONES } from "./zones";
 
 const KEY = "devlandia.savedGame";
-const VERSION = 1;
+const VERSION = 2; // 2: health became 5 hearts (a version-1 save counts HP out of 100)
 
 /** A solo game kept in this browser so a refresh can pick it up again. */
 export type SavedGame = { state: GameState; playerClass: ClassId; hard: boolean };

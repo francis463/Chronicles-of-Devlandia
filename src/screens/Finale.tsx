@@ -61,7 +61,7 @@ export function Finale({
         {onNewGamePlus && !hard && (
           <p className="rounded border-[1.5px] border-dashed border-[var(--primary-border)] px-3 py-2">
             <span className="font-bold text-[var(--primary-border)]">New Game+: </span>
-            a fresh run where each chest asks one of its harder questions and every wrong answer costs 10 HP. Your saved badges stay safe.
+            a fresh run where each chest asks one of its harder questions and every wrong answer costs a heart. Your saved badges stay safe.
           </p>
         )}
         <div className="flex flex-wrap gap-2">

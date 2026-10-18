@@ -7,8 +7,8 @@ const FULL = "#ef4444";
 const SHINE = "#fecaca";
 const EMPTY = "#334155";
 
-/** HP per heart: a full bar of 100 is ten hearts, and a heart can be half full. */
-export const HP_PER_HEART = 10;
+/** HP per heart: five HP is five hearts (the half-heart drawing stays for any value that falls between). */
+export const HP_PER_HEART = 1;
 
 function Heart({ fill }: { fill: "full" | "half" | "empty" }) {
   return (

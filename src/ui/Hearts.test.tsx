@@ -9,24 +9,26 @@ const fills = (container: HTMLElement) =>
   });
 
 describe("Hearts", () => {
-  it("draws ten hearts for 100 HP, with half hearts", () => {
-    const { container } = render(<Hearts value={75} max={100} />);
-    expect(fills(container)).toEqual([...Array(7).fill("full"), "half", "empty", "empty"]);
+  it("draws five hearts for 5 HP, one per HP", () => {
+    const full = render(<Hearts value={5} max={5} />);
+    expect(fills(full.container)).toEqual(Array(5).fill("full"));
+    const three = render(<Hearts value={3} max={5} />);
+    expect(fills(three.container)).toEqual(["full", "full", "full", "empty", "empty"]);
   });
 
   it("keeps the number and a meter for screen readers", () => {
-    render(<Hearts value={42} max={100} />);
-    expect(screen.getByText("HP 42")).toBeInTheDocument();
-    expect(screen.getByRole("meter", { name: "HP" })).toHaveAttribute("aria-valuenow", "42");
+    render(<Hearts value={4} max={5} />);
+    expect(screen.getByText("HP 4")).toBeInTheDocument();
+    expect(screen.getByRole("meter", { name: "HP" })).toHaveAttribute("aria-valuenow", "4");
   });
 
-  it("pulses at 30 HP or less, but not at 0 or above 30", () => {
+  it("pulses at 2 hearts or less, but not at 0 or above 2", () => {
     const low = () => screen.getByRole("meter", { name: "HP" }).hasAttribute("data-low");
-    const { rerender } = render(<Hearts value={30} />);
+    const { rerender } = render(<Hearts value={2} max={5} />);
     expect(low()).toBe(true);
-    rerender(<Hearts value={31} />);
+    rerender(<Hearts value={3} max={5} />);
     expect(low()).toBe(false);
-    rerender(<Hearts value={0} />);
+    rerender(<Hearts value={0} max={5} />);
     expect(low()).toBe(false);
   });
 });

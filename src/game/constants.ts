@@ -54,20 +54,21 @@ export const DESERT_PYRAMID: Point = { x: 20, y: 34 };
 export const SAIL_LANDING = { foggaten: { x: 24, y: 62 }, peaks: { x: 78, y: 74 } } as const;
 export const RIVER_ZONE = { minX: 24, maxX: 76, minY: 28, maxY: 39 };
 
-export const MAX_HP = 100;
+/** Five hearts, one HP each. */
+export const MAX_HP = 5;
 /** HP a teammate's shared water restores, and how long (ms) before a bottle is full again. */
-export const WATER_HEAL = 10;
+export const WATER_HEAL = 1;
 export const WATER_COOLDOWN_MS = 10_000;
 /** At or under this many HP the hearts pulse, the screen edges glow red and the log warns you once. */
-export const LOW_HP = 30;
+export const LOW_HP = 2;
 export const START_MINUTES = 19 * 60 + 29;
 export const MINUTES_PER_DAY = 1440;
 export const TICK_MS = 2000;
 export const TICK_MINUTES = 5;
-export const RIVER_DAMAGE = 8;
+export const RIVER_DAMAGE = 1;
 /** New Game+: HP lost for each wrong chest answer. */
-export const HARD_WRONG_DAMAGE = 10;
-export const RIVER_DAMAGE_MS = 1800;
+export const HARD_WRONG_DAMAGE = 1;
+export const RIVER_DAMAGE_MS = 4500;
 export const DRONE_DELAY_MS = 320;
 export const DRONE_FOLLOW = 0.58;
 export const LOG_LIMIT = 6;

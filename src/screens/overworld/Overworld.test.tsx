@@ -39,7 +39,7 @@ describe("Overworld HUD", () => {
     expect(screen.getByText("REGION: C++ PEAKS")).toBeInTheDocument();
     expect(screen.getByText("Dusk / 19:29")).toBeInTheDocument();
     const [hp] = screen.getAllByRole("meter");
-    expect(hp).toHaveAttribute("aria-valuenow", "100");
+    expect(hp).toHaveAttribute("aria-valuenow", "5");
     expect(screen.getByText("Quest: Survey Frozen River (0/1)")).toBeInTheDocument();
     expect(screen.getByText("Entered C++ Peaks.")).toBeInTheDocument();
     expect(screen.getByText("Move: WASD / Arrows")).toBeInTheDocument();
@@ -58,14 +58,14 @@ describe("Overworld HUD", () => {
     expect(screen.getByText("Dusk / 19:29")).toBeInTheDocument();
   });
 
-  it("a red edge glow shows at 30 HP or less, and not above 30 or at 0", () => {
+  it("a red edge glow shows at 2 hearts or less, and not above 2 or at 0", () => {
     const glow = (hp: number) => {
       const view = render(<Overworld onMenu={() => {}} initial={{ hp }} />);
       const shown = screen.queryByTestId("low-hp") !== null;
       view.unmount();
       return shown;
     };
-    expect([glow(20), glow(30), glow(31), glow(100), glow(0)]).toEqual([true, true, false, false, false]);
+    expect([glow(1), glow(2), glow(3), glow(5), glow(0)]).toEqual([true, true, false, false, false]);
   });
 
   it("flashes red over the map when you are hurt", () => {
@@ -174,35 +174,35 @@ describe("Overworld map", () => {
 });
 
 describe("Overworld timers", () => {
-  it("the river drains 8 HP every 1.8 seconds", () => {
+  it("the river drains a heart every 4.5 seconds", () => {
     render(<Overworld onMenu={() => {}} initial={{ player: { x: 50, y: 33 } }} />);
-    act(() => vi.advanceTimersByTime(1800));
-    expect(screen.getAllByRole("meter")[0]).toHaveAttribute("aria-valuenow", "92");
-    expect(screen.getByText("Cold exposure: -8 HP.")).toBeInTheDocument();
+    act(() => vi.advanceTimersByTime(RIVER_DAMAGE_MS));
+    expect(screen.getAllByRole("meter")[0]).toHaveAttribute("aria-valuenow", "4");
+    expect(screen.getByText("Cold exposure: -1 HP.")).toBeInTheDocument();
   });
 
   it("the village has no cold", () => {
     render(<Overworld onMenu={() => {}} initial={{ zone: "village", player: { x: 50, y: 33 } }} />);
-    act(() => vi.advanceTimersByTime(3600));
-    expect(screen.getAllByRole("meter")[0]).toHaveAttribute("aria-valuenow", "100");
+    act(() => vi.advanceTimersByTime(RIVER_DAMAGE_MS * 2));
+    expect(screen.getAllByRole("meter")[0]).toHaveAttribute("aria-valuenow", "5");
   });
 
   it("solving the gate does not stop the cold", () => {
     render(<Overworld onMenu={() => {}} initial={{ gateUnlocked: true, player: { x: 50, y: 33 } }} />);
-    act(() => vi.advanceTimersByTime(1800));
-    expect(screen.getAllByRole("meter")[0]).toHaveAttribute("aria-valuenow", "92");
+    act(() => vi.advanceTimersByTime(RIVER_DAMAGE_MS));
+    expect(screen.getAllByRole("meter")[0]).toHaveAttribute("aria-valuenow", "4");
   });
 
   it("a powered tower stops the cold", () => {
     render(<Overworld onMenu={() => {}} initial={{ towerPowered: true, player: { x: 50, y: 33 } }} />);
-    act(() => vi.advanceTimersByTime(3600));
-    expect(screen.getAllByRole("meter")[0]).toHaveAttribute("aria-valuenow", "100");
+    act(() => vi.advanceTimersByTime(RIVER_DAMAGE_MS * 2));
+    expect(screen.getAllByRole("meter")[0]).toHaveAttribute("aria-valuenow", "5");
   });
 
   it("pauses river damage while the terminal is open", () => {
     render(<Overworld onMenu={() => {}} initial={{ player: { x: 50, y: 33 }, challenge: { target: "gate", error: null, wrongTries: 0, solved: false, lastWrong: null } }} />);
-    act(() => vi.advanceTimersByTime(3600));
-    expect(screen.getAllByRole("meter")[0]).toHaveAttribute("aria-valuenow", "100");
+    act(() => vi.advanceTimersByTime(RIVER_DAMAGE_MS * 2));
+    expect(screen.getAllByRole("meter")[0]).toHaveAttribute("aria-valuenow", "5");
   });
 
   it("the drone follows the player after a short delay", () => {
@@ -232,13 +232,13 @@ describe("Overworld timers", () => {
     expect(screen.getByText("DOWNED")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "[ Respawn ]" }));
     expect(screen.queryByText("DOWNED")).toBeNull();
-    expect(screen.getAllByRole("meter")[0]).toHaveAttribute("aria-valuenow", "100");
+    expect(screen.getAllByRole("meter")[0]).toHaveAttribute("aria-valuenow", "5");
     expect(screen.getByText("Drone revived you at base camp.")).toBeInTheDocument();
   });
 
   it("focuses Respawn when the player goes down and disables the covered map buttons", () => {
-    render(<Overworld onMenu={() => {}} initial={{ hp: 8, player: { x: 50, y: 33 } }} />);
-    act(() => vi.advanceTimersByTime(1800));
+    render(<Overworld onMenu={() => {}} initial={{ hp: 1, player: { x: 50, y: 33 } }} />);
+    act(() => vi.advanceTimersByTime(RIVER_DAMAGE_MS));
     expect(screen.getByRole("button", { name: "[ Respawn ]" })).toHaveFocus();
     expect(screen.getByRole("button", { name: "[G] Gate" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "[X] Supply Cache" })).toBeDisabled();

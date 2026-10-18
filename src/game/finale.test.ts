@@ -75,7 +75,7 @@ describe("New Game+", () => {
   });
 
   it("at 0 HP the terminal closes, and HP never goes below 0", () => {
-    const down = hardTry(true, 5);
+    const down = hardTry(true, 1);
     expect([down.hp, down.challenge]).toEqual([0, null]);
   });
 

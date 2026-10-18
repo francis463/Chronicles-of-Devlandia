@@ -20,7 +20,7 @@ describe("gameReducer: initial state", () => {
   it("starts at the spec's positions, full bars, 19:29 and three log lines", () => {
     expect(s0.player).toEqual({ x: 28, y: 72 });
     expect(s0.drone).toEqual({ x: 36, y: 70 });
-    expect(s0.hp).toBe(100);
+    expect(s0.hp).toBe(5);
     expect(s0.minutes).toBe(1169);
     expect(s0.logs).toEqual([
       "Entered C++ Peaks.",
@@ -79,41 +79,41 @@ describe("gameReducer: tick", () => {
 describe("gameReducer: riverDamage", () => {
   const inRiver = { ...s0, player: { x: 50, y: 33 } };
 
-  it("deals 8 damage in the river and logs it", () => {
+  it("deals 1 damage in the river and logs it", () => {
     const s = gameReducer(inRiver, { type: "riverDamage" });
-    expect(s.hp).toBe(92);
-    expect(lastLog(s)).toBe("Cold exposure: -8 HP.");
+    expect(s.hp).toBe(4);
+    expect(lastLog(s)).toBe("Cold exposure: -1 HP.");
   });
 
-  it("warns once as health falls to 30, not again while it stays low", () => {
-    const falling = gameReducer({ ...inRiver, hp: 36 }, { type: "riverDamage" });
-    expect(falling.hp).toBe(28);
-    expect(falling.logs.slice(-2)).toEqual(["Cold exposure: -8 HP.", "Low health! Eat or rest, or ask a teammate to share water."]);
+  it("warns once as health falls to 2 hearts, not again while it stays low", () => {
+    const falling = gameReducer({ ...inRiver, hp: 3 }, { type: "riverDamage" });
+    expect(falling.hp).toBe(2);
+    expect(falling.logs.slice(-2)).toEqual(["Cold exposure: -1 HP.", "Low health! Eat or rest, or ask a teammate to share water."]);
     const again = gameReducer(falling, { type: "riverDamage" });
     expect(again.logs.filter((l) => l.startsWith("Low health")).length).toBe(falling.logs.filter((l) => l.startsWith("Low health")).length);
-    expect(gameReducer({ ...inRiver, hp: 60 }, { type: "riverDamage" }).logs.some((l) => l.startsWith("Low health"))).toBe(false);
+    expect(gameReducer({ ...inRiver, hp: 5 }, { type: "riverDamage" }).logs.some((l) => l.startsWith("Low health"))).toBe(false);
   });
 
   it("floors HP at 0", () => {
-    const s = gameReducer({ ...inRiver, hp: 5 }, { type: "riverDamage" });
+    const s = gameReducer({ ...inRiver, hp: 1 }, { type: "riverDamage" });
     expect(s.hp).toBe(0);
     expect(isDowned(s)).toBe(true);
   });
 
   it("logs being downed when HP reaches 0", () => {
-    const s = gameReducer({ ...inRiver, hp: 5 }, { type: "riverDamage" });
-    expect(s.logs.slice(-2)).toEqual(["Cold exposure: -8 HP.", "You are downed. Press Respawn."]);
+    const s = gameReducer({ ...inRiver, hp: 1 }, { type: "riverDamage" });
+    expect(s.logs.slice(-2)).toEqual(["Cold exposure: -1 HP.", "You are downed. Press Respawn."]);
   });
 
   it("does nothing once the bridge is restored, outside the river, or when downed", () => {
-    expect(gameReducer({ ...inRiver, towerPowered: true }, { type: "riverDamage" }).hp).toBe(100);
+    expect(gameReducer({ ...inRiver, towerPowered: true }, { type: "riverDamage" }).hp).toBe(5);
     expect(gameReducer(s0, { type: "riverDamage" })).toBe(s0);
     const downed = { ...inRiver, hp: 0 };
     expect(gameReducer(downed, { type: "riverDamage" })).toBe(downed);
   });
 
   it("solving the gate leaves the river icy", () => {
-    expect(gameReducer({ ...opened, player: { x: 50, y: 33 } }, { type: "riverDamage" }).hp).toBe(92);
+    expect(gameReducer({ ...opened, player: { x: 50, y: 33 } }, { type: "riverDamage" }).hp).toBe(4);
   });
 });
 
@@ -203,7 +203,7 @@ describe("gameReducer: terminal", () => {
 describe("gameReducer: respawn", () => {
   it("restores HP, returns player and drone to start, and logs", () => {
     const s = gameReducer({ ...s0, hp: 0, player: { x: 50, y: 33 }, drone: { x: 52, y: 34 } }, { type: "respawn" });
-    expect(s.hp).toBe(100);
+    expect(s.hp).toBe(5);
     expect(s.player).toEqual({ x: 28, y: 72 });
     expect(s.drone).toEqual({ x: 36, y: 70 });
     expect(lastLog(s)).toBe("Drone revived you at base camp.");
@@ -1206,7 +1206,7 @@ describe("gameReducer: the camp signpost, the weather station and the snow cave"
       const s = gameReducer(beside(poi), { type: "interact", poi: poi.id });
       expect(s.inspected).toBe(poi.id);
       expect(s.logs).toEqual(beside(poi).logs);
-      expect({ hp: s.hp, minutes: s.minutes, zone: s.zone }).toEqual({ hp: 100, minutes: s0.minutes, zone: "peaks" });
+      expect({ hp: s.hp, minutes: s.minutes, zone: s.zone }).toEqual({ hp: 5, minutes: s0.minutes, zone: "peaks" });
     }
   });
 
@@ -1236,16 +1236,16 @@ describe("gameReducer: the camp signpost, the weather station and the snow cave"
 });
 
 describe("gameReducer: shareWater", () => {
-  it("restores 10 HP and logs who shared it, never past the maximum", () => {
-    const s = gameReducer({ ...s0, hp: 50 }, { type: "shareWater", from: "Kai" });
-    expect(s.hp).toBe(60);
-    expect(lastLog(s)).toBe("Kai shared water: +10 HP.");
-    expect(gameReducer({ ...s0, hp: 95 }, { type: "shareWater", from: "Kai" }).hp).toBe(100);
+  it("restores 1 HP and logs who shared it, never past the maximum", () => {
+    const s = gameReducer({ ...s0, hp: 2 }, { type: "shareWater", from: "Kai" });
+    expect(s.hp).toBe(3);
+    expect(lastLog(s)).toBe("Kai shared water: +1 HP.");
+    expect(gameReducer({ ...s0, hp: 4 }, { type: "shareWater", from: "Kai" }).hp).toBe(5);
   });
 
   it("says so when you are not hurt, and does nothing for someone who is downed", () => {
     const full = gameReducer(s0, { type: "shareWater", from: "Kai" });
-    expect(full.hp).toBe(100);
+    expect(full.hp).toBe(5);
     expect(lastLog(full)).toBe("Kai offered water, but you are not hurt.");
     const downed = { ...s0, hp: 0 };
     expect(gameReducer(downed, { type: "shareWater", from: "Kai" })).toBe(downed);
@@ -1271,29 +1271,29 @@ describe("gameReducer: healing finds", () => {
     }
   });
 
-  it("picking one beside it heals 30 HP once, logs it, and it leaves the map", () => {
+  it("picking one beside it heals 2 HP once, logs it, and it leaves the map", () => {
     for (const f of FINDS) {
-      const s = gameReducer(beside(f.id, f.zone, 50), { type: "interact", poi: f.id });
-      expect(s.hp, f.id).toBe(80);
+      const s = gameReducer(beside(f.id, f.zone, 2), { type: "interact", poi: f.id });
+      expect(s.hp, f.id).toBe(4);
       expect(s.remedies).toEqual([f.id]);
-      expect(lastLog(s)).toMatch(/\+30 HP\.$/);
-      expect(gameReducer(s, { type: "interact", poi: f.id }).hp).toBe(80);
+      expect(lastLog(s)).toMatch(/\+2 HP\.$/);
+      expect(gameReducer(s, { type: "interact", poi: f.id }).hp).toBe(4);
     }
   });
 
   it("never heals past the maximum", () => {
-    expect(gameReducer(beside("remedy-herb", "forest", 90), { type: "interact", poi: "remedy-herb" }).hp).toBe(100);
+    expect(gameReducer(beside("remedy-herb", "forest", 4), { type: "interact", poi: "remedy-herb" }).hp).toBe(5);
   });
 
   it("at full health you save it for later: nothing is used up", () => {
-    const s = gameReducer(beside("remedy-fruit", "desert", 100), { type: "interact", poi: "remedy-fruit" });
+    const s = gameReducer(beside("remedy-fruit", "desert", 5), { type: "interact", poi: "remedy-fruit" });
     expect(s.remedies).toEqual([]);
     expect(lastLog(s)).toBe("You feel fine. Come back to the cactus fruit when you are hurt.");
   });
 
   it("from across the map the button only shows its card", () => {
-    const s = gameReducer({ ...initialState, zone: "beach", hp: 40, player: { x: 5, y: 5 } }, { type: "interact", poi: "remedy-drink" });
-    expect(s.hp).toBe(40);
+    const s = gameReducer({ ...initialState, zone: "beach", hp: 2, player: { x: 5, y: 5 } }, { type: "interact", poi: "remedy-drink" });
+    expect(s.hp).toBe(2);
     expect(s.remedies).toEqual([]);
     expect(s.inspected).toBe("remedy-drink");
   });

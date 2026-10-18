@@ -279,10 +279,10 @@ describe("Overworld badges with a stub session", () => {
     it("a teammate's water heals you and says who gave it", () => {
       let pour: (from: { id: string; name: string; color: string }) => void = () => {};
       const session = stub({ onWater: vi.fn((cb) => ((pour = cb), () => {})) });
-      render(<Overworld onMenu={() => {}} team={session} initial={{ hp: 40 }} />);
+      render(<Overworld onMenu={() => {}} team={session} initial={{ hp: 3 }} />);
       act(() => pour({ id: "t1", name: "Kai", color: "#22c55e" }));
-      expect(screen.getByRole("meter", { name: "HP" })).toHaveAttribute("aria-valuenow", "50");
-      expect(screen.getAllByText("Kai shared water: +10 HP.").length).toBeGreaterThan(0);
+      expect(screen.getByRole("meter", { name: "HP" })).toHaveAttribute("aria-valuenow", "4");
+      expect(screen.getAllByText("Kai shared water: +1 HP.").length).toBeGreaterThan(0);
     });
   });
 
