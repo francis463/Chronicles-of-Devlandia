@@ -360,6 +360,19 @@ describe("Overworld hidden artifact", () => {
     expect(screen.getByRole("button", { name: "[ Decode Scroll ]" })).toBeInTheDocument();
   });
 
+  it("finding the scroll pops up \"Ohh, a scroll!\" once, and not for a game that already has it", async () => {
+    const user = setup();
+    const { unmount } = render(<Overworld onMenu={() => {}} initial={{ ...atHollowTree, hasLoot: true }} />);
+    expect(screen.queryByText("Ohh, a scroll!")).toBeNull();
+    unmount();
+    render(<Overworld onMenu={() => {}} initial={atHollowTree} />);
+    expect(screen.queryByText("Ohh, a scroll!")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "[X] Hollow Tree" }));
+    expect(screen.getByText("Ohh, a scroll!")).toBeInTheDocument();
+    expect(screen.getByText("Decode it from your inventory.")).toBeInTheDocument();
+    expect(screen.getAllByText("Ohh, a scroll!")).toHaveLength(1);
+  });
+
   it("decoding the scroll: a wrong answer shows an error, the right one logs the clue", async () => {
     const user = setup();
     render(<Overworld onMenu={() => {}} initial={{ hasLoot: true }} />);

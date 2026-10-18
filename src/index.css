@@ -63,6 +63,10 @@ body {
 /* The finale's confetti: each piece falls once past the card and fades out. */
 @keyframes confetti-fall { from { translate: 0 -30px; opacity: 1; } to { translate: 0 260px; opacity: 0; } }
 
+/* "Ohh, a scroll!": fades in, holds, fades out once (opacity only, so reduced motion keeps it too). */
+@keyframes found-toast { 0% { opacity: 0; } 10% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
+.found-toast { animation: found-toast 3.5s ease-out forwards; }
+
 /* Health feedback: a red flash when hurt, a green one when healed (each plays once; not at all with reduced motion). */
 @keyframes hp-hurt { from { opacity: 0.55; } to { opacity: 0; } }
 @keyframes hp-heal { from { opacity: 0.45; } to { opacity: 0; } }

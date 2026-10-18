@@ -154,6 +154,14 @@ export function Overworld({
     setPulse((p) => ({ kind, n: (p?.n ?? 0) + 1 }));
   }, [state.hp]);
 
+  // "Ohh, a scroll!" pops up once, when the Supply Cache is first emptied in this game (also state, so its CSS fade plays once).
+  const hadLoot = useRef(state.hasLoot);
+  const [scrollPops, setScrollPops] = useState(0);
+  useEffect(() => {
+    if (state.hasLoot && !hadLoot.current) setScrollPops((n) => n + 1);
+    hadLoot.current = state.hasLoot;
+  }, [state.hasLoot]);
+
   // ── Chat, commands and your own view ──
   const own = useChat(chat ? null : (team ?? null));
   const feed = chat ?? own;
@@ -355,6 +363,12 @@ export function Overworld({
         view={mapView}
       />
       <div className={`relative flex min-w-0 flex-col ${mapOnly ? "min-h-0" : "md:col-start-2 md:row-start-2 md:row-span-3"}`}>
+        {scrollPops > 0 && (
+          <div key={scrollPops} role="status" className="found-toast pointer-events-none absolute left-1/2 top-4 z-20 -translate-x-1/2 rounded border-2 border-[var(--accent-border)] bg-[var(--panel)] px-4 py-2 text-center">
+            <p className="text-sm font-bold uppercase tracking-widest text-[var(--accent)]">Ohh, a scroll!</p>
+            <p className="text-[10px] uppercase tracking-widest text-[var(--text)]">Decode it from your inventory.</p>
+          </div>
+        )}
         {pulse && <div key={pulse.n} aria-hidden="true" className={`hp-flash hp-flash-${pulse.kind} pointer-events-none absolute inset-0 z-10`} />}
         {state.hp > 0 && state.hp <= LOW_HP && <div aria-hidden="true" data-testid="low-hp" className="hp-low pointer-events-none absolute inset-0 z-10 motion-safe:animate-pulse" />}
         <MapViewport
