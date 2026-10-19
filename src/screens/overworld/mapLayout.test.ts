@@ -375,6 +375,30 @@ describe("the Hall of Fame's name plates", () => {
     }
   });
 
+  it("the player and drone labels are laid out clear of every plate", () => {
+    for (const world of [phone, desktop]) {
+      const size = { width: world.width, height: world.height };
+      const fixed = landmarkCaptions(world, mapOf(world), { hasLoot: false, towerPowered: false }, "hall");
+      const plates = ids.map((i) => hallPlateRect(world, i, widest));
+      // Every plate is among the fixed boxes the labels avoid.
+      for (const p of plates) {
+        const edges = { left: p.left - world.left, right: p.left - world.left + p.width, top: p.top - world.top, bottom: p.top - world.top + p.height };
+        expect(fixed.some((f) => Math.abs(f.left - edges.left) < 1e-6 && Math.abs(f.right - edges.right) < 1e-6 && Math.abs(f.top - edges.top) < 1e-6), `a plate is fixed @${world.width}`).toBe(true);
+      }
+      // A phone's one screen is packed (ten plates and two labels): there the layout does its best; at 2× it has the room to clear them all.
+      if (world.scale < 2) continue;
+      const signs = exitSignBox(world, "hall");
+      const player = { x: 50, y: 82 };
+      const drone = { x: 56, y: 82 };
+      const layout = labelLayout(player, drone, size, [], world.scale, fixed, signs);
+      const b = labelBoxes(player, drone, size, layout, world.scale);
+      for (const f of [...fixed, ...signs]) {
+        expect(overlapBox(b.playerLabel, f), `player label @${world.width}`).toBe(false);
+        expect(overlapBox(b.droneLabel, f), `drone label @${world.width}`).toBe(false);
+      }
+    }
+  });
+
   it("a plate is centred 2 px above its hero's head, with the round picture at its left", () => {
     for (const world of [phone, desktop]) {
       for (const i of ids) {
@@ -382,7 +406,7 @@ describe("the Hall of Fame's name plates", () => {
         const plate = hallPlateRect(world, i, "Alice");
         expect(plate.top + plate.height, `plate ${i + 1}`).toBe(hero.top - 2);
         expect(plate.left + plate.width / 2, `plate ${i + 1}`).toBeCloseTo(hero.left + hero.width / 2);
-        expect(plate.width, `plate ${i + 1}`).toBe(HALL_BADGE + 4 + 5 * 5.5 + 6);
+        expect(plate.width, `plate ${i + 1}`).toBe(2 + HALL_BADGE + 2 + 5 * 5.5 + 4);
       }
     }
   });

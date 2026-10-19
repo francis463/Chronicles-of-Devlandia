@@ -567,11 +567,11 @@ export function MapViewport({
                   {/* The name plate floats above the hero's head: the round picture and the name. It takes no taps (the hero's button is under it). */}
                   <div
                     data-testid={`hall-plate-${i + 1}`}
-                    className="pointer-events-none absolute flex items-center gap-1 rounded-full border border-[var(--panel-border)] pr-1.5"
+                    className="pointer-events-none absolute flex items-center gap-0.5 rounded-full border border-[var(--panel-border)] pr-1"
                     style={{ left: plate.left - world.left, top: plate.top - world.top, width: plate.width, height: plate.height, background: "rgba(15,23,42,0.85)" }}
                   >
                     <Face name={name || slot.label} avatar={row?.avatar} size={HALL_BADGE} empty={!row} />
-                    <span data-testid={`hall-name-${i + 1}`} className="truncate text-[9px] leading-none font-bold whitespace-nowrap" style={{ color: i === 0 ? "#fbbf24" : i === 1 ? "#cbd5e1" : i === 2 ? "#d6a06a" : "var(--text)" }}>
+                    <span data-testid={`hall-name-${i + 1}`} className="text-[9px] leading-none font-bold whitespace-nowrap" style={{ color: i === 0 ? "#fbbf24" : i === 1 ? "#cbd5e1" : i === 2 ? "#d6a06a" : "var(--text)" }}>
                       {shown}
                     </span>
                   </div>

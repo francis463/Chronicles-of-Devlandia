@@ -163,7 +163,8 @@ export const hallHeroRect = (world: WorldRect, i: number): CssRect => spriteCss(
  */
 export const hallPlateRect = (world: WorldRect, i: number, text: string): CssRect => {
   const hero = hallHeroRect(world, i);
-  const width = HALL_BADGE + 4 + [...text].length * HALL_CHAR_W + 6;
+  // 2 border + the picture + 2 gap + the text + 4 padding.
+  const width = 2 + HALL_BADGE + 2 + [...text].length * HALL_CHAR_W + 4;
   return { left: hero.left + hero.width / 2 - width / 2, top: hero.top - 2 - HALL_PLATE_H, width, height: HALL_PLATE_H };
 };
 
@@ -261,12 +262,15 @@ const toEdges = (r: CssRect, world: WorldRect): Edges => ({
 /** A zone's showing caption chips and its drawings, as world-layer edges for labelLayout to avoid. */
 export function landmarkCaptions(world: WorldRect, map: MapArea, state: MapState, zone: ZoneId = "peaks"): Edges[] {
   const hits = zoneHitAreas(world, zone);
-  return LANDMARK_CAPTIONS.filter((l) => l.zone === zone).flatMap((l) => {
+  const captions = LANDMARK_CAPTIONS.filter((l) => l.zone === zone).flatMap((l) => {
     const drawing = toEdges(spriteCss(spriteBox(spriteOf(l, state), l.point), world), world);
     if (l.texts.length === 0) return [drawing];
     if (l.quiet && world.scale < CHEST_CAPTION_SCALE && state.reach !== l.id) return [drawing];
     return [toEdges(captionRect(captionText(l, state), hits[l.id], map, l.prefer), world), drawing];
   });
+  // The Hall's name plates (as wide as a name can be) are fixed too: the player and drone labels keep off them.
+  const plates = zone === "hall" ? HALL_SLOTS.map((_, i) => toEdges(hallPlateRect(world, i, hallName("M".repeat(HALL_NAME_MAX))), world)) : [];
+  return [...captions, ...plates];
 }
 
 /** Place names and exit signs, positioned in world percentages so they clear the landmarks and the dig spot. */
@@ -287,7 +291,7 @@ export const MAP_CAPTIONS = [
   { id: "forest-east-exit", zone: "forest", at: { x: 99, y: 88 }, align: "right-centre" },
   { id: "desert-east-exit", zone: "desert", at: { x: 99, y: 88 }, align: "right-centre" },
   { id: "forest-west-exit", zone: "forest", at: { x: 1, y: 88 }, align: "left-centre" },
-  { id: "hall", zone: "hall", at: { x: 50, y: 4 }, align: "centre" },
+  { id: "hall", zone: "hall", at: { x: 1, y: 96 }, align: "left-centre" },
   { id: "village-north-exit", zone: "village", at: { x: 44, y: 14 }, align: "centre" },
   { id: "hall-south-exit", zone: "hall", at: { x: 48, y: 96 }, align: "centre" },
 ] as const satisfies ReadonlyArray<{ id: string; zone: ZoneId; at: Point; align: "centre" | "right-bottom" | "left-centre" | "right-centre" }>;

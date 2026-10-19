@@ -38,10 +38,10 @@ const PATHS: Rect[] = [{ x: 148, y: STAGE_FLOOR + 6, w: 12, h: WORLD_SIZE.height
 const PROPS: Prop[] = [
   { sprite: "banner", at: { x: 28, y: 76 } },
   { sprite: "banner", at: { x: 292, y: 76 } },
-  { sprite: "lantern", at: { x: 8, y: 118 } },
-  { sprite: "lantern", at: { x: 312, y: 118 } },
-  { sprite: "lantern", at: { x: 60, y: 172 } },
-  { sprite: "lantern", at: { x: 260, y: 172 } },
+  { sprite: "lantern", at: { x: 8, y: 40 } },
+  { sprite: "lantern", at: { x: 312, y: 40 } },
+  { sprite: "lantern", at: { x: 8, y: 96 } },
+  { sprite: "lantern", at: { x: 312, y: 96 } },
   { sprite: "signpost", at: HALL_POINTS.signpost },
 ];
 
