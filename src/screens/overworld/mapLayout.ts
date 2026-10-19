@@ -14,7 +14,7 @@ import { BEACH_POINTS } from "../../render/areas/beach";
 import { DESERT_POINTS, JAR_POINTS } from "../../render/areas/desert";
 import { FOGGATEN_POINTS } from "../../render/areas/foggaten";
 import { FOREST_POINTS, MUSHROOM_POINTS } from "../../render/areas/forest";
-import { HALL_FLAT, HALL_POINTS } from "../../render/areas/hall";
+import { HALL_POINTS } from "../../render/areas/hall";
 import { CAVE_POINT, DOCK_POINT, LODGE_POINT, SIGNPOST_POINT, STATION_POINT } from "../../render/areas/peaks";
 import { VILLAGE_POINTS } from "../../render/areas/village";
 import { ARCHIVE_POINT, TERMINAL_POINT } from "../../render/learnPoints";
@@ -147,13 +147,10 @@ const HALL_CHAR_W = 5.5;
 const HALL_PLATE_H = 18;
 
 /**
- * The Hall of Fame's ten buttons. The top three are the podium blocks they stand on (the hero is above them); the others
- * are the hero's own drawing. They have no caption chip: the names are drawn on `hallPlateRect`s.
+ * The Hall of Fame's ten buttons: each is the hero's own drawing (the top three stand above their podium blocks, but
+ * the figure is what you point at). They have no caption chip: the names are drawn on `hallPlateRect`s.
  */
-const HALL_BUTTONS: readonly LandmarkCaption[] = HALL_SLOTS.map((slot, i): LandmarkCaption => {
-  const podium = i < 3 ? HALL_FLAT[i + 1] : null;
-  return { id: slot.id, zone: "hall", sprite: podium ? podium.sprite : "explorer-down", point: podium ? podium.at : HALL_POINTS.slots[i], texts: [], prefer: "below" };
-});
+const HALL_BUTTONS: readonly LandmarkCaption[] = HALL_SLOTS.map((slot, i): LandmarkCaption => ({ id: slot.id, zone: "hall", sprite: "explorer-down", point: HALL_POINTS.slots[i], texts: [], prefer: "below" }));
 
 /** Where hero `i` (0 to 9) is drawn, in CSS px. */
 export const hallHeroRect = (world: WorldRect, i: number): CssRect => spriteCss(spriteBox("explorer-down", HALL_POINTS.slots[i]), world);

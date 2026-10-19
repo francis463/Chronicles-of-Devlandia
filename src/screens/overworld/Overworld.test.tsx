@@ -1106,18 +1106,33 @@ describe("Overworld: the Hall of Fame", () => {
     expect(screen.getByText("Spot 4 is waiting for a player.")).toBeInTheDocument();
   });
 
+  it("tells you when you walk in that the Hall is waking up, and that the leaderboard cannot be reached, without pressing anything", async () => {
+    const slow = createMemoryLeaderboard({ rows: ROWS });
+    slow.top = () => new Promise(() => undefined);
+    await enter(slow);
+    expect(screen.getAllByText(LOG.hallLoading)).toHaveLength(1);
+    cleanup();
+    const broken = createMemoryLeaderboard({ rows: ROWS });
+    broken.failNext = 1;
+    await enter(broken);
+    expect(screen.getAllByText(LOG.hallOffline)).toHaveLength(1);
+    cleanup();
+    await enter(createMemoryLeaderboard({ rows: ROWS }));
+    expect(screen.queryByText(LOG.hallOffline)).toBeNull(); // a list that arrives says nothing more than the waking-up line
+  });
+
   it("says the Hall is waking up while the list loads, and that it cannot be reached when it fails", async () => {
     const slow = createMemoryLeaderboard({ rows: ROWS });
     slow.top = () => new Promise(() => undefined);
     const first = await enter(slow);
     await first.user.keyboard("e");
-    expect(screen.getByText(LOG.hallLoading)).toBeInTheDocument();
+    expect(screen.getAllByText(LOG.hallLoading).length).toBeGreaterThan(0);
     cleanup();
     const broken = createMemoryLeaderboard({ rows: ROWS });
     broken.failNext = 1;
     const second = await enter(broken);
     await second.user.keyboard("e");
-    expect(screen.getByText(LOG.hallOffline)).toBeInTheDocument();
+    expect(screen.getAllByText(LOG.hallOffline).length).toBeGreaterThan(0);
   });
 
   it("the prompt names the player beside you", async () => {

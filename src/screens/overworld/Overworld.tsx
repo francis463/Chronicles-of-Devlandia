@@ -147,6 +147,12 @@ export function Overworld({
   const downed = isDowned(state);
   // The Hall of Fame: the top ten load when you walk in, and a spot answers E with a log line about whoever stands on it.
   const hall = useHallOfFame(leaderboard, state.zone === "hall");
+  // Walking in says so when the list is loading or cannot be reached, not only when you press E on a figure.
+  useEffect(() => {
+    if (state.zone !== "hall") return;
+    if (hall.phase === "loading") dispatch({ type: "note", text: LOG.hallLoading });
+    else if (hall.phase === "failed") dispatch({ type: "note", text: LOG.hallOffline });
+  }, [hall.phase, state.zone]);
   const send = useCallback(
     (action: GameAction) => {
       if (action.type !== "interact" || !isHallSlot(action.poi)) return dispatch(action);

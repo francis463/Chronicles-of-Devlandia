@@ -399,6 +399,17 @@ describe("the Hall of Fame's name plates", () => {
     }
   });
 
+  it("every spot's button covers its hero (the top three too, not just the podium under them), at 1× and 2×", () => {
+    for (const world of [phone, desktop]) {
+      const hits = zoneHitAreas(world, "hall");
+      for (const i of ids) {
+        const hero = hallHeroRect(world, i);
+        const centre = { left: hero.left + hero.width / 2, top: hero.top + hero.height / 2, width: 0, height: 0 };
+        expect(inside(centre, hits[`hall-${i + 1}`]), `hero ${i + 1} @${world.width}`).toBe(true);
+      }
+    }
+  });
+
   it("a plate is centred 2 px above its hero's head, with the round picture at its left", () => {
     for (const world of [phone, desktop]) {
       for (const i of ids) {
