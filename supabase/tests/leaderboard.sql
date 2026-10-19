@@ -1,5 +1,5 @@
 -- Checks the leaderboard migration: ranking, the hide switch, what leaves the database, and who may call what.
--- Run it after the accounts migration and the leaderboard migration are applied. Everything is rolled back.
+-- Run it after the accounts, leaderboard and avatars migrations are applied. Everything is rolled back.
 begin;
 
 insert into auth.users (id, email) values
@@ -52,9 +52,9 @@ begin
   select string_agg(rank || ':' || name || ':' || badges, ',' order by rank, last_earned, name) into names from public.leaderboard_top();
   if names is distinct from '1:Alice:3,1:Bobby:3,3:Carol:1' then raise exception 'wrong list: %', names; end if;
 
-  -- Only these four columns leave the database.
+  -- Only these five columns leave the database (avatar is a random photo key, never a user id).
   select to_jsonb(t) into j from public.leaderboard_top(1) t;
-  if (select array_agg(k order by k) from jsonb_object_keys(j) k) is distinct from array['badges', 'last_earned', 'name', 'rank'] then
+  if (select array_agg(k order by k) from jsonb_object_keys(j) k) is distinct from array['avatar', 'badges', 'last_earned', 'name', 'rank'] then
     raise exception 'unexpected columns';
   end if;
 

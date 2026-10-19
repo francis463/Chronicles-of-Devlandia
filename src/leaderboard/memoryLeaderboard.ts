@@ -7,6 +7,7 @@ export type MemoryLeaderboard = LeaderboardStore & {
   failNext: number;
   calls: string[];
 };
+const KEY = "33333333-3333-4333-8333-333333333333";
 
 /** An in-memory leaderboard for tests. */
 export function createMemoryLeaderboard(init: { rows?: Row[]; me?: Me | null } = {}): MemoryLeaderboard {
@@ -29,6 +30,20 @@ export function createMemoryLeaderboard(init: { rows?: Row[]; me?: Me | null } =
       if (failed) return failed;
       store.calls.push(`setHidden:${hidden}`);
       if (store.meState) store.meState = { ...store.meState, hidden };
+      return Promise.resolve();
+    },
+    setAvatar: (photo) => {
+      const failed = fail();
+      if (failed) return failed;
+      store.calls.push(`setAvatar:${photo.size}`);
+      if (store.meState) store.meState = { ...store.meState, avatar: KEY };
+      return Promise.resolve();
+    },
+    removeAvatar: () => {
+      const failed = fail();
+      if (failed) return failed;
+      store.calls.push("removeAvatar");
+      if (store.meState) store.meState = { rank: store.meState.rank, badges: store.meState.badges, hidden: store.meState.hidden };
       return Promise.resolve();
     },
   };

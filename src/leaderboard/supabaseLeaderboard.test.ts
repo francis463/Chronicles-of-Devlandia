@@ -62,4 +62,58 @@ describe("createSupabaseLeaderboard", () => {
     await store.setHidden(false);
     expect(fake.calls).toEqual([]);
   });
+
+  describe("photos", () => {
+    const NEW = "11111111-1111-4111-8111-111111111111";
+    const OLD = "22222222-2222-4222-8222-222222222222";
+    const photo = new Blob(["x"], { type: "image/jpeg" });
+
+    it("setAvatar gets a new key, uploads the file under it, then removes the old file", async () => {
+      const { fake, load } = createFakeSupabase();
+      fake.rpcReplies.avatar_start = { data: [{ new_key: NEW, old_key: OLD }], error: null };
+      await createSupabaseLeaderboard(load, "u1").setAvatar(photo);
+      expect(fake.calls.map((c) => c.name)).toEqual(["rpc", "storage(avatars).upload", "storage(avatars).remove"]);
+      expect(fake.calls[1].args).toEqual([`${NEW}.jpg`, photo, { contentType: "image/jpeg" }]);
+      expect(fake.calls[2].args).toEqual([[`${OLD}.jpg`]]);
+    });
+
+    it("setAvatar with no old photo removes nothing", async () => {
+      const { fake, load } = createFakeSupabase();
+      fake.rpcReplies.avatar_start = { data: [{ new_key: NEW, old_key: null }], error: null };
+      await createSupabaseLeaderboard(load, "u1").setAvatar(photo);
+      expect(fake.calls.map((c) => c.name)).toEqual(["rpc", "storage(avatars).upload"]);
+    });
+
+    it("a failed upload clears the half-made photo and rejects", async () => {
+      const { fake, load } = createFakeSupabase();
+      fake.rpcReplies.avatar_start = { data: [{ new_key: NEW, old_key: OLD }], error: null };
+      fake.uploadReply = { error: { message: "too big" } };
+      await expect(createSupabaseLeaderboard(load, "u1").setAvatar(photo)).rejects.toThrow();
+      expect(fake.calls.map((c) => c.args[0])).toContain("avatar_clear");
+    });
+
+    it("setAvatar rejects when the server will not start one, and a bad reply is not trusted", async () => {
+      const { fake, load } = createFakeSupabase();
+      fake.rpcReplies.avatar_start = { data: null, error: { message: "no" } };
+      await expect(createSupabaseLeaderboard(load, "u1").setAvatar(photo)).rejects.toThrow();
+      fake.rpcReplies.avatar_start = { data: [{ new_key: "../x", old_key: null }], error: null };
+      await expect(createSupabaseLeaderboard(load, "u1").setAvatar(photo)).rejects.toThrow();
+    });
+
+    it("removeAvatar clears the row and removes the file", async () => {
+      const { fake, load } = createFakeSupabase();
+      fake.rpcReplies.avatar_clear = { data: [{ old_key: OLD }], error: null };
+      await createSupabaseLeaderboard(load, "u1").removeAvatar();
+      expect(fake.calls[0]).toEqual({ name: "rpc", args: ["avatar_clear"] });
+      expect(fake.calls[1].args).toEqual([[`${OLD}.jpg`]]);
+    });
+
+    it("guests can do neither, and the server is not asked", async () => {
+      const { fake, load } = createFakeSupabase();
+      const store = createSupabaseLeaderboard(load, null);
+      await store.setAvatar(photo);
+      await store.removeAvatar();
+      expect(fake.calls).toEqual([]);
+    });
+  });
 });

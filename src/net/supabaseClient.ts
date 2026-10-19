@@ -27,6 +27,7 @@ export type SupabaseLike = RealtimeClientLike & {
   auth: AuthApiLike;
   from(table: string): TableLike;
   rpc(fn: string, args?: object): PromiseLike<QueryResult>;
+  storage: { from(bucket: string): { upload(path: string, body: Blob, opts: { contentType: string }): Promise<{ error: ErrorLike }>; remove(paths: string[]): Promise<{ error: ErrorLike }> } };
   functions: { invoke(name: string, opts: { body: unknown }): Promise<{ data: unknown; error: unknown }> };
 };
 

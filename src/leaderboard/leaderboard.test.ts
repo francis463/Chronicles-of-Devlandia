@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseMe, parseRows } from "./leaderboard";
+import { avatarUrl, parseMe, parseRows } from "./leaderboard";
 
 describe("parseRows", () => {
   it("keeps well-formed rows", () => {
@@ -51,5 +51,25 @@ describe("parseMe", () => {
     for (const bad of [{ rank: 1, badges: -1, hidden: false }, { rank: 1, badges: 1.5, hidden: false }, { rank: 1.5, badges: 1, hidden: false }, { rank: 0, badges: 1, hidden: false }, { rank: "1", badges: 1, hidden: false }, { rank: 1, badges: 12, hidden: false }]) {
       expect(parseMe([bad])).toBeNull();
     }
+  });
+});
+
+const KEY = "0b9e8f0c-7a55-4a3c-9d0e-5a1f2c3d4e5f";
+
+describe("avatars", () => {
+  it("keeps a well-formed avatar key on a row and on the caller's standing", () => {
+    expect(parseRows([{ rank: 1, name: "Alice", badges: 3, avatar: KEY }])).toEqual([{ rank: 1, name: "Alice", badges: 3, avatar: KEY }]);
+    expect(parseMe([{ rank: 1, badges: 3, hidden: false, avatar: KEY }])).toEqual({ rank: 1, badges: 3, hidden: false, avatar: KEY });
+  });
+
+  it("drops an avatar that is not a plain key, but keeps the row", () => {
+    for (const bad of ["../x", "https://evil.test/a.jpg", 5, "", KEY + "/../a", null]) {
+      expect(parseRows([{ rank: 1, name: "Alice", badges: 3, avatar: bad }])).toEqual([{ rank: 1, name: "Alice", badges: 3 }]);
+      expect(parseMe([{ rank: 1, badges: 3, hidden: false, avatar: bad }])).toEqual({ rank: 1, badges: 3, hidden: false });
+    }
+  });
+
+  it("builds the public photo address from the key", () => {
+    expect(avatarUrl(KEY)).toMatch(new RegExp(`^https?://.+/storage/v1/object/public/avatars/${KEY}\\.jpg$`));
   });
 });

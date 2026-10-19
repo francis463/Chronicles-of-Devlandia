@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { createMemoryLeaderboard } from "../leaderboard/memoryLeaderboard";
@@ -11,11 +11,14 @@ const ROWS: Row[] = [
   { rank: 3, name: "Carol", badges: 1 },
 ];
 
+const KEY = "0b9e8f0c-7a55-4a3c-9d0e-5a1f2c3d4e5f";
+const shrink = vi.fn(async () => new Blob(["jpg"], { type: "image/jpeg" }));
+
 const setup = (over: { rows?: Row[]; me?: Me | null; signedIn?: boolean; myName?: string | null } = {}) => {
   const store = createMemoryLeaderboard({ rows: over.rows ?? ROWS, me: over.me ?? null });
   const onBack = vi.fn();
-  render(<Leaderboard store={store} signedIn={over.signedIn ?? false} myName={over.myName ?? null} onBack={onBack} />);
-  return { store, onBack, user: userEvent.setup() };
+  render(<Leaderboard store={store} signedIn={over.signedIn ?? false} myName={over.myName ?? null} onBack={onBack} shrink={shrink} />);
+  return { store, onBack, user: userEvent.setup({ applyAccept: false }) };
 };
 
 describe("Leaderboard", () => {
@@ -116,5 +119,57 @@ describe("Leaderboard", () => {
     render(<Leaderboard store={store} signedIn={false} myName={null} onBack={() => undefined} />);
     await waitFor(() => expect(screen.getByRole("list", { name: "Top players" })).toBeInTheDocument());
     expect(screen.getByRole("list", { name: "Top players" })).toHaveTextContent("Ok");
+  });
+
+  describe("photos", () => {
+    it("a row with a photo shows it; a row without shows the first letter", async () => {
+      setup({ rows: [{ rank: 1, name: "Alice", badges: 3, avatar: KEY }, { rank: 2, name: "Bobby", badges: 2 }] });
+      const rows = within(await screen.findByRole("list", { name: "Top players" })).getAllByRole("listitem");
+      const img = within(rows[0]).getByRole("img", { name: "Alice's photo" });
+      expect(img).toHaveAttribute("src", expect.stringContaining(`/avatars/${KEY}.jpg`));
+      expect(within(rows[1]).queryByRole("img")).not.toBeInTheDocument();
+      expect(rows[1]).toHaveTextContent("B");
+    });
+
+    it("a photo that fails to load falls back to the first letter", async () => {
+      setup({ rows: [{ rank: 1, name: "Alice", badges: 3, avatar: KEY }] });
+      fireEvent.error(await screen.findByRole("img", { name: "Alice's photo" }));
+      expect(screen.queryByRole("img")).not.toBeInTheDocument();
+      expect(screen.getByRole("listitem")).toHaveTextContent("A");
+    });
+
+    it("a guest sees no photo buttons", async () => {
+      setup({ signedIn: false });
+      await screen.findByRole("list", { name: "Top players" });
+      expect(screen.queryByRole("button", { name: "[ Change photo ]" })).not.toBeInTheDocument();
+    });
+
+    it("choosing a file shrinks it, saves it and reloads; Remove appears once you have one", async () => {
+      const { store, user } = setup({ signedIn: true, myName: "Zed", me: { rank: 5, badges: 2, hidden: false } });
+      expect(await screen.findByRole("button", { name: "[ Change photo ]" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "[ Remove photo ]" })).not.toBeInTheDocument();
+      await user.upload(screen.getByLabelText("Choose a photo"), new File(["x"], "me.png", { type: "image/png" }));
+      expect(shrink).toHaveBeenCalled();
+      expect(await screen.findByRole("button", { name: "[ Remove photo ]" })).toBeInTheDocument();
+      expect(store.calls).toEqual(["setAvatar:3"]);
+    });
+
+    it("Remove photo removes it", async () => {
+      const { store, user } = setup({ signedIn: true, myName: "Zed", me: { rank: 5, badges: 2, hidden: false, avatar: KEY } });
+      await user.click(await screen.findByRole("button", { name: "[ Remove photo ]" }));
+      await waitFor(() => expect(screen.queryByRole("button", { name: "[ Remove photo ]" })).not.toBeInTheDocument());
+      expect(store.calls).toEqual(["removeAvatar"]);
+    });
+
+    it("says so when a file is not a picture or will not save, and keeps what you had", async () => {
+      const { store, user } = setup({ signedIn: true, myName: "Zed", me: { rank: 5, badges: 2, hidden: false } });
+      await screen.findByRole("button", { name: "[ Change photo ]" });
+      await user.upload(screen.getByLabelText("Choose a photo"), new File(["x"], "n.txt", { type: "text/plain" }));
+      expect(await screen.findByText("Pick a picture file (JPG, PNG or WebP).")).toBeInTheDocument();
+      expect(store.calls).toEqual([]);
+      store.failNext = 1;
+      await user.upload(screen.getByLabelText("Choose a photo"), new File(["x"], "me.png", { type: "image/png" }));
+      expect(await screen.findByText("Couldn't save your photo. Try again.")).toBeInTheDocument();
+    });
   });
 });

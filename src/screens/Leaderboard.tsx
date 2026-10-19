@@ -1,11 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { maskRude } from "../chat/filter";
-import { parseRows, type LeaderboardStore, type Me, type Row } from "../leaderboard/leaderboard";
+import { checkPhoto, shrinkToSquare } from "../leaderboard/avatar";
+import { avatarUrl, parseRows, type LeaderboardStore, type Me, type Row } from "../leaderboard/leaderboard";
 import { Button } from "../ui/Button";
 import { Panel } from "../ui/Panel";
 import { MenuBackdrop } from "./MenuBackdrop";
 
 type Phase = "loading" | "ready" | "failed";
+
+/** A player's round picture, or their first letter when they have none or it will not load. */
+function Face({ name, avatar }: { name: string; avatar?: string }) {
+  const [broken, setBroken] = useState(false);
+  return (
+    <span aria-hidden={avatar && !broken ? undefined : true} className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[var(--panel-border)] bg-[var(--bg)] text-xs font-bold text-[var(--accent)]">
+      {avatar && !broken ? (
+        <img src={avatarUrl(avatar)} alt={`${name}'s photo`} width={32} height={32} onError={() => setBroken(true)} className="h-full w-full object-cover" />
+      ) : (
+        name.charAt(0).toUpperCase()
+      )}
+    </span>
+  );
+}
 
 /** The top players by badges, with your own standing and a switch to hide yourself. Anyone can open it. */
 export function Leaderboard({
@@ -13,16 +28,22 @@ export function Leaderboard({
   signedIn,
   myName,
   onBack,
+  shrink = shrinkToSquare,
 }: {
   store: LeaderboardStore;
   signedIn: boolean;
   myName: string | null;
   onBack: () => void;
+  /** Test seam: turns the chosen file into the small square that is saved. */
+  shrink?: (file: File) => Promise<Blob>;
 }) {
   const [phase, setPhase] = useState<Phase>("loading");
   const [rows, setRows] = useState<Row[]>([]);
   const [me, setMe] = useState<Me | null>(null);
   const [saveFailed, setSaveFailed] = useState(false);
+  const [photoMsg, setPhotoMsg] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const picker = useRef<HTMLInputElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   // Only the newest request may change the screen; an older reply arriving late is ignored.
   const latest = useRef(0);
@@ -65,6 +86,34 @@ export function Leaderboard({
     }
   };
 
+  const changePhoto = async (file: File | undefined) => {
+    if (!file) return;
+    const why = checkPhoto(file);
+    if (why) return setPhotoMsg(why);
+    setPhotoMsg(null);
+    setBusy(true);
+    try {
+      await store.setAvatar(await shrink(file));
+      await load(false);
+    } catch {
+      setPhotoMsg("Couldn't save your photo. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const removePhoto = async () => {
+    setPhotoMsg(null);
+    setBusy(true);
+    try {
+      await store.removeAvatar();
+      await load(false);
+    } catch {
+      setPhotoMsg("Couldn't remove your photo. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const isMe = (name: string) => !!myName && name.toLowerCase() === myName.toLowerCase();
   const standing = me && me.rank !== null ? `Your rank: ${me.rank} · ${me.badges}/11 badges` : null;
 
@@ -88,6 +137,7 @@ export function Leaderboard({
                 className={`flex items-center gap-3 rounded border px-3 py-2 text-sm ${isMe(r.name) ? "border-[var(--primary-border)] bg-[var(--bg)]" : "border-[var(--panel-border)]"}`}
               >
                 <span className="w-8 shrink-0 text-right font-bold text-[var(--accent)]">{r.rank}</span>
+                <Face name={maskRude(r.name)} avatar={r.avatar} />
                 <span className="min-w-0 flex-1 truncate">{`${maskRude(r.name)}${isMe(r.name) ? " (you)" : ""}`}</span>
                 <span className="shrink-0 text-xs text-[var(--text-muted)]">{`${r.badges}/11 badges`}</span>
               </li>
@@ -105,6 +155,18 @@ export function Leaderboard({
               <span>Hide me from the leaderboard</span>
             </label>
             {saveFailed && <p role="alert" className="text-[var(--danger-border)]">Couldn't save that. Try again.</p>}
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <input ref={picker} type="file" accept="image/*" aria-label="Choose a photo" className="hidden" onChange={(e) => { void changePhoto(e.target.files?.[0]); e.target.value = ""; }} />
+              <Button variant="neutral" disabled={busy} onClick={() => picker.current?.click()}>
+                [ Change photo ]
+              </Button>
+              {me.avatar && (
+                <Button variant="ghost" disabled={busy} onClick={() => void removePhoto()}>
+                  [ Remove photo ]
+                </Button>
+              )}
+            </div>
+            {photoMsg && <p role="alert" className="text-[var(--danger-border)]">{photoMsg}</p>}
           </div>
         )}
 

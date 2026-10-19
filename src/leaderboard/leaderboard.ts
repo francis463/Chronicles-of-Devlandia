@@ -1,13 +1,19 @@
-/** One line of the leaderboard. */
-export type Row = { rank: number; name: string; badges: number };
+import { SUPABASE_URL } from "../net/config";
+
+/** One line of the leaderboard. `avatar` is the random key of the player's photo, when they have one. */
+export type Row = { rank: number; name: string; badges: number; avatar?: string };
 /** The caller's own standing; `rank` is null while they have no badges. */
-export type Me = { rank: number | null; badges: number; hidden: boolean };
+export type Me = { rank: number | null; badges: number; hidden: boolean; avatar?: string };
 
 export interface LeaderboardStore {
   top(): Promise<Row[]>;
   /** The caller's standing; null for a guest or when the server has none. */
   me(): Promise<Me | null>;
   setHidden(hidden: boolean): Promise<void>;
+  /** Replaces the caller's photo with this (already shrunk) JPEG. Does nothing for a guest. */
+  setAvatar(photo: Blob): Promise<void>;
+  /** Removes the caller's photo. Does nothing for a guest. */
+  removeAvatar(): Promise<void>;
 }
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -16,12 +22,19 @@ const isInt = (v: unknown, min: number, max: number): v is number => typeof v ==
 const BADGES = 11;
 const MAX_RANK = 1_000_000;
 
+/** A photo's key is a random uuid. Anything else is dropped, so a key can never steer the address elsewhere. */
+const KEY = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+export const isAvatarKey = (v: unknown): v is string => typeof v === "string" && KEY.test(v);
+const withAvatar = (v: unknown): { avatar?: string } => (isAvatarKey(v) ? { avatar: v } : {});
+/** Where a photo is served from: the public `avatars` storage bucket. */
+export const avatarUrl = (key: string): string => `${SUPABASE_URL}/storage/v1/object/public/avatars/${key}.jpg`;
+
 /** Reads the server's list; whatever it sends, a row that does not fit is dropped rather than shown. */
 export function parseRows(data: unknown): Row[] {
   if (!Array.isArray(data)) return [];
   return data.flatMap((r): Row[] =>
     isObj(r) && isInt(r.rank, 1, MAX_RANK) && isInt(r.badges, 1, BADGES) && typeof r.name === "string" && r.name.length >= 1 && r.name.length <= 12
-      ? [{ rank: r.rank, name: r.name, badges: r.badges }]
+      ? [{ rank: r.rank, name: r.name, badges: r.badges, ...withAvatar(r.avatar) }]
       : [],
   );
 }
@@ -31,5 +44,5 @@ export function parseMe(data: unknown): Me | null {
   const r = Array.isArray(data) ? data[0] : null;
   if (!isObj(r) || typeof r.hidden !== "boolean" || !isInt(r.badges, 0, BADGES)) return null;
   if (r.rank !== null && !isInt(r.rank, 1, MAX_RANK)) return null;
-  return { rank: r.rank, badges: r.badges, hidden: r.hidden };
+  return { rank: r.rank, badges: r.badges, hidden: r.hidden, ...withAvatar(r.avatar) };
 }
