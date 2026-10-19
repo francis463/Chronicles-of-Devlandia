@@ -10,8 +10,14 @@ export type CertificateData = {
   date: string;
   /** The time played, such as "3 h 20 min". */
   played: string;
+  /** How many hints the player used; each one is already counted in `played`. */
+  hints?: number;
   hard: boolean;
 };
+
+/** "Time played 25 min (includes 3 hints)": the hints are part of the time, as a penalty. */
+export const playedLine = (data: Pick<CertificateData, "played" | "hints">): string =>
+  `Time played ${data.played}${data.hints ? ` (includes ${data.hints} hint${data.hints === 1 ? "" : "s"})` : ""}`;
 
 export const CERTIFICATE_SIZE = { width: 1100, height: 780 } as const;
 export const NAME_LIMIT = 24;
@@ -65,7 +71,7 @@ export function drawCertificate(ctx: CanvasRenderingContext2D, data: Certificate
     const x = w / 2 + ((i % 4) - (inRow - 1) / 2) * 230;
     line(`✓ ${badge}`, 505 + row * 50, 24, GREEN, "bold", x);
   });
-  line(`Awarded ${data.date} · Time played ${data.played}`, h - 90, 20, INK);
+  line(`Awarded ${data.date} · ${playedLine(data)}`, h - 90, 20, INK);
 }
 
 const escapeHtml = (text: string): string => text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -90,6 +96,6 @@ ul { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px 18px; margin
 <p>This certifies that</p><p class="name">${escapeHtml(certificateName(data.name))}</p>
 <p>has earned all ${earnedBadgeNames(data.badges).length} language badges${data.hard ? " on hard mode" : ""}:</p>
 <ul>${items}</ul>
-<p class="foot">Awarded ${escapeHtml(data.date)} · Game time ${escapeHtml(data.played)}</p>
+<p class="foot">Awarded ${escapeHtml(data.date)} · ${escapeHtml(playedLine(data))}</p>
 </div></body></html>`;
 }

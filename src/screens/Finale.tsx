@@ -1,3 +1,4 @@
+import { HINT_PENALTY_MS } from "../game/constants";
 import { CHESTS } from "../learn/chests";
 import type { ChestId } from "../learn/types";
 import { TerminalDialog } from "../ui/TerminalDialog";
@@ -57,7 +58,7 @@ export function Finale({
             </li>
           ))}
         </ul>
-        <p>{`Time played: ${playedFor(playedMs)} · Hints used: ${hints}`}</p>
+        <p>{`Time played: ${playedFor(playedMs)} · Hints used: ${hints}${hints > 0 ? ` (+${HINT_PENALTY_MS / 60_000} min each)` : ""}`}</p>
         {onNewGamePlus && !hard && (
           <p className="rounded border-[1.5px] border-dashed border-[var(--primary-border)] px-3 py-2">
             <span className="font-bold text-[var(--primary-border)]">New Game+: </span>

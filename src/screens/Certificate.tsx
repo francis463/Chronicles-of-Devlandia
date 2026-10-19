@@ -23,6 +23,7 @@ export function Certificate({
   name: initialName,
   badges,
   played,
+  hints,
   hard,
   date = new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }),
   onBack,
@@ -30,6 +31,8 @@ export function Certificate({
   name: string;
   badges: readonly ChestId[];
   played: string;
+  /** Hints used; already counted in `played`. */
+  hints?: number;
   hard: boolean;
   /** The award date as written; today's by default. */
   date?: string;
@@ -38,7 +41,7 @@ export function Certificate({
   const [name, setName] = useState(initialName);
   const [note, setNote] = useState("");
   const canvas = useRef<HTMLCanvasElement>(null);
-  const data: CertificateData = useMemo(() => ({ name, badges, date, played, hard }), [name, badges, date, played, hard]);
+  const data: CertificateData = useMemo(() => ({ name, badges, date, played, hints, hard }), [name, badges, date, played, hints, hard]);
   const drawn = useRef(false);
 
   useEffect(() => {

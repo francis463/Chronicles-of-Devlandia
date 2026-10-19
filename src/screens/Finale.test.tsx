@@ -12,7 +12,12 @@ describe("Finale", () => {
     expect(screen.getByRole("dialog", { name: /master of devlandia/i })).toBeInTheDocument();
     expect(screen.getByText(/you are a master of devlandia/i)).toBeInTheDocument();
     expect(screen.getAllByRole("listitem")).toHaveLength(11);
-    expect(screen.getByText("Time played: 3 h 20 min · Hints used: 3")).toBeInTheDocument();
+    expect(screen.getByText("Time played: 3 h 20 min · Hints used: 3 (+2 min each)")).toBeInTheDocument();
+  });
+
+  it("with no hints used it does not mention a penalty", () => {
+    render(<Finale {...base} hints={0} />);
+    expect(screen.getByText("Time played: 3 h 20 min · Hints used: 0")).toBeInTheDocument();
   });
 
   it("Keep exploring closes it", async () => {

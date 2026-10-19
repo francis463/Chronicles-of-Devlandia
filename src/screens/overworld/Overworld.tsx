@@ -21,6 +21,7 @@ import { usePings } from "../../hooks/usePings";
 import type { TeamSession } from "../../hooks/useTeamSession";
 import { LOG, LOW_HP, TICK_MS, FOOD_COOLDOWN_MS } from "../../game/constants";
 import { tideName } from "../../game/tide";
+import { playedWithHints } from "../../game/clock";
 import { flagsOf, teamMinutes } from "../../game/team";
 import { ZONES } from "../../game/zones";
 import { chestById, chestChallenge } from "../../learn/chests";
@@ -309,8 +310,9 @@ export function Overworld({
   };
   const now = useNow(TICK_MS, team?.startedAt != null);
   const minutes = team?.startedAt != null ? teamMinutes(team.startedAt, now) : state.minutes;
-  // Real time played: the team's shared clock in a team game, else the solo game's own ticks (they pause with the game).
-  const playedMs = team?.startedAt != null ? Math.max(0, now - team.startedAt) : state.ticks * TICK_MS;
+  // Real time played (the team's shared clock in a team game, else the solo game's own ticks, which pause with the game) plus 2 minutes for every hint used.
+  const hintsUsed = state.hintsRevealed.length;
+  const playedMs = playedWithHints(team?.startedAt != null ? Math.max(0, now - team.startedAt) : state.ticks * TICK_MS, hintsUsed);
   const teamLabel = team?.room ? `ROOM ${team.room} · ${team.players.length} online` : undefined;
 
   const inRange = downed ? null : placeInReach(state.player, reachPlaces(state), reachFor(state.zone));
@@ -485,7 +487,7 @@ export function Overworld({
       )}
       {state.bookOpen && <ReviewBook badges={state.badges} answered={state.answered} picks={state.picks} onClose={() => dispatch({ type: "toggleBook" })} />}
       {state.finaleOpen && certificateOpen && (
-        <Certificate name={playerName} badges={state.badges} played={playedFor(playedMs)} hard={state.hard} onBack={() => setCertificateOpen(false)} />
+        <Certificate name={playerName} badges={state.badges} played={playedFor(playedMs)} hints={hintsUsed} hard={state.hard} onBack={() => setCertificateOpen(false)} />
       )}
       {state.finaleOpen && !certificateOpen && (
         <Finale

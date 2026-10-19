@@ -64,6 +64,8 @@ export const LOW_HP = 2;
 export const START_MINUTES = 19 * 60 + 29;
 export const MINUTES_PER_DAY = 1440;
 export const TICK_MS = 2000;
+/** Every hint used adds this much to the time played (2 minutes). */
+export const HINT_PENALTY_MS = 2 * 60_000;
 export const TICK_MINUTES = 5;
 export const RIVER_DAMAGE = 1;
 /** HP lost for each wrong answer at a terminal or the lighthouse lamp. */

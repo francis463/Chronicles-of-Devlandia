@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { advanceClock, formatTime, phaseOf } from "./clock";
+import { advanceClock, formatTime, phaseOf, playedWithHints } from "./clock";
+import { HINT_PENALTY_MS } from "./constants";
 
 describe("clock", () => {
   it("formats minutes as HH:MM", () => {
@@ -21,5 +22,14 @@ describe("clock", () => {
     expect(phaseOf(1080)).toBe("Dusk");
     expect(phaseOf(1199)).toBe("Dusk");
     expect(phaseOf(1200)).toBe("Night");
+  });
+});
+
+describe("playedWithHints", () => {
+  it("adds 2 minutes for every hint used, and nothing for none", () => {
+    expect(HINT_PENALTY_MS).toBe(120_000);
+    expect(playedWithHints(600_000, 0)).toBe(600_000);
+    expect(playedWithHints(600_000, 1)).toBe(720_000);
+    expect(playedWithHints(600_000, 3)).toBe(960_000);
   });
 });

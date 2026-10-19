@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   CERTIFICATE_SIZE,
+  playedLine,
   NAME_LIMIT,
   certificateFileName,
   certificateHtml,
@@ -29,6 +30,24 @@ describe("certificate text", () => {
     expect(certificateFileName("Ada Lovelace")).toBe("devlandia-certificate-ada-lovelace.png");
     expect(certificateFileName("")).toBe("devlandia-certificate-explorer.png");
     expect(certificateFileName("../../x")).toBe("devlandia-certificate-x.png");
+  });
+});
+
+describe("playedLine", () => {
+  it("says the time played, and that hints are included in it", () => {
+    expect(playedLine(data)).toBe("Time played 3 h 20 min");
+    expect(playedLine({ ...data, hints: 0 })).toBe("Time played 3 h 20 min");
+    expect(playedLine({ ...data, hints: 1 })).toBe("Time played 3 h 20 min (includes 1 hint)");
+    expect(playedLine({ ...data, hints: 3 })).toBe("Time played 3 h 20 min (includes 3 hints)");
+  });
+
+  it("is on the printed page and the picture", () => {
+    expect(certificateHtml({ ...data, hints: 3 })).toContain("Time played 3 h 20 min (includes 3 hints)");
+    expect(certificateHtml(data)).not.toContain("Game time");
+    const texts: string[] = [];
+    const ctx = { fillRect: () => {}, strokeRect: () => {}, fillText: (t: string) => texts.push(t), fillStyle: "", strokeStyle: "", lineWidth: 0, font: "", textAlign: "" } as unknown as CanvasRenderingContext2D;
+    drawCertificate(ctx, { ...data, hints: 2 });
+    expect(texts.some((t) => t.includes("Time played 3 h 20 min (includes 2 hints)"))).toBe(true);
   });
 });
 
