@@ -51,7 +51,12 @@ export type PoiId =
   | "lodge-fireplace"
   | "lodge-keeper"
   | "lodge-book"
+  | HallSlotId
+  | "hall-signpost"
   | Exclude<ChestId, "chest-cs">;
+
+/** The ten Hall of Fame spots: rank 1 to 3 stand on the stage, 4 to 10 on the ground. */
+export type HallSlotId = `hall-${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10}`;
 
 /** The ranger's three lost glow mushrooms. */
 export type MushroomId = "mushroom-1" | "mushroom-2" | "mushroom-3";

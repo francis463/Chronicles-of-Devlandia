@@ -13,6 +13,7 @@ import { BEACH_POINTS } from "./beach";
 import { BEACH_PIER, FISHER, SHIPWRECK, BEACH_SIGNPOST } from "../../game/constants";
 import { HIDDEN_ARTIFACT } from "../../game/constants";
 import { DOCK, HERMIT, ISLAND_DOCK, ISLAND_FIRE, LIGHTHOUSE, RUINS } from "../../game/constants";
+import { HALL, HALL_FLAT, HALL_POINTS } from "./hall";
 import { VILLAGE_LIFE, VILLAGE_POINTS, wandererPose } from "./village";
 import { ARCHIVE_POINT, TERMINAL_POINT } from "../learnPoints";
 import { CHESTS } from "../../learn/chests";
@@ -263,8 +264,8 @@ describe("Dev Village's north half", () => {
     spriteBox("syntax-terminal", TERMINAL_POINT),
   ];
 
-  it("has a pond, two benches, a windmill, a fountain, five fruit trees, five huts, four gardens and a fence", () => {
-    expect(["pond", "bench", "windmill", "fountain", "fruit-tree", "hut", "garden"].map(count)).toEqual([1, 2, 1, 1, 5, 5, 4]);
+  it("has a pond, two benches, a windmill, a fountain, two fruit trees, five huts, four gardens and a fence", () => {
+    expect(["pond", "bench", "windmill", "fountain", "fruit-tree", "hut", "garden"].map(count)).toEqual([1, 2, 1, 1, 2, 5, 4]);
     expect(count("fence")).toBeGreaterThanOrEqual(4);
   });
 
@@ -504,5 +505,58 @@ describe("Foggaten Island's dig corner", () => {
     expect(reaches).toBe(true);
     expect(FOGGATEN.terrainAt(dig.x, dig.y)).not.toBe("sea");
     for (const p of FOGGATEN.props) expect(intersects(spriteBox("x-mark", dig), spriteBox(p.sprite, p.at)), p.sprite).toBe(false);
+  });
+});
+
+describe("the Hall of Fame", () => {
+  const heroes = HALL_POINTS.slots.map((at) => spriteBox("explorer-down", at));
+  const flat = HALL_FLAT.map((f) => ({ ...f, box: spriteBox(f.sprite, f.at) }));
+  const propBoxes = HALL.props.map((p) => spriteBox(p.sprite, p.at));
+
+  it("is a one-screen area with no wall, a south mouth with a clear corridor below it, and the village has the matching north one", () => {
+    expect(AREAS.hall.id).toBe("hall");
+    expect(HALL.world).toEqual({ width: 320, height: 180 });
+    expect(HALL.wall).toBe(false);
+    expect(HALL.mouths).toEqual([{ x: 128, y: 148, w: 52, h: 32 }]);
+    expect(HALL.corridors).toEqual([{ x: 128, y: 180, w: 52, h: 1000 }]);
+    expect(AREAS.village.mouths).toContainEqual({ x: 128, y: 0, w: 52, h: 32 });
+    expect(AREAS.village.corridors).toContainEqual({ x: 128, y: -1000, w: 52, h: 1000 });
+  });
+
+  it("paves the inside and keeps meadow outside", () => {
+    expect(HALL.terrainAt(160, 90)).toBe("floor");
+    expect(HALL.terrainAt(160, -5)).toBe("meadow");
+    expect(HALL.terrainAt(-5, 90)).toBe("meadow");
+    expect(HALL.terrainAt(160, 200)).toBe("meadow");
+  });
+
+  it("stands the top three on the podium blocks (the hero's feet are the block's top) and the rest on open ground", () => {
+    for (const [i, name] of (["podium-1", "podium-2", "podium-3"] as const).entries()) {
+      const block = flat.find((f) => f.sprite === name)!;
+      expect(block.at.x, name).toBe(HALL_POINTS.slots[i].x);
+      expect(block.box.y - 1, name).toBe(HALL_POINTS.slots[i].y); // the row above the block's first row
+    }
+    const stage = flat.find((f) => f.sprite === "stage")!;
+    for (const [i, hero] of heroes.entries()) {
+      if (i < 3) expect(intersects(hero, stage.box), `hero ${i + 1} stands in front of the backdrop`).toBe(true);
+      else expect(intersects(hero, stage.box), `hero ${i + 1}`).toBe(false);
+    }
+  });
+
+  it("keeps every hero inside the walkable area, off every other hero, prop and the door's corridor", () => {
+    for (const [i, a] of heroes.entries()) {
+      expect(a.x >= REACHABLE_RECT.x && a.y >= REACHABLE_RECT.y && a.x + a.w <= REACHABLE_RECT.x + REACHABLE_RECT.w && a.y + a.h <= REACHABLE_RECT.y + REACHABLE_RECT.h, `hero ${i + 1} in bounds`).toBe(true);
+      for (const [j, b] of heroes.entries()) if (j > i) expect(intersects(a, b), `hero ${i + 1} / hero ${j + 1}`).toBe(false);
+      for (const [k, p] of propBoxes.entries()) expect(intersects(a, p), `hero ${i + 1} / prop ${HALL.props[k].sprite}`).toBe(false);
+      for (const m of HALL.mouths) expect(intersects(a, m), `hero ${i + 1} / mouth`).toBe(false);
+    }
+  });
+
+  it("keeps the props off the stage, the podiums, the aisle and the door", () => {
+    for (const [k, p] of propBoxes.entries()) {
+      for (const f of flat) expect(intersects(p, f.box), `${HALL.props[k].sprite} / ${f.sprite}`).toBe(false);
+      for (const path of HALL.paths) expect(intersects(p, path), `${HALL.props[k].sprite} / aisle`).toBe(false);
+      for (const m of HALL.mouths) expect(intersects(p, m), `${HALL.props[k].sprite} / mouth`).toBe(false);
+    }
   });
 });

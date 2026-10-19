@@ -23,6 +23,8 @@ const PATHS: Rect[] = [
   // The north road, from the main road up through the gap between Ada and the PHP chest to the town square.
   { x: 120, y: 44, w: 6, h: 84 },
   { x: 120, y: 44, w: 86, h: 40 },
+  // The way north to the Hall of Fame: from the square's top edge up to the top of the village and on.
+  { x: 148, y: -1000, w: 8, h: 1044 },
 ];
 /** The village's decorations: a lantern by the well, two garden plots and a market stall. */
 const LANTERN_POINT = { x: 164, y: 157 };
@@ -55,6 +57,8 @@ export function wandererPose(t: number, reduced: boolean, w: Wanderer): Pose {
 }
 
 const MOUTH: Rect = { x: 288, y: 112, w: 32, h: 32 };
+/** The north exit to the Hall of Fame: a gap in the top edge (game columns 40–56). There is no hedge on that edge, so it only keeps the exit clear. */
+const NORTH_MOUTH: Rect = { x: 128, y: 0, w: 52, h: 32 };
 const PROPS: Prop[] = [
   { sprite: "hut", at: { x: 56, y: 116 } },
   { sprite: "hut", at: { x: 88, y: 162 } },
@@ -67,14 +71,14 @@ const PROPS: Prop[] = [
   { sprite: "garden", at: { x: 60, y: 143 } },
   { sprite: "garden", at: { x: 60, y: 132 } },
   { sprite: "stall", at: { x: 119, y: 161 } },
-  // The north half: a windmill and a pond in the west, the town square with its fountain and benches, an orchard,
+  // The north half: a windmill and a pond in the west, the town square with its fountain and benches, a short orchard (two trees east of the way north),
   // a hut north of the pond, two more in the north-east and a fenced crop field beside them.
   { sprite: "windmill", at: { x: 44, y: 76 } },
   { sprite: "pond", at: { x: 92, y: 66 } },
   { sprite: "bench", at: { x: 190, y: 52 } },
   { sprite: "bench", at: { x: 156, y: 52 } },
   { sprite: "fountain", at: { x: 138, y: 66 } },
-  ...[140, 156, 172, 188, 204].map((x) => ({ sprite: "fruit-tree" as const, at: { x, y: 42 } })),
+  ...[188, 204].map((x) => ({ sprite: "fruit-tree" as const, at: { x, y: 42 } })),
   { sprite: "hut", at: { x: 92, y: 41 } },
   { sprite: "hut", at: { x: 228, y: 56 } },
   { sprite: "hut", at: { x: 262, y: 56 } },
@@ -90,14 +94,19 @@ export const VILLAGE: Area = {
   wall: false,
   terrainAt,
   paths: PATHS,
-  mouths: [MOUTH],
-  corridors: [{ x: 320, y: 112, w: 1000, h: 32 }],
+  mouths: [MOUTH, NORTH_MOUTH],
+  // The open ground beyond the east exit (rows 62 to 78) and beyond the north exit (columns 40 to 56).
+  corridors: [
+    { x: 320, y: 112, w: 1000, h: 32 },
+    { x: 128, y: -1000, w: 52, h: 1000 },
+  ],
   gateBox: null,
   ice: null,
   props: PROPS,
   protected: [
     ...PATHS,
     MOUTH,
+    NORTH_MOUTH,
     ...PROPS.map((prop) => spriteBox(prop.sprite, prop.at)),
     spriteBox("chicken", VILLAGE_LIFE.chicken),
     ...remedySpotsIn("village").map((r) => spriteBox(r.sprite, r.at)),

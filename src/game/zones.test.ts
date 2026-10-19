@@ -26,7 +26,8 @@ describe("zones", () => {
         expect(player.x % 2, where).toBe(0);
         expect(player.y % 2, where).toBe(0);
         expect(inBounds(player), where).toBe(true);
-        expect(player.y, where).toBeGreaterThan(49);
+        // Only a zone with the north wall has a north part to arrive south of.
+        if (ZONES[z.exits[0].to].wall) expect(player.y, where).toBeGreaterThan(49);
         expect(isInRiver(player), where).toBe(false);
         expect(inBounds(drone), where).toBe(true);
       }
@@ -55,9 +56,24 @@ const SOUTH: Exit = { edge: "south", min: 62, max: 78, to: "village" };
 const NORTH: Exit = { edge: "north", min: 62, max: 78, to: "peaks" };
 const WEST: Exit = { edge: "west", min: 62, max: 78, to: "village" };
 
+describe("the way to the Hall of Fame", () => {
+  it("walking north out of the village at any column of the exit lands you at the Hall's south edge, and back", () => {
+    const north = ZONES.village.exits.find((e) => e.to === "hall")!;
+    const south = ZONES.hall.exits[0];
+    for (let x = north.min; x <= north.max; x += 2) {
+      const up = arrival(north, { x, y: BOUNDS.minY });
+      expect(up.player, `x ${x}`).toEqual({ x, y: BOUNDS.maxY });
+      expect(inBounds(up.drone), `x ${x}`).toBe(true);
+      expect(exitFor("hall", { x, y: BOUNDS.maxY }, { x, y: BOUNDS.maxY + 2 }), `x ${x}`).toEqual(south);
+      expect(arrival(south, { x, y: BOUNDS.maxY }).player, `x ${x}`).toEqual({ x, y: BOUNDS.minY });
+    }
+    expect(exitFor("village", { x: 30, y: BOUNDS.minY }, { x: 30, y: BOUNDS.minY - 2 })).toBeNull(); // outside the gap, the hedge holds
+  });
+});
+
 describe("the Dense Forest zone", () => {
-  it("has seven zones (six outdoors and the lodge), the forest is named Dense Forest and has no wall, gate or river", () => {
-    expect(Object.keys(ZONES).sort()).toEqual(["beach", "desert", "foggaten", "forest", "lodge", "peaks", "village"]);
+  it("has eight zones (seven outdoors and the lodge), the forest is named Dense Forest and has no wall, gate or river", () => {
+    expect(Object.keys(ZONES).sort()).toEqual(["beach", "desert", "foggaten", "forest", "hall", "lodge", "peaks", "village"]);
     expect(ZONES.forest).toMatchObject({ name: "Dense Forest", wall: false, gate: false, river: false });
     expect(ZONES.peaks).toMatchObject({ wall: true, gate: true, river: true });
     expect(ZONES.village).toMatchObject({ wall: false, gate: false, river: false });
@@ -68,7 +84,10 @@ describe("the Dense Forest zone", () => {
       { edge: "west", min: 62, max: 78, to: "village" },
       { edge: "south", min: 62, max: 78, to: "forest" },
     ]);
-    expect(ZONES.village.exits).toEqual([{ edge: "east", min: 62, max: 78, to: "peaks" }]);
+    expect(ZONES.village.exits).toEqual([
+      { edge: "east", min: 62, max: 78, to: "peaks" },
+      { edge: "north", min: 40, max: 56, to: "hall" },
+    ]);
     expect(ZONES.forest.exits).toEqual([
       { edge: "north", min: 62, max: 78, to: "peaks" },
       { edge: "west", min: 62, max: 78, to: "desert" },

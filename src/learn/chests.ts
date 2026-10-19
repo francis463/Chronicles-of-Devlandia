@@ -38,7 +38,7 @@ const titled = (badge: string, questions: readonly ChestQuestion[]): readonly Ch
 
 type Row = Omit<Chest, "bank" | "where"> & { questions: readonly ChestQuestion[] };
 
-const ZONE_NAMES: Record<ZoneId, string> = { peaks: "C++ Peaks", village: "Dev Village", forest: "Dense Forest", desert: "Sunbaked Desert", beach: "Sunny Beach", foggaten: "Foggaten Island", lodge: "Ski Lodge" };
+const ZONE_NAMES: Record<ZoneId, string> = { peaks: "C++ Peaks", village: "Dev Village", forest: "Dense Forest", desert: "Sunbaked Desert", beach: "Sunny Beach", foggaten: "Foggaten Island", lodge: "Ski Lodge", hall: "Hall of Fame" };
 
 const whereOf = (row: Row) =>
   row.host === null ? "Dev Village · in the Archive" : `${ZONE_NAMES[row.zone]} · ${row.host}${row.north ? ", north of the wall" : ""}`;

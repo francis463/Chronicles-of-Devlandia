@@ -252,6 +252,9 @@ export const MAP_CAPTIONS = [
   { id: "forest-east-exit", zone: "forest", at: { x: 99, y: 88 }, align: "right-centre" },
   { id: "desert-east-exit", zone: "desert", at: { x: 99, y: 88 }, align: "right-centre" },
   { id: "forest-west-exit", zone: "forest", at: { x: 1, y: 88 }, align: "left-centre" },
+  { id: "hall", zone: "hall", at: { x: 50, y: 4 }, align: "centre" },
+  { id: "village-north-exit", zone: "village", at: { x: 44, y: 14 }, align: "centre" },
+  { id: "hall-south-exit", zone: "hall", at: { x: 48, y: 96 }, align: "centre" },
 ] as const satisfies ReadonlyArray<{ id: string; zone: ZoneId; at: Point; align: "centre" | "right-bottom" | "left-centre" | "right-centre" }>;
 export type MapCaptionId = (typeof MAP_CAPTIONS)[number]["id"];
 
@@ -278,7 +281,10 @@ export const EXIT_SIGNS: Record<ZoneId, ReadonlyArray<{ id: MapCaptionId; text: 
     { id: "west-exit", text: "← Dev Village" },
     { id: "south-exit", text: "Forest ↓" },
   ],
-  village: [{ id: "east-exit", text: "C++ Peaks →" }],
+  village: [
+    { id: "east-exit", text: "C++ Peaks →" },
+    { id: "village-north-exit", text: "↑ Hall" },
+  ],
   forest: [
     { id: "north-exit", text: "↑ C++ Peaks" },
     { id: "forest-west-exit", text: "← Desert" },
@@ -288,6 +294,7 @@ export const EXIT_SIGNS: Record<ZoneId, ReadonlyArray<{ id: MapCaptionId; text: 
   desert: [{ id: "desert-east-exit", text: "Forest →" }],
   beach: [{ id: "beach-west-exit", text: "← Forest" }],
   lodge: [],
+  hall: [{ id: "hall-south-exit", text: "Dev Village ↓" }],
 };
 
 /** A zone's exit signs as world-layer edges, for labelLayout to avoid. */

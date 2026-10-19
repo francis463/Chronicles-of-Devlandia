@@ -35,6 +35,11 @@ export type SpriteId =
   | "old-oak"
   | "dock"
   | "lantern"
+  | "stage"
+  | "podium-1"
+  | "podium-2"
+  | "podium-3"
+  | "banner"
   | "station"
   | "snow-cave"
   | "lodge"
@@ -1248,7 +1253,76 @@ const sandGrid = (): PixelGrid =>
     Array.from({ length: 16 }, (_, x) => ((x * 7 + y * 11) % 17 === 0 ? "d" : (x * 3 + y * 5) % 19 === 0 ? "l" : "s")).join(""),
   );
 
+/** The Hall of Fame's stage, 140 × 50: a red velvet backdrop under a gold valance (rows 0 to 43) over the stage's wooden front (rows 44 to 49). */
+function stageGrid(): PixelGrid {
+  const W = 140;
+  const H = 50;
+  return Array.from({ length: H }, (_, y) =>
+    Array.from({ length: W }, (_, x) => {
+      if (y === 0 || y === H - 1 || x === 0 || x === W - 1) return "o";
+      if (y <= 2) return "g";
+      if (y === 3) return x % 10 < 5 ? "G" : "g";
+      if (y <= 43) return x <= 2 || x >= W - 3 ? "g" : x % 10 < 5 ? "r" : "R";
+      if (y === 44) return "G";
+      return x % 14 === 0 ? "k" : y === 45 ? "W" : "w";
+    }).join(""),
+  );
+}
+
+const DIGITS: Record<1 | 2 | 3, string[]> = {
+  1: [".#.", "##.", ".#.", ".#.", "###"],
+  2: ["###", "..#", "###", "#..", "###"],
+  3: ["###", "..#", "###", "..#", "###"],
+};
+
+/** A podium block 28 px wide and `h` high, its rank numeral on the front: "m" is the metal, "M" its shade, "k" the numeral. */
+function podiumGrid(rank: 1 | 2 | 3, h: number): PixelGrid {
+  const W = 28;
+  const top = 3;
+  const digitRow = top + Math.floor((h - top - 1 - 5) / 2);
+  return Array.from({ length: h }, (_, y) =>
+    Array.from({ length: W }, (_, x) => {
+      if (y === 0) return x === 0 || x === W - 1 ? "." : "o";
+      if (y === h - 1 || x === 0 || x === W - 1) return "o";
+      if (y <= top) return y === 1 ? "m" : "M";
+      const dy = y - digitRow;
+      const dx = x - Math.floor((W - 3) / 2);
+      if (dy >= 0 && dy < 5 && dx >= 0 && dx < 3 && DIGITS[rank][dy][dx] === "#") return "k";
+      return x >= W - 4 ? "M" : "m";
+    }).join(""),
+  );
+}
+
+/** A banner on a pole, 12 × 28: red cloth with a gold edge and star, a swallow-tail hem. */
+function bannerGrid(): PixelGrid {
+  const rows = [
+    "ppoooooooooo",
+    "ppgggggggggo",
+    "pprrrrrrrrro",
+    "pprrrrgrrrro",
+    "pprrrgggrrro",
+    "pprrrrgrrrro",
+    "pprrrgrgrrro",
+    "pprrrrrrrrro",
+    "pprrrrrrrrro",
+    "pprrrrrrrrro",
+    "pprrrrrrrrro",
+    "pprrrrrrrrro",
+    "pprrrrrrrrro",
+    "pprrrrrrrrro",
+    "pprrr..rrrro",
+    "pprr....rrro",
+    "ppro......oo",
+  ];
+  return [...rows, ...Array.from({ length: 28 - rows.length }, () => "pp..........")];
+}
+
 export const SPRITES: Record<SpriteId, SpriteDef> = {
+  stage: { w: 140, h: 50, anchor: "bottom", palette: { o: "#0b1020", g: "#fbbf24", G: "#b45309", r: "#b91c1c", R: "#991b1b", k: "#3b2512", W: "#9a5f2b", w: "#7c4a1e" }, frames: [stageGrid()] },
+  "podium-1": { w: 28, h: 22, anchor: "bottom", palette: { o: "#0b1020", m: "#fbbf24", M: "#d97706", k: "#0b1020" }, frames: [podiumGrid(1, 22)] },
+  "podium-2": { w: 28, h: 16, anchor: "bottom", palette: { o: "#0b1020", m: "#e2e8f0", M: "#94a3b8", k: "#0b1020" }, frames: [podiumGrid(2, 16)] },
+  "podium-3": { w: 28, h: 12, anchor: "bottom", palette: { o: "#0b1020", m: "#d6a06a", M: "#92400e", k: "#0b1020" }, frames: [podiumGrid(3, 12)] },
+  banner: { w: 12, h: 28, anchor: "bottom", palette: { o: "#0b1020", p: "#7c4a1e", g: "#fbbf24", r: "#b91c1c" }, frames: [bannerGrid()] },
   "explorer-down": {
     w: 16,
     h: 16,

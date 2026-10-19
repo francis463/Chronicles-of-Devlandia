@@ -3,11 +3,12 @@ import { ADA, ARCHIVE, BEACH_SIGNPOST, BOUNDS, CAMPFIRE, DESERT_SIGNPOST, DOCK, 
 import { DESERT_JARS, DESERT_LORE } from "./desertLore";
 import { FOREST_LORE, FOREST_MUSHROOMS, HOLLOW_CACHE } from "./forestLore";
 import { remediesIn } from "./remedies";
+import { HALL_SIGNPOST, HALL_SLOTS } from "./hall";
 import { KEEPER, LODGE_BOOK, LODGE_DOOR, LODGE_FIREPLACE } from "./lodge";
 import { secretsIn } from "./secrets";
 import type { Poi, PoiId, Point } from "./types";
 
-export type ZoneId = "peaks" | "village" | "forest" | "foggaten" | "desert" | "beach" | "lodge";
+export type ZoneId = "peaks" | "village" | "forest" | "foggaten" | "desert" | "beach" | "lodge" | "hall";
 
 /**
  * Where a zone's edge opens onto its neighbour. `min`/`max` are the rows (inclusive) a horizontal step
@@ -49,10 +50,24 @@ export const ZONES: Record<ZoneId, Zone> = {
     id: "village",
     name: "Dev Village",
     entered: LOG.enteredVillage,
-    exits: [{ edge: "east", min: 62, max: 78, to: "peaks" }],
+    exits: [
+      { edge: "east", min: 62, max: 78, to: "peaks" },
+      { edge: "north", min: 40, max: 56, to: "hall" },
+    ],
     wall: false,
     gate: false,
     places: [ADA, SIGNPOST, TERMINAL, ARCHIVE, ...remediesIn("village"), ...chestPlaces("village")],
+    river: false,
+    doors: [],
+  },
+  hall: {
+    id: "hall",
+    name: "Hall of Fame",
+    entered: LOG.enteredHall,
+    exits: [{ edge: "south", min: 40, max: 56, to: "village" }],
+    wall: false,
+    gate: false,
+    places: [...HALL_SLOTS, HALL_SIGNPOST],
     river: false,
     doors: [],
   },

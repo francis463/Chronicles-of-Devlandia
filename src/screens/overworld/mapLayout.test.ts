@@ -55,19 +55,23 @@ const MAP_TEXTS: Record<(typeof MAP_CAPTIONS)[number]["id"], string[]> = {
   beach: ["(Sunny Beach Biome)"],
   "beach-west-exit": ["← Forest"],
   "forest-east-exit": ["Beach →"],
+  hall: ["(Hall of Fame)"],
+  "village-north-exit": ["↑ Hall"],
+  "hall-south-exit": ["Dev Village ↓"],
 };
 const GROUPS = {
   peaks: ["tower", "gate", "dock", "peaks", "river", "forest", "west-exit", "south-exit"],
-  village: ["villager", "signpost", "terminal", "archive", "village", "east-exit"],
+  village: ["villager", "signpost", "terminal", "archive", "village", "east-exit", "village-north-exit"],
   forest: ["dense-forest", "north-exit", "forest-west-exit", "forest-east-exit", "ranger", "campfire", "forest-signpost", "chest"],
   foggaten: ["foggaten", "island-dock", "lighthouse", "hermit", "island-fire"],
   desert: ["desert", "desert-east-exit", "nomad", "desert-signpost"],
   beach: ["beach", "beach-west-exit", "fisher", "beach-signpost", "sandcastle"],
   lodge: ["lodge-keeper"],
+  hall: ["hall", "hall-south-exit"],
 };
-const quietGroups = (zone: "peaks" | "village" | "forest" | "foggaten" | "desert" | "beach" | "lodge") => LANDMARK_CAPTIONS.filter((l) => l.zone === zone && l.quiet).map((l) => l.id as string);
+const quietGroups = (zone: "peaks" | "village" | "forest" | "foggaten" | "desert" | "beach" | "lodge" | "hall") => LANDMARK_CAPTIONS.filter((l) => l.zone === zone && l.quiet).map((l) => l.id as string);
 /** A hosted chest's caption is its landmark's: always shown. */
-const chestGroups = (zone: "peaks" | "village" | "forest" | "foggaten" | "desert" | "beach" | "lodge") => CHESTS.filter((c) => c.zone === zone && c.at).map((c) => c.id as string);
+const chestGroups = (zone: "peaks" | "village" | "forest" | "foggaten" | "desert" | "beach" | "lodge" | "hall") => CHESTS.filter((c) => c.zone === zone && c.at).map((c) => c.id as string);
 const inside = (inner: CssRect, outer: CssRect) =>
   inner.left >= outer.left - 1e-9 && inner.top >= outer.top - 1e-9 && inner.left + inner.width <= outer.left + outer.width + 1e-9 && inner.top + inner.height <= outer.top + outer.height + 1e-9;
 /** Every drawing with a button in the zone, by its button's id. */
@@ -281,7 +285,11 @@ describe("exit signs per zone", () => {
       { id: "west-exit", text: "← Dev Village" },
       { id: "south-exit", text: "Forest ↓" },
     ]);
-    expect(EXIT_SIGNS.village).toEqual([{ id: "east-exit", text: "C++ Peaks →" }]);
+    expect(EXIT_SIGNS.village).toEqual([
+      { id: "east-exit", text: "C++ Peaks →" },
+      { id: "village-north-exit", text: "↑ Hall" },
+    ]);
+    expect(EXIT_SIGNS.hall).toEqual([{ id: "hall-south-exit", text: "Dev Village ↓" }]);
     expect(EXIT_SIGNS.forest).toEqual([
       { id: "north-exit", text: "↑ C++ Peaks" },
       { id: "forest-west-exit", text: "← Desert" },
