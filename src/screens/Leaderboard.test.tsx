@@ -12,7 +12,16 @@ const ROWS: Row[] = [
 ];
 
 const KEY = "0b9e8f0c-7a55-4a3c-9d0e-5a1f2c3d4e5f";
-const shrink = vi.fn(async () => new Blob(["jpg"], { type: "image/jpeg" }));
+const shrink = vi.fn(async (_file: File, _crop?: unknown) => new Blob(["jpg"], { type: "image/jpeg" }));
+
+/** jsdom does not load pictures, so the crop window is given a size and a load event by hand. */
+function pickAndCrop(user: ReturnType<typeof userEvent.setup>, file: File) {
+  Object.defineProperty(HTMLImageElement.prototype, "naturalWidth", { configurable: true, get: () => 400 });
+  Object.defineProperty(HTMLImageElement.prototype, "naturalHeight", { configurable: true, get: () => 200 });
+  URL.createObjectURL = vi.fn(() => "blob:photo");
+  URL.revokeObjectURL = vi.fn();
+  return user.upload(screen.getByLabelText("Choose a photo"), file).then(() => fireEvent.load(screen.getByAltText("Your picture")));
+}
 
 const setup = (over: { rows?: Row[]; me?: Me | null; signedIn?: boolean; myName?: string | null } = {}) => {
   const store = createMemoryLeaderboard({ rows: over.rows ?? ROWS, me: over.me ?? null });
@@ -144,14 +153,28 @@ describe("Leaderboard", () => {
       expect(screen.queryByRole("button", { name: "[ Change photo ]" })).not.toBeInTheDocument();
     });
 
-    it("choosing a file shrinks it, saves it and reloads; Remove appears once you have one", async () => {
+    it("choosing a file opens the crop window; Save shrinks the chosen part, saves it and reloads; Remove appears once you have one", async () => {
       const { store, user } = setup({ signedIn: true, myName: "Zed", me: { rank: 5, badges: 2, hidden: false } });
       expect(await screen.findByRole("button", { name: "[ Change photo ]" })).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "[ Remove photo ]" })).not.toBeInTheDocument();
-      await user.upload(screen.getByLabelText("Choose a photo"), new File(["x"], "me.png", { type: "image/png" }));
-      expect(shrink).toHaveBeenCalled();
+      const file = new File(["x"], "me.png", { type: "image/png" });
+      await pickAndCrop(user, file);
+      expect(screen.getByRole("dialog", { name: "< CROP YOUR PHOTO >" })).toBeInTheDocument();
+      expect(store.calls).toEqual([]);
+      await user.click(screen.getByRole("button", { name: "[ Save photo ]" }));
+      expect(shrink).toHaveBeenLastCalledWith(file, { zoom: 1, cx: 200, cy: 100 });
       expect(await screen.findByRole("button", { name: "[ Remove photo ]" })).toBeInTheDocument();
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
       expect(store.calls).toEqual(["setAvatar:3"]);
+    });
+
+    it("Cancel in the crop window saves nothing and keeps what you had", async () => {
+      const { store, user } = setup({ signedIn: true, myName: "Zed", me: { rank: 5, badges: 2, hidden: false } });
+      await screen.findByRole("button", { name: "[ Change photo ]" });
+      await pickAndCrop(user, new File(["x"], "me.png", { type: "image/png" }));
+      await user.click(screen.getByRole("button", { name: "[ Cancel ]" }));
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(store.calls).toEqual([]);
     });
 
     it("Remove photo removes it", async () => {
@@ -161,14 +184,16 @@ describe("Leaderboard", () => {
       expect(store.calls).toEqual(["removeAvatar"]);
     });
 
-    it("says so when a file is not a picture or will not save, and keeps what you had", async () => {
+    it("says so when a file is not a picture, and when saving fails", async () => {
       const { store, user } = setup({ signedIn: true, myName: "Zed", me: { rank: 5, badges: 2, hidden: false } });
       await screen.findByRole("button", { name: "[ Change photo ]" });
       await user.upload(screen.getByLabelText("Choose a photo"), new File(["x"], "n.txt", { type: "text/plain" }));
       expect(await screen.findByText("Pick a picture file (JPG, PNG or WebP).")).toBeInTheDocument();
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
       expect(store.calls).toEqual([]);
       store.failNext = 1;
-      await user.upload(screen.getByLabelText("Choose a photo"), new File(["x"], "me.png", { type: "image/png" }));
+      await pickAndCrop(user, new File(["x"], "me.png", { type: "image/png" }));
+      await user.click(screen.getByRole("button", { name: "[ Save photo ]" }));
       expect(await screen.findByText("Couldn't save your photo. Try again.")).toBeInTheDocument();
     });
   });

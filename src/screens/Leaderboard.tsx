@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { maskRude } from "../chat/filter";
-import { checkPhoto, shrinkToSquare } from "../leaderboard/avatar";
+import { checkPhoto, shrinkToSquare, type Crop } from "../leaderboard/avatar";
 import { avatarUrl, parseRows, type LeaderboardStore, type Me, type Row } from "../leaderboard/leaderboard";
 import { Button } from "../ui/Button";
 import { Panel } from "../ui/Panel";
 import { MenuBackdrop } from "./MenuBackdrop";
+import { PhotoCrop } from "./PhotoCrop";
 
 type Phase = "loading" | "ready" | "failed";
 
@@ -35,7 +36,7 @@ export function Leaderboard({
   myName: string | null;
   onBack: () => void;
   /** Test seam: turns the chosen file into the small square that is saved. */
-  shrink?: (file: File) => Promise<Blob>;
+  shrink?: (file: File, crop?: Crop) => Promise<Blob>;
 }) {
   const [phase, setPhase] = useState<Phase>("loading");
   const [rows, setRows] = useState<Row[]>([]);
@@ -43,6 +44,7 @@ export function Leaderboard({
   const [saveFailed, setSaveFailed] = useState(false);
   const [photoMsg, setPhotoMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [picked, setPicked] = useState<File | null>(null);
   const picker = useRef<HTMLInputElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   // Only the newest request may change the screen; an older reply arriving late is ignored.
@@ -86,14 +88,18 @@ export function Leaderboard({
     }
   };
 
-  const changePhoto = async (file: File | undefined) => {
+  /** A chosen file is checked, then shown in the crop window; nothing is saved until Save there. */
+  const choosePhoto = (file: File | undefined) => {
     if (!file) return;
     const why = checkPhoto(file);
-    if (why) return setPhotoMsg(why);
-    setPhotoMsg(null);
+    setPhotoMsg(why);
+    if (!why) setPicked(file);
+  };
+  const savePhoto = async (file: File, crop: Crop) => {
+    setPicked(null);
     setBusy(true);
     try {
-      await store.setAvatar(await shrink(file));
+      await store.setAvatar(await shrink(file, crop));
       await load(false);
     } catch {
       setPhotoMsg("Couldn't save your photo. Try again.");
@@ -156,7 +162,7 @@ export function Leaderboard({
             </label>
             {saveFailed && <p role="alert" className="text-[var(--danger-border)]">Couldn't save that. Try again.</p>}
             <div className="flex flex-wrap items-center justify-center gap-2">
-              <input ref={picker} type="file" accept="image/*" aria-label="Choose a photo" className="hidden" onChange={(e) => { void changePhoto(e.target.files?.[0]); e.target.value = ""; }} />
+              <input ref={picker} type="file" accept="image/*" aria-label="Choose a photo" className="hidden" onChange={(e) => { choosePhoto(e.target.files?.[0]); e.target.value = ""; }} />
               <Button variant="neutral" disabled={busy} onClick={() => picker.current?.click()}>
                 [ Change photo ]
               </Button>
@@ -179,6 +185,7 @@ export function Leaderboard({
           </Button>
         </div>
       </Panel>
+      {picked && <PhotoCrop file={picked} onSave={(crop) => void savePhoto(picked, crop)} onCancel={() => setPicked(null)} />}
     </>
   );
 }
