@@ -1,11 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { START_MINUTES } from "../game/constants";
 import { CHEST_IDS } from "../learn/chests";
 import { Finale, playedFor } from "./Finale";
 
-const base = { badges: [...CHEST_IDS], minutes: START_MINUTES + 200, hints: 3, hard: false, onClose: () => {} };
+const base = { badges: [...CHEST_IDS], playedMs: 200 * 60_000, hints: 3, hard: false, onClose: () => {} };
 
 describe("Finale", () => {
   it("is a dialog that lists all 11 badges, the time played and the hints used", () => {
@@ -13,7 +12,7 @@ describe("Finale", () => {
     expect(screen.getByRole("dialog", { name: /master of devlandia/i })).toBeInTheDocument();
     expect(screen.getByText(/you are a master of devlandia/i)).toBeInTheDocument();
     expect(screen.getAllByRole("listitem")).toHaveLength(11);
-    expect(screen.getByText("Game time: 3 h 20 min · Hints used: 3")).toBeInTheDocument();
+    expect(screen.getByText("Time played: 3 h 20 min · Hints used: 3")).toBeInTheDocument();
   });
 
   it("Keep exploring closes it", async () => {
@@ -44,9 +43,10 @@ describe("Finale", () => {
     expect(onCertificate).toHaveBeenCalledTimes(1);
   });
 
-  it("playedFor reads minutes and hours of game time", () => {
-    expect(playedFor(START_MINUTES + 45)).toBe("45 min");
-    expect(playedFor(START_MINUTES + 125)).toBe("2 h 5 min");
-    expect(playedFor(START_MINUTES - 10)).toBe("0 min");
+  it("playedFor reads minutes and hours of real time played", () => {
+    expect(playedFor(45 * 60_000)).toBe("45 min");
+    expect(playedFor(125 * 60_000 + 30_000)).toBe("2 h 5 min");
+    expect(playedFor(20_000)).toBe("0 min");
+    expect(playedFor(-5)).toBe("0 min");
   });
 });

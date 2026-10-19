@@ -8,7 +8,7 @@ export type CertificateData = {
   badges: readonly ChestId[];
   /** The date it is awarded, already written out. */
   date: string;
-  /** The in-game time played, such as "3 h 20 min". */
+  /** The time played, such as "3 h 20 min". */
   played: string;
   hard: boolean;
 };
@@ -65,7 +65,7 @@ export function drawCertificate(ctx: CanvasRenderingContext2D, data: Certificate
     const x = w / 2 + ((i % 4) - (inRow - 1) / 2) * 230;
     line(`✓ ${badge}`, 505 + row * 50, 24, GREEN, "bold", x);
   });
-  line(`Awarded ${data.date} · Game time ${data.played}`, h - 90, 20, INK);
+  line(`Awarded ${data.date} · Time played ${data.played}`, h - 90, 20, INK);
 }
 
 const escapeHtml = (text: string): string => text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);

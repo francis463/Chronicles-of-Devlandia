@@ -89,6 +89,8 @@ export type GameState = {
   drone: Point;
   hp: number;
   minutes: number;
+  /** Clock ticks since the game began. Unlike `minutes` it never wraps at midnight, so it measures the time played. */
+  ticks: number;
   inspected: PoiId | null;
   questComplete: boolean;
   hasLoot: boolean;

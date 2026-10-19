@@ -309,6 +309,8 @@ export function Overworld({
   };
   const now = useNow(TICK_MS, team?.startedAt != null);
   const minutes = team?.startedAt != null ? teamMinutes(team.startedAt, now) : state.minutes;
+  // Real time played: the team's shared clock in a team game, else the solo game's own ticks (they pause with the game).
+  const playedMs = team?.startedAt != null ? Math.max(0, now - team.startedAt) : state.ticks * TICK_MS;
   const teamLabel = team?.room ? `ROOM ${team.room} · ${team.players.length} online` : undefined;
 
   const inRange = downed ? null : placeInReach(state.player, reachPlaces(state), reachFor(state.zone));
@@ -483,12 +485,12 @@ export function Overworld({
       )}
       {state.bookOpen && <ReviewBook badges={state.badges} answered={state.answered} picks={state.picks} onClose={() => dispatch({ type: "toggleBook" })} />}
       {state.finaleOpen && certificateOpen && (
-        <Certificate name={playerName} badges={state.badges} played={playedFor(minutes)} hard={state.hard} onBack={() => setCertificateOpen(false)} />
+        <Certificate name={playerName} badges={state.badges} played={playedFor(playedMs)} hard={state.hard} onBack={() => setCertificateOpen(false)} />
       )}
       {state.finaleOpen && !certificateOpen && (
         <Finale
           badges={state.badges}
-          minutes={minutes}
+          playedMs={playedMs}
           hints={state.hintsRevealed.length}
           hard={state.hard}
           onClose={() => dispatch({ type: "closeFinale" })}

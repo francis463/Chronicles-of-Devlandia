@@ -52,6 +52,7 @@ export const initialState: GameState = {
   drone: DRONE_START,
   hp: MAX_HP,
   minutes: START_MINUTES,
+  ticks: 0,
   inspected: null,
   questComplete: false,
   hasLoot: false,
@@ -311,6 +312,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return {
         ...state,
         minutes: advanceClock(state.minutes),
+        ticks: state.ticks + 1,
       };
     case "riverDamage": {
       if (isDowned(state) || state.towerPowered || !inRiver(state)) return state;

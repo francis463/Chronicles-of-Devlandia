@@ -71,6 +71,13 @@ describe("gameReducer: move", () => {
 });
 
 describe("gameReducer: tick", () => {
+  it("counts every tick for the time played, and the count does not wrap with the clock at midnight", () => {
+    let s = { ...s0, minutes: 1435 };
+    for (let i = 0; i < 3; i++) s = gameReducer(s, { type: "tick" });
+    expect(s.minutes).toBe(10); // past midnight
+    expect(s.ticks).toBe(3);
+  });
+
   it("advances five minutes", () => {
     const s = gameReducer(s0, { type: "tick" });
     expect(s.minutes).toBe(1174);

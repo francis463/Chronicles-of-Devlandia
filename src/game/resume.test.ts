@@ -17,6 +17,12 @@ describe("saved game", () => {
     expect(back?.state.badges).toEqual([CHEST_IDS[0]]);
   });
 
+  it("a save from before the play-time count still loads, counting from zero", () => {
+    const { ticks: _ticks, ...old } = initialState;
+    localStorage.setItem("devlandia.savedGame", JSON.stringify({ v: 2, owner: "guest", game: { state: old, playerClass: DEFAULT_CLASS, hard: false } }));
+    expect(loadGame(null)?.state.ticks).toBe(0);
+  });
+
   it("is only for the player who saved it, guests included", () => {
     saveGame("u1", game());
     expect(loadGame("u2")).toBeNull();

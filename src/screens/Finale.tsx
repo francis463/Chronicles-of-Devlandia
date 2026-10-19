@@ -1,4 +1,3 @@
-import { START_MINUTES } from "../game/constants";
 import { CHESTS } from "../learn/chests";
 import type { ChestId } from "../learn/types";
 import { TerminalDialog } from "../ui/TerminalDialog";
@@ -7,9 +6,9 @@ const BUTTON =
   "min-h-11 cursor-pointer rounded border-[1.5px] px-3 text-xs focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary-border)]";
 const CONFETTI = ["#fbbf24", "#f87171", "#60a5fa", "#4ade80", "#c084fc"];
 
-/** "3 h 20 min" of game time played, from the clock's start. */
-export function playedFor(minutes: number): string {
-  const played = Math.max(0, Math.round(minutes - START_MINUTES));
+/** "3 h 20 min" of real time played, from milliseconds. */
+export function playedFor(ms: number): string {
+  const played = Math.max(0, Math.floor(ms / 60_000));
   return played < 60 ? `${played} min` : `${Math.floor(played / 60)} h ${played % 60} min`;
 }
 
@@ -19,7 +18,7 @@ export function playedFor(minutes: number): string {
  */
 export function Finale({
   badges,
-  minutes,
+  playedMs,
   hints,
   hard,
   onClose,
@@ -27,7 +26,8 @@ export function Finale({
   onNewGamePlus,
 }: {
   badges: readonly ChestId[];
-  minutes: number;
+  /** Real time played, in milliseconds. */
+  playedMs: number;
   hints: number;
   hard: boolean;
   onClose: () => void;
@@ -57,7 +57,7 @@ export function Finale({
             </li>
           ))}
         </ul>
-        <p>{`Game time: ${playedFor(minutes)} · Hints used: ${hints}`}</p>
+        <p>{`Time played: ${playedFor(playedMs)} · Hints used: ${hints}`}</p>
         {onNewGamePlus && !hard && (
           <p className="rounded border-[1.5px] border-dashed border-[var(--primary-border)] px-3 py-2">
             <span className="font-bold text-[var(--primary-border)]">New Game+: </span>
