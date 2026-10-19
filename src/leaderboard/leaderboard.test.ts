@@ -73,3 +73,15 @@ describe("avatars", () => {
     expect(avatarUrl(KEY)).toMatch(new RegExp(`^https?://.+/storage/v1/object/public/avatars/${KEY}\\.jpg$`));
   });
 });
+
+describe("class on a row", () => {
+  it("keeps one of the six class ids", () => {
+    expect(parseRows([{ rank: 1, name: "Alice", badges: 3, cls: "mage" }])).toEqual([{ rank: 1, name: "Alice", badges: 3, cls: "mage" }]);
+  });
+
+  it("drops a class that is missing, not a string, unknown or too long, but keeps the row", () => {
+    for (const bad of [undefined, null, 5, "wizard", "", "x".repeat(40), "MAGE"]) {
+      expect(parseRows([{ rank: 1, name: "Alice", badges: 3, cls: bad }])).toEqual([{ rank: 1, name: "Alice", badges: 3 }]);
+    }
+  });
+});

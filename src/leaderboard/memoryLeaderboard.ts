@@ -23,7 +23,7 @@ export function createMemoryLeaderboard(init: { rows?: Row[]; me?: Me | null } =
     meState: init.me ?? null,
     failNext: 0,
     calls: [],
-    top: () => fail() ?? Promise.resolve([...store.rows]),
+    top: (rows) => fail() ?? Promise.resolve(store.rows.slice(0, rows ?? 20)),
     me: () => fail() ?? Promise.resolve(store.meState ? { ...store.meState } : null),
     setHidden: (hidden) => {
       const failed = fail();

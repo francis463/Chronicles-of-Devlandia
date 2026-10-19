@@ -7,8 +7,8 @@ import { isAvatarKey, parseMe, parseRows, type LeaderboardStore } from "./leader
  */
 export function createSupabaseLeaderboard(load: () => Promise<SupabaseLike>, userId: string | null): LeaderboardStore {
   return {
-    async top() {
-      const { data, error } = await (await load()).rpc("leaderboard_top", { max_rows: 20 });
+    async top(rows = 20) {
+      const { data, error } = await (await load()).rpc("leaderboard_top", { max_rows: rows });
       if (error) throw new Error("Can't load the leaderboard");
       return parseRows(data);
     },

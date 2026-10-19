@@ -10,6 +10,13 @@ describe("createSupabaseLeaderboard", () => {
     expect(fake.calls[0]).toEqual({ name: "rpc", args: ["leaderboard_top", { max_rows: 20 }] });
   });
 
+  it("top(10) asks for 10 rows", async () => {
+    const { fake, load } = createFakeSupabase();
+    fake.rpcReplies.leaderboard_top = { data: [], error: null };
+    await createSupabaseLeaderboard(load, null).top(10);
+    expect(fake.calls[0]).toEqual({ name: "rpc", args: ["leaderboard_top", { max_rows: 10 }] });
+  });
+
   it("top() rejects when the call fails", async () => {
     const { fake, load } = createFakeSupabase();
     fake.rpcReplies.leaderboard_top = { data: null, error: { message: "boom" } };

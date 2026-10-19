@@ -8,6 +8,12 @@ describe("createMemoryLeaderboard", () => {
     expect(await store.me()).toEqual({ rank: 1, badges: 3, hidden: false });
   });
 
+  it("top(n) returns at most n rows", async () => {
+    const rows = [1, 2, 3].map((n) => ({ rank: n, name: `P${n}`, badges: 1 }));
+    expect(await createMemoryLeaderboard({ rows }).top(2)).toEqual(rows.slice(0, 2));
+    expect(await createMemoryLeaderboard({ rows }).top()).toEqual(rows);
+  });
+
   it("starts empty", async () => {
     const store = createMemoryLeaderboard();
     expect(await store.top()).toEqual([]);

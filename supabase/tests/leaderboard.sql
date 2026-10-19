@@ -1,5 +1,5 @@
 -- Checks the leaderboard migration: ranking, the hide switch, what leaves the database, and who may call what.
--- Run it after the accounts, leaderboard and avatars migrations are applied. Everything is rolled back.
+-- Run it after the accounts, leaderboard, avatars and leaderboard-class migrations are applied. Everything is rolled back.
 begin;
 
 insert into auth.users (id, email) values
@@ -52,9 +52,9 @@ begin
   select string_agg(rank || ':' || name || ':' || badges, ',' order by rank, last_earned, name) into names from public.leaderboard_top();
   if names is distinct from '1:Alice:3,1:Bobby:3,3:Carol:1' then raise exception 'wrong list: %', names; end if;
 
-  -- Only these five columns leave the database (avatar is a random photo key, never a user id).
+  -- Only these six columns leave the database (avatar is a random photo key, never a user id; cls is the class only).
   select to_jsonb(t) into j from public.leaderboard_top(1) t;
-  if (select array_agg(k order by k) from jsonb_object_keys(j) k) is distinct from array['avatar', 'badges', 'last_earned', 'name', 'rank'] then
+  if (select array_agg(k order by k) from jsonb_object_keys(j) k) is distinct from array['avatar', 'badges', 'cls', 'last_earned', 'name', 'rank'] then
     raise exception 'unexpected columns';
   end if;
 
@@ -165,6 +165,22 @@ do $$
 begin
   if (select count(*) from public.leaderboard_top()) <> 20 then raise exception 'default is not 20'; end if;
   if (select count(*) from public.leaderboard_top(1000)) <> 50 then raise exception 'top(1000) is not 50'; end if;
+end $$;
+
+-- The class is the one metadata key that leaves: A's other metadata stays inside, and a long value is cut to 12 characters.
+reset role;
+update auth.users set raw_user_meta_data = '{"class":"mage","secret":"hidden-value"}' where id = '00000000-0000-0000-0000-00000000000a';
+update auth.users set raw_user_meta_data = '{"class":"abcdefghijklmnopqrstuvwxyz"}' where id = '00000000-0000-0000-0000-00000000000b';
+set local role anon;
+do $$
+declare mine text; longer text; everything text;
+begin
+  select cls into mine from public.leaderboard_top() where name = 'Alice';
+  select cls into longer from public.leaderboard_top() where name = 'Bobby';
+  select string_agg(to_jsonb(t)::text, ' ') into everything from public.leaderboard_top() t;
+  if mine is distinct from 'mage' then raise exception 'wrong class: %', mine; end if;
+  if length(longer) <> 12 then raise exception 'a long class was not cut: %', longer; end if;
+  if everything like '%hidden-value%' then raise exception 'other metadata leaked'; end if;
 end $$;
 
 rollback;

@@ -1,12 +1,14 @@
+import { isClassId, type ClassId } from "../game/classes";
 import { SUPABASE_URL } from "../net/config";
 
-/** One line of the leaderboard. `avatar` is the random key of the player's photo, when they have one. */
-export type Row = { rank: number; name: string; badges: number; avatar?: string };
+/** One line of the leaderboard. `avatar` is the random key of the player's photo and `cls` their hero class, when known. */
+export type Row = { rank: number; name: string; badges: number; avatar?: string; cls?: ClassId };
 /** The caller's own standing; `rank` is null while they have no badges. */
 export type Me = { rank: number | null; badges: number; hidden: boolean; avatar?: string };
 
 export interface LeaderboardStore {
-  top(): Promise<Row[]>;
+  /** The top players, `rows` of them (20 by default; the server allows 1 to 50). */
+  top(rows?: number): Promise<Row[]>;
   /** The caller's standing; null for a guest or when the server has none. */
   me(): Promise<Me | null>;
   setHidden(hidden: boolean): Promise<void>;
@@ -34,7 +36,7 @@ export function parseRows(data: unknown): Row[] {
   if (!Array.isArray(data)) return [];
   return data.flatMap((r): Row[] =>
     isObj(r) && isInt(r.rank, 1, MAX_RANK) && isInt(r.badges, 1, BADGES) && typeof r.name === "string" && r.name.length >= 1 && r.name.length <= 12
-      ? [{ rank: r.rank, name: r.name, badges: r.badges, ...withAvatar(r.avatar) }]
+      ? [{ rank: r.rank, name: r.name, badges: r.badges, ...withAvatar(r.avatar), ...(isClassId(r.cls) ? { cls: r.cls } : {}) }]
       : [],
   );
 }
