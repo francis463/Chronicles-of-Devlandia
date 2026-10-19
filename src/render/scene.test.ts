@@ -11,6 +11,7 @@ import { PHASE_TINT, buildScene, stormStrength, type Poses, type SceneInput } fr
 import { LIGHT_OFFSETS, SPRITES, spriteBox, type SpriteId } from "./sprites";
 import { BRIDGE_RECT, LANDMARK_POINTS, decorations } from "./terrain";
 import { LODGE_POINTS } from "./areas/lodge";
+import { HALL_FLAT, HALL_POINTS } from "./areas/hall";
 import { SECRET_SPOTS } from "./areas/secrets";
 import { REACHABLE_RECT, intersects, reachableRect, toArt, zoneToArt } from "./world";
 import { TERMINAL } from "../game/constants";
@@ -1444,5 +1445,52 @@ describe("scene: the Ski Lodge", () => {
 
   it("has no scenery or hedge round it", () => {
     expect(decorations({ x: -300, y: -300, w: 920, h: 660 }, AREAS.lodge)).toEqual([]);
+  });
+});
+
+const inVillageInput: Partial<SceneInput> = { zone: "village", player: { x: 60, y: 70 }, drone: { x: 68, y: 68 } };
+
+describe("scene: the Hall of Fame", () => {
+  const count = (s: ReturnType<typeof scene>, id: SpriteId) => s.upright.filter((d) => d.sprite === id).length;
+  const inHall: Partial<SceneInput> = { zone: "hall", player: { x: 50, y: 84 }, drone: { x: 56, y: 84 } };
+  const figures = (over: Partial<SceneInput> = {}) => scene({ ...inHall, ...over });
+  const heroAt = (s: ReturnType<typeof scene>, i: number) => {
+    const box = spriteBox("explorer-down", HALL_POINTS.slots[i]);
+    return s.upright.find((d) => d.sprite === "explorer-down" && d.x === box.x && d.y === box.y);
+  };
+
+  it("draws the stage and the three podium blocks flat, under everyone, and the banners, lanterns and signpost upright", () => {
+    const s = figures();
+    expect(s.flat.map((d) => d.sprite)).toEqual(HALL_FLAT.map((f) => f.sprite));
+    expect((["banner", "lantern", "signpost"] as const).map((id) => count(s, id))).toEqual([2, 4, 1]);
+    for (const id of ["stage", "podium-1", "tower", "hut", "chest-closed"] as const) expect(sprites(s, "upright")).not.toContain(id);
+  });
+
+  it("draws a hero on each figure's spot in their class, with a gold, silver and bronze hood for the top three and a plain one after", () => {
+    const s = figures({ hall: [{ slot: 0, cls: "mage" }, { slot: 1, cls: "archer" }, { slot: 2, cls: "tank" }, { slot: 3, cls: "healer" }, { slot: 9, cls: "warrior" }] });
+    expect(heroAt(s, 0)?.variant).toBe("#fbbf24:mage");
+    expect(heroAt(s, 1)?.variant).toBe("#cbd5e1:archer");
+    expect(heroAt(s, 2)?.variant).toBe("#d6a06a:tank");
+    expect(heroAt(s, 3)?.variant).toBe("#64748b:healer");
+    expect(heroAt(s, 9)?.variant).toBe("#64748b:warrior");
+    expect(heroAt(s, 4)).toBeUndefined(); // no figure for that spot
+  });
+
+  it("draws an empty spot as a grey hero", () => {
+    const s = figures({ hall: [{ slot: 0, cls: null }, { slot: 5, cls: null }] });
+    expect(heroAt(s, 0)?.variant).toBe("grey");
+    expect(heroAt(s, 5)?.variant).toBe("grey");
+  });
+
+  it("draws no figures outside the Hall, or when none are given", () => {
+    const withFigures = { hall: [{ slot: 0, cls: "mage" as const }] };
+    expect(figures().upright.filter((d) => d.sprite === "explorer-down")).toHaveLength(1); // just you
+    expect(sprites(scene({ ...inVillageInput, ...withFigures }), "flat")).toEqual([]);
+  });
+
+  it("you stand in front of or behind a figure by your feet, like everything else", () => {
+    const s = figures({ hall: [{ slot: 3, cls: "mage" }], player: { x: 14, y: 70 } });
+    const order = s.upright.map((d) => d.y + SPRITES[d.sprite].h);
+    expect(order).toEqual([...order].sort((a, b) => a - b));
   });
 });

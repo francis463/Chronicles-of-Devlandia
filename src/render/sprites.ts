@@ -1253,17 +1253,17 @@ const sandGrid = (): PixelGrid =>
     Array.from({ length: 16 }, (_, x) => ((x * 7 + y * 11) % 17 === 0 ? "d" : (x * 3 + y * 5) % 19 === 0 ? "l" : "s")).join(""),
   );
 
-/** The Hall of Fame's stage, 140 × 50: a red velvet backdrop under a gold valance (rows 0 to 43) over the stage's wooden front (rows 44 to 49). */
+/** The Hall of Fame's stage, 170 × 44: a red velvet backdrop under a gold valance (rows 0 to 37) over the stage's wooden front (rows 38 to 43). */
 function stageGrid(): PixelGrid {
-  const W = 140;
-  const H = 50;
+  const W = 170;
+  const H = 44;
   return Array.from({ length: H }, (_, y) =>
     Array.from({ length: W }, (_, x) => {
       if (y === 0 || y === H - 1 || x === 0 || x === W - 1) return "o";
       if (y <= 2) return "g";
       if (y === 3) return x % 10 < 5 ? "G" : "g";
-      if (y <= 43) return x <= 2 || x >= W - 3 ? "g" : x % 10 < 5 ? "r" : "R";
-      if (y === 44) return "G";
+      if (y <= 37) return x <= 2 || x >= W - 3 ? "g" : x % 10 < 5 ? "r" : "R";
+      if (y === 38) return "G";
       return x % 14 === 0 ? "k" : y === 45 ? "W" : "w";
     }).join(""),
   );
@@ -1318,7 +1318,7 @@ function bannerGrid(): PixelGrid {
 }
 
 export const SPRITES: Record<SpriteId, SpriteDef> = {
-  stage: { w: 140, h: 50, anchor: "bottom", palette: { o: "#0b1020", g: "#fbbf24", G: "#b45309", r: "#b91c1c", R: "#991b1b", k: "#3b2512", W: "#9a5f2b", w: "#7c4a1e" }, frames: [stageGrid()] },
+  stage: { w: 170, h: 44, anchor: "bottom", palette: { o: "#0b1020", g: "#fbbf24", G: "#b45309", r: "#b91c1c", R: "#991b1b", k: "#3b2512", W: "#9a5f2b", w: "#7c4a1e" }, frames: [stageGrid()] },
   "podium-1": { w: 28, h: 22, anchor: "bottom", palette: { o: "#0b1020", m: "#fbbf24", M: "#d97706", k: "#0b1020" }, frames: [podiumGrid(1, 22)] },
   "podium-2": { w: 28, h: 16, anchor: "bottom", palette: { o: "#0b1020", m: "#e2e8f0", M: "#94a3b8", k: "#0b1020" }, frames: [podiumGrid(2, 16)] },
   "podium-3": { w: 28, h: 12, anchor: "bottom", palette: { o: "#0b1020", m: "#d6a06a", M: "#92400e", k: "#0b1020" }, frames: [podiumGrid(3, 12)] },

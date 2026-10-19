@@ -7,6 +7,8 @@ import type { SceneInput } from "../../render/scene";
 import { CHEST_IDS, CHESTS } from "../../learn/chests";
 import { LOG } from "../../game/constants";
 import { LANDSCAPE_PHONE } from "../../hooks/useMediaQuery";
+import { createMemoryLeaderboard } from "../../leaderboard/memoryLeaderboard";
+import type { Row } from "../../leaderboard/leaderboard";
 import { Overworld } from "./Overworld";
 
 // The real canvas still renders; this only records what the game asks it to draw.
@@ -1048,5 +1050,78 @@ describe("Overworld: a bigger map", () => {
     render(<Overworld onMenu={() => {}} />);
     // A saved zoom below a one-screen zone's range is clamped when shown (the Peaks cannot zoom out past fit).
     expect(screen.getByRole("button", { name: "Zoom out" })).toBeDisabled();
+  });
+});
+
+describe("Overworld: the Hall of Fame", () => {
+  const ROWS: Row[] = [
+    { rank: 1, name: "Alice", badges: 3, cls: "mage" },
+    { rank: 1, name: "Bobby", badges: 3 },
+    { rank: 3, name: "Bobo", badges: 1, cls: "tank" },
+  ];
+  const inHall = (x: number, y: number) => ({ zone: "hall" as const, player: { x, y }, drone: { x: x + 6, y } });
+  const enter = async (board = createMemoryLeaderboard({ rows: ROWS }), x = 50, y = 22) => {
+    const user = setup();
+    render(<Overworld onMenu={() => {}} leaderboard={board} initial={inHall(x, y)} />);
+    await act(async () => {}); // let the list arrive
+    return { user, board };
+  };
+
+  it("loads the top ten once you are in the Hall and draws a figure for each spot: the class where someone stands, grey where nobody does", async () => {
+    await enter();
+    const hall = drawn.at(-1)!.input.hall!;
+    expect(hall).toHaveLength(10);
+    expect(hall.slice(0, 4)).toEqual([{ slot: 0, cls: "mage" }, { slot: 1, cls: "warrior" }, { slot: 2, cls: "tank" }, { slot: 3, cls: null }]);
+  });
+
+  it("does not ask the leaderboard anywhere else", async () => {
+    const board = createMemoryLeaderboard({ rows: ROWS });
+    const asked = vi.spyOn(board, "top");
+    render(<Overworld onMenu={() => {}} leaderboard={board} />);
+    await act(async () => {});
+    expect(asked).not.toHaveBeenCalled();
+  });
+
+  it("pressing E beside the winner reads who they are, with their true rank", async () => {
+    const { user } = await enter();
+    await user.keyboard("e");
+    expect(screen.getByText("Alice: rank 1, 3/11 badges, Mage.")).toBeInTheDocument();
+  });
+
+  it("a tied player keeps the true rank, and a player with no class reads as a Warrior", async () => {
+    const { user } = await enter(undefined, 28, 25);
+    await user.keyboard("e");
+    expect(screen.getByText("Bobby: rank 1, 3/11 badges, Warrior.")).toBeInTheDocument();
+  });
+
+  it("masks a name the chat filter would mask", async () => {
+    const { user } = await enter(undefined, 72, 27);
+    await user.keyboard("e");
+    expect(screen.getByText(/^\*\*\*: rank 3, 1\/11 badges, Tank\.$/)).toBeInTheDocument();
+  });
+
+  it("an empty spot says it is waiting for a player", async () => {
+    const { user } = await enter(undefined, 24, 60);
+    await user.keyboard("e");
+    expect(screen.getByText("Spot 4 is waiting for a player.")).toBeInTheDocument();
+  });
+
+  it("says the Hall is waking up while the list loads, and that it cannot be reached when it fails", async () => {
+    const slow = createMemoryLeaderboard({ rows: ROWS });
+    slow.top = () => new Promise(() => undefined);
+    const first = await enter(slow);
+    await first.user.keyboard("e");
+    expect(screen.getByText(LOG.hallLoading)).toBeInTheDocument();
+    cleanup();
+    const broken = createMemoryLeaderboard({ rows: ROWS });
+    broken.failNext = 1;
+    const second = await enter(broken);
+    await second.user.keyboard("e");
+    expect(screen.getByText(LOG.hallOffline)).toBeInTheDocument();
+  });
+
+  it("the prompt names the player beside you", async () => {
+    await enter();
+    expect(screen.getAllByText("[E] Alice").length).toBeGreaterThan(0);
   });
 });

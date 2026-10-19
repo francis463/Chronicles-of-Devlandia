@@ -48,3 +48,12 @@ export function parseMe(data: unknown): Me | null {
   if (r.rank !== null && !isInt(r.rank, 1, MAX_RANK)) return null;
   return { rank: r.rank, badges: r.badges, hidden: r.hidden, ...withAvatar(r.avatar) };
 }
+
+/** A store that cannot be reached: what a screen gets when no leaderboard was given. */
+export const NO_LEADERBOARD: LeaderboardStore = {
+  top: () => Promise.reject(new Error("no leaderboard")),
+  me: () => Promise.resolve(null),
+  setHidden: () => Promise.resolve(),
+  setAvatar: () => Promise.resolve(),
+  removeAvatar: () => Promise.resolve(),
+};

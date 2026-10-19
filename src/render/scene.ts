@@ -13,6 +13,7 @@ import { remedySpotsIn } from "./areas/remedies";
 import { LODGE_FLAT, LODGE_POINTS } from "./areas/lodge";
 import { secretSpotsIn } from "./areas/secrets";
 import { CAVE_POINT, START_ARROW_AT, WILDLIFE, foxPose, goatPose } from "./areas/peaks";
+import { HALL_FLAT, HALL_POINTS } from "./areas/hall";
 import { VILLAGE_LIFE, wandererPose } from "./areas/village";
 import { DOCK_POINT } from "./areas/peaks";
 import type { Pose } from "./motion";
@@ -71,6 +72,8 @@ export type SceneInput = {
   remedies?: readonly string[];
   /** The hidden spots you have found: they sparkle. */
   secrets?: readonly string[];
+  /** The Hall of Fame's figures: which spot (0 to 9, rank order) and the class of whoever stands there, or null for an empty spot. */
+  hall?: readonly HallFigure[];
   /** Every badge earned: your explorer wears a crown and the village lights fireworks. */
   master?: boolean;
   /** The Sunny Beach's sandcastle puzzle is solved: the castle stands finished. */
@@ -80,6 +83,7 @@ export type SceneInput = {
   /** Your own view's weather: snowfall over the whole world. */
   snow?: boolean;
 };
+export type HallFigure = { slot: number; cls: ClassId | null };
 /** `prints`: the player's recent steps (art px and the frame clock `t` they were made at), for the Peaks' footprints. */
 export type Poses = { player: Pose; drone: Pose; teammates: Record<string, Pose>; prints?: Array<{ x: number; y: number; t: number }> };
 /** x/y is the sprite's top-left in art px; variant picks the palette ("base", a hood colour, or "grey"). */
@@ -562,6 +566,10 @@ const placed = (sprite: SpriteId, at: ArtPoint, extra: Partial<Drawable> = {}): 
 };
 
 /** The hood colour, plus ":<class>" when there is a class (see createSpriteCache). */
+/** The hoods of the Hall of Fame's top three (gold, silver, bronze) and of everyone after them. */
+const HALL_HOODS: readonly string[] = ["#fbbf24", "#cbd5e1", "#d6a06a"];
+const HALL_PLAIN_HOOD = "#64748b";
+
 const withClass = (color: string, cls?: ClassId) => (cls ? `${color}:${cls}` : color);
 
 function explorer(pose: Pose, variant: string): Drawable {
@@ -796,6 +804,16 @@ function buildBaseScene(input: SceneInput, poses: Poses, t: number, reduced: boo
         light: glow(hearth, CAMPFIRE_GLOW, flame === 0 ? 1 : 0.8),
         snow: [],
       };
+    }
+    if (input.zone === "hall") {
+      // The top three wear a gold, silver and bronze hood; everyone after a plain one; an empty spot is a grey silhouette.
+      const figures = (input.hall ?? []).flatMap((f) => {
+        const at = HALL_POINTS.slots[f.slot];
+        return at ? [placed("explorer-down", at, { variant: f.cls === null ? "grey" : withClass(HALL_HOODS[f.slot] ?? HALL_PLAIN_HOOD, f.cls) })] : [];
+      });
+      upright.push(...figures);
+      upright.sort(byFeet);
+      return { zone: input.zone, glints: [], flat: HALL_FLAT.map((f) => placed(f.sprite, f.at)), upright, drone, tint: PHASE_TINT[phase], light: [], snow };
     }
     return { zone: input.zone, glints: [], flat: [], upright, drone, tint: PHASE_TINT[phase], light: [], snow };
   }

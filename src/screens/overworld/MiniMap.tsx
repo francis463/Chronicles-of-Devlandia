@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { ADA, ARCHIVE, BEACH_SIGNPOST, CAMPFIRE, DESERT_SIGNPOST, FISHER, FOREST_SIGNPOST, HERMIT, HIDDEN_ARTIFACT, ISLAND_DOCK, ISLAND_FIRE, LIGHTHOUSE, NOMAD, POIS, RANGER, SIGNPOST } from "../../game/constants";
+import { HALL_SLOTS } from "../../game/hall";
 import { WALL_Y } from "../../game/wall";
 import type { Poi, Point } from "../../game/types";
 import { ZONES, type ZoneId } from "../../game/zones";
@@ -63,7 +64,9 @@ const CELL_W = 32; // six of them fill the box's 192 inner px
 const CELL_H = 18; // about 16:9, centred in the box's 54 px (18 px above and below)
 const CELL_TOP = 18;
 /** The world map, west to east. The forest lies south of the Peaks, the desert west and the beach east of the forest and Foggaten Island east of the Peaks; the cells keep one row to fit the sidebar. */
-const CELLS: Array<{ zone: ZoneId; left: number; places: Poi[] }> = [
+const CELLS: Array<{ zone: ZoneId; left: number; top?: number; places: Poi[] }> = [
+  // The Hall of Fame lies north of the village: the row above it, in the box's free 18 px.
+  { zone: "hall", left: 0, top: 0, places: HALL_SLOTS },
   { zone: "village", left: 0, places: [ADA, SIGNPOST] },
   { zone: "peaks", left: CELL_W, places: POIS },
   { zone: "desert", left: 2 * CELL_W, places: [NOMAD, DESERT_SIGNPOST] },
@@ -93,7 +96,7 @@ function ChestDiamond({ id, point, earned }: { id: ChestId; point: Point; earned
   );
 }
 
-function MiniCell({ zone, left, current, children }: { zone: ZoneId; left: number; current: boolean; children: ReactNode }) {
+function MiniCell({ zone, left, top = CELL_TOP, current, children }: { zone: ZoneId; left: number; top?: number; current: boolean; children: ReactNode }) {
   const terrain = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const canvas = terrain.current;
@@ -105,7 +108,7 @@ function MiniCell({ zone, left, current, children }: { zone: ZoneId; left: numbe
     paintMiniTerrain(ctx, canvas.width, canvas.height, zone);
   }, [zone]);
   return (
-    <div data-testid={`minimap-cell-${zone}`} data-current={current ? "true" : undefined} className="absolute" style={{ left, top: CELL_TOP, width: CELL_W, height: CELL_H }}>
+    <div data-testid={`minimap-cell-${zone}`} data-current={current ? "true" : undefined} className="absolute" style={{ left, top, width: CELL_W, height: CELL_H }}>
       <canvas ref={terrain} aria-hidden="true" className="absolute inset-0 h-full w-full" />
       {/* An overlay, not the cell's own shadow: the opaque canvas would paint over that. */}
       {current && <div aria-hidden="true" data-testid="minimap-current" className="pointer-events-none absolute inset-0 shadow-[inset_0_0_0_1px_var(--accent)]" />}
@@ -151,7 +154,7 @@ export function MiniMap({
         className="relative h-14 w-[194px] flex-shrink-0 overflow-hidden rounded border border-[var(--panel-border)] bg-[var(--bg)]"
       >
         {CELLS.map((cell) => (
-          <MiniCell key={cell.zone} zone={cell.zone} left={cell.left} current={cell.zone === cellOf(zone)}>
+          <MiniCell key={cell.zone} zone={cell.zone} left={cell.left} top={cell.top} current={cell.zone === cellOf(zone)}>
             {cell.places.map((poi) => (
               <div key={poi.id} className="absolute h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 border border-[var(--accent)]" style={at(poi)} />
             ))}

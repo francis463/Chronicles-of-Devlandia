@@ -1,27 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { maskRude } from "../chat/filter";
 import { checkPhoto, shrinkToSquare, type Crop } from "../leaderboard/avatar";
-import { avatarUrl, parseRows, type LeaderboardStore, type Me, type Row } from "../leaderboard/leaderboard";
+import { parseRows, type LeaderboardStore, type Me, type Row } from "../leaderboard/leaderboard";
 import { Button } from "../ui/Button";
 import { Panel } from "../ui/Panel";
 import { MenuBackdrop } from "./MenuBackdrop";
+import { Face } from "../ui/Face";
 import { PhotoCrop } from "./PhotoCrop";
 
 type Phase = "loading" | "ready" | "failed";
-
-/** A player's round picture, or their first letter when they have none or it will not load. */
-function Face({ name, avatar }: { name: string; avatar?: string }) {
-  const [broken, setBroken] = useState(false);
-  return (
-    <span aria-hidden={avatar && !broken ? undefined : true} className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[var(--panel-border)] bg-[var(--bg)] text-xs font-bold text-[var(--accent)]">
-      {avatar && !broken ? (
-        <img src={avatarUrl(avatar)} alt={`${name}'s photo`} width={32} height={32} onError={() => setBroken(true)} className="h-full w-full object-cover" />
-      ) : (
-        name.charAt(0).toUpperCase()
-      )}
-    </span>
-  );
-}
 
 /** The top players by badges, with your own standing and a switch to hide yourself. Anyone can open it. */
 export function Leaderboard({

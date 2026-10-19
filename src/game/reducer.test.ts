@@ -880,6 +880,47 @@ describe("gameReducer: teammates close stale terminals (Review Focus 1)", () => 
   });
 });
 
+describe("gameReducer: the Hall of Fame", () => {
+  const up = { type: "move", dir: "up" } as const;
+  const down = { type: "move", dir: "down" } as const;
+  const village = { ...s0, zone: "village" as const };
+
+  it("up from the top of the village at any column of the north exit enters the Hall at its south edge, with the drone behind", () => {
+    for (const x of [40, 48, 56]) {
+      const s = gameReducer({ ...village, player: { x, y: 10 } }, up);
+      expect(s.zone, `x ${x}`).toBe("hall");
+      expect(s.player, `x ${x}`).toEqual({ x, y: 90 });
+      expect(s.drone, `x ${x}`).toEqual({ x: x - 2, y: 82 });
+      expect(lastLog(s)).toBe("Entered the Hall of Fame.");
+    }
+  });
+
+  it("outside the exit's columns the village's top edge holds you in", () => {
+    const s = gameReducer({ ...village, player: { x: 20, y: 10 } }, up);
+    expect(s.zone).toBe("village");
+    expect(s.player).toEqual({ x: 20, y: 10 });
+  });
+
+  it("down from the Hall's south edge returns to the village at the top", () => {
+    const s = gameReducer({ ...s0, zone: "hall", player: { x: 48, y: 90 } }, down);
+    expect(s.zone).toBe("village");
+    expect(s.player).toEqual({ x: 48, y: 10 });
+    expect(lastLog(s)).toBe("Entered Dev Village.");
+  });
+
+  it("the Hall's spots answer to the reducer's own interact only as places in the zone (the overworld reads them)", () => {
+    const inHall = { ...s0, zone: "hall" as const, player: { x: 50, y: 22 } };
+    expect(gameReducer(inHall, { type: "interact", poi: "hall-1" }).inspected).toBeNull();
+    expect(gameReducer({ ...s0, zone: "village" as const }, { type: "interact", poi: "hall-1" })).toEqual({ ...s0, zone: "village" });
+  });
+
+  it("the signpost opens a card that explains the Hall", () => {
+    const s = gameReducer({ ...s0, zone: "hall" as const, player: { x: 12, y: 27 } }, { type: "interact", poi: "hall-signpost" });
+    expect(s.inspected).toBe("hall-signpost");
+    expect(cardFor(s)).toMatchObject({ title: "Signpost", text: expect.stringContaining("Hall of Fame") });
+  });
+});
+
 describe("gameReducer: the Dense Forest (Review Focus 1 and 5)", () => {
   const down = { type: "move", dir: "down" } as const;
   const up = { type: "move", dir: "up" } as const;

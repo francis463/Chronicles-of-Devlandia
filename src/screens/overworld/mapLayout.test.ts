@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { HALL_FLAT, HALL_POINTS } from "../../render/areas/hall";
 import { CHESTS } from "../../learn/chests";
 import { AREAS } from "../../render/areas";
 import { DOCK_POINT } from "../../render/areas/peaks";
@@ -21,6 +22,11 @@ import {
   promptRect,
   spriteCss,
   zoneHitAreas,
+  hallHeroRect,
+  hallName,
+  hallPlateRect,
+  HALL_BADGE,
+  HALL_NAME_MAX,
   type CssRect,
 } from "./mapLayout";
 
@@ -75,7 +81,7 @@ const chestGroups = (zone: "peaks" | "village" | "forest" | "foggaten" | "desert
 const inside = (inner: CssRect, outer: CssRect) =>
   inner.left >= outer.left - 1e-9 && inner.top >= outer.top - 1e-9 && inner.left + inner.width <= outer.left + outer.width + 1e-9 && inner.top + inner.height <= outer.top + outer.height + 1e-9;
 /** Every drawing with a button in the zone, by its button's id. */
-const drawings = (zone: "peaks" | "village" | "forest" | "foggaten" | "desert" | "beach" | "lodge") =>
+const drawings = (zone: "peaks" | "village" | "forest" | "foggaten" | "desert" | "beach" | "lodge" | "hall") =>
   LANDMARK_CAPTIONS.filter((l) => l.zone === zone).map((l) => ({ id: l.id as string, box: spriteBox(l.sprite, l.point) }));
 
 describe("hit areas", () => {
@@ -93,7 +99,7 @@ describe("hit areas", () => {
   });
 
   it("no two hit areas intersect after the midline cut, and the centre of every drawing lies in its own hit area", () => {
-    for (const zone of ["peaks", "village", "forest", "foggaten", "desert", "beach", "lodge"] as const) {
+    for (const zone of ["peaks", "village", "forest", "foggaten", "desert", "beach", "lodge", "hall"] as const) {
       for (const world of [phone, desktop]) {
         const hits = zoneHitAreas(world, zone);
         const ids = Object.keys(hits);
@@ -109,7 +115,7 @@ describe("hit areas", () => {
   });
 
   it("hit areas never shrink below their drawing", () => {
-    for (const zone of ["peaks", "village", "forest", "foggaten", "desert", "beach", "lodge"] as const) {
+    for (const zone of ["peaks", "village", "forest", "foggaten", "desert", "beach", "lodge", "hall"] as const) {
       for (const world of [phone, desktop]) {
         const hits = zoneHitAreas(world, zone);
         for (const { id, box } of drawings(zone)) expect(inside(spriteCss(box, world), hits[id]), `${id} ${zone} @${world.width}`).toBe(true);
@@ -137,7 +143,7 @@ describe("captions", () => {
   // other places' hit areas are checked where every caption shows; at 1× a hidden caption takes no taps, and a
   // showing one sits above the other buttons (MapViewport).
   it("at 320×180 (without chest captions) and 640×360 (with them) no caption box intersects another, a landmark or chest drawing, the dig spot or an exit sign, nor at 640×360 another place's hit area", () => {
-    for (const zone of ["peaks", "village", "forest", "foggaten", "desert", "beach", "lodge"] as const) {
+    for (const zone of ["peaks", "village", "forest", "foggaten", "desert", "beach", "lodge", "hall"] as const) {
       for (const size of [PHONE_SIZE, DESKTOP_SIZE]) {
         // A zone bigger than the view is checked as a map the size of the whole zone, so what is tested is its own geometry,
         // not where a camera happens to cut it; a one-screen zone is the view itself.
@@ -168,6 +174,9 @@ describe("captions", () => {
                 ]
               : zone === "foggaten"
                 ? [...AREAS.foggaten.props.map((p) => spriteBox(p.sprite, p.at)), spriteBox("x-mark", FOGGATEN_POINTS.dig), spriteBox("semicolon", FOGGATEN_POINTS.dig)]
+              : zone === "hall"
+                ? // The scenery and the heroes on the ground: the stage's wooden front is where the top three's names go.
+                  [...AREAS.hall.props.map((p) => spriteBox(p.sprite, p.at)), ...HALL_POINTS.slots.slice(3).map((at) => spriteBox("explorer-down", at))]
               : zone === "desert" || zone === "beach" || zone === "lodge"
                 ? AREAS[zone].props.map((p) => spriteBox(p.sprite, p.at))
                 : AREAS.forest.props.map((p) => spriteBox(p.sprite, p.at));
@@ -301,7 +310,7 @@ describe("exit signs per zone", () => {
 
   it("exitSignBox gives one box per sign, inside the world, and the signs of a zone do not overlap each other or its place name", () => {
     const world = fitWorld({ width: 668, height: 360, dpr: 1 });
-    for (const zone of ["peaks", "village", "forest", "foggaten", "desert", "beach", "lodge"] as const) {
+    for (const zone of ["peaks", "village", "forest", "foggaten", "desert", "beach", "lodge", "hall"] as const) {
       const boxes = exitSignBox(world, zone);
       expect(boxes, zone).toHaveLength(EXIT_SIGNS[zone].length);
       for (const b of boxes) expect(b.left >= 0 && b.right <= world.width && b.top >= 0 && b.bottom <= world.height, `${zone} ${JSON.stringify(b)}`).toBe(true);
@@ -328,5 +337,53 @@ describe("captions of landmarks far off the map (a zone bigger than the view)", 
     expect(chip.left + chip.width / 2).toBeCloseTo(far.left + far.width / 2);
     const west = hitAt(-900, 100);
     expect(captionRect("[G] Gate", west, map).left + captionRect("[G] Gate", west, map).width / 2).toBeCloseTo(west.left + west.width / 2);
+  });
+});
+
+describe("the Hall of Fame's name plates", () => {
+  const widest = hallName("M".repeat(40));
+  const ids = Array.from({ length: 10 }, (_, i) => i);
+  const props = AREAS.hall.props.map((p) => ({ what: p.sprite, box: spriteBox(p.sprite, p.at) }));
+  const stage = spriteBox("stage", HALL_FLAT[0].at);
+
+  it("cuts a long name to eight characters with an ellipsis, and leaves a short one", () => {
+    expect(HALL_NAME_MAX).toBe(8);
+    expect(widest).toBe("MMMMMMM…");
+    expect([...widest]).toHaveLength(8);
+    expect(hallName("Alice")).toBe("Alice");
+    expect(hallName("Exactly8")).toBe("Exactly8");
+  });
+
+  it("at 320×180 and 640×360 the ten plates (the widest names) stay inside the world and clear of each other, every other hero, the props and the exit sign", () => {
+    for (const world of [phone, desktop]) {
+      const where = `@${world.width}`;
+      const edge = { left: world.left, top: world.top, right: world.left + world.width, bottom: world.top + world.height };
+      const plates = ids.map((i) => ({ i, rect: hallPlateRect(world, i, widest) }));
+      const heroes = ids.map((i) => ({ i, rect: hallHeroRect(world, i) }));
+      const scenery = props.map((p) => ({ id: p.what, rect: spriteCss(p.box, world) }));
+      const sign = mapCaptionRect("hall-south-exit", "Dev Village ↓", world);
+      for (const { i, rect } of plates) {
+        expect(rect.left >= edge.left - 1e-9 && rect.left + rect.width <= edge.right + 1e-9, `plate ${i + 1} inside, across ${where}`).toBe(true);
+        expect(rect.top >= edge.top - 1e-9 && rect.top + rect.height <= edge.bottom + 1e-9, `plate ${i + 1} inside, down ${where}`).toBe(true);
+        for (const other of plates) if (other.i > i) expect(hit(rect, other.rect), `plate ${i + 1} / plate ${other.i + 1} ${where}`).toBe(false);
+        for (const hero of heroes) if (hero.i !== i) expect(hit(rect, hero.rect), `plate ${i + 1} / hero ${hero.i + 1} ${where}`).toBe(false);
+        for (const b of scenery) expect(hit(rect, b.rect), `plate ${i + 1} / ${b.id} ${where}`).toBe(false);
+        expect(hit(rect, sign), `plate ${i + 1} / exit sign ${where}`).toBe(false);
+        // The ground rows keep off the stage; the top three's plates hang over its backdrop on purpose.
+        if (i >= 3) expect(hit(rect, spriteCss(stage, world)), `plate ${i + 1} / stage ${where}`).toBe(false);
+      }
+    }
+  });
+
+  it("a plate is centred 2 px above its hero's head, with the round picture at its left", () => {
+    for (const world of [phone, desktop]) {
+      for (const i of ids) {
+        const hero = hallHeroRect(world, i);
+        const plate = hallPlateRect(world, i, "Alice");
+        expect(plate.top + plate.height, `plate ${i + 1}`).toBe(hero.top - 2);
+        expect(plate.left + plate.width / 2, `plate ${i + 1}`).toBeCloseTo(hero.left + hero.width / 2);
+        expect(plate.width, `plate ${i + 1}`).toBe(HALL_BADGE + 4 + 5 * 5.5 + 6);
+      }
+    }
   });
 });

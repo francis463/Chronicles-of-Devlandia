@@ -183,11 +183,12 @@ export default function App({
           initial={resumeGame?.state}
           start={LODGE_START}
           onSave={(state) => saveGame(userId, { state, playerClass, hard: hardRun })}
+          leaderboard={leaderboard}
         />
       )}
       {screen === "lobby" &&
         (team.phase === "playing" ? (
-          <Overworld key={`team-${team.room}`} start={LODGE_START} playerClass={playerClass} team={team} chat={chat} playerName={userName ?? ""} onMenu={leaveTeam} saved={loadedRows} onBadgeEarned={onBadgeEarned} saveFailed={saver.failed} />
+          <Overworld key={`team-${team.room}`} start={LODGE_START} playerClass={playerClass} leaderboard={leaderboard} team={team} chat={chat} playerName={userName ?? ""} onMenu={leaveTeam} saved={loadedRows} onBadgeEarned={onBadgeEarned} saveFailed={saver.failed} />
         ) : (
           <TeamLobby session={team} onBack={leaveTeam} chat={chat} defaultNickname={userName ?? undefined} playerClass={playerClass} />
         ))}

@@ -11,11 +11,14 @@ import { cardFor } from "../../game/cards";
 import { challengeOf, challengeView } from "../../game/challenges";
 import { rollGame } from "../../game/roll";
 import { loadRecent, saveRecent, withPicks } from "../../learn/recent";
+import { hallLine, hallSlotIndex, isHallSlot } from "../../game/hall";
 import { reachFor } from "../../game/zoneSize";
 import { distance, interactLabel, placeInReach, promptText } from "../../game/geometry";
 import { toastFor, type Toast, type ToastSnap } from "../../game/toasts";
 import { gameReducer, initialState, isDowned, isModalOpen, reachPlaces } from "../../game/reducer";
-import type { GameState } from "../../game/types";
+import type { GameAction, GameState, Poi } from "../../game/types";
+import { NO_LEADERBOARD, type LeaderboardStore } from "../../leaderboard/leaderboard";
+import { useHallOfFame } from "../../hooks/useHallOfFame";
 import { countUnread, lastSeq, useChat, type ChatFeed } from "../../hooks/useChat";
 import { usePings } from "../../hooks/usePings";
 import type { TeamSession } from "../../hooks/useTeamSession";
@@ -81,6 +84,7 @@ export function Overworld({
   onNewGamePlus,
   playerName = "",
   onSave,
+  leaderboard = NO_LEADERBOARD,
 }: {
   onMenu: () => void;
   initial?: Partial<GameState>;
@@ -98,6 +102,8 @@ export function Overworld({
   hard?: boolean;
   /** The finale's [ NEW GAME+ ]: start a fresh hard run (solo games only). */
   onNewGamePlus?: () => void;
+  /** Where the Hall of Fame reads the top players from (a store that cannot be reached by default). */
+  leaderboard?: LeaderboardStore;
   /** The signed-in player's name, which the certificate starts with (a guest types theirs). */
   playerName?: string;
   /** Called with the game's state whenever it changes (a solo game keeps itself this way so a refresh can resume it). */
@@ -139,6 +145,23 @@ export function Overworld({
   const hasProgress = state.badges.length > 0 || state.matcherSolved || Object.values(flagsOf(state)).some(Boolean);
   useGameTimers(state, dispatch, leaving || helpOpen);
   const downed = isDowned(state);
+  // The Hall of Fame: the top ten load when you walk in, and a spot answers E with a log line about whoever stands on it.
+  const hall = useHallOfFame(leaderboard, state.zone === "hall");
+  const send = useCallback(
+    (action: GameAction) => {
+      if (action.type !== "interact" || !isHallSlot(action.poi)) return dispatch(action);
+      if (isDowned(state) || isModalOpen(state)) return;
+      const i = hallSlotIndex(action.poi);
+      dispatch({ type: "note", text: hall.phase === "loading" ? LOG.hallLoading : hall.phase === "failed" ? LOG.hallOffline : hallLine(hall.slots[i], i) });
+    },
+    [state, hall],
+  );
+  /** The prompt and button label for a place; a Hall spot is named after whoever stands on it. */
+  const placeName = (poi: Poi, fallback: string) => {
+    if (!isHallSlot(poi.id)) return fallback;
+    const row = hall.slots[hallSlotIndex(poi.id)];
+    return row ? `[E] ${maskRude(row.name)}` : `[E] ${poi.label}`;
+  };
   // Map zoom: "auto" fills the window when whole-pixel scaling would leave wide empty bands; the buttons make it a saved choice.
   const [zoom, setZoom] = useState<number | "auto">(loadZoom);
   const [mapView, setMapView] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
@@ -219,7 +242,7 @@ export function Overworld({
     document.addEventListener("fullscreenchange", onChange);
     return () => document.removeEventListener("fullscreenchange", onChange);
   }, []);
-  useKeyboardControls(state, dispatch, leaving || helpOpen, onChatKey, () => setHelpOpen(true), toggleMap);
+  useKeyboardControls(state, send, leaving || helpOpen, onChatKey, () => setHelpOpen(true), toggleMap);
   // `snow: undefined` is the default (the Peaks snow, other zones do not); /weather snow and /weather clear set it for every zone.
   const [view, setView] = useState<{ snow: boolean | undefined; light: "auto" | "day" | "night" }>({ snow: undefined, light: "auto" });
   const { pings, add: addPing } = usePings();
@@ -413,10 +436,11 @@ export function Overworld({
           onView={setMapView}
           inRange={inRange}
           downed={downed}
-          onInteract={(poi) => dispatch({ type: "interact", poi })}
+          onInteract={(poi) => send({ type: "interact", poi })}
           onCloseInspection={() => dispatch({ type: "closeInspection" })}
           onRespawn={() => dispatch({ type: "respawn" })}
-          prompt={inRange ? promptText(state, inRange) : ""}
+          prompt={inRange ? placeName(inRange, promptText(state, inRange)) : ""}
+          hall={state.zone === "hall" ? hall.slots : undefined}
           card={cardFor(state)}
         />
         {neighbour && (
@@ -433,9 +457,9 @@ export function Overworld({
           floating={mapOnly}
           disabled={downed || leaving || helpOpen || isModalOpen(state)}
           inRange={inRange}
-          label={inRange ? interactLabel(state, inRange) : null}
+          label={inRange ? placeName(inRange, interactLabel(state, inRange)).replace(/^\[E\] /, "") : null}
           onMove={(dir) => dispatch({ type: "move", dir })}
-          onInteract={(poi) => dispatch({ type: "interact", poi })}
+          onInteract={(poi) => send({ type: "interact", poi })}
         />
       </div>
       <EventLog

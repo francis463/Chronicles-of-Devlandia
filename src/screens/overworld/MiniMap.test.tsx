@@ -63,7 +63,7 @@ describe("mini-map terrain", () => {
     render(<MiniMap zone="peaks" player={{ x: 28, y: 72 }} artifactFound={false} teammates={[{ id: "k", name: "Kai", color: "#a78bfa", x: 60, y: 60, zone: "peaks" }]} badges={[]} archiveOpen={false} />);
     const box = screen.getByRole("img", { name: "Mini-map" });
     const canvases = [...box.querySelectorAll("canvas")];
-    expect(canvases).toHaveLength(6);
+    expect(canvases).toHaveLength(7);
     for (const canvas of canvases) {
       expect(canvas).toHaveAttribute("aria-hidden", "true");
       expect(canvas.parentElement!.firstElementChild).toBe(canvas);
@@ -90,6 +90,19 @@ describe("mini-map terrain", () => {
     expect(forest).not.toHaveAttribute("data-current");
     expect(peaks).not.toHaveAttribute("data-current");
     expect(within(peaks).queryByTestId("minimap-current")).toBeNull();
+  });
+
+  it("puts the Hall of Fame as a seventh cell above the village, 32 × 18 at the top, outlined with your dot in it when you are there", () => {
+    render(<MiniMap zone="hall" player={{ x: 50, y: 70 }} artifactFound={false} badges={[]} archiveOpen={false} teammates={[{ id: "k", name: "Kai", color: "#a78bfa", x: 40, y: 40, zone: "hall" }]} />);
+    const hall = screen.getByTestId("minimap-cell-hall");
+    const village = screen.getByTestId("minimap-cell-village");
+    expect([hall.style.left, hall.style.top, hall.style.width, hall.style.height]).toEqual([village.style.left, "0px", "32px", "18px"]);
+    expect(Number.parseInt(village.style.top)).toBeGreaterThanOrEqual(Number.parseInt(hall.style.top) + 18); // the Hall sits wholly above the village
+    expect(hall).toHaveAttribute("data-current", "true");
+    expect(village).not.toHaveAttribute("data-current");
+    expect(within(hall).getByTestId("minimap-player")).toBeInTheDocument();
+    expect(within(village).queryByTestId("minimap-player")).toBeNull();
+    expect(within(hall).getByTestId("minimap-teammate-Kai")).toBeInTheDocument();
   });
 
   it("puts each dot in its zone's cell", () => {
@@ -187,7 +200,7 @@ describe("mini-map: the Foggaten Island cell", () => {
 
   it("is the last cell, east of the forest, with the island's places, and the others stay put", () => {
     render(<MiniMap zone="peaks" player={{ x: 50, y: 50 }} {...base} />);
-    expect(screen.getAllByTestId(/^minimap-cell-/)).toHaveLength(6);
+    expect(screen.getAllByTestId(/^minimap-cell-/)).toHaveLength(7);
     const island = screen.getByTestId("minimap-cell-foggaten");
     expect(island.style.left).toBe("160px");
     expect(island.style.top).toBe("18px");

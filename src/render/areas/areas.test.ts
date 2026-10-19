@@ -517,7 +517,7 @@ describe("the Hall of Fame", () => {
     expect(AREAS.hall.id).toBe("hall");
     expect(HALL.world).toEqual({ width: 320, height: 180 });
     expect(HALL.wall).toBe(false);
-    expect(HALL.mouths).toEqual([{ x: 128, y: 148, w: 52, h: 32 }]);
+    expect(HALL.mouths).toEqual([{ x: 128, y: 164, w: 52, h: 16 }]);
     expect(HALL.corridors).toEqual([{ x: 128, y: 180, w: 52, h: 1000 }]);
     expect(AREAS.village.mouths).toContainEqual({ x: 128, y: 0, w: 52, h: 32 });
     expect(AREAS.village.corridors).toContainEqual({ x: 128, y: -1000, w: 52, h: 1000 });

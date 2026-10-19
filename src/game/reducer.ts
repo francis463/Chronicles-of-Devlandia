@@ -367,7 +367,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       }
       if (action.poi === "lodge-door" || action.poi === "lodge-fireplace") return { ...state, inspected: action.poi };
       if (action.poi === "fisher") return pushLogOnce({ ...state, inspected: "fisher" }, `Fisher: "${FISHER_LINE}"`);
-      if (action.poi === "beach-signpost") return { ...state, inspected: action.poi };
+      if (action.poi === "beach-signpost" || action.poi === "hall-signpost") return { ...state, inspected: action.poi };
       if (action.poi === "sandcastle") return state.sandcastleBuilt ? { ...state, inspected: "sandcastle" } : { ...state, inspected: "sandcastle", challenge: opened("sandcastle") };
       if (action.poi === "nomad") {
         const talked = pushLogOnce({ ...state, inspected: "nomad" }, `Nomad: "${nomadSays(state)}"`);

@@ -5,6 +5,7 @@ import { POIS } from "../../game/constants";
 import { SECRETS } from "../../game/secrets";
 import { zoneToArt } from "../../render/world";
 import type { SceneInput } from "../../render/scene";
+import type { Row } from "../../leaderboard/leaderboard";
 import { MapViewport } from "./MapViewport";
 
 // The real canvas still renders (other tests query it); this only records what the viewport asks it to draw.
@@ -754,5 +755,69 @@ describe("MapViewport: the hidden spots", () => {
     render(<MapViewport {...props({ zone: "forest", secrets: ["secret-moss"] })} />);
     expect(drawn.at(-1)!.input.secrets).toEqual(["secret-moss"]);
     expect(screen.queryByRole("button", { name: "Hidden Cave" })).toBeNull();
+  });
+});
+
+describe("MapViewport in the Hall of Fame", () => {
+  const KEY = "0b9e8f0c-7a55-4a3c-9d0e-5a1f2c3d4e5f";
+  const slots = (rows: Row[]): (Row | null)[] => [...rows, ...Array.from({ length: 10 - rows.length }, () => null)];
+  const inHall = (rows: Row[] = [], over: Partial<Props> = {}) => props({ zone: "hall", player: { x: 50, y: 82 }, drone: { x: 56, y: 82 }, hall: slots(rows), ...over });
+
+  it("shows the Hall's name and exit sign, a button for each of the ten spots, and the signpost", () => {
+    render(<MapViewport {...inHall()} />);
+    expect(screen.getByText("(Hall of Fame)")).toBeInTheDocument();
+    expect(screen.getByText("Dev Village ↓")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Signpost" })).toBeInTheDocument();
+    for (let n = 1; n <= 10; n++) expect(screen.getByRole("button", { name: `Spot ${n}, waiting for a player` })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "[V] Ada" })).toBeNull();
+  });
+
+  it("a spot's button names who stands there, and pressing it asks to interact with that spot", () => {
+    const onInteract = vi.fn();
+    render(<MapViewport {...inHall([{ rank: 1, name: "Alice", badges: 3, cls: "mage" }, { rank: 1, name: "Bobby", badges: 3 }], { onInteract })} />);
+    fireEvent.click(screen.getByRole("button", { name: "Alice, rank 1, 3 of 11 badges" }));
+    expect(onInteract).toHaveBeenCalledWith("hall-1");
+    fireEvent.click(screen.getByRole("button", { name: "Bobby, rank 1, 3 of 11 badges" }));
+    expect(onInteract).toHaveBeenLastCalledWith("hall-2");
+  });
+
+  it("floats a plate above each hero: the picture (or the first letter, or a ? for an empty spot) and the name", () => {
+    render(<MapViewport {...inHall([{ rank: 1, name: "Alice", badges: 3, avatar: KEY }, { rank: 2, name: "Bobby", badges: 2 }])} />);
+    const first = screen.getByTestId("hall-plate-1");
+    expect(within(first).getByRole("img", { name: "Alice's photo" })).toHaveAttribute("src", expect.stringContaining(`/avatars/${KEY}.jpg`));
+    expect(screen.getByTestId("hall-name-1")).toHaveTextContent("Alice");
+    const second = screen.getByTestId("hall-plate-2");
+    expect(within(second).queryByRole("img")).toBeNull();
+    expect(second).toHaveTextContent("B");
+    expect(screen.getByTestId("hall-name-2")).toHaveTextContent("Bobby");
+    const empty = screen.getByTestId("hall-plate-3");
+    expect(empty).toHaveTextContent("?");
+    expect(screen.getByTestId("hall-name-3")).toHaveTextContent("Spot 3");
+  });
+
+  it("cuts a long name to eight characters, and masks a name the chat filter would mask", () => {
+    render(<MapViewport {...inHall([{ rank: 1, name: "Maximilian1", badges: 3 }, { rank: 2, name: "Bobo", badges: 2 }])} />);
+    expect(screen.getByTestId("hall-name-1")).toHaveTextContent("Maximil…");
+    expect(screen.getByTestId("hall-name-2")).toHaveTextContent("***");
+    expect(screen.getByTestId("hall-name-2")).not.toHaveTextContent("Bobo");
+    expect(screen.getByRole("button", { name: /^\*\*\*, rank 2/ })).toBeInTheDocument();
+  });
+
+  it("a photo that fails to load falls back to the first letter", () => {
+    render(<MapViewport {...inHall([{ rank: 1, name: "Alice", badges: 3, avatar: KEY }])} />);
+    fireEvent.error(within(screen.getByTestId("hall-plate-1")).getByRole("img"));
+    expect(within(screen.getByTestId("hall-plate-1")).queryByRole("img")).toBeNull();
+    expect(screen.getByTestId("hall-plate-1")).toHaveTextContent("A");
+  });
+
+  it("draws each filled spot's class in the scene and a grey figure for an empty one", () => {
+    render(<MapViewport {...inHall([{ rank: 1, name: "Alice", badges: 3, cls: "mage" }])} />);
+    expect(drawn.at(-1)!.input.hall!.slice(0, 2)).toEqual([{ slot: 0, cls: "mage" }, { slot: 1, cls: null }]);
+  });
+
+  it("the other zones have no plates and send no figures to the scene", () => {
+    render(<MapViewport {...props({ zone: "village", hall: slots([{ rank: 1, name: "Alice", badges: 3 }]) })} />);
+    expect(screen.queryByTestId("hall-plate-1")).toBeNull();
+    expect(drawn.at(-1)!.input.hall).toBeUndefined();
   });
 });

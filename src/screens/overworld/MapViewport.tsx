@@ -1,5 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
-import type { ClassId } from "../../game/classes";
+import { classOrDefault, type ClassId } from "../../game/classes";
+import { maskRude } from "../../chat/filter";
+import { HALL_SLOTS } from "../../game/hall";
+import type { Row } from "../../leaderboard/leaderboard";
+import { Face } from "../../ui/Face";
 import { HIDDEN_ARTIFACT } from "../../game/constants";
 import type { Card } from "../../game/cards";
 import { CHESTS, chestById } from "../../learn/chests";
@@ -30,6 +34,9 @@ import {
   captionRect,
   captionText,
   exitSignBox,
+  hallName,
+  hallPlateRect,
+  HALL_BADGE,
   landmarkCaptions,
   mapCaptionRect,
   promptRect,
@@ -234,6 +241,7 @@ export function MapViewport({
   jars = [],
   remedies = [],
   secrets = [],
+  hall,
   sandcastleBuilt = false,
   matcherSolved,
   archiveOpen,
@@ -278,6 +286,8 @@ export function MapViewport({
   remedies?: readonly PoiId[];
   /** The hidden spots you have found: they sparkle, and their captions show only when you are beside them. */
   secrets?: readonly PoiId[];
+  /** In the Hall of Fame: who stands on each of the ten spots (null: nobody yet), in rank order. */
+  hall?: readonly (Row | null)[];
   /** The sandcastle puzzle is solved: the castle draws finished, and its caption gets a tick. */
   sandcastleBuilt?: boolean;
   matcherSolved: boolean;
@@ -366,6 +376,7 @@ export function MapViewport({
     jars,
     remedies,
     secrets,
+    hall: zone === "hall" && hall ? hall.map((row, i) => ({ slot: i, cls: row ? classOrDefault(row.cls) : null })) : undefined,
     sandcastleBuilt,
     master: badges.length >= CHEST_COUNT,
     minutes,
@@ -528,6 +539,45 @@ export function MapViewport({
             <LandmarkButton hit={hits["lodge-keeper"]} name={caption("lodge-keeper")} label="Keeper" color="var(--accent-border)" world={world} map={map} prefer="below" disabled={downed} hideCaption={inRange?.id === "lodge-keeper"} onClick={() => onInteract("lodge-keeper")} />
             <LandmarkButton hit={hits["lodge-book"]} name={caption("lodge-book")} label="Review Book" color="var(--accent)" world={world} map={map} prefer="above" disabled={downed} hideCaption={smallMap && inRange?.id !== "lodge-book"} peek passive={smallMap} onClick={() => onInteract("lodge-book")} />
             <LandmarkButton hit={hits["lodge-fireplace"]} name={caption("lodge-fireplace")} label="Fireplace" color="var(--accent)" world={world} map={map} prefer="below" disabled={downed} hideCaption={smallMap && inRange?.id !== "lodge-fireplace"} peek passive={smallMap} onClick={() => onInteract("lodge-fireplace")} />
+          </>
+        ) : zone === "hall" ? (
+          <>
+            <MapCaption id="hall" text="(Hall of Fame)" world={world} />
+
+            <LandmarkButton hit={hits["hall-signpost"]} name={caption("hall-signpost")} label="Signpost" color="var(--text)" world={world} map={map} prefer="above" disabled={downed} hideCaption={smallMap && inRange?.id !== "hall-signpost"} peek passive={smallMap} onClick={() => onInteract("hall-signpost")} />
+            {HALL_SLOTS.map((slot, i) => {
+              const row = hall?.[i] ?? null;
+              const name = row ? maskRude(row.name) : "";
+              const shown = row ? hallName(name) : slot.label;
+              const plate = hallPlateRect(world, i, shown);
+              return (
+                <div key={slot.id}>
+                  <LandmarkButton
+                    hit={hits[slot.id]}
+                    name=""
+                    label={row ? `${name}, rank ${row.rank}, ${row.badges} of 11 badges` : `${slot.label}, waiting for a player`}
+                    color="var(--text)"
+                    world={world}
+                    map={map}
+                    prefer="below"
+                    disabled={downed}
+                    hideCaption
+                    onClick={() => onInteract(slot.id)}
+                  />
+                  {/* The name plate floats above the hero's head: the round picture and the name. It takes no taps (the hero's button is under it). */}
+                  <div
+                    data-testid={`hall-plate-${i + 1}`}
+                    className="pointer-events-none absolute flex items-center gap-1 rounded-full border border-[var(--panel-border)] pr-1.5"
+                    style={{ left: plate.left - world.left, top: plate.top - world.top, width: plate.width, height: plate.height, background: "rgba(15,23,42,0.85)" }}
+                  >
+                    <Face name={name || slot.label} avatar={row?.avatar} size={HALL_BADGE} empty={!row} />
+                    <span data-testid={`hall-name-${i + 1}`} className="truncate text-[9px] leading-none font-bold whitespace-nowrap" style={{ color: i === 0 ? "#fbbf24" : i === 1 ? "#cbd5e1" : i === 2 ? "#d6a06a" : "var(--text)" }}>
+                      {shown}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </>
         ) : (
           <>

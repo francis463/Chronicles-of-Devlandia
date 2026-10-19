@@ -1,4 +1,5 @@
 import { DESERT_JARS, DESERT_LORE } from "../../game/desertLore";
+import { HALL_SLOTS } from "../../game/hall";
 import { REMEDIES, remediesIn } from "../../game/remedies";
 import { REMEDY_SPOTS } from "../../render/areas/remedies";
 import { LODGE_POINTS } from "../../render/areas/lodge";
@@ -13,6 +14,7 @@ import { BEACH_POINTS } from "../../render/areas/beach";
 import { DESERT_POINTS, JAR_POINTS } from "../../render/areas/desert";
 import { FOGGATEN_POINTS } from "../../render/areas/foggaten";
 import { FOREST_POINTS, MUSHROOM_POINTS } from "../../render/areas/forest";
+import { HALL_FLAT, HALL_POINTS } from "../../render/areas/hall";
 import { CAVE_POINT, DOCK_POINT, LODGE_POINT, SIGNPOST_POINT, STATION_POINT } from "../../render/areas/peaks";
 import { VILLAGE_POINTS } from "../../render/areas/village";
 import { ARCHIVE_POINT, TERMINAL_POINT } from "../../render/learnPoints";
@@ -135,6 +137,36 @@ const HOSTS: Partial<Record<ChestId, { sprite: SpriteId; prefer: "above" | "belo
   "chest-py-1": { sprite: "ruins", prefer: "above" },
 };
 
+/** A Hall of Fame name shows at most this many characters (the rest is cut with an ellipsis), so the plates fit side by side. */
+export const HALL_NAME_MAX = 8;
+export const hallName = (name: string): string => ([...name].length > HALL_NAME_MAX ? `${[...name].slice(0, HALL_NAME_MAX - 1).join("")}…` : name);
+
+/** The picture badge's side, in CSS px. */
+export const HALL_BADGE = 16;
+const HALL_CHAR_W = 5.5;
+const HALL_PLATE_H = 18;
+
+/**
+ * The Hall of Fame's ten buttons. The top three are the podium blocks they stand on (the hero is above them); the others
+ * are the hero's own drawing. They have no caption chip: the names are drawn on `hallPlateRect`s.
+ */
+const HALL_BUTTONS: readonly LandmarkCaption[] = HALL_SLOTS.map((slot, i): LandmarkCaption => {
+  const podium = i < 3 ? HALL_FLAT[i + 1] : null;
+  return { id: slot.id, zone: "hall", sprite: podium ? podium.sprite : "explorer-down", point: podium ? podium.at : HALL_POINTS.slots[i], texts: [], prefer: "below" };
+});
+
+/** Where hero `i` (0 to 9) is drawn, in CSS px. */
+export const hallHeroRect = (world: WorldRect, i: number): CssRect => spriteCss(spriteBox("explorer-down", HALL_POINTS.slots[i]), world);
+/**
+ * Hero `i`'s name plate, 2 px above its head: the round picture and the name side by side. The picture is the plate's
+ * left `HALL_BADGE` px; `text` is the name as shown.
+ */
+export const hallPlateRect = (world: WorldRect, i: number, text: string): CssRect => {
+  const hero = hallHeroRect(world, i);
+  const width = HALL_BADGE + 4 + [...text].length * HALL_CHAR_W + 6;
+  return { left: hero.left + hero.width / 2 - width / 2, top: hero.top - 2 - HALL_PLATE_H, width, height: HALL_PLATE_H };
+};
+
 export const LANDMARK_CAPTIONS: readonly LandmarkCaption[] = [
   { id: "tower", zone: "peaks", sprite: "tower", point: LANDMARK_POINTS.tower, texts: ["[T] Tower", "[T] Tower ✓"], prefer: "above" },
   { id: "gate", zone: "peaks", sprite: "gate", point: LANDMARK_POINTS.gate, texts: ["[G] Gate"], prefer: "below" },
@@ -174,6 +206,8 @@ export const LANDMARK_CAPTIONS: readonly LandmarkCaption[] = [
   { id: "fisher", zone: "beach", sprite: "explorer-down", point: BEACH_POINTS.fisher, texts: ["[F] Fisher"], prefer: "below" },
   { id: "sandcastle", zone: "beach", sprite: "sandcastle", point: BEACH_POINTS.sandcastle, texts: ["[C] Sandcastle", "Sandcastle ✓"], prefer: "below" },
   { id: "beach-signpost", zone: "beach", sprite: "signpost", point: BEACH_POINTS.signpost, texts: ["[S] Signpost"], prefer: "above" },
+  ...HALL_BUTTONS,
+  { id: "hall-signpost", zone: "hall", sprite: "signpost", point: HALL_POINTS.signpost, texts: ["[P] Signpost"], prefer: "above", quiet: true },
   { id: "terminal", zone: "village", sprite: "syntax-terminal", point: TERMINAL_POINT, texts: ["Terminal"], prefer: "below" },
   { id: "archive", zone: "village", sprite: "archive", point: ARCHIVE_POINT, texts: ["Archive", "C#", "C# ✓"], prefer: "above" },
   ...CHESTS.flatMap((c): LandmarkCaption[]  => {
@@ -229,6 +263,7 @@ export function landmarkCaptions(world: WorldRect, map: MapArea, state: MapState
   const hits = zoneHitAreas(world, zone);
   return LANDMARK_CAPTIONS.filter((l) => l.zone === zone).flatMap((l) => {
     const drawing = toEdges(spriteCss(spriteBox(spriteOf(l, state), l.point), world), world);
+    if (l.texts.length === 0) return [drawing];
     if (l.quiet && world.scale < CHEST_CAPTION_SCALE && state.reach !== l.id) return [drawing];
     return [toEdges(captionRect(captionText(l, state), hits[l.id], map, l.prefer), world), drawing];
   });

@@ -2,6 +2,7 @@ import { chestById, chestChallenge, CHESTS, type Chest } from "../learn/chests";
 import { FOREST_DIRECTIONS, HIDDEN_ARTIFACT, INSPECT_COPY, SNOW_CAVE } from "./constants";
 import type { GameState } from "./types";
 import { BEACH_COPY, CASTLE_COPY, FISHER_LINE } from "./beach";
+import { HALL_SIGN_TEXT } from "./hall";
 import { DESERT_COPY, nomadSays } from "./desert";
 import { DESERT_LORE, JAR_CARD } from "./desertLore";
 import { REMEDIES } from "./remedies";
@@ -93,6 +94,8 @@ export function cardFor(s: GameState): Card | null {
       return card(place.label, FISHER_LINE);
     case "beach-signpost":
       return card(place.label, BEACH_COPY[place.id]);
+    case "hall-signpost":
+      return card(place.label, HALL_SIGN_TEXT);
     case "nomad":
       return card(place.label, nomadSays(s));
     case "desert-signpost":
