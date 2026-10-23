@@ -211,3 +211,116 @@ describe("TouchControls: held sideways", () => {
     expect(pad("up").className).toContain("rgba");
   });
 });
+
+describe("TouchControls: joystick or arrows", () => {
+  const mount = (over: Partial<Parameters<typeof TouchControls>[0]> = {}) => {
+    const onMove = vi.fn();
+    const view = render(<TouchControls disabled={false} inRange={null} label={null} onMove={onMove} onInteract={vi.fn()} {...over} />);
+    return { onMove, ...view };
+  };
+  const stick = () => screen.getByRole("group", { name: "Joystick", hidden: true });
+  const toggle = () => screen.getByRole("button", { name: "Joystick", hidden: true });
+  const lean = (el: HTMLElement, x: number, y: number) => fireEvent.pointerMove(el, { clientX: x, clientY: y, pointerId: 1 });
+
+  beforeEach(() => localStorage.clear());
+
+  it("starts with the arrow pad and no joystick, and the toggle is not pressed", () => {
+    mount();
+    expect(screen.queryByRole("group", { name: "Joystick", hidden: true })).toBeNull();
+    expect(toggle()).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("the toggle shows the joystick, keeps the four arrows for keyboards and screen readers, and remembers the choice", () => {
+    const first = mount();
+    fireEvent.click(toggle());
+    expect(stick()).toBeInTheDocument();
+    expect(toggle()).toHaveAttribute("aria-pressed", "true");
+    expect(localStorage.getItem("devlandia.touchControls")).toBe("stick");
+    // The arrows are still there to Tab to, just not drawn.
+    expect(pad("up").closest(".sr-only")).not.toBeNull();
+    first.unmount();
+    mount();
+    expect(stick()).toBeInTheDocument();
+    fireEvent.click(toggle());
+    expect(localStorage.getItem("devlandia.touchControls")).toBe("arrows");
+    expect(screen.queryByRole("group", { name: "Joystick", hidden: true })).toBeNull();
+  });
+
+  it("an odd saved value means the arrows", () => {
+    localStorage.setItem("devlandia.touchControls", "banana");
+    mount();
+    expect(screen.queryByRole("group", { name: "Joystick", hidden: true })).toBeNull();
+  });
+
+  it("leaning the stick steps that way at once and every 150 ms, and a new lean changes the way", () => {
+    const { onMove } = mount();
+    fireEvent.click(toggle());
+    fireEvent.pointerDown(stick(), { clientX: 0, clientY: 0, pointerId: 1 });
+    expect(onMove).not.toHaveBeenCalled(); // resting on the middle is not a step
+    lean(stick(), 30, 4);
+    expect(onMove.mock.calls).toEqual([["right"]]);
+    act(() => vi.advanceTimersByTime(300));
+    expect(onMove.mock.calls.map((c) => c[0])).toEqual(["right", "right", "right"]);
+    lean(stick(), 2, -30);
+    expect(onMove.mock.calls.at(-1)).toEqual(["up"]);
+    act(() => vi.advanceTimersByTime(150));
+    expect(onMove.mock.calls.at(-1)).toEqual(["up"]);
+  });
+
+  it("moving the thumb inside the dead zone or lifting it stops the steps", () => {
+    const { onMove } = mount();
+    fireEvent.click(toggle());
+    fireEvent.pointerDown(stick(), { clientX: 30, clientY: 0, pointerId: 1 });
+    const steps = onMove.mock.calls.length;
+    lean(stick(), 3, 3);
+    act(() => vi.advanceTimersByTime(600));
+    expect(onMove).toHaveBeenCalledTimes(steps);
+    lean(stick(), -30, 0);
+    expect(onMove.mock.calls.at(-1)).toEqual(["left"]);
+    fireEvent.pointerUp(stick(), { pointerId: 1 });
+    const after = onMove.mock.calls.length;
+    act(() => vi.advanceTimersByTime(600));
+    expect(onMove).toHaveBeenCalledTimes(after);
+  });
+
+  it("a cancelled touch stops too, and the knob goes back to the middle", () => {
+    const { onMove } = mount();
+    fireEvent.click(toggle());
+    fireEvent.pointerDown(stick(), { clientX: 0, clientY: 30, pointerId: 1 });
+    const knob = screen.getByTestId("stick-knob");
+    expect(knob.style.transform).not.toContain("translate(0px, 0px)");
+    fireEvent.pointerCancel(stick(), { pointerId: 1 });
+    expect(knob.style.transform).toContain("translate(0px, 0px)");
+    const n = onMove.mock.calls.length;
+    act(() => vi.advanceTimersByTime(600));
+    expect(onMove).toHaveBeenCalledTimes(n);
+  });
+
+  it("does nothing while the controls are disabled", () => {
+    const { onMove } = mount({ disabled: true });
+    fireEvent.click(toggle());
+    fireEvent.pointerDown(stick(), { clientX: 30, clientY: 0, pointerId: 1 });
+    act(() => vi.advanceTimersByTime(600));
+    expect(onMove).not.toHaveBeenCalled();
+  });
+
+  it("disabling in the middle of a lean stops it", () => {
+    const { onMove, rerender } = mount();
+    fireEvent.click(toggle());
+    fireEvent.pointerDown(stick(), { clientX: 30, clientY: 0, pointerId: 1 });
+    const n = onMove.mock.calls.length;
+    rerender(<TouchControls disabled inRange={null} label={null} onMove={onMove} onInteract={vi.fn()} />);
+    act(() => vi.advanceTimersByTime(600));
+    expect(onMove).toHaveBeenCalledTimes(n);
+  });
+
+  it("the swap button moves the joystick to the other side like the arrows", () => {
+    mount({ floating: true });
+    fireEvent.click(toggle());
+    const part = () => screen.getByRole("group", { name: "Touch controls", hidden: true }).querySelector("[data-part='pad']") as HTMLElement;
+    expect(part().className).not.toContain("order-3");
+    fireEvent.click(screen.getByRole("button", { name: "Swap sides", hidden: true }));
+    expect(part().className).toContain("order-3");
+    expect(part().contains(stick())).toBe(true);
+  });
+});
