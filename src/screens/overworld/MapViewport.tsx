@@ -675,7 +675,7 @@ export function MapViewport({
 
       {inRange && prompt && (
         <div
-          className="pointer-events-none absolute z-40 rounded border border-[var(--accent)] bg-[var(--bg)] px-2 py-1 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap text-[var(--accent)]"
+          className="pointer-events-none absolute z-40 rounded border border-[var(--accent)] bg-[var(--bg)] px-2 py-1 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap text-[var(--accent)] pointer-coarse:hidden"
           style={{
             left: prompt.left + prompt.width / 2,
             top: prompt.below ? prompt.top : prompt.top + prompt.height,

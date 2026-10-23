@@ -211,8 +211,11 @@ export function Overworld({
   const draftRef = useRef(feed.draft);
   draftRef.current = feed.draft;
   const [focusRequest, setFocusRequest] = useState({ n: 0, slash: false });
+  // Over the full-screen map the chat is a sheet that opens on demand (the Chat button, or the chat keys).
+  const [chatOpen, setChatOpen] = useState(false);
   const onChatKey = useCallback((slash: boolean) => {
     setTab("chat");
+    setChatOpen(true);
     setFocusRequest((r) => ({ n: r.n + 1, slash }));
   }, []);
   useEffect(() => {
@@ -386,6 +389,12 @@ export function Overworld({
         playerClass={playerClass}
         hard={state.hard}
         tide={state.zone === "beach" ? tideName(minutes) : undefined}
+        food={state.food}
+        onEat={() => dispatch({ type: "eat" })}
+        onChat={() => {
+          setTab("chat");
+          setChatOpen((open) => !open);
+        }}
       />
       <MiniMap
         className={mapOnly ? "hidden!" : "md:col-start-1 md:row-start-2"}
@@ -455,7 +464,7 @@ export function Overworld({
           </Button>
         )}
         {mapOnly && (
-          <p aria-hidden="true" className="pointer-events-none absolute top-2 left-2 z-10 max-w-[55%] rounded bg-[rgba(15,23,42,0.8)] px-2 py-1 text-[10px] text-[var(--text)]">
+          <p key={state.logCount} aria-hidden="true" className="log-line-fade pointer-events-none absolute top-2 left-2 z-10 max-w-[55%] rounded bg-[rgba(15,23,42,0.8)] px-2 py-1 text-[10px] text-[var(--text)]">
             {state.logs.at(-1)}
           </p>
         )}
@@ -469,7 +478,7 @@ export function Overworld({
         />
       </div>
       <EventLog
-        className={mapOnly ? "sr-only absolute!" : "md:col-start-1 md:row-start-4"}
+        className={mapOnly ? (chatOpen ? "fixed! inset-x-0 bottom-0 z-50 h-[58dvh] md:min-h-0" : "sr-only absolute!") : "md:col-start-1 md:row-start-4"}
         logs={state.logs}
         logCount={state.logCount}
         chat={{
@@ -483,6 +492,12 @@ export function Overworld({
           ),
         }}
       />
+      {mapOnly && chatOpen && (
+        <Button variant="neutral" className="fixed! right-3 bottom-[calc(58dvh-2.75rem)] z-[60] px-2 py-1 text-[10px] pointer-coarse:min-h-11" onClick={() => setChatOpen(false)}>
+          <span aria-hidden="true">[X]</span>
+          <span className="sr-only">Close chat</span>
+        </Button>
+      )}
       <BottomHud
         className={mapOnly ? "hidden!" : "md:col-span-2 md:row-start-5"}
         food={state.food}

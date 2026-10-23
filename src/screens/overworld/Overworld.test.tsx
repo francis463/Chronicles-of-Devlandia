@@ -1140,3 +1140,53 @@ describe("Overworld: the Hall of Fame", () => {
     expect(screen.getAllByText("[E] Alice").length).toBeGreaterThan(0);
   });
 });
+
+describe("Overworld: a phone held sideways", () => {
+  const originalMatchMedia = window.matchMedia;
+  afterEach(() => {
+    window.matchMedia = originalMatchMedia;
+  });
+  const sideways = () => {
+    window.matchMedia = ((query: string) => ({ matches: query === LANDSCAPE_PHONE, addEventListener: () => {}, removeEventListener: () => {} })) as unknown as typeof window.matchMedia;
+  };
+
+  it("the slim top bar has a Food button that eats, so a hurt player can heal", () => {
+    sideways();
+    render(<Overworld onMenu={() => {}} initial={{ food: 2, hp: 3 }} />);
+    // The inventory bar's own Food slot is hidden over the full-screen map, so the top bar's is the one to use.
+    const bar = () => within(screen.getByRole("banner"));
+    fireEvent.click(bar().getByRole("button", { name: "Eat food (2 left)" }));
+    expect(bar().getByRole("button", { name: "Eat food (1 left)" })).toBeInTheDocument();
+    expect(screen.getAllByRole("meter")[0]).toHaveAttribute("aria-valuenow", "4");
+  });
+
+  it("the Chat button opens the chat over the map and Close puts it away", () => {
+    sideways();
+    const { container } = render(<Overworld onMenu={() => {}} />);
+    const log = () => container.querySelector("aside")!;
+    expect(log().className).toContain("sr-only");
+    fireEvent.click(screen.getByRole("button", { name: "Chat" }));
+    expect(log().className).not.toContain("sr-only");
+    expect(screen.getByRole("tab", { name: /^(COMMANDS|CHAT)/ })).toHaveAttribute("aria-selected", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Close chat" }));
+    expect(log().className).toContain("sr-only");
+    expect(screen.queryByRole("button", { name: "Close chat" })).toBeNull();
+  });
+
+  it("the newest log line over the map fades out by itself, and shows again with a new line", () => {
+    sideways();
+    const { container } = render(<Overworld onMenu={() => {}} initial={{ food: 1, hp: 3 }} />);
+    const line = () => container.querySelector("p[aria-hidden='true']") as HTMLElement;
+    expect(line().className).toContain("log-line-fade");
+    const first = line();
+    fireEvent.click(within(screen.getByRole("banner")).getByRole("button", { name: "Eat food (1 left)" }));
+    expect(line()).not.toBe(first); // a new line is a new element, so its fade starts again
+    expect(line().className).toContain("log-line-fade");
+  });
+
+  it("not held sideways there is no Food or Chat button in the top bar", () => {
+    render(<Overworld onMenu={() => {}} initial={{ food: 2 }} />);
+    expect(screen.queryByRole("button", { name: "Eat food (2 left)", hidden: false })?.closest("header")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Chat" })).toBeNull();
+  });
+});

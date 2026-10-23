@@ -821,3 +821,12 @@ describe("MapViewport in the Hall of Fame", () => {
     expect(drawn.at(-1)!.input.hall).toBeUndefined();
   });
 });
+
+describe("MapViewport: the [E] prompt chip", () => {
+  it("is hidden on a touch screen, where the big [E] button already says it", () => {
+    const poi = { id: "villager" as const, label: "Ada", x: 34, y: 70 };
+    render(<MapViewport {...props({ zone: "village", inRange: poi, prompt: "[E] Talk to Ada" })} />);
+    const chip = screen.getByText("[E] Talk to Ada");
+    expect(chip.className).toContain("pointer-coarse:hidden");
+  });
+});

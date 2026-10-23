@@ -35,6 +35,8 @@
 
 body {
   margin: 0;
+  /* The page runs edge to edge (viewport-fit=cover); ordinary screens keep clear of a notch and the home bar. The full-screen map is fixed and pads itself. */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-mono);
@@ -75,3 +77,15 @@ body {
 .hp-flash-heal { background: radial-gradient(ellipse at center, transparent 35%, #22c55e 100%); animation-name: hp-heal; }
 .hp-low { background: radial-gradient(ellipse at center, transparent 55%, rgba(220, 38, 38, 0.4) 100%); }
 @media (prefers-reduced-motion: reduce) { .hp-flash { display: none; } }
+
+/* A phone held sideways: keep the slim bar and the touch controls out from under a notch, the rounded corners and the home bar. */
+.safe-x { padding-left: max(0.75rem, env(safe-area-inset-left)); padding-right: max(0.75rem, env(safe-area-inset-right)); }
+.safe-controls {
+  padding-left: max(0.75rem, env(safe-area-inset-left));
+  padding-right: max(0.75rem, env(safe-area-inset-right));
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+/* The newest log line over the full-screen map: shows, holds for about four seconds, then fades (opacity only, so reduced motion keeps it). */
+@keyframes log-line-fade { 0% { opacity: 0; } 5% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; } }
+.log-line-fade { animation: log-line-fade 5s ease-out forwards; }
