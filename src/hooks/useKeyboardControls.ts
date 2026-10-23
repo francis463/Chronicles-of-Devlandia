@@ -1,5 +1,6 @@
 import { useEffect, useRef, type Dispatch } from "react";
 import { placeInReach } from "../game/geometry";
+import { reachFor } from "../game/zoneSize";
 import { isDowned, isModalOpen, reachPlaces } from "../game/reducer";
 import type { Direction, GameAction, GameState } from "../game/types";
 
@@ -27,13 +28,15 @@ const OWNS_ENTER = "button, a, input, select, textarea, summary, [role='tab'], [
 
 /**
  * `paused`: a dialog outside the game state (the leave confirmation) owns the keys, Esc included.
- * `onChatKey`: Enter (`false`) or `/` (`true`) asks for the chat input.
+ * `onChatKey`: Enter (`false`) or `/` (`true`) asks for the chat input. `onHelpKey`: `?` opens the help. `onMapKey`: `F` toggles the full-screen map.
  */
 export function useKeyboardControls(
   state: GameState,
   dispatch: Dispatch<GameAction>,
   paused = false,
   onChatKey?: (slash: boolean) => void,
+  onHelpKey?: () => void,
+  onMapKey?: () => void,
 ): void {
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -41,6 +44,10 @@ export function useKeyboardControls(
   pausedRef.current = paused;
   const chatKeyRef = useRef(onChatKey);
   chatKeyRef.current = onChatKey;
+  const helpKeyRef = useRef(onHelpKey);
+  helpKeyRef.current = onHelpKey;
+  const mapKeyRef = useRef(onMapKey);
+  mapKeyRef.current = onMapKey;
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -59,12 +66,25 @@ export function useKeyboardControls(
       if (key === "escape") {
         if (isModalOpen(current)) {
           event.preventDefault();
-          dispatch({ type: current.challenge ? "closeChallenge" : current.logicOpen ? "closeLogic" : "toggleCodex" });
+          dispatch({ type: current.challenge ? "closeChallenge" : current.logicOpen ? "closeLogic" : current.lampOpen ? "closeLamp" : current.bookOpen ? "toggleBook" : "toggleCodex" });
         }
         return;
       }
 
       if (isTextField(event.target) || isModalOpen(current) || isDowned(current)) return;
+
+      if (key === "?" && !event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey && helpKeyRef.current) {
+        event.preventDefault();
+        helpKeyRef.current();
+        return;
+      }
+
+      // F toggles the full-screen map (plain presses only, never a held key's repeats).
+      if (key === "f" && !event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey && mapKeyRef.current) {
+        event.preventDefault();
+        mapKeyRef.current();
+        return;
+      }
 
       const chatKey = chatKeyRef.current;
       if (chatKey && !event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey) {
@@ -92,7 +112,7 @@ export function useKeyboardControls(
       }
 
       if (key === "e") {
-        const poi = placeInReach(current.player, reachPlaces(current));
+        const poi = placeInReach(current.player, reachPlaces(current), reachFor(current.zone));
         if (poi) {
           event.preventDefault();
           dispatch({ type: "interact", poi: poi.id });

@@ -1,21 +1,35 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import type { ClassId } from "../../game/classes";
 import type { CommandContext, CommandEffect } from "../../chat/commands";
 import { chatRoster } from "../../chat/context";
 import { maskRude } from "../../chat/filter";
 import { displayNames } from "../../chat/names";
+import { Button } from "../../ui/Button";
+import { MAX_ZOOM } from "../../render/world";
+import { LANDSCAPE_PHONE, useMediaQuery } from "../../hooks/useMediaQuery";
 import { cardFor } from "../../game/cards";
 import { challengeOf, challengeView } from "../../game/challenges";
 import { rollGame } from "../../game/roll";
-import { interactLabel, placeInReach, promptText } from "../../game/geometry";
+import { loadRecent, saveRecent, withPicks } from "../../learn/recent";
+import { hallLine, hallSlotIndex, isHallSlot } from "../../game/hall";
+import { reachFor } from "../../game/zoneSize";
+import { distance, interactLabel, placeInReach, promptText } from "../../game/geometry";
+import { toastFor, type Toast, type ToastSnap } from "../../game/toasts";
 import { gameReducer, initialState, isDowned, isModalOpen, reachPlaces } from "../../game/reducer";
-import type { GameState } from "../../game/types";
+import type { GameAction, GameState, Poi } from "../../game/types";
+import { NO_LEADERBOARD, type LeaderboardStore } from "../../leaderboard/leaderboard";
+import { useHallOfFame } from "../../hooks/useHallOfFame";
 import { countUnread, lastSeq, useChat, type ChatFeed } from "../../hooks/useChat";
 import { usePings } from "../../hooks/usePings";
 import type { TeamSession } from "../../hooks/useTeamSession";
-import { LOG, TICK_MS } from "../../game/constants";
+import { LOG, LOW_HP, TICK_MS, FOOD_COOLDOWN_MS } from "../../game/constants";
+import { tideName } from "../../game/tide";
+import { playedWithHints } from "../../game/clock";
 import { flagsOf, teamMinutes } from "../../game/team";
 import { ZONES } from "../../game/zones";
-import { chestById } from "../../learn/chests";
+import { chestById, chestChallenge } from "../../learn/chests";
+import { goToSpot } from "../../learn/codexModel";
+import { seedFromSaved, type SavedBadge } from "../../progress/progress";
 import type { BlankMode, ChestId } from "../../learn/types";
 import { useNow } from "../../hooks/useNow";
 import { useGameTimers } from "../../hooks/useGameTimers";
@@ -23,8 +37,13 @@ import { useKeyboardControls } from "../../hooks/useKeyboardControls";
 import { Panel } from "../../ui/Panel";
 import { ChallengeTerminal } from "../ChallengeTerminal";
 import { ChatPanel } from "../chat/ChatPanel";
+import { ReviewBook } from "../ReviewBook";
 import { Codex } from "../Codex";
+import { Certificate } from "../Certificate";
+import { Finale, playedFor } from "../Finale";
+import { Help } from "../Help";
 import { LeaveConfirm } from "./LeaveConfirm";
+import { LampModal } from "../LampModal";
 import { LogicModal } from "../LogicModal";
 import { BottomHud } from "./BottomHud";
 import { EventLog, type SideTab } from "./EventLog";
@@ -34,32 +53,149 @@ import { QuestList } from "./QuestList";
 import { TopHud } from "./TopHud";
 import { TouchControls } from "./TouchControls";
 
+const ZOOM_KEY = "devlandia.mapZoom";
+function loadZoom(): number | "auto" {
+  try {
+    const n = Number(localStorage.getItem(ZOOM_KEY));
+    return localStorage.getItem(ZOOM_KEY) !== null && Number.isInteger(n) && n >= -8 && n <= MAX_ZOOM ? n : "auto";
+  } catch {
+    return "auto";
+  }
+}
+function saveZoom(zoom: number): void {
+  try {
+    localStorage.setItem(ZOOM_KEY, String(zoom));
+  } catch {
+    // Blocked storage just forgets the choice.
+  }
+}
+
 export function Overworld({
   onMenu,
   initial,
+  start,
   team,
   chat,
+  saved,
+  onBadgeEarned,
+  saveFailed = false,
+  playerClass,
+  hard = false,
+  onNewGamePlus,
+  playerName = "",
+  onSave,
+  leaderboard = NO_LEADERBOARD,
 }: {
   onMenu: () => void;
   initial?: Partial<GameState>;
+  /** Where a new game begins (a resumed game's own `initial` state wins over it). */
+  start?: Pick<GameState, "zone" | "player" | "drone">;
+  /** A signed-in player's saved badges: they start the game earned, with the question they answered. */
+  saved?: readonly SavedBadge[];
+  /** Called once for each badge earned during this game (never for the saved ones). */
+  onBadgeEarned?: (b: SavedBadge) => void;
+  /** True while the saver is failing; the game says so once each time it starts. */
+  saveFailed?: boolean;
+  /** Your hero's class: how it is drawn, and the line in the top bar. */
+  playerClass?: ClassId;
+  /** A New Game+ run: harder questions, and wrong answers cost HP. */
+  hard?: boolean;
+  /** The finale's [ NEW GAME+ ]: start a fresh hard run (solo games only). */
+  onNewGamePlus?: () => void;
+  /** Where the Hall of Fame reads the top players from (a store that cannot be reached by default). */
+  leaderboard?: LeaderboardStore;
+  /** The signed-in player's name, which the certificate starts with (a guest types theirs). */
+  playerName?: string;
+  /** Called with the game's state whenever it changes (a solo game keeps itself this way so a refresh can resume it). */
+  onSave?: (state: GameState) => void;
   /** Team mode: shared progress, teammates on the map and the team clock. */
   team?: TeamSession;
   /** The team's conversation, when the lobby already started one; without it the game keeps its own. */
   chat?: ChatFeed;
 }) {
   // Each game rolls its questions, shuffle seed, Matcher round and access code once, at mount; a team shares the code.
-  const [state, dispatch] = useReducer(gameReducer, undefined, () => ({
-    ...initialState,
-    ...rollGame(Math.random, team?.startedAt ?? undefined),
-    ...initial,
-  }));
+  const [state, dispatch] = useReducer(gameReducer, undefined, () => {
+    const rolled = rollGame(Math.random, team?.startedAt ?? undefined, loadRecent(), hard);
+    return { ...initialState, ...rolled, hard, ...seedFromSaved(saved ?? [], rolled.picks), ...start, ...initial };
+  });
+  // Remember this game's questions, so the next game picks others.
+  useEffect(() => (hard || initial ? undefined : saveRecent(withPicks(loadRecent(), state.picks))), []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => onSave?.(state), [state]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The badges this game started with from the player's account: neither saved again nor announced to the team.
+  const seeded = useRef<ReadonlySet<ChestId>>(new Set((saved ?? []).map((b) => b.chest)));
+  const reported = useRef(new Set<ChestId>(seeded.current));
+  useEffect(() => {
+    for (const chest of state.badges) {
+      if (reported.current.has(chest)) continue;
+      reported.current.add(chest);
+      onBadgeEarned?.({ chest, questionId: chestChallenge(state.picks, chest).id, answer: state.answered[chest] ?? "" });
+    }
+  }, [onBadgeEarned, state.badges, state.picks, state.answered]);
+  const wasFailing = useRef(false);
+  useEffect(() => {
+    if (saveFailed && !wasFailing.current) dispatch({ type: "note", text: LOG.saveFailed });
+    wasFailing.current = saveFailed;
+  }, [saveFailed]);
   // Type or Blocks: kept while terminals open and close, reset by a new game (which remounts this).
   const [mode, setMode] = useState<BlankMode>("type");
   // [=] Menu with progress asks first; while it asks, play pauses and it owns the keys.
   const [leaving, setLeaving] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [certificateOpen, setCertificateOpen] = useState(false);
   const hasProgress = state.badges.length > 0 || state.matcherSolved || Object.values(flagsOf(state)).some(Boolean);
-  useGameTimers(state, dispatch, leaving);
+  useGameTimers(state, dispatch, leaving || helpOpen);
   const downed = isDowned(state);
+  // The Hall of Fame: the top ten load when you walk in, and a spot answers E with a log line about whoever stands on it.
+  const hall = useHallOfFame(leaderboard, state.zone === "hall");
+  // Walking in says so when the list is loading or cannot be reached, not only when you press E on a figure.
+  useEffect(() => {
+    if (state.zone !== "hall") return;
+    if (hall.phase === "loading") dispatch({ type: "note", text: LOG.hallLoading });
+    else if (hall.phase === "failed") dispatch({ type: "note", text: LOG.hallOffline });
+  }, [hall.phase, state.zone]);
+  const send = useCallback(
+    (action: GameAction) => {
+      if (action.type !== "interact" || !isHallSlot(action.poi)) return dispatch(action);
+      if (isDowned(state) || isModalOpen(state)) return;
+      const i = hallSlotIndex(action.poi);
+      dispatch({ type: "note", text: hall.phase === "loading" ? LOG.hallLoading : hall.phase === "failed" ? LOG.hallOffline : hallLine(hall.slots[i], i) });
+    },
+    [state, hall],
+  );
+  /** The prompt and button label for a place; a Hall spot is named after whoever stands on it. */
+  const placeName = (poi: Poi, fallback: string) => {
+    if (!isHallSlot(poi.id)) return fallback;
+    const row = hall.slots[hallSlotIndex(poi.id)];
+    return row ? `[E] ${maskRude(row.name)}` : `[E] ${poi.label}`;
+  };
+  // Map zoom: "auto" fills the window when whole-pixel scaling would leave wide empty bands; the buttons make it a saved choice.
+  const [zoom, setZoom] = useState<number | "auto">(loadZoom);
+  const [mapView, setMapView] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const changeZoom = (next: number) => {
+    setZoom(next);
+    saveZoom(next);
+  };
+  // A flash over the map when your health falls (red) or rises (green); it is state, not a timer, so the CSS animation plays once.
+  const lastHp = useRef(state.hp);
+  const [pulse, setPulse] = useState<{ kind: "hurt" | "heal"; n: number } | null>(null);
+  useEffect(() => {
+    if (state.hp === lastHp.current) return;
+    const kind = state.hp < lastHp.current ? "hurt" : "heal";
+    lastHp.current = state.hp;
+    setPulse((p) => ({ kind, n: (p?.n ?? 0) + 1 }));
+  }, [state.hp]);
+
+  // A pop-up for the scroll, an NPC's food and a bite of it (see toastFor); also state, so its CSS fade plays once per pop.
+  const lastSnap = useRef<ToastSnap>(state);
+  const eaten = useRef(0);
+  const [toast, setToast] = useState<{ n: number } & Toast | null>(null);
+  useEffect(() => {
+    const next: ToastSnap = state;
+    const found = toastFor(lastSnap.current, next, eaten.current);
+    if (found && next.food < lastSnap.current.food) eaten.current += 1;
+    lastSnap.current = { hasLoot: next.hasLoot, food: next.food, hp: next.hp, rangerFed: next.rangerFed, nomadServed: next.nomadServed, soupTaken: next.soupTaken };
+    if (found) setToast((t) => ({ n: (t?.n ?? 0) + 1, ...found }));
+  }, [state.hasLoot, state.food, state.hp, state.rangerFed, state.nomadServed, state.soupTaken]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Chat, commands and your own view ──
   const own = useChat(chat ? null : (team ?? null));
@@ -75,8 +211,11 @@ export function Overworld({
   const draftRef = useRef(feed.draft);
   draftRef.current = feed.draft;
   const [focusRequest, setFocusRequest] = useState({ n: 0, slash: false });
+  // Over the full-screen map the chat is a sheet that opens on demand (the Chat button, or the chat keys).
+  const [chatOpen, setChatOpen] = useState(false);
   const onChatKey = useCallback((slash: boolean) => {
     setTab("chat");
+    setChatOpen(true);
     setFocusRequest((r) => ({ n: r.n + 1, slash }));
   }, []);
   useEffect(() => {
@@ -89,9 +228,38 @@ export function Overworld({
     }
     input.setSelectionRange(input.value.length, input.value.length);
   }, [focusRequest, setDraft]);
-  useKeyboardControls(state, dispatch, leaving, onChatKey);
-  const [view, setView] = useState<{ snow: boolean; light: "auto" | "day" | "night" }>({ snow: false, light: "auto" });
+  // Full-screen map (the F key or its button; a phone held sideways does it by itself): only the map, a slim top bar and the newest log line stay in view.
+  const [mapManual, setMapManual] = useState(false);
+  const landscapePhone = useMediaQuery(LANDSCAPE_PHONE);
+  const mapOnly = mapManual || landscapePhone;
+  const toggleMap = useCallback(() => {
+    setMapManual((on) => {
+      // Best effort: the browser's own full screen too (phones and some browsers have none), kept in step by fullscreenchange.
+      try {
+        if (!on) void document.documentElement.requestFullscreen?.()?.catch(() => undefined);
+        else if (document.fullscreenElement) void document.exitFullscreen?.()?.catch(() => undefined);
+      } catch {
+        // The map is still full-window without it.
+      }
+      return !on;
+    });
+  }, []);
+  useEffect(() => {
+    const onChange = () => {
+      if (!document.fullscreenElement) setMapManual(false);
+    };
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+  useKeyboardControls(state, send, leaving || helpOpen, onChatKey, () => setHelpOpen(true), toggleMap);
+  // `snow: undefined` is the default (the Peaks snow, other zones do not); /weather snow and /weather clear set it for every zone.
+  const [view, setView] = useState<{ snow: boolean | undefined; light: "auto" | "day" | "night" }>({ snow: undefined, light: "auto" });
   const { pings, add: addPing } = usePings();
+  // The Codex's "Go there": the game logs where the chest is, and a ring marks its landmark when you are in that zone.
+  const goTo = (chest: ChestId) => {
+    dispatch({ type: "goTo", chest });
+    addPing({ id: "guide", name: chestById(chest).host ?? "Archive", color: "#fde047", ...goToSpot(chest, state.zone) });
+  };
 
   // ── Team mode ──
   const publishPosition = team?.publishPosition;
@@ -125,7 +293,7 @@ export function Overworld({
     [onZoneChange],
   );
   // Badges are personal: each new one goes out once, and teammates' badges are news for the log.
-  const published = useRef(new Set<ChestId>());
+  const published = useRef(new Set<ChestId>(seeded.current));
   useEffect(() => {
     for (const chest of state.badges) {
       if (published.current.has(chest) || !publishBadge) continue;
@@ -152,11 +320,34 @@ export function Overworld({
       ),
     [onPing, addPing],
   );
+  // Food: a teammate can pass you a piece of theirs (you eat it yourself); you can pass one of yours to the teammate beside you, one every FOOD_COOLDOWN_MS.
+  const onFood = team?.onFood;
+  const shareFood = team?.shareFood;
+  useEffect(
+    () => onFood?.((from) => dispatch({ type: "receiveFood", from: displayNames(playersRef.current ?? []).get(from.id) ?? maskRude(from.name) })),
+    [onFood],
+  );
+  const neighbour = team && !downed ? team.teammates.find((t) => t.zone === state.zone && distance(state.player, t) <= reachFor(state.zone)) : undefined;
+  const lastPour = useRef(0);
+  const pourFood = () => {
+    if (!neighbour || !shareFood) return;
+    if (state.food <= 0) return dispatch({ type: "note", text: LOG.foodNone });
+    const name = displayNames(playersRef.current ?? []).get(neighbour.id) ?? maskRude(neighbour.name);
+    const at = Date.now();
+    if (at - lastPour.current < FOOD_COOLDOWN_MS) return dispatch({ type: "note", text: LOG.foodEmpty });
+    if (shareFood(neighbour.id) !== "sent") return dispatch({ type: "note", text: LOG.foodOffline });
+    lastPour.current = at;
+    dispatch({ type: "giveFood" });
+    dispatch({ type: "note", text: LOG.foodGiven(name) });
+  };
   const now = useNow(TICK_MS, team?.startedAt != null);
   const minutes = team?.startedAt != null ? teamMinutes(team.startedAt, now) : state.minutes;
+  // Real time played (the team's shared clock in a team game, else the solo game's own ticks, which pause with the game) plus 2 minutes for every hint used.
+  const hintsUsed = state.hintsRevealed.length;
+  const playedMs = playedWithHints(team?.startedAt != null ? Math.max(0, now - team.startedAt) : state.ticks * TICK_MS, hintsUsed);
   const teamLabel = team?.room ? `ROOM ${team.room} · ${team.players.length} online` : undefined;
 
-  const inRange = downed ? null : placeInReach(state.player, reachPlaces(state));
+  const inRange = downed ? null : placeInReach(state.player, reachPlaces(state), reachFor(state.zone));
 
   const getContext = (): CommandContext => ({
     where: team ? "game" : "solo",
@@ -175,22 +366,38 @@ export function Overworld({
   };
 
   return (
-    <Panel className="mx-auto w-full max-w-screen-2xl overflow-hidden md:grid md:min-h-[calc(100dvh-1rem)] md:grid-cols-[14rem_minmax(0,1fr)] md:grid-rows-[auto_auto_auto_1fr_auto]">
+    <Panel
+      className={
+        mapOnly
+          ? "fixed! inset-0 z-40 m-0 grid h-dvh w-full max-w-none grid-cols-1 grid-rows-[auto_minmax(0,1fr)] overflow-hidden"
+          : "mx-auto w-full max-w-screen-2xl overflow-hidden md:grid md:min-h-[calc(100dvh-1rem)] md:grid-cols-[14rem_minmax(0,1fr)] md:grid-rows-[auto_auto_auto_1fr_auto]"
+      }
+    >
       {/* DOM order is the phone order; at md the grid places the sidebar (mini-map, quests, log) beside the map. */}
       <TopHud
+        compact={mapOnly}
         className="md:col-span-2"
         hp={state.hp}
-        stamina={state.stamina}
         minutes={minutes}
         onMenu={() => (hasProgress ? setLeaving(true) : onMenu())}
         onCodex={() => dispatch({ type: "toggleCodex" })}
+        onHelp={() => setHelpOpen(true)}
         teamLabel={teamLabel}
         chatUnread={team ? unread : 0}
         reconnecting={team?.status === "reconnecting"}
         region={ZONES[state.zone].name}
+        playerClass={playerClass}
+        hard={state.hard}
+        tide={state.zone === "beach" ? tideName(minutes) : undefined}
+        food={state.food}
+        onEat={() => dispatch({ type: "eat" })}
+        onChat={() => {
+          setTab("chat");
+          setChatOpen((open) => !open);
+        }}
       />
       <MiniMap
-        className="md:col-start-1 md:row-start-2"
+        className={mapOnly ? "hidden!" : "md:col-start-1 md:row-start-2"}
         zone={state.zone}
         player={state.player}
         artifactFound={state.artifactFound}
@@ -200,8 +407,17 @@ export function Overworld({
         pings={pings}
         playerColor={team?.me?.color}
         chatHint={team ? "Chat: [Enter]" : "Commands: [/]"}
+        view={mapView}
       />
-      <div className="flex min-w-0 flex-col md:col-start-2 md:row-start-2 md:row-span-3">
+      <div className={`relative flex min-w-0 flex-col ${mapOnly ? "min-h-0" : "md:col-start-2 md:row-start-2 md:row-span-3"}`}>
+        {toast && (
+          <div key={toast.n} role="status" className="found-toast pointer-events-none absolute left-1/2 top-4 z-20 -translate-x-1/2 rounded border-2 border-[var(--accent-border)] bg-[var(--panel)] px-4 py-2 text-center">
+            <p className="text-sm font-bold uppercase tracking-widest text-[var(--accent)]">{toast.title}</p>
+            <p className="text-[10px] uppercase tracking-widest text-[var(--text)]">{toast.sub}</p>
+          </div>
+        )}
+        {pulse && <div key={pulse.n} aria-hidden="true" className={`hp-flash hp-flash-${pulse.kind} pointer-events-none absolute inset-0 z-10`} />}
+        {state.hp > 0 && state.hp <= LOW_HP && <div aria-hidden="true" data-testid="low-hp" className="hp-low pointer-events-none absolute inset-0 z-10 motion-safe:animate-pulse" />}
         <MapViewport
           zone={state.zone}
           player={state.player}
@@ -213,31 +429,56 @@ export function Overworld({
           artifactFound={state.artifactFound}
           towerPowered={state.towerPowered}
           badges={state.badges}
+          mushrooms={state.mushrooms}
+          jars={state.jars}
+          remedies={state.remedies}
+          secrets={state.secrets}
+          sandcastleBuilt={state.sandcastleBuilt}
           matcherSolved={state.matcherSolved}
           archiveOpen={state.archiveOpen}
+          lighthouseLit={state.lighthouseLit}
           teammates={team?.teammates.filter((t) => t.zone === state.zone)}
           pings={pings}
           lightMode={view.light}
           snow={view.snow}
           playerColor={team?.me?.color}
+          playerClass={playerClass}
+          zoom={zoom}
+          onZoom={changeZoom}
+          fullscreen={mapOnly}
+          onFullscreen={landscapePhone ? undefined : toggleMap}
+          fill={mapOnly}
+          onView={setMapView}
           inRange={inRange}
           downed={downed}
-          onInteract={(poi) => dispatch({ type: "interact", poi })}
+          onInteract={(poi) => send({ type: "interact", poi })}
           onCloseInspection={() => dispatch({ type: "closeInspection" })}
           onRespawn={() => dispatch({ type: "respawn" })}
-          prompt={inRange ? promptText(state, inRange) : ""}
+          prompt={inRange ? placeName(inRange, promptText(state, inRange)) : ""}
+          hall={state.zone === "hall" ? hall.slots : undefined}
           card={cardFor(state)}
         />
+        {neighbour && (
+          <Button variant="ghost" className="mx-auto my-1 px-3 py-1 text-xs pointer-coarse:min-h-11" disabled={leaving || helpOpen || isModalOpen(state)} onClick={pourFood}>
+            {`[ Give food to ${displayNames(players ?? []).get(neighbour.id) ?? maskRude(neighbour.name)} ]`}
+          </Button>
+        )}
+        {mapOnly && (
+          <p key={state.logCount} aria-hidden="true" className="log-line-fade pointer-events-none absolute top-2 left-2 z-10 max-w-[55%] rounded bg-[rgba(15,23,42,0.8)] px-2 py-1 text-[10px] text-[var(--text)]">
+            {state.logs.at(-1)}
+          </p>
+        )}
         <TouchControls
-          disabled={downed || leaving || isModalOpen(state)}
+          floating={mapOnly}
+          disabled={downed || leaving || helpOpen || isModalOpen(state)}
           inRange={inRange}
-          label={inRange ? interactLabel(state, inRange) : null}
+          label={inRange ? placeName(inRange, interactLabel(state, inRange)).replace(/^\[E\] /, "") : null}
           onMove={(dir) => dispatch({ type: "move", dir })}
-          onInteract={(poi) => dispatch({ type: "interact", poi })}
+          onInteract={(poi) => send({ type: "interact", poi })}
         />
       </div>
       <EventLog
-        className="md:col-start-1 md:row-start-4"
+        className={mapOnly ? (chatOpen ? "fixed! inset-x-0 bottom-0 z-50 h-[58dvh] md:min-h-0" : "sr-only absolute!") : "md:col-start-1 md:row-start-4"}
         logs={state.logs}
         logCount={state.logCount}
         chat={{
@@ -251,15 +492,23 @@ export function Overworld({
           ),
         }}
       />
+      {mapOnly && chatOpen && (
+        <Button variant="neutral" className="fixed! right-3 bottom-[calc(58dvh-2.75rem)] z-[60] px-2 py-1 text-[10px] pointer-coarse:min-h-11" onClick={() => setChatOpen(false)}>
+          <span aria-hidden="true">[X]</span>
+          <span className="sr-only">Close chat</span>
+        </Button>
+      )}
       <BottomHud
-        className="md:col-span-2 md:row-start-5"
+        className={mapOnly ? "hidden!" : "md:col-span-2 md:row-start-5"}
+        food={state.food}
+        onEat={() => dispatch({ type: "eat" })}
         hasLoot={state.hasLoot}
         clueDecoded={state.clueDecoded}
         artifactFound={state.artifactFound}
         onDecodeScroll={() => dispatch({ type: "openCipher" })}
       />
       <QuestList
-        className="md:col-start-1 md:row-start-3"
+        className={mapOnly ? "hidden!" : "md:col-start-1 md:row-start-3"}
         questComplete={state.questComplete}
         artifactFound={state.artifactFound}
         towerPowered={state.towerPowered}
@@ -272,9 +521,31 @@ export function Overworld({
           answered={state.answered}
           picks={state.picks}
           team={team !== undefined}
+          progress={state}
+          secrets={state.secrets.length}
+          zone={state.zone}
+          player={state.player}
+          onGoTo={goTo}
+          onFinale={() => dispatch({ type: "openFinale" })}
           onClose={() => dispatch({ type: "toggleCodex" })}
         />
       )}
+      {state.bookOpen && <ReviewBook badges={state.badges} answered={state.answered} picks={state.picks} onClose={() => dispatch({ type: "toggleBook" })} />}
+      {state.finaleOpen && certificateOpen && (
+        <Certificate name={playerName} badges={state.badges} played={playedFor(playedMs)} hints={hintsUsed} hard={state.hard} onBack={() => setCertificateOpen(false)} />
+      )}
+      {state.finaleOpen && !certificateOpen && (
+        <Finale
+          badges={state.badges}
+          playedMs={playedMs}
+          hints={state.hintsRevealed.length}
+          hard={state.hard}
+          onClose={() => dispatch({ type: "closeFinale" })}
+          onCertificate={() => setCertificateOpen(true)}
+          onNewGamePlus={team ? undefined : onNewGamePlus}
+        />
+      )}
+      {helpOpen && <Help onClose={() => setHelpOpen(false)} />}
       {leaving && <LeaveConfirm onStay={() => setLeaving(false)} onLeave={onMenu} />}
       {state.challenge && (
         <ChallengeTerminal
@@ -296,6 +567,16 @@ export function Overworld({
           onClose={() => dispatch({ type: "closeLogic" })}
           onRevealHint={() => dispatch({ type: "revealLogicHint" })}
           onReset={() => dispatch({ type: "resetLogic" })}
+        />
+      )}
+      {state.lampOpen && (
+        <LampModal
+          error={state.lampError}
+          hintRevealed={state.lampHintRevealed}
+          onSubmit={(bits) => dispatch({ type: "submitLamp", bits })}
+          onClose={() => dispatch({ type: "closeLamp" })}
+          onRevealHint={() => dispatch({ type: "revealLampHint" })}
+          onReset={() => dispatch({ type: "resetLamp" })}
         />
       )}
     </Panel>

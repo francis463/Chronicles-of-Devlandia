@@ -13,6 +13,7 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
 
 export function Button({
   variant = "primary",
+  type = "button",
   disabled,
   autoFocus,
   onClick,
@@ -20,6 +21,8 @@ export function Button({
   children,
 }: {
   variant?: ButtonVariant;
+  /** "submit" lets Enter in a form press it. */
+  type?: "button" | "submit";
   disabled?: boolean;
   autoFocus?: boolean;
   onClick?: () => void;
@@ -28,7 +31,7 @@ export function Button({
 }) {
   return (
     <button
-      type="button"
+      type={type}
       disabled={disabled}
       autoFocus={autoFocus}
       onClick={onClick}

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { type PingPlace } from "../chat/places";
-import { PLAYER_START } from "../game/constants";
+import { DEFAULT_CLASS, classOrDefault, type ClassId } from "../game/classes";
+import { LODGE_START } from "../game/reducer";
 import {
   makeRoomCode,
   mergeFlags,
@@ -26,7 +27,7 @@ export type TeamPhase = "idle" | "connecting" | "lobby" | "playing" | "error";
 /** Who a chat line or ping came from: roster id, the nickname as typed, and their colour. */
 export type ChatSender = { id: string; name: string; color: string };
 export type PingNote = { zone: ZoneId; x: number; y: number; place: PingPlace | null };
-export type Teammate = { id: string; name: string; color: string; x: number; y: number; zone: ZoneId | null };
+export type Teammate = { id: string; name: string; color: string; cls?: ClassId; x: number; y: number; zone: ZoneId | null };
 
 export type TeamSession = {
   phase: TeamPhase;
@@ -37,8 +38,8 @@ export type TeamSession = {
   players: RankedPlayer[];
   startedAt: number | null;
   teammates: Teammate[];
-  create(name: string, mode: TeamMode): void;
-  join(name: string, code: string, mode: TeamMode): void;
+  create(name: string, mode: TeamMode, cls?: ClassId): void;
+  join(name: string, code: string, mode: TeamMode, cls?: ClassId): void;
   start(): void;
   leave(): void;
   retry(): void;
@@ -55,6 +56,10 @@ export type TeamSession = {
   /** Chats from roster teammates that pass the receive rate limit. Subscriptions outlive rooms. */
   onChat(cb: (from: ChatSender, text: string) => void): () => void;
   onPing(cb: (from: ChatSender, ping: PingNote) => void): () => void;
+  /** Gives a piece of food to a teammate (they eat it themselves); "offline" when not in a room or while reconnecting. */
+  shareFood(to: string): "sent" | "offline";
+  /** A roster teammate gave you food (at most one per sender every few seconds). */
+  onFood(cb: (from: ChatSender) => void): () => void;
   onRoster(cb: (joined: string[], left: string[]) => void): () => void;
   /** A teammate's position updates moved them from one known zone to another (never their first sighting). */
   onZoneChange(cb: (name: string, zone: ZoneId) => void): () => void;
@@ -105,7 +110,7 @@ function reducer(state: State, action: Action): State {
   }
 }
 
-type Request = { name: string; mode: TeamMode; room: string; creating: boolean };
+type Request = { name: string; mode: TeamMode; room: string; creating: boolean; cls: ClassId };
 
 /**
  * The player's connection to a team room: lobby membership, start, teammates' positions and
@@ -126,6 +131,8 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
   const badgeCbs = useRef(new Set<(name: string, chest: ChestId, id: string) => void>());
   const chatCbs = useRef(new Set<(from: ChatSender, text: string) => void>());
   const pingCbs = useRef(new Set<(from: ChatSender, ping: PingNote) => void>());
+  const foodCbs = useRef(new Set<(from: ChatSender) => void>());
+  const lastFood = useRef(new Map<string, number>());
   /** Per sender token bucket for chat (capacity 3, refill 1 a second), by wall time. */
   const chatBuckets = useRef(new Map<string, { tokens: number; at: number }>());
   const lastPing = useRef(new Map<string, number>());
@@ -154,6 +161,7 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
     seenBadges.current.clear();
     chatBuckets.current.clear();
     lastPing.current.clear();
+    lastFood.current.clear();
     seenOthers.current = false;
     return t;
   }, []);
@@ -196,7 +204,7 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
       transport.current = t;
       request.current = req;
       const myId = crypto.randomUUID();
-      me.current = { id: myId, name: req.name, joinedAt: now(), startedAt: null, flags: NO_FLAGS, x: PLAYER_START.x, y: PLAYER_START.y, zone: "peaks" };
+      me.current = { id: myId, name: req.name, joinedAt: now(), startedAt: null, flags: NO_FLAGS, x: LODGE_START.player.x, y: LODGE_START.player.y, zone: LODGE_START.zone, cls: req.cls };
       dispatch({ type: "connect", room: req.room, myId });
 
       let lastStatus: TeamStatus | null = null;
@@ -230,6 +238,15 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
               seenBadges.current.add(key);
               badgeCbs.current.forEach((cb) => cb(msg.name, msg.chest, msg.id));
             }
+          } else if (msg.type === "food") {
+            // Only a roster teammate's food counts, only when it is meant for you, and a sender cannot give faster than every 8 s.
+            const sender = msg.id === myId || msg.to !== myId ? undefined : rankPlayers(stateRef.current.metas).find((p) => p.id === msg.id);
+            if (!sender) return;
+            const at = Date.now();
+            const last = lastFood.current.get(sender.id);
+            if (last !== undefined && at - last < 8000) return;
+            lastFood.current.set(sender.id, at);
+            foodCbs.current.forEach((cb) => cb({ id: sender.id, name: sender.name, color: sender.color }));
           } else if (msg.type === "chat" || msg.type === "ping") {
             // Only people in the roster can speak; the roster's nickname wins over the message's.
             const sender = msg.id === myId ? undefined : rankPlayers(stateRef.current.metas).find((p) => p.id === msg.id);
@@ -310,15 +327,15 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
   const busy = () => stateRef.current.phase === "connecting";
 
   const create = useCallback(
-    (name: string, mode: TeamMode) => {
-      if (!busy()) connect({ name, mode, room: makeRoomCode(), creating: true });
+    (name: string, mode: TeamMode, cls: ClassId = DEFAULT_CLASS) => {
+      if (!busy()) connect({ name, mode, room: makeRoomCode(), creating: true, cls: classOrDefault(cls) });
     },
     [connect],
   );
 
   const join = useCallback(
-    (name: string, code: string, mode: TeamMode) => {
-      if (!busy()) connect({ name, mode, room: code, creating: false });
+    (name: string, code: string, mode: TeamMode, cls: ClassId = DEFAULT_CLASS) => {
+      if (!busy()) connect({ name, mode, room: code, creating: false, cls: classOrDefault(cls) });
     },
     [connect],
   );
@@ -406,6 +423,17 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
     return () => void chatCbs.current.delete(cb);
   }, []);
 
+  const shareFood = useCallback((to: string): "sent" | "offline" => {
+    if (!canSend()) return "offline";
+    transport.current!.send({ type: "food", id: me.current!.id, name: me.current!.name, to });
+    return "sent";
+  }, []);
+
+  const onFood = useCallback((cb: (from: ChatSender) => void) => {
+    foodCbs.current.add(cb);
+    return () => void foodCbs.current.delete(cb);
+  }, []);
+
   const onPing = useCallback((cb: (from: ChatSender, ping: PingNote) => void) => {
     pingCbs.current.add(cb);
     return () => void pingCbs.current.delete(cb);
@@ -436,7 +464,7 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
     () =>
       players
         .filter((p) => p.id !== state.myId)
-        .map((p) => ({ id: p.id, name: p.name, color: p.color, ...(state.positions[p.id] ?? { x: p.x, y: p.y, zone: p.zone }) })),
+        .map((p) => ({ id: p.id, name: p.name, color: p.color, cls: classOrDefault(p.cls), ...(state.positions[p.id] ?? { x: p.x, y: p.y, zone: p.zone }) })),
     [players, state.myId, state.positions],
   );
 
@@ -463,6 +491,8 @@ export function useTeamSession(makeTransport: (mode: TeamMode) => TeamTransport,
     sendPing,
     onChat,
     onPing,
+    shareFood,
+    onFood,
     onRoster,
     onZoneChange,
   };

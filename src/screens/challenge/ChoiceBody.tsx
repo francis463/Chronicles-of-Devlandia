@@ -1,6 +1,6 @@
 import { useId, useMemo, useState, type ReactNode } from "react";
 import type { ChallengeView } from "../../game/challenges";
-import { order } from "../../learn/shuffle";
+import { optionOrder } from "../../learn/shuffle";
 import type { ChoiceChallenge } from "../../learn/types";
 import { CHANGE_ANSWER, CODE_CLASSES, CodeLines } from "./BlankBody";
 import { SubmitRow } from "./SubmitRow";
@@ -19,7 +19,7 @@ export function ChoiceBody({
   onSubmit: (index: number) => void;
   hint: ReactNode;
 }) {
-  const shown = useMemo(() => order(4, view.seed, c.id), [view.seed, c.id]);
+  const shown = useMemo(() => optionOrder(c, view.seed), [view.seed, c]);
   const [picked, setPicked] = useState<number | null>(null);
   const [lastSubmitted, setLastSubmitted] = useState<number | null>(null);
   const [announce, setAnnounce] = useState({ text: "", n: 0 });

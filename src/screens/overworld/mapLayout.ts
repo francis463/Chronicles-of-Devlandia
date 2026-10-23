@@ -1,12 +1,26 @@
+import { DESERT_JARS, DESERT_LORE } from "../../game/desertLore";
+import { HALL_SLOTS } from "../../game/hall";
+import { REMEDIES, remediesIn } from "../../game/remedies";
+import { REMEDY_SPOTS } from "../../render/areas/remedies";
+import { LODGE_POINTS } from "../../render/areas/lodge";
+import { SECRET_SPOTS } from "../../render/areas/secrets";
+import { SECRETS, secretsIn } from "../../game/secrets";
+import { FOREST_LORE, FOREST_MUSHROOMS } from "../../game/forestLore";
 import type { PoiId, Point } from "../../game/types";
 import type { ZoneId } from "../../game/zones";
 import { CHESTS } from "../../learn/chests";
 import type { ChestId } from "../../learn/types";
+import { BEACH_POINTS } from "../../render/areas/beach";
+import { DESERT_POINTS, JAR_POINTS } from "../../render/areas/desert";
+import { FOGGATEN_POINTS } from "../../render/areas/foggaten";
+import { FOREST_POINTS, MUSHROOM_POINTS } from "../../render/areas/forest";
+import { HALL_POINTS } from "../../render/areas/hall";
+import { CAVE_POINT, DOCK_POINT, LODGE_POINT, SIGNPOST_POINT, STATION_POINT } from "../../render/areas/peaks";
 import { VILLAGE_POINTS } from "../../render/areas/village";
 import { ARCHIVE_POINT, TERMINAL_POINT } from "../../render/learnPoints";
 import { spriteBox, type SpriteId } from "../../render/sprites";
 import { LANDMARK_POINTS } from "../../render/terrain";
-import { toArt, type ArtPoint, type Rect, type WorldRect } from "../../render/world";
+import { zoneToArt, type ArtPoint, type Rect, type WorldRect } from "../../render/world";
 
 // Text metrics of the 10 px uppercase tracking-widest JetBrains Mono used on the map:
 // 6 px per character plus 1 px of letter spacing, on a 15 px line (preflight's 1.5).
@@ -44,12 +58,15 @@ export function hitArea(spriteBox: Rect, world: WorldRect): CssRect {
 
 /**
  * A landmark's caption chip, 2 px above its hit area when preferred and there is room in the map
- * area, otherwise 2 px under it; shifted sideways only to stay ≥ 2 px inside the map area.
+ * area, otherwise 2 px under it; shifted sideways only to stay ≥ 2 px inside the map area (while the landmark is on it).
  */
 export function captionRect(text: string, hit: CssRect, map: MapArea, prefer: "above" | "below" = "below"): CssRect {
   const width = textWidth(text) + 2 * (CHIP.padX + CHIP.border);
   const height = LINE_H + 2 * (CHIP.padY + CHIP.border);
-  const left = clamp(hit.left + hit.width / 2 - width / 2, EDGE, map.width - EDGE - width);
+  const centre = hit.left + hit.width / 2;
+  // Keep the chip on the map only for a landmark that is on it: one far off-screen (a zone bigger than the view) keeps its own place.
+  const onMap = hit.left < map.width && hit.left + hit.width > 0;
+  const left = onMap ? clamp(centre - width / 2, EDGE, map.width - EDGE - width) : centre - width / 2;
   const above = hit.top - 2 - height;
   return { left, top: prefer === "above" && above >= EDGE ? above : hit.top + hit.height + 2, width, height };
 }
@@ -96,29 +113,119 @@ export type LandmarkCaption = {
   point: ArtPoint;
   texts: readonly string[];
   prefer: "above" | "below";
-  /** An outdoor chest: on a 1× map its caption shows only on hover, focus or while it is in reach. */
+  /** The chest inside this landmark: its caption gains a ✓ once earned. */
   chest?: ChestId;
+  /** Like a chest: on a 1× map its caption shows only on hover, focus or while it is in reach (the camp is crowded). */
+  quiet?: boolean;
 };
 
 /**
  * Each zone's buttons: the tower and cache captions sit above them when they fit (off the ice), as
- * do Ada's, the signpost's and the Archive's; chest captions take the chest table's side.
+ * do Ada's, the signpost's and the Archive's; a chest's caption is its landmark's, on the side HOSTS prefers.
  */
+/** The landmark each chest is inside: its drawing, which side its caption prefers and a shorter caption name where the host name is long. */
+const HOSTS: Partial<Record<ChestId, { sprite: SpriteId; prefer: "above" | "below"; name?: string }>> = {
+  "chest-html": { sprite: "shelf", prefer: "above", name: "Shelf" },
+  "chest-css": { sprite: "cave-mouth", prefer: "below", name: "Cave" },
+  "chest-php": { sprite: "hut", prefer: "above" },
+  "chest-sql": { sprite: "windmill", prefer: "above", name: "Mill" },
+  "chest-js": { sprite: "old-oak", prefer: "above" },
+  "chest-java": { sprite: "pyramid", prefer: "above" },
+  "chest-py-2": { sprite: "oasis", prefer: "below" },
+  "chest-cpp-2": { sprite: "shipwreck", prefer: "above" },
+  "chest-cpp-1": { sprite: "pier", prefer: "below" },
+  "chest-py-1": { sprite: "ruins", prefer: "above" },
+};
+
+/** A Hall of Fame name shows at most this many characters (the rest is cut with an ellipsis), so the plates fit side by side. */
+export const HALL_NAME_MAX = 8;
+export const hallName = (name: string): string => ([...name].length > HALL_NAME_MAX ? `${[...name].slice(0, HALL_NAME_MAX - 1).join("")}…` : name);
+
+/** The picture badge's side, in CSS px. */
+export const HALL_BADGE = 16;
+const HALL_CHAR_W = 5.5;
+const HALL_PLATE_H = 18;
+
+/**
+ * The Hall of Fame's ten buttons: each is the hero's own drawing (the top three stand above their podium blocks, but
+ * the figure is what you point at). They have no caption chip: the names are drawn on `hallPlateRect`s.
+ */
+const HALL_BUTTONS: readonly LandmarkCaption[] = HALL_SLOTS.map((slot, i): LandmarkCaption => ({ id: slot.id, zone: "hall", sprite: "explorer-down", point: HALL_POINTS.slots[i], texts: [], prefer: "below" }));
+
+/** Where hero `i` (0 to 9) is drawn, in CSS px. */
+export const hallHeroRect = (world: WorldRect, i: number): CssRect => spriteCss(spriteBox("explorer-down", HALL_POINTS.slots[i]), world);
+/**
+ * Hero `i`'s name plate, 2 px above its head: the round picture and the name side by side. The picture is the plate's
+ * left `HALL_BADGE` px; `text` is the name as shown.
+ */
+export const hallPlateRect = (world: WorldRect, i: number, text: string): CssRect => {
+  const hero = hallHeroRect(world, i);
+  // 2 border + the picture + 2 gap + the text + 4 padding.
+  const width = 2 + HALL_BADGE + 2 + [...text].length * HALL_CHAR_W + 4;
+  return { left: hero.left + hero.width / 2 - width / 2, top: hero.top - 2 - HALL_PLATE_H, width, height: HALL_PLATE_H };
+};
+
 export const LANDMARK_CAPTIONS: readonly LandmarkCaption[] = [
   { id: "tower", zone: "peaks", sprite: "tower", point: LANDMARK_POINTS.tower, texts: ["[T] Tower", "[T] Tower ✓"], prefer: "above" },
-  { id: "chest", zone: "peaks", sprite: "chest-closed", point: LANDMARK_POINTS.chest, texts: ["[X] Supply Cache", "[X] Empty Cache"], prefer: "above" },
   { id: "gate", zone: "peaks", sprite: "gate", point: LANDMARK_POINTS.gate, texts: ["[G] Gate"], prefer: "below" },
   { id: "villager", zone: "village", sprite: "explorer-down", point: VILLAGE_POINTS.villager, texts: ["[V] Ada"], prefer: "above" },
   { id: "signpost", zone: "village", sprite: "signpost", point: VILLAGE_POINTS.signpost, texts: ["[P] Signpost"], prefer: "above" },
+  { id: "ranger", zone: "forest", sprite: "explorer-down", point: FOREST_POINTS.ranger, texts: ["[R] Ranger"], prefer: "above" },
+  { id: "campfire", zone: "forest", sprite: "campfire", point: FOREST_POINTS.campfire, texts: ["[F] Campfire"], prefer: "below" },
+  { id: "forest-signpost", zone: "forest", sprite: "signpost", point: FOREST_POINTS.signpost, texts: ["[P] Signpost"], prefer: "below" },
+  { id: "hunter-cabin", zone: "forest", sprite: "cabin", point: FOREST_POINTS.cabin, texts: ["Cabin"], prefer: "above", quiet: true },
+  { id: "forest-well", zone: "forest", sprite: "well", point: FOREST_POINTS.well, texts: ["Well"], prefer: "above", quiet: true },
+  { id: "forest-brook", zone: "forest", sprite: "brook", point: FOREST_POINTS.brook, texts: ["Bridge"], prefer: "below", quiet: true },
+  { id: "fairy-ring", zone: "forest", sprite: "fairy-ring", point: FOREST_POINTS.ring, texts: ["Fairy Ring"], prefer: "above", quiet: true },
+  { id: "chest", zone: "forest", sprite: "hollow-tree", point: FOREST_POINTS.hollow, texts: ["[X] Hollow Tree", "[X] Empty Hollow"], prefer: "below" },
+  ...MUSHROOM_POINTS.map((m): LandmarkCaption => ({ id: m.id, zone: "forest", sprite: "glow-mushroom", point: m.at, texts: ["Mushroom"], prefer: "below", quiet: true })),
+  { id: "caravan-camp", zone: "desert", sprite: "tent", point: DESERT_POINTS.camp, texts: ["Camp"], prefer: "above", quiet: true },
+  { id: "desert-well", zone: "desert", sprite: "well", point: DESERT_POINTS.well, texts: ["Well"], prefer: "above", quiet: true },
+  { id: "temple-door", zone: "desert", sprite: "temple-door", point: DESERT_POINTS.door, texts: ["Door"], prefer: "above", quiet: true },
+  { id: "dry-riverbed", zone: "desert", sprite: "riverbed", point: DESERT_POINTS.riverbed, texts: ["Riverbed"], prefer: "below", quiet: true },
+  { id: "obelisk", zone: "desert", sprite: "obelisk", point: DESERT_POINTS.obelisk, texts: ["Obelisk"], prefer: "above", quiet: true },
+  ...JAR_POINTS.map((j): LandmarkCaption => ({ id: j.id, zone: "desert", sprite: "jar", point: j.at, texts: ["Jar"], prefer: "below", quiet: true })),
+  ...REMEDY_SPOTS.map((r): LandmarkCaption => ({ id: r.id, zone: r.zone, sprite: r.sprite, point: r.at, texts: [REMEDIES.find((x) => x.id === r.id)!.short], prefer: "below", quiet: true })),
+  ...SECRET_SPOTS.map((s): LandmarkCaption => ({ id: s.id, zone: s.zone, sprite: s.sprite, point: s.at, texts: [SECRETS.find((x) => x.id === s.id)!.label], prefer: "above", quiet: true })),
+  { id: "lodge-door", zone: "peaks", sprite: "lodge", point: LODGE_POINT, texts: ["Lodge"], prefer: "below", quiet: true },
+  { id: "lodge-keeper", zone: "lodge", sprite: "explorer-down", point: LODGE_POINTS.keeper, texts: ["[K] Keeper"], prefer: "below" },
+  { id: "lodge-book", zone: "lodge", sprite: "book", point: LODGE_POINTS.book, texts: ["Book"], prefer: "above", quiet: true },
+  { id: "lodge-fireplace", zone: "lodge", sprite: "fireplace", point: LODGE_POINTS.fireplace, texts: ["Fireplace"], prefer: "below", quiet: true },
+  { id: "dock", zone: "peaks", sprite: "dock", point: DOCK_POINT, texts: ["[B] Dock"], prefer: "below" },
+  { id: "peaks-signpost", zone: "peaks", sprite: "signpost", point: SIGNPOST_POINT, texts: ["[P] Signpost"], prefer: "above", quiet: true },
+  { id: "weather-station", zone: "peaks", sprite: "station", point: STATION_POINT, texts: ["[W] Weather Station"], prefer: "above", quiet: true },
+  { id: "snow-cave", zone: "peaks", sprite: "snow-cave", point: CAVE_POINT, texts: ["[C] Cave"], prefer: "above", quiet: true },
+  { id: "island-dock", zone: "foggaten", sprite: "dock", point: FOGGATEN_POINTS.dock, texts: ["[B] Dock"], prefer: "below" },
+  { id: "lighthouse", zone: "foggaten", sprite: "lighthouse", point: FOGGATEN_POINTS.lighthouse, texts: ["[L] Lighthouse"], prefer: "above" },
+  { id: "hermit", zone: "foggaten", sprite: "explorer-down", point: FOGGATEN_POINTS.hermit, texts: ["[H] Hermit"], prefer: "above" },
+  { id: "island-fire", zone: "foggaten", sprite: "campfire", point: FOGGATEN_POINTS.fire, texts: ["[F] Campfire"], prefer: "below" },
+  { id: "nomad", zone: "desert", sprite: "explorer-down", point: DESERT_POINTS.nomad, texts: ["[N] Nomad"], prefer: "below" },
+  { id: "desert-signpost", zone: "desert", sprite: "signpost", point: DESERT_POINTS.signpost, texts: ["[S] Signpost"], prefer: "above" },
+  { id: "fisher", zone: "beach", sprite: "explorer-down", point: BEACH_POINTS.fisher, texts: ["[F] Fisher"], prefer: "below" },
+  { id: "sandcastle", zone: "beach", sprite: "sandcastle", point: BEACH_POINTS.sandcastle, texts: ["[C] Sandcastle", "Sandcastle ✓"], prefer: "below" },
+  { id: "beach-signpost", zone: "beach", sprite: "signpost", point: BEACH_POINTS.signpost, texts: ["[S] Signpost"], prefer: "above" },
+  ...HALL_BUTTONS,
+  { id: "hall-signpost", zone: "hall", sprite: "signpost", point: HALL_POINTS.signpost, texts: ["[P] Signpost"], prefer: "above", quiet: true },
   { id: "terminal", zone: "village", sprite: "syntax-terminal", point: TERMINAL_POINT, texts: ["Terminal"], prefer: "below" },
   { id: "archive", zone: "village", sprite: "archive", point: ARCHIVE_POINT, texts: ["Archive", "C#", "C# ✓"], prefer: "above" },
-  ...CHESTS.flatMap((c): LandmarkCaption[] =>
-    c.at && c.caption ? [{ id: c.id as PoiId, zone: c.zone, sprite: "code-chest", point: toArt(c.at), texts: [c.badge, `${c.badge} ✓`], prefer: c.caption, chest: c.id }] : [],
-  ),
+  ...CHESTS.flatMap((c): LandmarkCaption[]  => {
+    const host = c.at && HOSTS[c.id];
+    return host ? [{ id: c.id as PoiId, zone: c.zone, sprite: host.sprite, point: zoneToArt(c.at!, c.zone), texts: [host.name ?? c.host!, `${host.name ?? c.host} ✓`], prefer: host.prefer, chest: c.id }] : [];
+  }),
 ];
 
+/** The forest's quiet scenery buttons (its lore landmarks and the ranger's glow mushrooms), with the side each caption prefers. */
+export const FOREST_SCENERY = [...FOREST_LORE, ...FOREST_MUSHROOMS, ...remediesIn("forest")].map((p) => ({ id: p.id, label: p.label, prefer: LANDMARK_CAPTIONS.find((l) => l.id === p.id)!.prefer }));
+
+/** The desert's quiet scenery buttons (its lore landmarks and the nomad's water jars), with the side each caption prefers. */
+export const DESERT_SCENERY = [...DESERT_LORE, ...DESERT_JARS, ...remediesIn("desert")].map((p) => ({ id: p.id, label: p.label, prefer: LANDMARK_CAPTIONS.find((l) => l.id === p.id)!.prefer }));
+
+/** The beach's quiet scenery buttons (the cold drink), with the side each caption prefers. */
+export const VILLAGE_SCENERY = remediesIn("village").map((p) => ({ id: p.id, label: p.label, prefer: LANDMARK_CAPTIONS.find((l) => l.id === p.id)!.prefer }));
+export const BEACH_SCENERY = remediesIn("beach").map((p) => ({ id: p.id, label: p.label, prefer: LANDMARK_CAPTIONS.find((l) => l.id === p.id)!.prefer }));
+
 /** What the map captions depend on. `reach` is the place in reach, whose chest caption shows at 1×. */
-export type MapState = { hasLoot: boolean; towerPowered: boolean; badges?: readonly ChestId[]; archiveOpen?: boolean; reach?: PoiId | null };
+export type MapState = { sandcastleBuilt?: boolean; hasLoot: boolean; towerPowered: boolean; badges?: readonly ChestId[]; archiveOpen?: boolean; reach?: PoiId | null };
 
 /** Chest captions always show on maps at this scale and larger. */
 export const CHEST_CAPTION_SCALE = 2;
@@ -128,12 +235,13 @@ export function captionText(l: LandmarkCaption, state: MapState): string {
   const earned = (id: ChestId) => !!state.badges?.includes(id);
   if (l.id === "tower") return l.texts[state.towerPowered ? 1 : 0];
   if (l.id === "chest") return l.texts[state.hasLoot ? 1 : 0];
+  if (l.id === "sandcastle") return l.texts[state.sandcastleBuilt ? 1 : 0];
   if (l.id === "archive") return l.texts[!state.archiveOpen ? 0 : earned("chest-cs") ? 2 : 1];
   if (l.chest) return l.texts[earned(l.chest) ? 1 : 0];
   return l.texts[0];
 }
 
-const spriteOf = (l: LandmarkCaption, state: MapState): SpriteId => (l.id === "chest" && state.hasLoot ? "chest-open" : l.sprite);
+const spriteOf = (l: LandmarkCaption, _state: MapState): SpriteId => l.sprite;
 
 /** A zone's button hit areas, by place id, after the midline cuts. */
 export const zoneHitAreas = (world: WorldRect, zone: ZoneId): Record<string, CssRect> =>
@@ -151,21 +259,38 @@ const toEdges = (r: CssRect, world: WorldRect): Edges => ({
 /** A zone's showing caption chips and its drawings, as world-layer edges for labelLayout to avoid. */
 export function landmarkCaptions(world: WorldRect, map: MapArea, state: MapState, zone: ZoneId = "peaks"): Edges[] {
   const hits = zoneHitAreas(world, zone);
-  return LANDMARK_CAPTIONS.filter((l) => l.zone === zone).flatMap((l) => {
+  const captions = LANDMARK_CAPTIONS.filter((l) => l.zone === zone).flatMap((l) => {
     const drawing = toEdges(spriteCss(spriteBox(spriteOf(l, state), l.point), world), world);
-    if (l.chest && world.scale < CHEST_CAPTION_SCALE && state.reach !== l.id) return [drawing];
+    if (l.texts.length === 0) return [drawing];
+    if (l.quiet && world.scale < CHEST_CAPTION_SCALE && state.reach !== l.id) return [drawing];
     return [toEdges(captionRect(captionText(l, state), hits[l.id], map, l.prefer), world), drawing];
   });
+  // The Hall's name plates (as wide as a name can be) are fixed too: the player and drone labels keep off them.
+  const plates = zone === "hall" ? HALL_SLOTS.map((_, i) => toEdges(hallPlateRect(world, i, hallName("M".repeat(HALL_NAME_MAX))), world)) : [];
+  return [...captions, ...plates];
 }
 
 /** Place names and exit signs, positioned in world percentages so they clear the landmarks and the dig spot. */
 export const MAP_CAPTIONS = [
   { id: "peaks", zone: "peaks", at: { x: 40, y: 4 }, align: "centre" },
-  { id: "river", zone: "peaks", at: { x: 42, y: 22 }, align: "centre" },
-  { id: "forest", zone: "peaks", at: { x: 97, y: 98 }, align: "right-bottom" },
-  { id: "village", zone: "village", at: { x: 40, y: 4 }, align: "centre" },
+  { id: "river", zone: "peaks", at: { x: 40, y: 36 }, align: "centre" },
+  { id: "forest", zone: "peaks", at: { x: 80, y: 98 }, align: "right-bottom" },
+  { id: "village", zone: "village", at: { x: 55, y: 4 }, align: "centre" },
   { id: "west-exit", zone: "peaks", at: { x: 1, y: 88 }, align: "left-centre" },
   { id: "east-exit", zone: "village", at: { x: 99, y: 88 }, align: "right-centre" },
+  { id: "south-exit", zone: "peaks", at: { x: 70, y: 85 }, align: "centre" },
+  { id: "dense-forest", zone: "forest", at: { x: 40, y: 4 }, align: "centre" },
+  { id: "north-exit", zone: "forest", at: { x: 64, y: 18 }, align: "centre" },
+  { id: "foggaten", zone: "foggaten", at: { x: 40, y: 4 }, align: "centre" },
+  { id: "desert", zone: "desert", at: { x: 62, y: 4 }, align: "centre" },
+  { id: "beach", zone: "beach", at: { x: 22, y: 4 }, align: "centre" },
+  { id: "beach-west-exit", zone: "beach", at: { x: 1, y: 88 }, align: "left-centre" },
+  { id: "forest-east-exit", zone: "forest", at: { x: 99, y: 88 }, align: "right-centre" },
+  { id: "desert-east-exit", zone: "desert", at: { x: 99, y: 88 }, align: "right-centre" },
+  { id: "forest-west-exit", zone: "forest", at: { x: 1, y: 88 }, align: "left-centre" },
+  { id: "hall", zone: "hall", at: { x: 1, y: 96 }, align: "left-centre" },
+  { id: "village-north-exit", zone: "village", at: { x: 44, y: 14 }, align: "centre" },
+  { id: "hall-south-exit", zone: "hall", at: { x: 48, y: 96 }, align: "centre" },
 ] as const satisfies ReadonlyArray<{ id: string; zone: ZoneId; at: Point; align: "centre" | "right-bottom" | "left-centre" | "right-centre" }>;
 export type MapCaptionId = (typeof MAP_CAPTIONS)[number]["id"];
 
@@ -187,16 +312,30 @@ export function mapCaptionRect(id: MapCaptionId, text: string, world: WorldRect)
 }
 
 /** Each zone's exit sign: which caption it is and what it says. */
-export const EXIT_SIGNS: Record<ZoneId, { id: MapCaptionId; text: string }> = {
-  peaks: { id: "west-exit", text: "← Dev Village" },
-  village: { id: "east-exit", text: "C++ Peaks →" },
+export const EXIT_SIGNS: Record<ZoneId, ReadonlyArray<{ id: MapCaptionId; text: string }>> = {
+  peaks: [
+    { id: "west-exit", text: "← Dev Village" },
+    { id: "south-exit", text: "Forest ↓" },
+  ],
+  village: [
+    { id: "east-exit", text: "C++ Peaks →" },
+    { id: "village-north-exit", text: "↑ Hall" },
+  ],
+  forest: [
+    { id: "north-exit", text: "↑ C++ Peaks" },
+    { id: "forest-west-exit", text: "← Desert" },
+    { id: "forest-east-exit", text: "Beach →" },
+  ],
+  foggaten: [],
+  desert: [{ id: "desert-east-exit", text: "Forest →" }],
+  beach: [{ id: "beach-west-exit", text: "← Forest" }],
+  lodge: [],
+  hall: [{ id: "hall-south-exit", text: "Dev Village ↓" }],
 };
 
-/** A zone's exit sign as world-layer edges, for labelLayout to avoid. */
-export const exitSignBox = (world: WorldRect, zone: ZoneId): Edges => {
-  const sign = EXIT_SIGNS[zone];
-  return toEdges(mapCaptionRect(sign.id, sign.text, world), world);
-};
+/** A zone's exit signs as world-layer edges, for labelLayout to avoid. */
+export const exitSignBox = (world: WorldRect, zone: ZoneId): Edges[] =>
+  EXIT_SIGNS[zone].map((sign) => toEdges(mapCaptionRect(sign.id, sign.text, world), world));
 
 /** The [E] prompt: 4 px above your head, or 4 px below your feet when there is no room above. */
 export function promptRect(text: string, player: ArtPoint, world: WorldRect, map: MapArea): CssRect & { below: boolean } {
@@ -210,3 +349,6 @@ export function promptRect(text: string, player: ArtPoint, world: WorldRect, map
   const below = above < EDGE;
   return { left: centre - width / 2, top: below ? feet + 4 : above, width, height, below };
 }
+
+/** The hidden spots' buttons in each big area. Their captions show only when you are beside them, and never on hover, so you find them by looking. */
+export const SECRET_SCENERY = Object.fromEntries((["forest", "desert", "beach", "peaks"] as const).map((z) => [z, secretsIn(z).map((p) => ({ id: p.id, label: p.label, prefer: "above" as const }))])) as Record<"forest" | "desert" | "beach" | "peaks", Array<{ id: PoiId; label: string; prefer: "above" }>>;

@@ -6,8 +6,8 @@ import type { Point } from "./types";
  */
 export const WALL_Y = 49;
 
-/** The archway between the gate's posts (art x 149–168): players pass at x 48, 50 or 52. */
-export const GATE_OPENING = { minX: 47, maxX: 53 } as const;
+/** The archway between the gate's posts (the wall's gap is 47.5–52.5 % of the Peaks' width): players pass at x 48, 50 or 52. */
+export const GATE_OPENING = { minX: 47.6, maxX: 52.4 } as const;
 
 /** Why a step into the wall is refused: the gate is still locked, or the wall is solid there. */
 export type WallBlock = "locked" | "solid";

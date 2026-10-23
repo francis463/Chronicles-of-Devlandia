@@ -1,11 +1,12 @@
+import { isClassId, type ClassId } from "../game/classes";
 import type { ZoneId } from "../game/zones";
 import { AREAS } from "./areas";
 import { inRect, type Area } from "./areas/area";
-import { greyscale, gridRuns, mirror, rotate90, type Palette } from "./pixels";
+import { greyscale, gridRuns, mirror, rotate90, type Palette, type PixelGrid } from "./pixels";
 import type { Scene } from "./scene";
-import { SPRITES, TEXTURES, explorerPalette, spriteBox, type SpriteId, type TextureId } from "./sprites";
+import { CLASS_ITEMS, SPRITES, TEXTURES, explorerPalette, spriteBox, type ItemFacing, type SpriteId, type TextureId } from "./sprites";
 import { decorations, onPath, terrainAt, wallTiles } from "./terrain";
-import { REACHABLE_RECT, WORLD, intersects, type ArtPoint, type Rect, type WorldRect } from "./world";
+import { SCREEN, intersects, reachableRect, type ArtPoint, type Rect, type WorldRect } from "./world";
 
 /** The slice of CanvasRenderingContext2D the map uses (no paths, arcs or gradients: pixels only). */
 export type Ctx2D = {
@@ -24,9 +25,28 @@ export type GroundCache = { get(world: WorldRect, zone: ZoneId): { image: Canvas
 const DOWNED_HOOD = "#94a3b8";
 const mod = (n: number, m: number) => ((n % m) + m) % m;
 
+/** An explorer variant is the hood colour, optionally followed by ":<class>"; anything else after the colon is ignored. */
+function splitVariant(variant: string): { hood: string; cls: ClassId | undefined } {
+  const at = variant.lastIndexOf(":");
+  if (at < 0) return { hood: variant, cls: undefined };
+  const cls = variant.slice(at + 1);
+  return { hood: variant.slice(0, at), cls: isClassId(cls) ? cls : undefined };
+}
+
 function paletteFor(sprite: SpriteId, variant: string): Palette {
   if (!sprite.startsWith("explorer")) return SPRITES[sprite].palette;
-  return variant === "grey" ? greyscale(explorerPalette(DOWNED_HOOD)) : explorerPalette(variant);
+  const { hood, cls } = splitVariant(variant);
+  return hood === "grey" ? greyscale(explorerPalette(DOWNED_HOOD)) : explorerPalette(hood, cls);
+}
+
+const ITEM_FACING: Partial<Record<SpriteId, ItemFacing>> = { "explorer-down": "down", "explorer-up": "up", "explorer-right": "right" };
+
+/** The class item laid over an explorer, or null for no class, an unknown class or a downed (grey) explorer. */
+function itemFor(sprite: SpriteId, variant: string): { grid: PixelGrid; palette: Palette } | null {
+  const facing = ITEM_FACING[sprite];
+  const { hood, cls } = splitVariant(variant);
+  if (!facing || !cls || hood === "grey") return null;
+  return { grid: CLASS_ITEMS[cls][facing], palette: CLASS_ITEMS[cls].palette };
 }
 
 /** One small canvas per sprite, frame and colour, built the first time it is needed. */
@@ -36,15 +56,17 @@ export function createSpriteCache(make: MakeCanvas): SpriteCache {
     get(sprite, frame, variant, flip, rotate) {
       const key = `${sprite}|${frame}|${variant}|${flip}|${rotate}`;
       if (cache.has(key)) return cache.get(key)!;
-      let grid = SPRITES[sprite].frames[frame] ?? SPRITES[sprite].frames[0];
-      if (flip) grid = mirror(grid);
-      if (rotate) grid = rotate90(grid);
+      const transform = (g: PixelGrid) => (rotate ? rotate90(flip ? mirror(g) : g) : flip ? mirror(g) : g);
+      const grid = transform(SPRITES[sprite].frames[frame] ?? SPRITES[sprite].frames[0]);
+      const item = itemFor(sprite, variant);
       const canvas = make(grid[0].length, grid.length);
       if (canvas) {
-        for (const run of gridRuns(grid, paletteFor(sprite, variant))) {
-          canvas.ctx.fillStyle = run.color;
-          canvas.ctx.fillRect(run.x, run.y, run.w, 1);
-        }
+        const layers = [{ grid, palette: paletteFor(sprite, variant) }, ...(item ? [{ grid: transform(item.grid), palette: item.palette }] : [])];
+        for (const layer of layers)
+          for (const run of gridRuns(layer.grid, layer.palette)) {
+            canvas.ctx.fillStyle = run.color;
+            canvas.ctx.fillRect(run.x, run.y, run.w, 1);
+          }
       }
       const image = canvas?.image ?? null;
       cache.set(key, image);
@@ -71,18 +93,27 @@ function groundTexture(x: number, y: number, area: Area, bank: Rect | null): Tex
   return kind;
 }
 
+/** Extra art px of ground baked around the view in a zone bigger than a screen. */
+const GROUND_MARGIN = 200;
+
 /** Static terrain, the path and the decorations outside the walkable area, at art resolution. */
 export function createGroundCache(make: MakeCanvas, sprites: SpriteCache): GroundCache {
   let key = "";
+  let baked: Rect | null = null;
   let cached: ReturnType<GroundCache["get"]> = null;
   return {
     get(world, zone) {
-      const next = `${world.backingWidth},${world.backingHeight},${world.s},${world.ox},${world.oy},${zone}`;
-      if (next === key) return cached;
-      key = next;
       const land = AREAS[zone];
+      const next = `${world.backingWidth},${world.backingHeight},${world.s},${zone}`;
+      const view = visibleArt(world);
+      // A camera that follows the player moves on nearly every step: the ground is baked with a margin and reused until the view leaves it.
+      if (next === key && baked && view.x >= baked.x && view.y >= baked.y && view.x + view.w <= baked.x + baked.w && view.y + view.h <= baked.y + baked.h) return cached;
+      key = next;
+      const margin = land.world.width > SCREEN.width || land.world.height > SCREEN.height ? GROUND_MARGIN : 0;
+      const area = { x: view.x - margin, y: view.y - margin, w: view.w + 2 * margin, h: view.h + 2 * margin };
+      baked = area;
       const bank = land.ice && bankOf(land.ice);
-      const area = visibleArt(world);
+      const reach = reachableRect(land.world);
       const canvas = make(area.w, area.h);
       cached = null;
       if (!canvas) return null;
@@ -111,17 +142,17 @@ export function createGroundCache(make: MakeCanvas, sprites: SpriteCache): Groun
       // (the tiles inside the world are y-sorted with the explorers instead), in feet-row order.
       const beyondTheWorld = (at: ArtPoint) => {
         const box = spriteBox("wall", at);
-        return box.x < 0 || box.x >= WORLD.width;
+        return box.x < 0 || box.x >= land.world.width;
       };
-      const baked: Array<{ sprite: SpriteId; at: ArtPoint; wall: boolean }> = [
+      const scenery: Array<{ sprite: SpriteId; at: ArtPoint; wall: boolean }> = [
         ...decorations(area, land)
-          .filter((d) => !intersects(spriteBox(d.sprite, d.at), REACHABLE_RECT))
+          .filter((d) => !intersects(spriteBox(d.sprite, d.at), reach))
           .map((d) => ({ sprite: d.sprite as SpriteId, at: d.at, wall: false })),
         ...wallTiles(area, land)
           .filter(beyondTheWorld)
           .map((at) => ({ sprite: "wall" as SpriteId, at, wall: true })),
       ].sort((a, b) => a.at.y - b.at.y || Number(b.wall) - Number(a.wall));
-      for (const d of baked) {
+      for (const d of scenery) {
         const image = sprites.get(d.sprite, 0, "base", false, false);
         const box = spriteBox(d.sprite, d.at);
         if (image) ctx.drawImage(image, box.x - area.x, box.y - area.y);

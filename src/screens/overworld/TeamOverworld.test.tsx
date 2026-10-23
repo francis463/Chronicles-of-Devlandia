@@ -8,6 +8,11 @@ import type { ChestId } from "../../learn/types";
 import { createMemoryHub } from "../../net/memoryTransport";
 import type { TeamTransport } from "../../net/transport";
 import { Overworld } from "./Overworld";
+import { GuestApp } from "../../testing/GuestApp";
+
+// A game remembers its questions in localStorage; here every mount rolls from a clean slate (and jsdom's storage would queue a fake timer).
+vi.mock("../../learn/recent", async (importActual) => ({ ...(await importActual<typeof import("../../learn/recent")>()), loadRecent: () => ({}), saveRecent: () => {} }));
+
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
@@ -26,16 +31,18 @@ function team() {
   };
   let clock = Date.now();
   const teamClock = () => (clock += 10);
-  const app = () => within(render(<App makeTransport={make} teamClock={teamClock} />).container);
+  const app = () => within(render(<GuestApp makeTransport={make} teamClock={teamClock} />).container);
   return { hub, transports, app };
 }
 
 async function enterLobby(user: ReturnType<typeof setup>, app: App, name: string) {
   await user.click(app.getByRole("button", { name: /team lobby/i }));
+  await user.click(app.getByRole("button", { name: "[ Continue ]" }));
   await user.type(app.getByRole("textbox", { name: "Nickname" }), name);
 }
 
-async function startedPair() {
+/** Both players in a started game; a new game begins inside the Ski Lodge, so unless `inLodge` they walk out through the mat first. */
+async function startedPair({ inLodge = false }: { inLodge?: boolean } = {}) {
   const user = setup();
   const t = team();
   const ana = t.app();
@@ -49,6 +56,10 @@ async function startedPair() {
   await user.click(kai.getByRole("button", { name: "[ Join ]" }));
   await flush();
   await user.click(ana.getByRole("button", { name: "[ Start Expedition ]" }));
+  await flush();
+  // Out through the mat and back up to the camp's row (26, 72): the Peaks' steps are two percent, so eight of them.
+  if (!inLodge) for (const app of [ana, kai]) for (const dir of ["down", "down", ...Array(8).fill("up")]) await user.click(app.getByRole("button", { name: `Move ${dir}` }));
+  act(() => void vi.advanceTimersByTime(POS_INTERVAL_MS * 2));
   await flush();
   return { ...t, user, ana, kai, code };
 }
@@ -67,12 +78,12 @@ describe("Overworld in team mode", () => {
     expect(ana.getByTestId("minimap-teammate-Kai")).toBeInTheDocument();
     await user.click(kai.getByRole("button", { name: "Move up" }));
     act(() => vi.advanceTimersByTime(POS_INTERVAL_MS * 2));
-    expect(ana.getByTestId("teammate-Kai").style.top).toBe("68%");
+    expect(ana.getByTestId("teammate-Kai").style.top).toBe("70%");
   });
 
   it("a teammate who walks into the village leaves your Peaks map and the log says so", async () => {
     const { user, ana, kai } = await startedPair();
-    for (let i = 0; i < 6; i++) await user.click(kai.getByRole("button", { name: "Move left" }));
+    for (let i = 0; i < 11; i++) await user.click(kai.getByRole("button", { name: "Move left" }));
     act(() => vi.advanceTimersByTime(POS_INTERVAL_MS * 2));
     expect(ana.queryByTestId("teammate-Kai")).toBeNull();
     expect(countIn(logText(ana), "Kai went to Dev Village.")).toBe(1);
@@ -123,7 +134,8 @@ describe("Overworld in team mode", () => {
     await user.type(zed.getByRole("textbox", { name: "Room code" }), code);
     await user.click(zed.getByRole("button", { name: "[ Join ]" }));
     await flush();
-    expect(zed.getByText("REGION: C++ PEAKS")).toBeInTheDocument();
+    expect(zed.getByText("REGION: SKI LODGE")).toBeInTheDocument();
+    for (let i = 0; i < 2; i++) await user.click(zed.getByRole("button", { name: "Move down" })); // out to the Peaks, where the river is
     expect(zed.getByText("Frozen River")).toBeInTheDocument();
     expect(logText(zed)).toContain("Ana opened the gate.");
     expect(logText(ana)).toContain("Zed joined the team.");
@@ -131,32 +143,33 @@ describe("Overworld in team mode", () => {
 
   it("keeps playing through a dropped connection and merges progress on reconnect (Review Focus 4)", async () => {
     const { user, hub, transports, ana, kai } = await startedPair();
-    await user.click(kai.getByRole("button", { name: "[G] Gate" }));
-    await user.keyboard("block{Enter}");
     act(() => hub.drop(transports[1]));
     expect(kai.getByText("Reconnecting…")).toBeInTheDocument();
-    await user.click(kai.getByRole("button", { name: "[X] Supply Cache" }));
-    expect(logText(ana)).not.toContain("Kai opened the Supply Cache.");
+    await user.click(kai.getByRole("button", { name: "[G] Gate" }));
+    await user.keyboard("block{Enter}");
+    expect(logText(ana)).not.toContain("Kai opened the gate.");
     act(() => hub.restore(transports[1]));
     expect(kai.queryByText("Reconnecting…")).toBeNull();
-    expect(logText(ana)).toContain("Kai opened the Supply Cache.");
+    expect(logText(ana)).toContain("Kai opened the gate.");
   });
 
   it("Kai earns two badges through the UI; Ana's log shows each line once and the personal-badges note once", async () => {
-    // Every pick is 0: the HTML chest asks for href, the CSS chest for color.
+    // Every pick is 0: the HTML chest asks for href, the PHP chest for echo.
     const random = vi.spyOn(Math, "random").mockReturnValue(0);
     try {
-      const { user, ana, kai } = await startedPair();
-      await user.click(kai.getByRole("button", { name: "HTML chest" }));
+      const { user, ana, kai } = await startedPair({ inLodge: true });
+      await user.click(kai.getByRole("button", { name: "Shelf, HTML chest" }));
       await user.type(kai.getByRole("textbox", { name: "answer" }), "href");
       await user.click(kai.getByRole("button", { name: "[ SUBMIT CODE ]" }));
       await user.click(kai.getByRole("button", { name: "[ CONTINUE ]" }));
-      await user.click(kai.getByRole("button", { name: "CSS chest" }));
-      await user.type(kai.getByRole("textbox", { name: "answer" }), "color");
+      // Out through the mat, up to the village road and west into Dev Village.
+      for (const dir of ["down", "down", ...Array(6).fill("up"), ...Array(11).fill("left")]) await user.click(kai.getByRole("button", { name: `Move ${dir}` }));
+      await user.click(kai.getByRole("button", { name: "Hut, PHP chest" }));
+      await user.type(kai.getByRole("textbox", { name: "answer" }), "echo");
       await user.click(kai.getByRole("button", { name: "[ SUBMIT CODE ]" }));
       await flush();
       const text = logText(ana);
-      for (const line of ["Kai earned the HTML Badge.", "Badges are personal: each explorer opens their own chest.", "Kai earned the CSS Badge."]) {
+      for (const line of ["Kai earned the HTML Badge.", "Badges are personal: each explorer opens their own chest.", "Kai earned the PHP Badge."]) {
         expect(countIn(text, line), line).toBe(1);
       }
       expect(logText(kai)).not.toContain("Kai earned");
@@ -206,6 +219,8 @@ describe("Overworld badges with a stub session", () => {
     sendPing: vi.fn(() => "sent" as const),
     onChat: vi.fn(() => () => {}),
     onPing: vi.fn(() => () => {}),
+    shareFood: vi.fn(() => "sent" as const),
+    onFood: vi.fn(() => () => {}),
     onRoster: vi.fn(() => () => {}),
     onZoneChange: vi.fn(() => () => {}),
     ...over,
@@ -214,9 +229,9 @@ describe("Overworld badges with a stub session", () => {
   it("in a team, the quest line reads Your badges and the Codex is YOUR CODEX", async () => {
     const user = setup();
     render(<Overworld onMenu={() => {}} team={stub()} />);
-    expect(screen.getByText("Your badges: 0/10")).toBeInTheDocument();
+    expect(screen.getByText("Your badges: 0/11")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "[C] Codex" }));
-    expect(screen.getByRole("dialog", { name: "< YOUR CODEX: 0/10 BADGES >" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "< YOUR CODEX: 0/11 BADGES >" })).toBeInTheDocument();
   });
 
   it("teammates get the same access code for one startedAt, whatever their own dice roll (final review)", async () => {
@@ -237,6 +252,65 @@ describe("Overworld badges with a stub session", () => {
     expect(await codeWith(0.9)).toBe(first);
   });
 
+  describe("sharing food", () => {
+    const mate = (x: number, y: number, zone: "peaks" | "forest" = "peaks") => ({ id: "t1", name: "Kai", color: "#22c55e", x, y, zone });
+    const button = () => screen.queryByRole("button", { name: "[ Give food to Kai ]" });
+
+    it("the button shows only beside a teammate in your zone, and gives one of your food once per cooldown", async () => {
+      const user = setup();
+      const session = stub({ teammates: [mate(33, 72)] });
+      render(<Overworld onMenu={() => {}} team={session} initial={{ food: 2 }} />);
+      await user.click(button()!);
+      expect(session.shareFood).toHaveBeenCalledWith("t1");
+      expect(screen.getAllByText("You gave Kai a piece of food.").length).toBeGreaterThan(0);
+      await user.click(button()!);
+      expect(session.shareFood).toHaveBeenCalledTimes(1);
+      expect(screen.getAllByText(/Wait a few seconds/).length).toBeGreaterThan(0);
+      act(() => void vi.advanceTimersByTime(10_100));
+      await user.click(button()!);
+      expect(session.shareFood).toHaveBeenCalledTimes(2);
+      await user.click(button()!);
+      expect(screen.getAllByText("You have no food to give.").length).toBeGreaterThan(0);
+    });
+
+    it("no button for a teammate who is far away or in another zone, or when you are downed", () => {
+      const far = render(<Overworld onMenu={() => {}} team={stub({ teammates: [mate(90, 20)] })} />);
+      expect(button()).toBeNull();
+      far.unmount();
+      const elsewhere = render(<Overworld onMenu={() => {}} team={stub({ teammates: [mate(33, 72, "forest")] })} />);
+      expect(button()).toBeNull();
+      elsewhere.unmount();
+      render(<Overworld onMenu={() => {}} team={stub({ teammates: [mate(33, 72)] })} initial={{ hp: 0 }} />);
+      expect(button()).toBeNull();
+    });
+
+    it("a teammate's food goes into your bag and says who gave it", () => {
+      let pour: (from: { id: string; name: string; color: string }) => void = () => {};
+      const session = stub({ onFood: vi.fn((cb) => ((pour = cb), () => {})) });
+      render(<Overworld onMenu={() => {}} team={session} initial={{ hp: 3 }} />);
+      act(() => pour({ id: "t1", name: "Kai", color: "#22c55e" }));
+      expect(screen.getByRole("meter", { name: "HP" })).toHaveAttribute("aria-valuenow", "3");
+      expect(screen.getByText("Food ×1")).toBeInTheDocument();
+      expect(screen.getAllByText("Kai gave you food. Eat it from your inventory.").length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("the Ski Lodge in a team game", () => {
+    const kai = (zone: "peaks" | "lodge", x: number, y: number) => ({ id: "t1", name: "Kai", color: "#22c55e", x, y, zone });
+
+    it("a teammate in the lodge is with you when you are in it, and on the Peaks cell's door when you are outside", () => {
+      const inside = render(<Overworld onMenu={() => {}} team={stub({ teammates: [kai("lodge", 52, 54)] })} initial={{ zone: "lodge", player: { x: 50, y: 54 } }} />);
+      expect(screen.getByRole("button", { name: "[ Give food to Kai ]" })).toBeInTheDocument();
+      expect(screen.getByTestId("minimap-current")).toBeInTheDocument();
+      inside.unmount();
+      render(<Overworld onMenu={() => {}} team={stub({ teammates: [kai("lodge", 52, 54)] })} initial={{ zone: "peaks", player: { x: 28, y: 72 } }} />);
+      expect(screen.queryByRole("button", { name: "[ Give food to Kai ]" })).toBeNull();
+      const dot = screen.getByTestId("minimap-teammate-Kai");
+      expect([dot.style.left, dot.style.top]).toEqual(["19.4%", "88%"]);
+      expect(within(screen.getByTestId("minimap-cell-peaks")).getByTestId("minimap-teammate-Kai")).toBe(dot);
+    });
+  });
+
   it("each badge in state is published once", () => {
     const session = stub();
     const { rerender } = render(<Overworld onMenu={() => {}} team={session} initial={{ badges: ["chest-html"] }} />);
@@ -244,6 +318,14 @@ describe("Overworld badges with a stub session", () => {
     expect(session.publishBadge).toHaveBeenCalledWith("chest-html");
     rerender(<Overworld onMenu={() => {}} team={session} initial={{ badges: ["chest-html"] }} />);
     expect(session.publishBadge).toHaveBeenCalledTimes(1);
+  });
+
+  it("saved badges are not announced to teammates, but a new one is", () => {
+    const session = stub();
+    const saved = [{ chest: "chest-sql", questionId: "sql-from", answer: "FROM" }] as const;
+    render(<Overworld onMenu={() => {}} team={session} saved={[...saved]} initial={{ badges: ["chest-sql", "chest-html"] }} />);
+    expect(session.publishBadge).toHaveBeenCalledTimes(1);
+    expect(session.publishBadge).toHaveBeenCalledWith("chest-html");
   });
 
   it("a teammate's badges log their own lines, and the personal-badges note only the first time", () => {
@@ -290,10 +372,10 @@ describe("Overworld team chat", () => {
     const { user, ana, kai } = await startedPair();
     await say(user, kai, "/ping gate");
     expect(ana.getByTestId(/^minimap-ping-/)).toBeInTheDocument();
-    expect(ana.getByTestId(/^ping-/)).toHaveTextContent("Kai");
+    expect(ana.getByTestId(/^ping-(?!arrow-)/)).toHaveTextContent("Kai");
     expect(lines(ana)).toHaveTextContent("Kai pinged the Terminal Gate.");
     expect(lines(kai)).toHaveTextContent("Ping sent: the Terminal Gate.");
-    expect(kai.getByTestId(/^ping-/)).toHaveTextContent("Kai");
+    expect(kai.getByTestId(/^ping-(?!arrow-)/)).toHaveTextContent("Kai");
     await say(user, kai, "/ping");
     expect(lines(kai)).toHaveTextContent("Wait a moment before pinging again.");
   });
@@ -320,6 +402,8 @@ describe("Overworld team chat", () => {
     await user.click(ana.getByRole("button", { name: "Mute Kai" }));
     await user.click(ana.getByRole("button", { name: "[ Start Expedition ]" }));
     await flush();
+    // The game begins inside the lodge: Ana steps out to the Peaks, where the gate ping rings.
+    for (let i = 0; i < 2; i++) await user.click(ana.getByRole("button", { name: "Move down" }));
 
     // In the game: the lobby line, the draft and the mute all carried over; nothing is unread.
     expect(chatTab(ana)).toHaveTextContent(/^CHAT$/);
@@ -332,7 +416,7 @@ describe("Overworld team chat", () => {
     await say(user, kai, "/ping gate");
     expect(lines(ana)).not.toHaveTextContent(/muted hello|pinged/);
     expect(chatTab(ana)).toHaveTextContent(/^CHAT$/);
-    expect(ana.getByTestId(/^ping-/)).toHaveTextContent("Kai");
+    expect(ana.getByTestId(/^ping-(?!arrow-)/)).toHaveTextContent("Kai");
     expect(ana.getByTestId(/^minimap-ping-/)).toBeInTheDocument();
   });
 
@@ -385,7 +469,7 @@ describe("Overworld team chat", () => {
     expect(lines(ana)).toHaveTextContent("Kai: first");
     expect(lines(ana)).toHaveTextContent("Kai (2): second");
     await say(user, ana, "/where");
-    expect(lines(ana)).toHaveTextContent("Kai: C++ Peaks · Kai (2): C++ Peaks");
+    expect(lines(ana)).toHaveTextContent("Kai: C++ Peaks · Kai (2): Ski Lodge");
   });
 
   it("shows a rude nickname masked in the line, /where and the ring label", async () => {
@@ -406,9 +490,22 @@ describe("Overworld team chat", () => {
     expect(lines(ana)).not.toHaveTextContent("fuck");
   });
 
+  it("a teammate who walks south into the Dense Forest shows in its mini-map cell, in the log and in /where (Review Focus 2)", async () => {
+    const { user, ana, kai } = await startedPair();
+    for (let i = 0; i < 20; i++) await user.click(kai.getByRole("button", { name: "Move right" }));
+    for (let i = 0; i < 12; i++) await user.click(kai.getByRole("button", { name: "Move down" }));
+    act(() => vi.advanceTimersByTime(POS_INTERVAL_MS * 2));
+    expect(kai.getByText("REGION: DENSE FOREST")).toBeInTheDocument();
+    expect(within(ana.getByTestId("minimap-cell-forest")).getByTestId("minimap-teammate-Kai")).toBeInTheDocument();
+    expect(ana.queryByTestId("teammate-Kai")).toBeNull();
+    expect(countIn(logText(ana), "Kai went to Dense Forest.")).toBe(1);
+    await say(user, ana, "/where");
+    expect(lines(ana)).toHaveTextContent("Kai: Dense Forest");
+  });
+
   it("/where follows a teammate into the village", async () => {
     const { user, ana, kai } = await startedPair();
-    for (let i = 0; i < 6; i++) await user.click(kai.getByRole("button", { name: "Move left" }));
+    for (let i = 0; i < 11; i++) await user.click(kai.getByRole("button", { name: "Move left" }));
     act(() => vi.advanceTimersByTime(POS_INTERVAL_MS * 2));
     await say(user, ana, "/where");
     expect(lines(ana)).toHaveTextContent("Kai: Dev Village");
@@ -418,7 +515,8 @@ describe("Overworld team chat", () => {
     const random = vi.spyOn(Math, "random").mockReturnValue(0);
     try {
       const { user, ana, kai } = await startedPair();
-      await user.click(kai.getByRole("button", { name: "HTML chest" }));
+      for (const dir of [...Array(8).fill("down"), "left", "left", "left"]) await user.click(kai.getByRole("button", { name: `Move ${dir}` })); // down to the lodge door and in
+      await user.click(kai.getByRole("button", { name: "Shelf, HTML chest" }));
       await user.type(kai.getByRole("textbox", { name: "answer" }), "href");
       await user.click(kai.getByRole("button", { name: "[ SUBMIT CODE ]" }));
       await flush();

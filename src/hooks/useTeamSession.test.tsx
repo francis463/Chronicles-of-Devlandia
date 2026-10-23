@@ -1,5 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { LODGE_START } from "../game/reducer";
 import { JOIN_TIMEOUT_MS, NO_FLAGS, NO_ROOM_TIMEOUT_MS, POS_INTERVAL_MS, TEAM_COLORS } from "../game/team";
 import { createBroadcastTransport } from "../net/broadcastTransport";
 import { createMemoryHub } from "../net/memoryTransport";
@@ -55,6 +56,15 @@ describe("useTeamSession: lobby", () => {
     expect(ana.result.current.phase).toBe("lobby");
     expect(ana.result.current.room).toMatch(/^[A-HJ-NP-Z]{4}$/);
     expect(ana.result.current.me?.isHost).toBe(true);
+  });
+
+  it("in the lobby you are already in the Ski Lodge, where the game begins, and teammates see it", async () => {
+    const { player } = world();
+    const ana = player();
+    act(() => ana.result.current.create("Ana", "local"));
+    await settle();
+    expect(ana.result.current.players[0].zone).toBe("lodge");
+    expect([ana.result.current.players[0].x, ana.result.current.players[0].y]).toEqual([LODGE_START.player.x, LODGE_START.player.y]);
   });
 
   it("join puts both players in the room with host and colors by join order", async () => {
@@ -219,7 +229,7 @@ describe("useTeamSession: in game", () => {
     act(() => vi.advanceTimersByTime(POS_INTERVAL_MS));
     expect(kai.result.current.teammates).toEqual([
       // Fake timers freeze Date.now, so both joined at the same instant: assert the color matches Ana's own.
-      { id: ana.result.current.me!.id, name: "Ana", color: ana.result.current.me!.color, x: 40, y: 60, zone: "peaks" },
+      { id: ana.result.current.me!.id, name: "Ana", color: ana.result.current.me!.color, cls: "warrior", x: 40, y: 60, zone: "peaks" },
     ]);
   });
 
@@ -286,6 +296,18 @@ describe("useTeamSession: in game", () => {
     expect(progress).toHaveBeenCalledWith({ ...NO_FLAGS, gateUnlocked: true }, "Gil");
     expect(() => act(() => hub.inject(room, { type: "badge", id: "gil", name: "Gil", chest: "chest-rust" }))).not.toThrow();
     expect(badges).not.toHaveBeenCalled();
+  });
+
+  it("a teammate's progress with lighthouseLit reaches onProgress, and a later message without it never turns it off", async () => {
+    const { kai, hub } = await withGil();
+    const room = kai.result.current.room!;
+    const progress = vi.fn();
+    kai.result.current.onProgress(progress);
+    act(() => hub.inject(room, { type: "progress", id: "gil", name: "Gil", flags: { ...NO_FLAGS, gateUnlocked: true, lighthouseLit: true } }));
+    expect(progress).toHaveBeenLastCalledWith({ ...NO_FLAGS, gateUnlocked: true, lighthouseLit: true }, "Gil");
+    const { archiveOpen: _a, lighthouseLit: _l, ...oldest } = NO_FLAGS;
+    act(() => hub.inject(room, { type: "progress", id: "gil", name: "Gil", flags: { ...oldest, gateUnlocked: true } }));
+    expect(progress).toHaveBeenLastCalledWith({ ...NO_FLAGS, gateUnlocked: true, lighthouseLit: true }, "Gil");
   });
 
   it("a change to or from an unknown zone reports nothing", async () => {
@@ -470,6 +492,37 @@ describe("useTeamSession: chat and pings", () => {
     expect(got).toHaveBeenCalledWith({ id: anaId(p), name: "Ana", color: TEAM_COLORS[0] }, { zone: "peaks", x: 50, y: 50, place: "gate" });
   });
 
+  it("shareFood reaches only the teammate it is for, with the roster's name; a second pour within 8 seconds is dropped", async () => {
+    vi.useFakeTimers();
+    const p = await chatPair();
+    await inLobby(p);
+    const kaiGot = vi.fn();
+    const anaGot = vi.fn();
+    p.kai.result.current.onFood(kaiGot);
+    p.ana.result.current.onFood(anaGot);
+    const kaiId = p.kai.result.current.me!.id;
+    let result = "";
+    act(() => void (result = p.ana.result.current.shareFood(kaiId)));
+    expect(result).toBe("sent");
+    expect(kaiGot).toHaveBeenCalledWith({ id: anaId(p), name: "Ana", color: TEAM_COLORS[0] });
+    expect(anaGot).not.toHaveBeenCalled();
+    act(() => void p.ana.result.current.shareFood(kaiId));
+    expect(kaiGot).toHaveBeenCalledTimes(1);
+    act(() => vi.advanceTimersByTime(8100));
+    act(() => void p.ana.result.current.shareFood(kaiId));
+    expect(kaiGot).toHaveBeenCalledTimes(2);
+    // Water meant for someone else, or from an id outside the room, never reaches you.
+    act(() => p.hub.inject(p.ana.result.current.room!, { type: "food", id: anaId(p), name: "Ana", to: "someone-else" }));
+    act(() => p.hub.inject(p.ana.result.current.room!, { type: "food", id: "ghost", name: "Mia", to: kaiId }));
+    expect(kaiGot).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+  });
+
+  it("shareFood is offline outside a room", () => {
+    const p = world().player();
+    expect(p.result.current.shareFood("x")).toBe("offline");
+  });
+
   it("drops a chat from an id that isn't in the room, and shows the roster's name, not the message's", async () => {
     const p = await chatPair();
     await inLobby(p);
@@ -582,5 +635,42 @@ describe("useTeamSession: chat and pings", () => {
     await settle();
     act(() => void p.ana.result.current.sendChat("three"));
     expect(got).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe("useTeamSession: classes", () => {
+  it("create and join tell the room which class each player is; no class means the warrior", async () => {
+    const { player } = world();
+    const ana = player();
+    const kai = player();
+    const zed = player();
+    act(() => ana.result.current.create("Ana", "local", "archer"));
+    await settle();
+    const room = ana.result.current.room!;
+    act(() => kai.result.current.join("Kai", room, "local", "mage"));
+    await settle();
+    act(() => zed.result.current.join("Zed", room, "local"));
+    await settle();
+    const classes = (p: typeof ana) => Object.fromEntries(p.result.current.players.map((x) => [x.name, x.cls]));
+    expect(classes(ana)).toEqual({ Ana: "archer", Kai: "mage", Zed: "warrior" });
+    expect(kai.result.current.teammates.map((t) => [t.name, t.cls])).toEqual([
+      ["Ana", "archer"],
+      ["Zed", "warrior"],
+    ]);
+  });
+
+  it("a teammate with an unknown class is shown as the warrior", async () => {
+    const { player, hub } = world();
+    const ana = player();
+    act(() => ana.result.current.create("Ana", "local", "tank"));
+    await settle();
+    const gil = hub.transport();
+    await act(async () => {
+      await gil.join(ana.result.current.room!, {
+        id: "gil", name: "Gil", joinedAt: Date.now() + 1000, startedAt: null, flags: NO_FLAGS, x: 28, y: 72, zone: "peaks",
+        cls: "__proto__" as never,
+      });
+    });
+    expect(ana.result.current.teammates.find((t) => t.name === "Gil")?.cls).toBe("warrior");
   });
 });

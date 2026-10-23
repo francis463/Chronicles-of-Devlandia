@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { createGroundCache, createSpriteCache, paintScene, type Ctx2D, type MakeCanvas } from "./paint";
+import { CLASSES } from "../game/classes";
+import { createGroundCache, createSpriteCache, paintScene, visibleArt, type Ctx2D, type MakeCanvas } from "./paint";
 import { buildScene, type Scene, type SceneInput } from "./scene";
+import { CLASS_ITEMS } from "./sprites";
 import { fitWorld, toArt } from "./world";
 
 type Call = [string, ...unknown[]];
@@ -67,6 +69,7 @@ const input: SceneInput = {
   towerPowered: true,
   minutes: 23 * 60,
   archiveOpen: false,
+  lighthouseLit: false,
   matcherSolved: false,
   earned: [],
 };
@@ -166,11 +169,11 @@ describe("caches", () => {
   it("the ground cache is reused for the same key and rebuilt on a new one", () => {
     const { ground, made } = setup();
     const a = fitWorld({ width: 668, height: 360, dpr: 1 });
-    const first = ground.get(a, "peaks");
+    const first = ground.get(a, "village");
     const count = made.length;
-    expect(ground.get(a, "peaks")).toBe(first);
+    expect(ground.get(a, "village")).toBe(first);
     expect(made.length).toBe(count);
-    const second = ground.get(fitWorld({ width: 354, height: 360, dpr: 3 }), "peaks");
+    const second = ground.get(fitWorld({ width: 354, height: 360, dpr: 3 }), "village");
     expect(second).not.toBe(first);
     expect(made.length).toBeGreaterThan(count);
     // It covers the visible art range: on the phone, 90 art px of scenery above and below.
@@ -178,15 +181,34 @@ describe("caches", () => {
     expect((second!.image as unknown as FakeImage).h).toBe(360);
   });
 
+  it("in a zone bigger than a screen the ground is baked with a margin, so walking across it reuses it and a new scale rebuilds it", () => {
+    const { ground, made } = setup();
+    const at = (x: number) => fitWorld({ width: 668, height: 360, dpr: 1 }, 0, { x, y: 180 }, { width: 640, height: 360 });
+    const first = ground.get(at(300), "forest");
+    const count = made.length;
+    for (const x of [305, 312, 330, 350, 450, 600]) expect(ground.get(at(x), "forest"), `x ${x}`).toBe(first);
+    expect(made.length).toBe(count);
+    expect(ground.get(fitWorld({ width: 354, height: 360, dpr: 3 }, 0, { x: 300, y: 180 }, { width: 640, height: 360 }), "forest")).not.toBe(first);
+    // The baked region always covers what the view shows.
+    for (const x of [300, 340, 420, 600]) {
+      const g = ground.get(at(x), "forest")!;
+      const view = visibleArt(at(x));
+      expect(g.x <= view.x && g.y <= view.y, `x ${x} origin`).toBe(true);
+      expect(g.x + (g.image as unknown as FakeImage).w >= view.x + view.w, `x ${x} right`).toBe(true);
+    }
+  });
+
   it("the ground cache bakes only the wall tiles beyond the world, in feet-row order with the scenery", () => {
     const { ground, sprites, contexts } = setup();
-    // 668 × 360 at DPR 1: s 2, the visible art runs from x −7 to 326, past both sides of the world.
-    const g = ground.get(fitWorld({ width: 668, height: 360, dpr: 1 }), "peaks")!;
+    // The Peaks are 640 × 360: a ground baked with its margin reaches past both sides of the world.
+    const g = ground.get(fitWorld({ width: 668, height: 360, dpr: 1 }, 0, { x: 320, y: 180 }, { width: 640, height: 360 }), "peaks")!;
     const wallImage = sprites.get("wall", 0, "base", false, false);
     const draws = contexts.get(g.image as unknown as FakeImage)!.log.filter((c) => c[0] === "drawImage");
     const walls = draws.filter((c) => c[1] === wallImage);
-    expect(walls.map((c) => (c[2] as number) + g.x)).toEqual([-16, 320]);
-    expect(walls.every((c) => (c[3] as number) + g.y === 80)).toBe(true);
+    const xs = walls.map((c) => (c[2] as number) + g.x);
+    expect(xs.some((x) => x < 0) && xs.some((x) => x >= 640)).toBe(true);
+    expect(xs.every((x) => x < 0 || x >= 640)).toBe(true);
+    expect(walls.every((c) => (c[3] as number) + g.y === 168)).toBe(true);
     const feet = draws.map((c) => (c[3] as number) + g.y + (c[1] as FakeImage).h - 1);
     expect([...feet].sort((a, b) => a - b)).toEqual(feet);
     for (let i = 1; i < draws.length; i++)
@@ -215,6 +237,67 @@ describe("caches", () => {
     expect(made.length).toBe(before + 1);
     sprites.get("explorer-down", 0, "#a78bfa", false, false);
     expect(made.length).toBe(before + 2);
+  });
+
+  describe("class variants", () => {
+    const fills = (contexts: ReturnType<typeof maker>["contexts"], img: CanvasImageSource | null) =>
+      contexts.get(img as unknown as FakeImage)!.log.filter((c) => c[0] === "fillRect") as [string, string, number, number, number, number, number][];
+
+    it("a class variant is its own cached image, distinct from the plain hood", () => {
+      const { sprites, made } = setup();
+      const plain = sprites.get("explorer-down", 0, "#f472b6", false, false);
+      const mage = sprites.get("explorer-down", 0, "#f472b6:mage", false, false);
+      expect(mage).not.toBe(plain);
+      const n = made.length;
+      expect(sprites.get("explorer-down", 0, "#f472b6:mage", false, false)).toBe(mage);
+      expect(made.length).toBe(n);
+    });
+
+    it("no two variants, hoods, flips or rotations share a cache entry", () => {
+      const { sprites } = setup();
+      const images = new Set<unknown>();
+      let count = 0;
+      for (const variant of ["#f472b6", "#f472b6:mage", "#f472b6:tank", "#22c55e:mage"])
+        for (const flip of [false, true])
+          for (const rotate of [false, true]) {
+            images.add(sprites.get("explorer-down", 0, variant, flip, rotate));
+            count++;
+          }
+      expect(images.size).toBe(count);
+    });
+
+    it("paints the class cloak colour and the item colours over the explorer", () => {
+      const { sprites, contexts } = setup();
+      const colours = new Set(fills(contexts, sprites.get("explorer-down", 0, "#f472b6:mage", false, false)).map((c) => c[1]));
+      expect(colours).toContain(CLASSES.mage.outfit);
+      expect(colours).toContain("#f472b6");
+      expect(colours).toContain(CLASS_ITEMS.mage.palette.i);
+      expect(colours).toContain(CLASS_ITEMS.mage.palette.j);
+    });
+
+    it("an unknown class paints exactly like the plain hood", () => {
+      const { sprites, contexts } = setup();
+      const plain = fills(contexts, sprites.get("explorer-down", 0, "#f472b6", false, false));
+      const bad = fills(contexts, sprites.get("explorer-down", 0, "#f472b6:nonsense", false, false));
+      expect(bad).toEqual(plain);
+    });
+
+    it("the downed grey ignores any class", () => {
+      const { sprites, contexts } = setup();
+      const grey = fills(contexts, sprites.get("explorer-down", 0, "grey", false, false));
+      const greyMage = fills(contexts, sprites.get("explorer-down", 0, "grey:mage", false, false));
+      expect(greyMage).toEqual(grey);
+    });
+
+    it("flipping mirrors the item too", () => {
+      const { sprites, contexts } = setup();
+      const itemFills = (flip: boolean) =>
+        fills(contexts, sprites.get("explorer-right", 0, "#22c55e:archer", flip, false)).filter((c) => c[1] === CLASS_ITEMS.archer.palette.i || c[1] === CLASS_ITEMS.archer.palette.j);
+      const minX = Math.min(...itemFills(false).map((c) => c[3]));
+      const maxEnd = Math.max(...itemFills(true).map((c) => c[3] + c[5] - 1));
+      expect(minX).toBe(0);
+      expect(maxEnd).toBe(15);
+    });
   });
 
   it("returns null when no canvas can be made", () => {

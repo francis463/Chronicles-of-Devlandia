@@ -1,4 +1,6 @@
 import type { ChallengeTarget, ChestId, SubmitValue } from "../learn/types";
+import type { Picks } from "../learn/chests";
+import type { Bits8 } from "./lamp";
 import type { Bits } from "./logic";
 import type { TeamFlags } from "./team";
 import type { ZoneId } from "./zones";
@@ -14,9 +16,59 @@ export type PoiId =
   | "artifact"
   | "villager"
   | "signpost"
+  | "ranger"
+  | "campfire"
+  | "forest-signpost"
   | "terminal"
   | "archive"
+  | "dock"
+  | "peaks-signpost"
+  | "weather-station"
+  | "snow-cave"
+  | "island-dock"
+  | "lighthouse"
+  | "hermit"
+  | "island-fire"
+  | "nomad"
+  | "fisher"
+  | "beach-signpost"
+  | "desert-signpost"
+  | "hunter-cabin"
+  | "forest-well"
+  | "forest-brook"
+  | "fairy-ring"
+  | "sandcastle"
+  | MushroomId
+  | "caravan-camp"
+  | "desert-well"
+  | "temple-door"
+  | "dry-riverbed"
+  | "obelisk"
+  | JarId
+  | RemedyId
+  | SecretId
+  | "lodge-door"
+  | "lodge-fireplace"
+  | "lodge-keeper"
+  | "lodge-book"
+  | HallSlotId
+  | "hall-signpost"
   | Exclude<ChestId, "chest-cs">;
+
+/** The ten Hall of Fame spots: rank 1 to 3 stand on the stage, 4 to 10 on the ground. */
+export type HallSlotId = `hall-${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10}`;
+
+/** The ranger's three lost glow mushrooms. */
+export type MushroomId = "mushroom-1" | "mushroom-2" | "mushroom-3";
+
+/** The healing finds: a herb in the forest, a cactus fruit in the desert and a cold drink on the beach. */
+export type RemedyId = "remedy-herb" | "remedy-fruit" | "remedy-drink" | "remedy-carrot";
+
+/** The eight hidden spots: two in each of the forest, the desert, the beach and the Peaks. */
+export type SecretId = "secret-moss" | "secret-den" | "secret-cave" | "secret-ridge" | "secret-pool" | "secret-bottle" | "secret-pointer" | "secret-hut";
+
+/** The nomad's three lost water jars. */
+export type JarId = "jar-1" | "jar-2" | "jar-3";
 
 export type Poi = { id: PoiId; label: string } & Point;
 
@@ -41,8 +93,9 @@ export type GameState = {
   player: Point;
   drone: Point;
   hp: number;
-  stamina: number;
   minutes: number;
+  /** Clock ticks since the game began. Unlike `minutes` it never wraps at midnight, so it measures the time played. */
+  ticks: number;
   inspected: PoiId | null;
   questComplete: boolean;
   hasLoot: boolean;
@@ -53,8 +106,13 @@ export type GameState = {
   logicOpen: boolean;
   logicError: string | null;
   logicHintRevealed: boolean;
+  /** The Lighthouse Lamp terminal: open, its last error, wrong runs so far, and whether the drone's tip shows. */
+  lampOpen: boolean;
+  lampError: string | null;
+  lampTries: number;
+  lampHintRevealed: boolean;
   /** Which bank challenge each chest asks this game. */
-  picks: Record<ChestId, 0 | 1 | 2>;
+  picks: Picks;
   /** The per-game shuffle seed for options, tiles and labels. */
   seed: number;
   /** Earned chests, in earn order. */
@@ -69,7 +127,31 @@ export type GameState = {
   accessCode: string;
   /** Shared with the team. */
   archiveOpen: boolean;
+  lighthouseLit: boolean;
+  /** Which of the ranger's glow mushrooms you have picked, and whether she has cooked them. */
+  mushrooms: MushroomId[];
+  rangerFed: boolean;
+  /** Which of the nomad's water jars you have picked up, and whether she has had her water. */
+  jars: JarId[];
+  /** Which healing finds you have used up (each heals once). */
+  remedies: RemedyId[];
+  /** The lodge keeper's soup has been served (once per game). */
+  soupTaken: boolean;
+  /** Pieces of food in your bag: healing finds and the keeper's soup. Eating one heals. */
+  food: number;
+  /** The hidden spots you have found (personal, not shared with the team). */
+  secrets: SecretId[];
+  nomadServed: boolean;
+  /** The Sunny Beach's sandcastle puzzle, solved: the castle stands finished, with its flag. */
+  sandcastleBuilt: boolean;
   codexOpen: boolean;
+  /** The lodge's review book is open (a window, like the Codex). */
+  bookOpen: boolean;
+  /** The Master of Devlandia finale: open now, and whether it has been shown this game. */
+  finaleOpen: boolean;
+  finaleSeen: boolean;
+  /** New Game+: questions come from each chest's harder half and a wrong answer costs HP. */
+  hard: boolean;
   logs: string[];
   /** Total entries ever logged; gives each visible entry a stable identity. */
   logCount: number;
@@ -81,6 +163,8 @@ export type GameAction =
   | { type: "riverDamage" }
   | { type: "droneFollow" }
   | { type: "interact"; poi: PoiId }
+  /** Board a boat at the dock you stand by (Peaks ↔ Foggaten Island). */
+  | { type: "sail"; to: ZoneId }
   | { type: "closeInspection" }
   | { type: "openCipher" }
   | { type: "submitChallenge"; value: SubmitValue }
@@ -88,9 +172,22 @@ export type GameAction =
   | { type: "closeChallenge" }
   | { type: "resetLogic" }
   | { type: "toggleCodex" }
+  | { type: "toggleBook" }
+  | { type: "eat" }
+  | { type: "openFinale" }
+  | { type: "closeFinale" }
+  /** The Codex's "Go there": close it and log where the chest is. */
+  | { type: "goTo"; chest: ChestId }
   | { type: "submitLogic"; bits: Bits }
   | { type: "closeLogic" }
   | { type: "revealLogicHint" }
+  | { type: "submitLamp"; bits: Bits8 }
+  | { type: "closeLamp" }
+  | { type: "resetLamp" }
+  | { type: "revealLampHint" }
   | { type: "teamSync"; flags: TeamFlags; by: string }
   | { type: "note"; text: string }
+  /** A teammate gave you a piece of food; `giveFood` is you passing one on (the sender spends it). */
+  | { type: "receiveFood"; from: string }
+  | { type: "giveFood" }
   | { type: "respawn" };

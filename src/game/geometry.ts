@@ -1,5 +1,6 @@
 import { CHESTS } from "../learn/chests";
 import { BOUNDS, INTERACT_RADIUS, POIS, RIVER_ZONE } from "./constants";
+import { isSecret } from "./secrets";
 import type { GameState, Poi, Point } from "./types";
 
 export function distance(a: Point, b: Point): number {
@@ -23,17 +24,42 @@ const VERBS: Partial<Record<Poi["id"], string>> = {
   artifact: "Dig here",
   villager: "Talk to Ada",
   signpost: "Read Signpost",
+  ranger: "Talk to Ranger",
+  "forest-signpost": "Read Signpost",
+  "peaks-signpost": "Read Signpost",
+  "weather-station": "Read Weather Station",
+  "snow-cave": "Enter Snow Cave",
   terminal: "Use Syntax Terminal",
+  dock: "Sail to Foggaten Island",
+  "island-dock": "Sail back to the Peaks",
+  hermit: "Talk to Hermit",
+  nomad: "Talk to Nomad",
+  fisher: "Talk to Fisher",
+  "beach-signpost": "Read Signpost",
+  "desert-signpost": "Read Signpost",
+  "mushroom-1": "Pick Glow Mushroom",
+  "mushroom-2": "Pick Glow Mushroom",
+  "mushroom-3": "Pick Glow Mushroom",
+  "jar-1": "Pick up Water Jar",
+  "jar-2": "Pick up Water Jar",
+  "jar-3": "Pick up Water Jar",
+  "lodge-keeper": "Talk to Keeper",
+  "remedy-herb": "Pick Healing Herb",
+  "remedy-fruit": "Pick Cactus Fruit",
+  "remedy-drink": "Take Cold Drink",
+  "remedy-carrot": "Pull Garden Carrot",
 };
 
-const chestVerb = (s: GameState, id: string, badge: string) =>
-  `${s.badges.some((b) => b === id) ? "Review" : "Open"} ${badge} Chest`;
+const chestVerb = (s: GameState, id: string, host: string, open = "Search") => `${s.badges.some((b) => b === id) ? "Review" : open} ${host}`;
 
 /** The action [E] takes at a place in this state, or null for a landmark you inspect. */
 function verbFor(s: GameState, poi: Poi): string | null {
   const chest = CHESTS.find((c) => c.id === poi.id);
-  if (chest) return chestVerb(s, chest.id, chest.badge);
-  if (poi.id === "archive") return s.archiveOpen ? chestVerb(s, "chest-cs", "C#") : "Unseal Archive";
+  if (chest) return chestVerb(s, chest.id, chest.host!);
+  if (isSecret(poi.id)) return s.secrets.includes(poi.id) ? null : `Search ${poi.label}`;
+  if (poi.id === "sandcastle") return s.sandcastleBuilt ? null : "Build the Sandcastle";
+  if (poi.id === "lighthouse") return s.lighthouseLit ? null : "Light the Lamp";
+  if (poi.id === "archive") return s.archiveOpen ? chestVerb(s, "chest-cs", "C# Chest", "Open") : "Unseal Archive";
   return VERBS[poi.id] ?? null;
 }
 
@@ -49,14 +75,14 @@ export function poiInRange(p: Point, extra: Poi[] = []): Poi | null {
   return nearest.distance <= INTERACT_RADIUS ? nearest.poi : null;
 }
 
-/** The nearest of `places` within reach (earlier entries win ties), or null; also null for no places. */
-export function placeInReach(p: Point, places: Poi[]): Poi | null {
+/** The nearest of `places` within `radius` (percent; a zone's `reachFor`), earlier entries winning ties, or null; also null for no places. */
+export function placeInReach(p: Point, places: Poi[], radius: number = INTERACT_RADIUS): Poi | null {
   let best: { poi: Poi; distance: number } | null = null;
   for (const poi of places) {
     const d = distance(p, poi);
     if (!best || d < best.distance) best = { poi, distance: d };
   }
-  return best && best.distance <= INTERACT_RADIUS ? best.poi : null;
+  return best && best.distance <= radius ? best.poi : null;
 }
 
 export function isInRiver(p: Point): boolean {

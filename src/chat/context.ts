@@ -1,4 +1,4 @@
-import { PLAYER_START } from "../game/constants";
+import { LODGE_START } from "../game/reducer";
 import type { TeamSession } from "../hooks/useTeamSession";
 import type { CommandContext } from "./commands";
 
@@ -16,7 +16,7 @@ export function lobbyContext(session: SessionView, muted: readonly string[]): Co
     where: "lobby",
     minutes: 0,
     badges: [],
-    me: { id: session.me?.id ?? null, name: session.me?.name ?? null, zone: "peaks", x: PLAYER_START.x, y: PLAYER_START.y },
+    me: { id: session.me?.id ?? null, name: session.me?.name ?? null, zone: LODGE_START.zone, x: LODGE_START.player.x, y: LODGE_START.player.y },
     roster: chatRoster(session),
     known: {},
     muted,

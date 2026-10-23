@@ -1,8 +1,9 @@
 import { useEffect, useRef, type ReactNode } from "react";
-import { ADA, ARCHIVE, HIDDEN_ARTIFACT, POIS, SIGNPOST } from "../../game/constants";
+import { ADA, ARCHIVE, BEACH_SIGNPOST, CAMPFIRE, DESERT_SIGNPOST, FISHER, FOREST_SIGNPOST, HERMIT, HIDDEN_ARTIFACT, ISLAND_DOCK, ISLAND_FIRE, LIGHTHOUSE, NOMAD, POIS, RANGER, SIGNPOST } from "../../game/constants";
+import { HALL_SLOTS } from "../../game/hall";
 import { WALL_Y } from "../../game/wall";
 import type { Poi, Point } from "../../game/types";
-import type { ZoneId } from "../../game/zones";
+import { ZONES, type ZoneId } from "../../game/zones";
 import type { ActivePing } from "../../hooks/usePings";
 import type { Teammate } from "../../hooks/useTeamSession";
 import { CHESTS } from "../../learn/chests";
@@ -10,7 +11,7 @@ import type { ChestId } from "../../learn/types";
 import { AREAS } from "../../render/areas";
 import type { Ctx2D } from "../../render/paint";
 import { terrainAt, type TerrainKind } from "../../render/terrain";
-import { WORLD } from "../../render/world";
+
 
 export const MINI_COLORS: Record<TerrainKind, string> = {
   ice: "#7cc4e8",
@@ -18,6 +19,11 @@ export const MINI_COLORS: Record<TerrainKind, string> = {
   snow: "#e2e8f0",
   forest: "#24452a",
   meadow: "#3f7d3a",
+  sand: "#e7c98a",
+  dune: "#e2ac4c",
+  beach: "#f1e0b0",
+  sea: "#1e5aa8",
+  floor: "#b07a45",
 };
 
 const WALL_COLOR = "#1e293b";
@@ -32,13 +38,14 @@ export function paintMiniTerrain(ctx: Ctx2D, width: number, height: number, zone
   const wallTop = Math.round((WALL_Y / 100) * height);
   const wallRows = Math.max(1, Math.round(height / 96));
   const gate = area.gateBox;
+  const wall = area.wall;
   for (let y = 0; y < height; y++) {
-    const ay = Math.round((y / height) * WORLD.height);
-    const onWall = y >= wallTop && y < wallTop + wallRows;
+    const ay = Math.round((y / height) * area.world.height);
+    const onWall = wall && y >= wallTop && y < wallTop + wallRows;
     let start = 0;
     let color = "";
     for (let x = 0; x <= width; x++) {
-      const ax = Math.round((x / width) * WORLD.width);
+      const ax = Math.round((x / width) * area.world.width);
       const atGate = !!gate && ax >= gate.x && ax < gate.x + gate.w;
       const next = x < width ? (onWall && !atGate ? WALL_COLOR : MINI_COLORS[terrainAt(ax, ay, area)]) : "";
       if (next !== color) {
@@ -53,13 +60,24 @@ export function paintMiniTerrain(ctx: Ctx2D, width: number, height: number, zone
   }
 }
 
-const CELL_W = 96; // w-24
-const CELL_H = 54;
-/** The world map, west to east. */
-const CELLS: Array<{ zone: ZoneId; left: number; places: Poi[] }> = [
+const CELL_W = 32; // six of them fill the box's 192 inner px
+const CELL_H = 18; // about 16:9, centred in the box's 54 px (18 px above and below)
+const CELL_TOP = 18;
+/** The world map, west to east. The forest lies south of the Peaks, the desert west and the beach east of the forest and Foggaten Island east of the Peaks; the cells keep one row to fit the sidebar. */
+const CELLS: Array<{ zone: ZoneId; left: number; top?: number; places: Poi[] }> = [
+  // The Hall of Fame lies north of the village: the row above it, in the box's free 18 px.
+  { zone: "hall", left: 0, top: 0, places: HALL_SLOTS },
   { zone: "village", left: 0, places: [ADA, SIGNPOST] },
   { zone: "peaks", left: CELL_W, places: POIS },
+  { zone: "desert", left: 2 * CELL_W, places: [NOMAD, DESERT_SIGNPOST] },
+  { zone: "forest", left: 3 * CELL_W, places: [RANGER, CAMPFIRE, FOREST_SIGNPOST] },
+  { zone: "beach", left: 4 * CELL_W, places: [FISHER, BEACH_SIGNPOST] },
+  { zone: "foggaten", left: 5 * CELL_W, places: [ISLAND_DOCK, LIGHTHOUSE, HERMIT, ISLAND_FIRE] },
 ];
+
+/** The lodge is a room inside the Peaks: on the world map it is the Peaks cell, and whoever is in it stands at the lodge's door. */
+const cellOf = (z: ZoneId | null): ZoneId | null => (z === "lodge" ? "peaks" : z);
+const spotOf = (z: ZoneId | null, p: Point): Point => (z === "lodge" ? ZONES.peaks.doors[0].at : p);
 
 const at = (p: Point) => ({ left: `${p.x}%`, top: `${p.y}%` });
 
@@ -78,7 +96,7 @@ function ChestDiamond({ id, point, earned }: { id: ChestId; point: Point; earned
   );
 }
 
-function MiniCell({ zone, left, current, children }: { zone: ZoneId; left: number; current: boolean; children: ReactNode }) {
+function MiniCell({ zone, left, top = CELL_TOP, current, children }: { zone: ZoneId; left: number; top?: number; current: boolean; children: ReactNode }) {
   const terrain = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const canvas = terrain.current;
@@ -90,7 +108,7 @@ function MiniCell({ zone, left, current, children }: { zone: ZoneId; left: numbe
     paintMiniTerrain(ctx, canvas.width, canvas.height, zone);
   }, [zone]);
   return (
-    <div data-testid={`minimap-cell-${zone}`} data-current={current ? "true" : undefined} className="absolute top-0 h-[54px] w-24" style={{ left }}>
+    <div data-testid={`minimap-cell-${zone}`} data-current={current ? "true" : undefined} className="absolute" style={{ left, top, width: CELL_W, height: CELL_H }}>
       <canvas ref={terrain} aria-hidden="true" className="absolute inset-0 h-full w-full" />
       {/* An overlay, not the cell's own shadow: the opaque canvas would paint over that. */}
       {current && <div aria-hidden="true" data-testid="minimap-current" className="pointer-events-none absolute inset-0 shadow-[inset_0_0_0_1px_var(--accent)]" />}
@@ -109,6 +127,7 @@ export function MiniMap({
   badges,
   archiveOpen,
   chatHint,
+  view,
   className = "",
 }: {
   zone: ZoneId;
@@ -123,6 +142,8 @@ export function MiniMap({
   playerColor?: string;
   /** The key hint for the chat or command line: `Chat: [Enter]` or `Commands: [/]`. */
   chatHint?: string;
+  /** The part of the zone the main map shows, as fractions of it; outlined when it is less than the whole zone. */
+  view?: { x: number; y: number; w: number; h: number } | null;
   className?: string;
 }) {
   return (
@@ -133,42 +154,50 @@ export function MiniMap({
         className="relative h-14 w-[194px] flex-shrink-0 overflow-hidden rounded border border-[var(--panel-border)] bg-[var(--bg)]"
       >
         {CELLS.map((cell) => (
-          <MiniCell key={cell.zone} zone={cell.zone} left={cell.left} current={cell.zone === zone}>
+          <MiniCell key={cell.zone} zone={cell.zone} left={cell.left} top={cell.top} current={cell.zone === cellOf(zone)}>
             {cell.places.map((poi) => (
               <div key={poi.id} className="absolute h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 border border-[var(--accent)]" style={at(poi)} />
             ))}
             {CHESTS.map((chest) => {
               const point = chest.at ?? (archiveOpen ? ARCHIVE : null);
-              return chest.zone === cell.zone && point ? <ChestDiamond key={chest.id} id={chest.id} point={point} earned={badges.includes(chest.id)} /> : null;
+              return cellOf(chest.zone) === cell.zone && point ? <ChestDiamond key={chest.id} id={chest.id} point={spotOf(chest.zone, point)} earned={badges.includes(chest.id)} /> : null;
             })}
-            {cell.zone === "peaks" && artifactFound && (
+            {cell.zone === "foggaten" && artifactFound && (
               <div className="absolute h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-[var(--accent)]" style={at(HIDDEN_ARTIFACT)} />
             )}
             {teammates
-              .filter((t) => t.zone === cell.zone)
+              .filter((t) => cellOf(t.zone) === cell.zone)
               .map((t) => (
                 <div
                   key={t.id}
                   data-testid={`minimap-teammate-${t.name}`}
                   className="absolute h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-[250ms] ease-linear"
-                  style={{ ...at(t), background: t.color }}
+                  style={{ ...at(spotOf(t.zone, t)), background: t.color }}
                 />
               ))}
             {pings
-              .filter((p) => p.zone === cell.zone)
+              .filter((p) => cellOf(p.zone) === cell.zone)
               .map((p) => (
                 <div
                   key={p.id}
                   data-testid={`minimap-ping-${p.id}`}
                   className="absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border animate-[ping-ring_1s_ease-out_infinite] motion-reduce:animate-none"
-                  style={{ ...at(p), borderColor: p.color }}
+                  style={{ ...at(spotOf(p.zone, p)), borderColor: p.color }}
                 />
               ))}
-            {cell.zone === zone && (
+            {cell.zone === zone && zone !== "lodge" && view && (view.w < 1 || view.h < 1) && (
+              <div
+                aria-hidden="true"
+                data-testid="minimap-view"
+                className="pointer-events-none absolute border border-[var(--text)]"
+                style={{ left: `${view.x * 100}%`, top: `${view.y * 100}%`, width: `${view.w * 100}%`, height: `${view.h * 100}%` }}
+              />
+            )}
+            {cell.zone === cellOf(zone) && (
               <div
                 data-testid="minimap-player"
                 className="absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[var(--success)] transition-all duration-150"
-                style={{ ...at(player), ...(playerColor ? { background: playerColor } : {}) }}
+                style={{ ...at(spotOf(zone, player)), ...(playerColor ? { background: playerColor } : {}) }}
               />
             )}
           </MiniCell>
@@ -181,6 +210,7 @@ export function MiniMap({
         <span className="hidden pointer-coarse:inline">Move: D-pad</span>
         <span className="hidden pointer-coarse:inline">Interact: [E] button</span>
         <span>Codex: [C]</span>
+        <span>Help: [?]</span>
         {chatHint && <span className="pointer-coarse:hidden">{chatHint}</span>}
       </div>
     </div>

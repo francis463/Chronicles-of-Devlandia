@@ -55,7 +55,7 @@ describe("team flags", () => {
   it("writes the teammate log lines from the spec", () => {
     expect(teammateLog("Kai", "questComplete")).toBe("Kai surveyed the Frozen River.");
     expect(teammateLog("Kai", "hasLoot")).toBe("Kai opened the Supply Cache.");
-    expect(teammateLog("Kai", "clueDecoded")).toBe("Kai decoded the scroll: the artifact rests in the Dense Forest.");
+    expect(teammateLog("Kai", "clueDecoded")).toBe("Kai decoded the scroll: the artifact is buried in the Dense Forest, south of camp.");
     expect(teammateLog("Kai", "artifactFound")).toBe("Kai found the Golden Semicolon!");
     expect(teammateLog("Kai", "gateUnlocked")).toBe("Kai opened the gate.");
     expect(teammateLog("Kai", "towerPowered")).toBe("Kai powered the signal tower. The fog lifts and the bridge returns.");
@@ -125,7 +125,19 @@ describe("team clock", () => {
 
 describe("validation of teammate input", () => {
   it("accepts a well-formed presence meta", () => {
-    expect(parsePresence(meta("a", 1), NOW)).toEqual(meta("a", 1));
+    expect(parsePresence(meta("a", 1), NOW)).toEqual({ ...meta("a", 1), cls: "warrior" });
+  });
+
+  it("reads a teammate's class, and anything that is not one of the six is the warrior", () => {
+    expect(parsePresence({ ...meta("a", 1), cls: "mage" }, NOW)?.cls).toBe("mage");
+    for (const bad of [undefined, 42, {}, "Mage", "__proto__", "toString", null]) {
+      expect(parsePresence({ ...meta("a", 1), cls: bad }, NOW)?.cls).toBe("warrior");
+    }
+  });
+
+  it("keeps each player's class when ranking", () => {
+    const ranked = rankPlayers([meta("a", 1, { cls: "tank" }), meta("b", 2, { cls: "healer" })]);
+    expect(ranked.map((p) => p.cls)).toEqual(["tank", "healer"]);
   });
 
   it("rejects out-of-range positions, bad flags, bad names and implausible start times", () => {
@@ -141,6 +153,8 @@ describe("validation of teammate input", () => {
   it("zones are parsed leniently and never drop a teammate", () => {
     expect(parsePresence({ ...meta("a", 1), zone: undefined }, NOW)?.zone).toBe("peaks");
     expect(parsePresence({ ...meta("a", 1), zone: "village" }, NOW)?.zone).toBe("village");
+    expect(parsePresence({ ...meta("a", 1), zone: "forest" }, NOW)?.zone).toBe("forest");
+    expect(parsePresence({ ...meta("a", 1), zone: "lodge" }, NOW)?.zone).toBe("lodge");
     const future = parsePresence({ ...meta("a", 1), zone: "marsh" }, NOW);
     expect(future).not.toBeNull();
     expect(future?.zone).toBeNull();
@@ -183,6 +197,7 @@ describe("team: the Archive and badges", () => {
     expect(parseMessage({ type: "badge", id: "a", name: "Kai", chest: "chest-sql" }, NOW)).toEqual({
       type: "badge", id: "a", name: "Kai", chest: "chest-sql",
     });
+    expect(parseMessage({ type: "badge", id: "a", name: "Kai", chest: "chest-js" }, NOW)).toMatchObject({ type: "badge", chest: "chest-js" });
     expect(parseMessage({ type: "badge", id: "a", name: "Kai", chest: "chest-rust" }, NOW)).toBeNull();
     expect(parseMessage({ type: "badge", id: "a", name: "<x>", chest: "chest-sql" }, NOW)).toBeNull();
     expect(parseMessage({ type: "badge", name: "Kai", chest: "chest-sql" }, NOW)).toBeNull();
@@ -197,11 +212,50 @@ describe("team: the Archive and badges", () => {
   });
 });
 
+describe("team: the lighthouse flag", () => {
+  const { archiveOpen: _a, lighthouseLit: _l, ...oldest } = NO_FLAGS;
+
+  it("starts false, rides on flagsOf and merges one-way", () => {
+    expect(NO_FLAGS.lighthouseLit).toBe(false);
+    expect(flagsOf({ ...initialState, lighthouseLit: true }).lighthouseLit).toBe(true);
+    expect(mergeFlags({ ...NO_FLAGS, lighthouseLit: true }, NO_FLAGS).lighthouseLit).toBe(true);
+    expect(mergeFlags(NO_FLAGS, { ...NO_FLAGS, lighthouseLit: true }).lighthouseLit).toBe(true);
+    expect(newlySet(NO_FLAGS, { ...NO_FLAGS, lighthouseLit: true })).toEqual(["lighthouseLit"]);
+    expect(newlySet({ ...NO_FLAGS, lighthouseLit: true }, NO_FLAGS)).toEqual([]);
+  });
+
+  it("logs `Kai lit the lighthouse. Its beam sweeps the fog.`", () => {
+    expect(teammateLog("Kai", "lighthouseLit")).toBe("Kai lit the lighthouse. Its beam sweeps the fog.");
+  });
+
+  it("flags from a client that does not know it still parse, and odd values read as false", () => {
+    expect(parsePresence({ ...meta("a", 1), flags: oldest }, NOW)?.flags).toEqual(NO_FLAGS);
+    expect(parseMessage({ type: "progress", id: "a", name: "Kai", flags: oldest }, NOW)).toMatchObject({ flags: NO_FLAGS });
+    expect(parsePresence({ ...meta("a", 1), flags: { ...oldest, lighthouseLit: true } }, NOW)?.flags.lighthouseLit).toBe(true);
+    for (const odd of ["yes", 1, null, {}]) {
+      expect(parsePresence({ ...meta("a", 1), flags: { ...oldest, lighthouseLit: odd } }, NOW)?.flags.lighthouseLit, String(odd)).toBe(false);
+    }
+  });
+
+  it("the six original flags are still required", () => {
+    const { gateUnlocked: _g, ...missing } = NO_FLAGS;
+    expect(parsePresence({ ...meta("a", 1), flags: missing }, NOW)).toBeNull();
+    expect(parseMessage({ type: "progress", id: "a", name: "Kai", flags: missing }, NOW)).toBeNull();
+  });
+});
+
 describe("team: chat and ping messages", () => {
   const ZWSP = String.fromCharCode(0x200b);
   const FILLER = String.fromCharCode(0x3164);
   const chat = (text: unknown, over: Record<string, unknown> = {}) => parseMessage({ type: "chat", id: "a", name: "Kai", text, ...over }, NOW);
   const ping = (over: Record<string, unknown> = {}) => parseMessage({ type: "ping", id: "a", name: "Kai", zone: "peaks", x: 40, y: 50, place: null, ...over }, NOW);
+
+  it("a ping in the lodge parses, with or without a place, and an unknown zone still drops", () => {
+    expect(ping({ zone: "lodge", x: 50, y: 50 })).toEqual({ type: "ping", id: "a", name: "Kai", zone: "lodge", x: 50, y: 50, place: null });
+    expect(ping({ zone: "lodge", place: "keeper" })).toMatchObject({ zone: "lodge", x: 38, y: 52, place: "keeper" });
+    expect(ping({ zone: "lodge", place: "html" })).toMatchObject({ zone: "lodge", x: 66, y: 46, place: "html" });
+    expect(ping({ zone: "marsh" })).toBeNull();
+  });
 
   it("a chat parses with its text cleaned and masked", () => {
     expect(chat("hello   team")).toEqual({ type: "chat", id: "a", name: "Kai", text: "hello team" });
@@ -241,5 +295,79 @@ describe("team: chat and ping messages", () => {
   it("older clients' messages are unaffected, and an unknown type is still ignored", () => {
     expect(parseMessage({ type: "chat2", id: "a" }, NOW)).toBeNull();
     expect(parseMessage({ type: "pos", id: "a", x: 40, y: 50, zone: "peaks" }, NOW)).toEqual({ type: "pos", id: "a", x: 40, y: 50, zone: "peaks" });
+  });
+});
+
+describe("the Dense Forest in team messages (Review Focus 2)", () => {
+  it("a pos in the forest is accepted, and a zone we don't know is still null, never a drop", () => {
+    expect(parseMessage({ type: "pos", id: "a", x: 20, y: 20, zone: "forest" }, NOW)).toEqual({ type: "pos", id: "a", x: 20, y: 20, zone: "forest" });
+    expect(parseMessage({ type: "pos", id: "a", x: 20, y: 20, zone: "mars" }, NOW)).toEqual({ type: "pos", id: "a", x: 20, y: 20, zone: null });
+  });
+
+  it("a spot ping in the forest is accepted", () => {
+    expect(parseMessage({ type: "ping", id: "a", name: "Kai", zone: "forest", x: 30, y: 40, place: null }, NOW)).toEqual({
+      type: "ping",
+      id: "a",
+      name: "Kai",
+      zone: "forest",
+      x: 30,
+      y: 40,
+      place: null,
+    });
+  });
+});
+
+describe("the Sunbaked Desert in team messages", () => {
+  it("a teammate in the desert keeps their zone in presence, position and ping messages", () => {
+    expect(parsePresence({ ...meta("a", 1), zone: "desert" }, NOW)?.zone).toBe("desert");
+    expect(parseMessage({ type: "pos", id: "a", x: 20, y: 20, zone: "desert" }, NOW)).toEqual({ type: "pos", id: "a", x: 20, y: 20, zone: "desert" });
+    expect(parseMessage({ type: "ping", id: "a", name: "Kai", zone: "desert", x: 30, y: 40, place: null }, NOW)).toMatchObject({ zone: "desert", place: null });
+    expect(parseMessage({ type: "ping", id: "a", name: "Kai", zone: "peaks", x: 30, y: 40, place: "java" }, NOW)).toMatchObject({ zone: "desert", x: 20, y: 34, place: "java" });
+  });
+  it("a zone this client does not know is still elsewhere, and its ping is dropped", () => {
+    expect(parsePresence({ ...meta("a", 1), zone: "tundra" }, NOW)?.zone).toBeNull();
+    expect(parseMessage({ type: "ping", id: "a", name: "Kai", zone: "tundra", x: 30, y: 40, place: null }, NOW)).toBeNull();
+  });
+});
+
+describe("the Sunny Beach in team messages", () => {
+  it("a teammate on the beach keeps their zone in presence, position and ping messages", () => {
+    expect(parsePresence({ ...meta("a", 1), zone: "beach" }, NOW)?.zone).toBe("beach");
+    expect(parseMessage({ type: "pos", id: "a", x: 20, y: 20, zone: "beach" }, NOW)).toEqual({ type: "pos", id: "a", x: 20, y: 20, zone: "beach" });
+    expect(parseMessage({ type: "ping", id: "a", name: "Kai", zone: "beach", x: 30, y: 40, place: null }, NOW)).toMatchObject({ zone: "beach", place: null });
+    expect(parseMessage({ type: "ping", id: "a", name: "Kai", zone: "peaks", x: 30, y: 40, place: "cpp2" }, NOW)).toMatchObject({ zone: "beach", x: 60, y: 30, place: "cpp2" });
+  });
+});
+
+describe("Foggaten Island in team messages", () => {
+  it("a teammate on the island keeps their zone in presence, position and ping messages", () => {
+    expect(parsePresence({ ...meta("a", 1), zone: "foggaten" }, NOW)?.zone).toBe("foggaten");
+    expect(parseMessage({ type: "pos", id: "a", x: 20, y: 20, zone: "foggaten" }, NOW)).toEqual({ type: "pos", id: "a", x: 20, y: 20, zone: "foggaten" });
+    expect(parseMessage({ type: "ping", id: "a", name: "Kai", zone: "foggaten", x: 30, y: 40, place: null }, NOW)).toMatchObject({ type: "ping", zone: "foggaten", place: null });
+  });
+
+  it("a ping at the lighthouse carries the lighthouse's own zone and spot", () => {
+    expect(parseMessage({ type: "ping", id: "a", name: "Kai", zone: "peaks", x: 30, y: 40, place: "lighthouse" }, NOW)).toMatchObject({ zone: "foggaten", x: 50, y: 46, place: "lighthouse" });
+  });
+
+  it("an unknown zone is still null (and a ping with one is refused), never an error", () => {
+    expect(parsePresence({ ...meta("a", 1), zone: "marsh" }, NOW)?.zone).toBeNull();
+    expect(parseMessage({ type: "pos", id: "a", x: 20, y: 20, zone: 42 }, NOW)).toMatchObject({ zone: null });
+    expect(parseMessage({ type: "ping", id: "a", name: "Kai", zone: "marsh", x: 30, y: 40, place: null }, NOW)).toBeNull();
+  });
+});
+
+describe("parseMessage: water", () => {
+  const water = (over: Record<string, unknown> = {}) => parseMessage({ type: "food", id: "a", name: "Kai", to: "b", ...over }, NOW);
+
+  it("accepts a bottle for one teammate and nothing else", () => {
+    expect(water()).toEqual({ type: "food", id: "a", name: "Kai", to: "b" });
+  });
+
+  it("drops a message with a missing or odd sender, target or name", () => {
+    expect(water({ to: undefined })).toBeNull();
+    expect(water({ to: 5 })).toBeNull();
+    expect(water({ id: "" })).toBeNull();
+    expect(water({ name: 7 })).toBeNull();
   });
 });

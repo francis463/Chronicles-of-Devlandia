@@ -35,6 +35,8 @@
 
 body {
   margin: 0;
+  /* The page runs edge to edge (viewport-fit=cover); ordinary screens keep clear of a notch and the home bar. The full-screen map is fixed and pads itself. */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-mono);
@@ -56,5 +58,34 @@ body {
 /* Crossing into another zone: the cover over the old map fades out as the new map fades in. */
 @keyframes zone-fade { from { opacity: 1; } to { opacity: 0; } }
 @keyframes zone-in { from { opacity: 0; } to { opacity: 1; } }
+/* Foggaten's mist: slides one pattern tile so the loop is seamless. */
+@keyframes mist-drift { from { background-position: 0 0; } to { background-position: 96px 48px; } }
 /* A ping ring: grows and fades once a second, never faster. */
 @keyframes ping-ring { from { scale: 0.4; opacity: 1; } to { scale: 1.6; opacity: 0; } }
+/* The finale's confetti: each piece falls once past the card and fades out. */
+@keyframes confetti-fall { from { translate: 0 -30px; opacity: 1; } to { translate: 0 260px; opacity: 0; } }
+
+/* "Ohh, a scroll!": fades in, holds, fades out once (opacity only, so reduced motion keeps it too). */
+@keyframes found-toast { 0% { opacity: 0; } 10% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
+.found-toast { animation: found-toast 3.5s ease-out forwards; }
+
+/* Health feedback: a red flash when hurt, a green one when healed (each plays once; not at all with reduced motion). */
+@keyframes hp-hurt { from { opacity: 0.55; } to { opacity: 0; } }
+@keyframes hp-heal { from { opacity: 0.45; } to { opacity: 0; } }
+.hp-flash { animation-duration: 500ms; animation-fill-mode: forwards; animation-timing-function: ease-out; }
+.hp-flash-hurt { background: radial-gradient(ellipse at center, transparent 35%, #dc2626 100%); animation-name: hp-hurt; }
+.hp-flash-heal { background: radial-gradient(ellipse at center, transparent 35%, #22c55e 100%); animation-name: hp-heal; }
+.hp-low { background: radial-gradient(ellipse at center, transparent 55%, rgba(220, 38, 38, 0.4) 100%); }
+@media (prefers-reduced-motion: reduce) { .hp-flash { display: none; } }
+
+/* A phone held sideways: keep the slim bar and the touch controls out from under a notch, the rounded corners and the home bar. */
+.safe-x { padding-left: max(0.75rem, env(safe-area-inset-left)); padding-right: max(0.75rem, env(safe-area-inset-right)); }
+.safe-controls {
+  padding-left: max(0.75rem, env(safe-area-inset-left));
+  padding-right: max(0.75rem, env(safe-area-inset-right));
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+/* The newest log line over the full-screen map: shows, holds for about four seconds, then fades (opacity only, so reduced motion keeps it). */
+@keyframes log-line-fade { 0% { opacity: 0; } 5% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; } }
+.log-line-fade { animation: log-line-fade 5s ease-out forwards; }

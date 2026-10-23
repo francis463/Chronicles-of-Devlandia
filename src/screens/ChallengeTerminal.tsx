@@ -5,7 +5,7 @@ import { TerminalDialog } from "../ui/TerminalDialog";
 import { BlankBody, CODE_CLASSES, CodeLines } from "./challenge/BlankBody";
 import { ChoiceBody } from "./challenge/ChoiceBody";
 import { MatchBody } from "./challenge/MatchBody";
-import { order } from "../learn/shuffle";
+import { optionOrder } from "../learn/shuffle";
 import { HintPanel } from "./challenge/HintPanel";
 
 export type { ChallengeView };
@@ -35,7 +35,7 @@ function SuccessView({
       )}
       {challenge.kind === "choice" && "answer" in success && (
         <ul className="flex flex-col gap-2 text-xs">
-          {order(4, seed, challenge.id).map((index, i) => {
+          {optionOrder(challenge, seed).map((index, i) => {
             const chosen = challenge.options[index] === success.answer;
             return (
               <li

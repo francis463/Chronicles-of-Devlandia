@@ -3,6 +3,7 @@ import { useReducedMotion } from "../../hooks/useReducedMotion";
 import { createMotion, poseAt, retarget, snap, type EntityKind, type Motion } from "../../render/motion";
 import { createGroundCache, createSpriteCache, paintScene, type Ctx2D, type MakeCanvas } from "../../render/paint";
 import { buildScene, type Poses, type Scene, type SceneInput } from "../../render/scene";
+import { AREAS } from "../../render/areas";
 import { toArt, type WorldRect } from "../../render/world";
 import type { Point } from "../../game/types";
 
@@ -42,12 +43,14 @@ export function MapCanvas({ input, world, onScene }: { input: SceneInput; world:
     const sprites = createSpriteCache(makeCanvas);
     const ground = createGroundCache(makeCanvas, sprites);
     const motions = new Map<string, Motion>();
+    const prints: Array<{ x: number; y: number; t: number }> = [];
+    let anchor: { x: number; y: number } | null = null;
     let wasDowned = latest.current.input.downed;
     let lastZone = latest.current.input.zone;
     let raf = 0;
 
     const track = (key: string, kind: EntityKind, p: Point, t: number, reducedNow: boolean, jump: boolean) => {
-      const at = toArt(p);
+      const at = toArt(p, AREAS[latest.current.input.zone].world);
       const m = motions.get(key);
       const next = !m ? createMotion(kind, at, t) : jump ? snap(m, at, t) : retarget(m, at, t, reducedNow);
       motions.set(key, next);
@@ -65,8 +68,22 @@ export function MapCanvas({ input, world, onScene }: { input: SceneInput; world:
       const poses: Poses = {
         player: track("player", "player", now.player, t, still, jump),
         drone: track("drone", "drone", now.drone, t, still, jump),
-        teammates: Object.fromEntries(now.teammates.map((m) => [m.id, track(`mate:${m.id}`, "teammate", m, t, still, false)])),
+        teammates: Object.fromEntries(now.teammates.map((m) => [m.id, track(`mate:${m.id}`, "teammate", m, t, still, jump)])),
       };
+      // Footprints: one every few art px of walking in the Peaks, gone after the scene stops drawing them (6 s).
+      if (jump || now.zone !== "peaks" || still) {
+        prints.length = 0;
+        anchor = null;
+      } else if (!now.downed) {
+        // The first step only sets where to measure from, so standing still leaves no prints.
+        if (!anchor) anchor = { x: poses.player.x, y: poses.player.y };
+        else if (Math.hypot(poses.player.x - anchor.x, poses.player.y - anchor.y) >= 5) {
+          prints.push({ x: Math.round(poses.player.x), y: Math.round(poses.player.y), t });
+          anchor = { x: poses.player.x, y: poses.player.y };
+        }
+      }
+      while (prints.length && t - prints[0].t > 6000) prints.shift();
+      poses.prints = prints;
       const scene = buildScene(now, poses, t, still);
       report?.(scene);
       paintScene(ctx, scene, rect, sprites, ground);

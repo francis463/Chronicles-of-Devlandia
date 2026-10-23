@@ -2,7 +2,11 @@ import { act, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Scene, SceneInput } from "../../render/scene";
 import { spriteBox } from "../../render/sprites";
-import { fitWorld, toArt } from "../../render/world";
+import { AREAS } from "../../render/areas";
+import { fitWorld, toArt, zoneToArt } from "../../render/world";
+
+/** Art point of a game point in the Peaks (two screens across). */
+const peaksArt = (p: { x: number; y: number }) => zoneToArt(p, "peaks");
 import { MapCanvas } from "./MapCanvas";
 
 const input: SceneInput = {
@@ -19,6 +23,7 @@ const input: SceneInput = {
   towerPowered: false,
   minutes: 19 * 60,
   archiveOpen: false,
+  lighthouseLit: false,
   matcherSolved: false,
   earned: [],
 };
@@ -131,7 +136,7 @@ describe("MapCanvas", () => {
     frame();
     frame();
     const kaiNow = explorers(scenes.at(-1)!).find((d) => d.variant === kai.color)!;
-    expect(kaiNow.x).toBe(spriteBox("explorer-down", toArt(back)).x);
+    expect(kaiNow.x).toBe(spriteBox("explorer-down", peaksArt(back)).x);
   });
 
   it("snaps the player and drone when downed turns false", () => {
@@ -143,8 +148,8 @@ describe("MapCanvas", () => {
     rerender(<MapCanvas input={{ ...input, downed: false }} world={world} onScene={(s) => scenes.push(s)} />);
     frame();
     const me = explorers(scenes.at(-1)!)[0];
-    expect(me.x).toBe(spriteBox("explorer-down", toArt(input.player)).x);
-    expect(me.y).toBe(spriteBox("explorer-down", toArt(input.player)).y);
+    expect(me.x).toBe(spriteBox("explorer-down", peaksArt(input.player)).x);
+    expect(me.y).toBe(spriteBox("explorer-down", peaksArt(input.player)).y);
   });
 
   it("jumps the player and drone when the zone changes", () => {
@@ -173,8 +178,8 @@ describe("MapCanvas", () => {
     rerender(<MapCanvas input={{ ...input, player: { x: 40, y: 72 } }} world={world} onScene={(s) => scenes.push(s)} />);
     frame(); // the glide starts in the frame that first sees the new position
     frame();
-    const start = spriteBox("explorer-down", toArt(input.player)).x;
-    const end = spriteBox("explorer-down", toArt({ x: 40, y: 72 })).x;
+    const start = spriteBox("explorer-down", peaksArt(input.player)).x;
+    const end = spriteBox("explorer-down", peaksArt({ x: 40, y: 72 })).x;
     const x = explorers(scenes.at(-1)!)[0].x;
     expect(x).toBeGreaterThan(start);
     expect(x).toBeLessThan(end);
@@ -184,7 +189,7 @@ describe("MapCanvas", () => {
     fakeContexts();
     const media = fakeMedia(true);
     const scenes: Scene[] = [];
-    const boxX = (p: { x: number; y: number }) => spriteBox("explorer-down", toArt(p)).x;
+    const boxX = (p: { x: number; y: number }) => spriteBox("explorer-down", peaksArt(p)).x;
     const { rerender } = render(<MapCanvas input={input} world={world} onScene={(s) => scenes.push(s)} />);
     frame();
     const a = { x: 40, y: 72 };
@@ -192,7 +197,7 @@ describe("MapCanvas", () => {
     frame();
     frame();
     expect(explorers(scenes.at(-1)!)[0].x).toBe(boxX(a));
-    expect(scenes.at(-1)!.glints).toEqual([]);
+    expect(scenes.at(-1)!.glints.filter((p) => p.color === "#ffffff")).toEqual([]);
     // The setting is switched off mid-game; let the reduced step's glide window pass first.
     act(() => media.set(false));
     act(() => void vi.advanceTimersByTime(400));
@@ -203,5 +208,51 @@ describe("MapCanvas", () => {
     const x = explorers(scenes.at(-1)!)[0].x;
     expect(x).toBeGreaterThan(boxX(a));
     expect(x).toBeLessThan(boxX(b));
+  });
+});
+
+describe("MapCanvas footprints", () => {
+  it("leaves a footprint where you stepped, none in other zones or with reduced motion", () => {
+    fakeContexts();
+    const scenes: Scene[] = [];
+    const prints = () => scenes.at(-1)!.glints.filter((p) => p.color === "#94a3b8");
+    const { rerender } = render(<MapCanvas input={input} world={world} onScene={(s) => scenes.push(s)} />);
+    frame();
+    expect(prints()).toEqual([]);
+    rerender(<MapCanvas input={{ ...input, player: { x: 36, y: 72 } }} world={world} onScene={(s) => scenes.push(s)} />);
+    for (let i = 0; i < 12; i++) frame();
+    expect(prints().length).toBeGreaterThan(0);
+    rerender(<MapCanvas input={{ ...input, zone: "village", player: { x: 44, y: 72 } }} world={world} onScene={(s) => scenes.push(s)} />);
+    for (let i = 0; i < 12; i++) frame();
+    expect(prints()).toEqual([]);
+  });
+
+  it("makes none when the device asks for reduced motion", () => {
+    fakeContexts();
+    fakeMedia(true);
+    const scenes: Scene[] = [];
+    const { rerender } = render(<MapCanvas input={input} world={world} onScene={(s) => scenes.push(s)} />);
+    frame();
+    rerender(<MapCanvas input={{ ...input, player: { x: 36, y: 72 } }} world={world} onScene={(s) => scenes.push(s)} />);
+    for (let i = 0; i < 12; i++) frame();
+    expect(scenes.at(-1)!.glints.filter((p) => p.color === "#94a3b8")).toEqual([]);
+  });
+});
+
+describe("MapCanvas in a bigger zone", () => {
+  const forest = AREAS.forest.world;
+  afterEach(() => void (AREAS.forest.world = forest));
+
+  it("draws the explorer where the zone's own world puts the player", () => {
+    fakeContexts();
+    const scenes: Scene[] = [];
+    AREAS.forest.world = { width: 640, height: 360 };
+    const bigWorld = fitWorld({ width: 1100, height: 540, dpr: 1 }, 0, toArt({ x: 50, y: 50 }, AREAS.forest.world), AREAS.forest.world);
+    render(<MapCanvas input={{ ...input, zone: "forest", player: { x: 50, y: 50 }, drone: { x: 52, y: 50 } }} world={bigWorld} onScene={(s) => scenes.push(s)} />);
+    frame();
+    frame();
+    const me = explorers(scenes.at(-1)!).find((d) => d.variant.startsWith(input.playerColor))!;
+    expect(me.x).toBe(spriteBox("explorer-down", { x: 320, y: 180 }).x);
+    expect(me.y).toBe(spriteBox("explorer-down", { x: 320, y: 180 }).y);
   });
 });
